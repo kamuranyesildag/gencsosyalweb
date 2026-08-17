@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessible focus rings */
+  :focus-visible {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+  }
+
+  /* Safe Area Support */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Reduced motion preference override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Minimum touch targets for mobile */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

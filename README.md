@@ -1,11 +1,12 @@
-<div align="center">
+# Genç Sosyal
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Genç Sosyal is a production-ready social media platform built with React, Vite, Node.js (Express), and PostgreSQL (Drizzle ORM).
 
-  <h1>Built with AI Studio</h2>
-
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## Features
+- Complete Authentication (JWT, OTP, TOTP, Recovery Codes)
+- User Profiles, Follows, Verification Badges
+- Posts (Text, Image, Video, Link, Poll)
+- Infinite Feed, Likes, Reposts, Bookmarks
+- Real-time Notifications, Comments, Direct Messaging
+- Advanced Moderation and Admin Panel
+- Robust Security (Rate Limiting, CSP, Security Logs)

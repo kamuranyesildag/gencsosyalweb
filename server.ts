@@ -1,0 +1,165 @@
+import express from "express";
+import path from "path";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import { createServer as createViteServer } from "vite";
+import fs from "fs";
+
+// Load environment variables in development
+if (process.env.NODE_ENV !== "production") {
+  import("dotenv").then((dotenv) => dotenv.config());
+}
+
+import { healthRouter } from "./server/routes/health.js";
+import { sitemapRouter } from "./server/routes/sitemap.js";
+import { db } from "./src/db/index.js";
+import { projectsRouter } from "./server/routes/projects.js";
+
+async function startServer() {
+  const isProd = process.env.NODE_ENV === "production";
+
+  if (isProd) {
+    const requiredEnvVars = ["JWT_SECRET", "JWT_REFRESH_SECRET", "JWT_EMAIL_SECRET", "DATABASE_URL", "ENCRYPTION_KEY"];
+    const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+    
+    if (missingVars.length > 0) {
+      console.error(`FATAL ERROR: Missing required production environment variables: ${missingVars.join(", ")}`);
+      process.exit(1);
+    }
+  }
+
+  const app = express();
+
+  // Trust reverse proxy (Nginx/Cloudflare) for rate limiting and IP logging
+  app.set("trust proxy", 1);
+  const PORT = 3000;
+
+  // Security and utilities middlewares
+  app.use(helmet({
+    contentSecurityPolicy: isProd ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", process.env.FRONTEND_URL || "http://localhost:3000", "wss:"],
+        fontSrc: ["'self'", "data:", "https:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", "https:"],
+        frameSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    } : false,
+    crossOriginEmbedderPolicy: false,
+  }));
+  let corsOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+  if (isProd && !corsOrigin) {
+    throw new Error("FATAL: CORS_ORIGIN or FRONTEND_URL must be defined in production.");
+  }
+  app.use(cors({ origin: corsOrigin || "http://localhost:3000", credentials: true }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
+
+  // Ensure upload directory exists
+  const uploadDir = process.env.UPLOAD_DIR || "uploads";
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  // Serve uploads statically
+  app.use("/uploads", express.static(uploadDir));
+
+  // --- API Routes Start ---
+  app.use("/api/v1/health", healthRouter);
+  app.use("/", sitemapRouter);
+  app.use("/api/v1/projects", projectsRouter);
+  app.use("/api/health", healthRouter);
+  
+  const { authRouter } = await import("./server/routes/auth.js");
+  app.use("/api/v1/auth", authRouter);
+    const { usersRouter } = await import("./server/routes/users.js");
+  app.use("/api/v1/users", usersRouter);
+
+  const { postsRouter } = await import("./server/routes/posts.js");
+  app.use("/api/v1/posts", postsRouter);
+
+  const { feedRouter } = await import("./server/routes/feed.js");
+  app.use("/api/v1/feed", feedRouter);
+
+  const { userPostsRouter } = await import("./server/routes/userPosts.js");
+  app.use("/api/v1/users", userPostsRouter);
+
+  const { followsRouter } = await import("./server/routes/follows.js");
+  app.use("/api/v1/users", followsRouter);
+
+  const { bookmarksRouter } = await import("./server/routes/bookmarks.js");
+  app.use("/api/v1/bookmarks", bookmarksRouter);
+
+  const { searchRouter } = await import("./server/routes/search.js");
+  app.use("/api/v1/search", searchRouter);
+
+  const { notificationsRouter } = await import("./server/routes/notifications.js");
+  app.use("/api/v1/notifications", notificationsRouter);
+
+  const { blocksRouter } = await import("./server/routes/blocks.js");
+  app.use("/api/v1/users", blocksRouter);
+  const { mediaRouter } = await import("./server/routes/media.js");
+  app.use("/api/v1/media", mediaRouter);
+
+  const { storiesRouter } = await import("./server/routes/stories.js");
+  app.use("/api/v1/stories", storiesRouter);
+
+  const { messagesRouter } = await import("./server/routes/messages.js");
+  app.use("/api/v1/messages", messagesRouter);
+
+  const { communitiesRouter } = await import("./server/routes/communities.js");
+  app.use("/api/v1/communities", communitiesRouter);
+  const { reactionsRouter } = await import("./server/routes/reactions.js");
+  app.use("/api/v1/posts", reactionsRouter);
+  const { commentsRouter } = await import("./server/routes/comments.js");
+  app.use("/api/v1/posts", commentsRouter);
+  const { reportsRouter } = await import("./server/routes/reports.js");
+  app.use("/api/v1/reports", reportsRouter);
+  
+  const { adminRouter } = await import("./server/routes/admin.js");
+  const { verificationRouter } = await import("./server/routes/verification.js");
+  const { hashtagsRouter } = await import("./server/routes/hashtags.js");
+  const { collaboratorsRouter } = await import("./server/routes/collaborators.js");
+  app.use("/api/v1/admin", adminRouter);
+  app.use("/api/v1/verification", verificationRouter);
+  app.use("/api/v1/hashtags", hashtagsRouter);
+  app.use("/api/v1/collaborators", collaboratorsRouter);
+// --- API Routes End ---
+
+  const { seoMiddleware } = await import("./server/middleware/seo.js");
+  app.use(seoMiddleware);
+
+  // Vite middleware for development or static serving for production
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    
+    // API 404 handler - prevents API calls from returning index.html
+    app.use('/api', (req, res) => {
+      res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
+    });
+
+    // SPA fallback
+    app.get('*all', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Genç Sosyal Server running on http://localhost:${PORT}`);
+  });
+}
+
+startServer().catch(console.error);

@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /messages
+Disallow: /settings
+Disallow: /admin
+Disallow: /api/
+Allow: /
+
+Sitemap: https://gencsosyal.com/sitemap.xml
