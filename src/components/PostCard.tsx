@@ -361,7 +361,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   className="focus:outline-none cursor-pointer inline-flex items-center shrink-0"
                   aria-label="Doğrulanmış Hesap"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-100 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 fill-indigo-100 shrink-0" />
                 </button>
               )}
 
@@ -396,14 +396,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   {isOwner ? (
                     <>
                       <DropdownItem
-                        icon={<Edit2 className="w-4 h-4 text-slate-600" />}
+                        icon={<Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />}
                         onClick={() => setIsEditing(true)}
                       >
                         Düzenle
                       </DropdownItem>
                       <DropdownDivider />
                       <DropdownItem
-                        icon={<Trash2 className="w-4 h-4 text-rose-600" />}
+                        icon={<Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600" />}
                         isDanger
                         disabled={isDeleting}
                         onClick={handleDelete}
@@ -414,14 +414,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   ) : (
                     <>
                       <DropdownItem
-                        icon={<Link2 className="w-4 h-4 text-slate-600" />}
+                        icon={<Link2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />}
                         onClick={handleShare}
                       >
                         Bağlantıyı Kopyala
                       </DropdownItem>
                       <DropdownDivider />
                       <DropdownItem
-                        icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
+                        icon={<AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600" />}
                         isDanger
                         onClick={() => setShowReportDialog(true)}
                       >
@@ -450,7 +450,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
               <Button
                 variant="secondary"
                 size="sm"
-                leftIcon={<Eye className="w-4 h-4" />}
+                leftIcon={<Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                 onClick={() => setIsRevealed(true)}
                 className="bg-white border-slate-200/90 text-slate-800 font-bold hover:bg-slate-50 shadow-xs"
               >

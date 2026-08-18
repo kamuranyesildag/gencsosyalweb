@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router';
 import React, { useState, useEffect } from "react";
 import { CreatePost } from "../components/CreatePost";
 import { PostCard } from "../components/PostCard";
@@ -10,11 +11,15 @@ import { usePagination } from "../hooks/usePagination";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { Sparkles, Users, RefreshCw } from "lucide-react";
+import { Avatar } from "../components/ui/Avatar";
+import { StarterQuestsCard } from "../components/StarterQuestsCard";
+import { OnboardingModal } from "../components/OnboardingModal";
 import { motion } from "motion/react";
 
 export type FeedTab = "for_you" | "following";
 
 export function Feed() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<FeedTab>("for_you");
   const { isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
@@ -46,6 +51,7 @@ export function Feed() {
   return (
     <div className="flex flex-col h-full w-full min-h-screen bg-white">
       {/* 1. Feed Header & Segmented Tabs */}
+      <OnboardingModal />
       <header className="sticky top-16 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 pt-3.5 pb-2.5">
         <div className="flex items-center justify-between gap-4">
           {/* Modern Segmented Control */}
@@ -61,7 +67,7 @@ export function Feed() {
               aria-controls="feed-panel"
               id="tab-for-you"
               onClick={() => handleTabChange("for_you")}
-              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 select-none min-h-[38px] ${
+              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[13px] md:text-sm font-bold transition-all duration-200 select-none min-h-[36px] md:min-h-[38px] ${
                 activeTab === "for_you"
                   ? "text-indigo-600 shadow-xs"
                   : "text-slate-500 hover:text-slate-900"
@@ -87,7 +93,7 @@ export function Feed() {
               aria-controls="feed-panel"
               id="tab-following"
               onClick={() => handleTabChange("following")}
-              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 select-none min-h-[38px] ${
+              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[13px] md:text-sm font-bold transition-all duration-200 select-none min-h-[36px] md:min-h-[38px] ${
                 activeTab === "following"
                   ? "text-indigo-600 shadow-xs"
                   : "text-slate-500 hover:text-slate-900"
@@ -123,8 +129,20 @@ export function Feed() {
       {/* 2. Stories Bar */}
       <StoriesBar />
 
-      {/* 3. Create Post Composer */}
-      <CreatePost onPostCreated={addItem} />
+      {/* 3. Create Post Trigger */}
+      {isAuthenticated && (
+        <div className="px-4 sm:px-6 py-4 mb-4 border-b border-slate-100 bg-white">
+          <div 
+            onClick={() => navigate("/create")}
+            className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60"
+            role="button"
+            tabIndex={0}
+          >
+            <Avatar url={useAuthStore.getState().user?.avatarUrl} name={useAuthStore.getState().user?.displayName || useAuthStore.getState().user?.username || "?"} size="sm" />
+            <span className="text-slate-500 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
+          </div>
+        </div>
+      )}
 
       {/* 4. Feed Stream */}
       <div 

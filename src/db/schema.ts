@@ -41,6 +41,7 @@ export const profiles = pgTable('profiles', {
   messagePreference: varchar('message_preference', { length: 20 }).default('ANYONE').notNull(),
   mentionPreference: varchar('mention_preference', { length: 20 }).default('ANYONE').notNull(),
   defaultPostVisibility: varchar('default_post_visibility', { length: 20 }).default('PUBLIC').notNull(),
+  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -44,6 +44,27 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
   const currentUser = useAuthStore((state) => state.user);
   const isOwner = currentUser?.id === comment.userId;
 
+  
+  const handleEdit = async () => {
+    if (!editContent.trim() || editContent === currentContent) return;
+    setIsSubmittingEdit(true);
+    try {
+      const res = await fetchApi(`/posts/comments/${comment.id}`, {
+        method: "PUT",
+        data: { content: editContent.trim() }
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCurrentContent(editContent.trim());
+        setIsEditing(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!(await confirmDialog("Onay", "Yorumu silmek istediğinize emin misiniz?"))) return;
     setIsDeleting(true);
@@ -177,7 +198,7 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
           </div>
         ) : (
           <div className="text-[14px] sm:text-[15px] text-slate-800 whitespace-pre-wrap leading-relaxed mt-0.5">
-            <RichText content={currentContent} />
+            <RichText text={currentContent} />
           </div>
         )}
       </div>
@@ -186,7 +207,7 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
         isOpen={showReportDialog}
         onClose={() => setShowReportDialog(false)}
         targetId={comment.id}
-        targetType="COMMENT"
+        targetType="comment"
       />
     </div>  );
 };

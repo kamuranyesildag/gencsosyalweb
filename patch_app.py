@@ -3,9 +3,9 @@ import re
 with open("src/App.tsx", "r") as f:
     content = f.read()
 
-if "SplashScreen" not in content:
-    content = content.replace("import { ConfirmDialogContainer } from \"./components/ui/ConfirmDialog\"; // for logged out", "import { ConfirmDialogContainer } from \"./components/ui/ConfirmDialog\"; // for logged out\nimport { SplashScreen } from \"./components/ui/SplashScreen\";")
-    content = content.replace("<ErrorBoundary>", "<ErrorBoundary>\n        <SplashScreen onComplete={() => {}} />")
-    
-    with open("src/App.tsx", "w") as f:
-        f.write(content)
+if "CreatePostPage" not in content:
+    content = content.replace('import { Feed } from "./pages/Feed";', 'import { Feed } from "./pages/Feed";\nimport { CreatePostPage } from "./pages/CreatePostPage";')
+    content = content.replace('<Route path="/home" element={<Feed />} />', '<Route path="/home" element={<Feed />} />\n              <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />')
+
+with open("src/App.tsx", "w") as f:
+    f.write(content)

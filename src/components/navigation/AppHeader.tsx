@@ -26,7 +26,7 @@ export function AppHeader() {
   const isMessagesActive = location.pathname === '/messages';
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs h-16 flex items-center justify-center transition-colors">
+    <header className="sticky top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs h-14 md:h-16 flex items-center justify-center transition-colors">
       <div className="w-full max-w-7xl px-4 sm:px-6 flex justify-between items-center h-full">
         {/* Left: Logo */}
         <Link 
@@ -34,11 +34,11 @@ export function AppHeader() {
           className="flex items-center gap-2.5 group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-xl p-1 -ml-1 select-none"
           aria-label="Genç Sosyal Ana Sayfa"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-0.5 shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/30 group-hover:scale-105 transition-all duration-200 flex items-center justify-center text-white">
-            <Hexagon className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 stroke-white stroke-[2.2]" />
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-[10px] md:rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-0.5 shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/30 group-hover:scale-105 transition-all duration-200 flex items-center justify-center text-white">
+            <Hexagon className="w-4 h-4 md:w-6 md:h-6 fill-white/20 stroke-white stroke-[2.2]" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors">
+            <span className="text-base md:text-xl font-black tracking-tight text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors">
               Genç Sosyal
             </span>
           </div>

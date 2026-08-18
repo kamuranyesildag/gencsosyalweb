@@ -9,6 +9,7 @@ interface User {
   role: string;
   isVerified: boolean;
   createdAt: string;
+  onboardingCompleted?: boolean;
 }
 
 interface AuthState {

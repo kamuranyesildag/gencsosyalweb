@@ -1213,6 +1213,7 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       createdAt: users.createdAt,
       displayName: profiles.displayName,
       avatarUrl: profiles.avatarUrl,
+      onboardingCompleted: profiles.onboardingCompleted,
     })
     .from(users)
     .leftJoin(profiles, eq(users.id, profiles.userId))

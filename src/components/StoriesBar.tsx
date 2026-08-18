@@ -183,7 +183,7 @@ export function StoriesBar() {
                   url={currentUser?.avatarUrl} 
                   name={currentUser?.displayName || currentUser?.username || 'Sen'} 
                   size="lg" 
-                  className="w-14 h-14 sm:w-15 sm:h-15"
+                  className="w-[52px] h-[52px] md:w-14 md:h-14 sm:w-15 sm:h-15"
                 />
               </div>
 
@@ -244,7 +244,7 @@ export function StoriesBar() {
                       url={u.user.avatarUrl} 
                       name={u.user.displayName || u.user.username} 
                       size="lg" 
-                      className="w-14 h-14 sm:w-15 sm:h-15"
+                      className="w-[52px] h-[52px] md:w-14 md:h-14 sm:w-15 sm:h-15"
                     />
                   </div>
                 </div>

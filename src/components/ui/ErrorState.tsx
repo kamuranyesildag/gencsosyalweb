@@ -63,12 +63,12 @@ export function ErrorState({
   const content = (
     <div
       className={cn(
-        'flex flex-col items-center justify-center text-center p-8 sm:p-10 rounded-3xl bg-rose-50/40 border border-rose-100 max-w-md mx-auto my-4',
+        'flex flex-col items-center justify-center text-center p-6 sm:p-10 rounded-3xl bg-rose-50/40 border border-rose-100 max-w-md mx-auto my-4',
         className
       )}
     >
-      <div className="w-14 h-14 rounded-2xl bg-rose-100/80 text-rose-600 flex items-center justify-center mb-4 shadow-xs">
-        <Icon className="w-7 h-7" />
+      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-100/80 text-rose-600 flex items-center justify-center mb-4 shadow-xs">
+        <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
       </div>
 
       <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5">
@@ -108,7 +108,7 @@ export function ErrorState({
 
   if (fullPage) {
     return (
-      <div className="min-h-[50vh] w-full flex items-center justify-center p-4">
+      <div className="min-h-[30vh] sm:min-h-[50vh] w-full flex items-center justify-center p-4">
         {content}
       </div>
     );

@@ -15,6 +15,7 @@ import {
   FileText, 
   Plus, 
   Trash2,
+  BadgeCheck,
   Sparkles,
   Smile,
 } from "lucide-react";
@@ -173,8 +174,8 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
         {/* Avatar Area */}
         <div className="shrink-0 pt-1">
           <Avatar
-            src={user?.avatarUrl}
-            fallback={user?.displayName?.[0] || user?.username?.[0] || "?"}
+            url={user?.avatarUrl}
+            name={user?.displayName || user?.username || "?"}
             size="md"
             className="ring-2 ring-white shadow-xs"
           />
@@ -182,6 +183,14 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
 
         {/* Input Area */}
         <div className="flex-1 min-w-0">
+          {/* User Info (Only visible when focused or standalone) */}
+          {isAuthenticated && user && (isFocused || content.length > 0 || mediaFiles.length > 0) && (
+            <div className="flex items-center gap-1.5 mb-2 -mt-1">
+              <span className="font-bold text-slate-900 text-[15px]">{user.displayName || user.username}</span>
+              {user.isVerified && <BadgeCheck className="w-4 h-4 text-indigo-500" />}
+              <span className="text-slate-500 text-[14px]">@{user.username}</span>
+            </div>
+          )}
           {/* Post Type Selector - Modernized Segmented Control */}
           <div className="flex items-center gap-1.5 mb-3">
             <button

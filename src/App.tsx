@@ -3,6 +3,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { AppLayout } from "./layouts/AppLayout";
 import { Feed } from "./pages/Feed";
+import { CreatePostPage } from "./pages/CreatePostPage";
 import { Explore } from "./pages/Explore";
 import { Notifications } from "./pages/Notifications";
 import { Messages } from "./pages/Messages";
@@ -67,6 +68,7 @@ export default function App() {
             {/* Logged In Routes using AppLayout (Sidebars) */}
             <Route element={<AppLayout />}>
               <Route path="/home" element={<Feed />} />
+              <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />

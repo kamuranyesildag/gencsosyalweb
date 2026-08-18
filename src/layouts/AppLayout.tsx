@@ -41,7 +41,7 @@ export function AppLayout() {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 bg-white border-r border-slate-200/80 pb-20 md:pb-8 min-h-[calc(100vh-4rem)]">
+        <main className="flex-1 min-w-0 bg-white border-r border-slate-200/80 pb-[72px] md:pb-8 min-h-[calc(100vh-4rem)]">
           <PageTransition><Outlet /></PageTransition>
         </main>
 

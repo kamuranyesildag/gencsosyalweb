@@ -176,6 +176,13 @@
       "when": 1786958912790,
       "tag": "0024_material_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787038225043,
+      "tag": "0025_public_hex",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 import { Home, Compass, Bell, Plus, User } from 'lucide-react';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
@@ -12,6 +12,7 @@ export function MobileBottomNav() {
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [showMore, setShowMore] = useState(false);
 
@@ -22,7 +23,7 @@ export function MobileBottomNav() {
 
   return (
     <>
-      <div className="flex justify-around items-center w-full h-16 px-2 relative" role="navigation" aria-label="Mobil Gezinme">
+      <div className="flex justify-around items-center w-full h-14 px-1 relative" role="navigation" aria-label="Mobil Gezinme">
         {/* 1. Home */}
         <NavLink
           to="/home"
@@ -33,7 +34,7 @@ export function MobileBottomNav() {
           }`}
         >
           <div className="relative flex flex-col items-center">
-            <Home className={`w-6 h-6 transition-transform ${isHomeActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
+            <Home className={`w-[22px] h-[22px] md:w-6 md:h-6 transition-transform ${isHomeActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
             {isHomeActive && (
               <motion.span
                 layoutId="bottomNavDot"
@@ -54,7 +55,7 @@ export function MobileBottomNav() {
           }`}
         >
           <div className="relative flex flex-col items-center">
-            <Compass className={`w-6 h-6 transition-transform ${isExploreActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
+            <Compass className={`w-[22px] h-[22px] md:w-6 md:h-6 transition-transform ${isExploreActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
             {isExploreActive && (
               <motion.span
                 layoutId="bottomNavDot"
@@ -73,12 +74,12 @@ export function MobileBottomNav() {
             whileHover={{ scale: 1.05 }}
             onClick={() => {
               if (!isAuthenticated) openModal();
-              else setShowCreate(true);
+              else navigate('/create');
             }}
             aria-label="Oluştur"
-            className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-4 ring-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/40 -mt-5"
+            className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-4 ring-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/40 -mt-4"
           >
-            <Plus className="w-6 h-6 stroke-[2.5]" />
+            <Plus className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
           </motion.button>
         </div>
 
@@ -98,7 +99,7 @@ export function MobileBottomNav() {
           }`}
         >
           <div className="relative flex flex-col items-center">
-            <Bell className={`w-6 h-6 transition-transform ${isNotificationsActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
+            <Bell className={`w-[22px] h-[22px] md:w-6 md:h-6 transition-transform ${isNotificationsActive ? 'stroke-[2.4] scale-110' : 'stroke-[1.8]'}`} />
             {isNotificationsActive && (
               <motion.span
                 layoutId="bottomNavDot"
@@ -135,7 +136,7 @@ export function MobileBottomNav() {
                 }`}
               />
             ) : (
-              <User className="w-6 h-6 stroke-[1.8]" />
+              <User className="w-[22px] h-[22px] md:w-6 md:h-6 stroke-[1.8]" />
             )}
             {isProfileActive && (
               <motion.span
