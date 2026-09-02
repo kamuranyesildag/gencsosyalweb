@@ -19,7 +19,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             # Proje klasörüne git (Kendi VDS'indeki yola göre burayı değiştirmelisin, genelde /var/www/proje_adi şeklindedir)
-            cd /var/www/genc-sosyal
+            cd /var/www/gencsosyalweb
             
             # Github'daki en yeni kodları çek
             git pull origin main
