@@ -13,20 +13,6 @@ if (process.env.NODE_ENV !== "production") {
 
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
-  
-  // Detect if we need to enter Setup Mode
-  let setupMode = false;
-  if (isProd) {
-    const requiredEnvVars = ["JWT_SECRET", "JWT_REFRESH_SECRET", "JWT_EMAIL_SECRET", "DATABASE_URL", "ENCRYPTION_KEY"];
-    const missingVars = requiredEnvVars.filter(v => !process.env[v]);
-    
-    if (missingVars.length > 0 || process.env.SETUP_COMPLETED !== "true") {
-      setupMode = true;
-      console.warn(`⚠️ Setup Mode Active: Missing required environment variables or SETUP_COMPLETED is not true.`);
-      if (missingVars.length > 0) console.warn(`Missing vars: ${missingVars.join(", ")}`);
-    }
-  }
-
   const app = express();
 
   // Trust reverse proxy (Nginx/Cloudflare) for rate limiting and IP logging
@@ -52,9 +38,6 @@ async function startServer() {
     crossOriginEmbedderPolicy: false,
   }));
   let corsOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
-  if (isProd && !corsOrigin && !setupMode) {
-    throw new Error("FATAL: CORS_ORIGIN or FRONTEND_URL must be defined in production.");
-  }
   app.use(cors({ origin: corsOrigin || true, credentials: true }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -73,11 +56,7 @@ async function startServer() {
   app.use("/api/v1/health", healthRouter);
   app.use("/api/health", healthRouter);
 
-  if (setupMode) {
-    // In setup mode, we ONLY load health check and a dedicated setup router
-    console.log("🚧 Application is in Setup Mode. Only serving /api/setup and frontend assets.");
-    // We will dynamically import the setup router in the next phases
-  } else {
+  
     const { sitemapRouter } = await import("./server/routes/sitemap.js");
     app.use("/", sitemapRouter);
     const { projectsRouter } = await import("./server/routes/projects.js");
@@ -140,7 +119,7 @@ async function startServer() {
 
     const { seoMiddleware } = await import("./server/middleware/seo.js");
     app.use(seoMiddleware);
-  }
+  
 // --- API Routes End ---
 
   // Vite middleware for development or static serving for production

@@ -9,7 +9,10 @@ async function runMigration() {
     dotenv.config();
   }
 
-  
+  if (process.env.NODE_ENV === "production" && process.env.SETUP_COMPLETED !== "true") {
+    console.log("⚠️ SETUP_COMPLETED is not true. Skipping database migration during Setup Mode.");
+    process.exit(0);
+  }
 
   let exitCode = 0;
   console.log("🚀 Starting database migration...");

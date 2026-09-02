@@ -1,0 +1,34 @@
+name: Deploy to VDS
+
+on:
+  push:
+    branches:
+      - main # main dalına (branch) kod gönderildiğinde çalışır
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sunucuya bağlan ve kodu güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # Proje klasörüne git (Kendi VDS'indeki yola göre burayı değiştirmelisin, genelde /var/www/proje_adi şeklindedir)
+            cd /var/www/genc-sosyal
+            
+            # Github'daki en yeni kodları çek
+            git pull origin main
+            
+            # Yeni eklenen paketler varsa kur
+            npm install
+            
+            # Projeyi derle (Build)
+            npm run build
+            
+            # PM2 ile arka planda çalışan uygulamayı yeniden başlat
+            pm2 restart ecosystem.config.cjs --update-env
