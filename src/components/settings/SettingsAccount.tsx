@@ -97,7 +97,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Mail className="w-5 h-5 text-indigo-600" />
+            <Mail className="w-5 h-5 text-slate-900" />
             İletişim Bilgileri
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -116,7 +116,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ornek@gencsosyal.org"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 
@@ -129,7 +129,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 

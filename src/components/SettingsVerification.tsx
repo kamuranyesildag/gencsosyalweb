@@ -80,7 +80,7 @@ export function SettingsVerification() {
     <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
       <div>
         <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+          <CheckCircle2 className="w-5 h-5 text-slate-900" />
           Hesap Doğrulama (Mavi Rozet)
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -107,9 +107,9 @@ export function SettingsVerification() {
 
       {/* 1. Verified State */}
       {user?.isVerified ? (
-        <div className="p-6 bg-indigo-50/60 border border-indigo-100 rounded-2xl text-center space-y-3">
-          <div className="w-16 h-16 bg-indigo-100/80 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
-            <CheckCircle2 className="w-8 h-8 fill-indigo-600/10" />
+        <div className="p-6 bg-slate-100/60 border border-slate-100 rounded-2xl text-center space-y-3">
+          <div className="w-16 h-16 bg-slate-100/80 text-slate-900 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+            <CheckCircle2 className="w-8 h-8 fill-slate-600/10" />
           </div>
           <h3 className="text-lg font-bold text-slate-900">Hesabınız Doğrulandı</h3>
           <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed">
@@ -148,7 +148,7 @@ export function SettingsVerification() {
         /* 3. New Application Form */
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-2xl flex gap-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
-            <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-slate-900 shrink-0 mt-0.5" />
             <p>
               Topluluğa değer katan, aktif proje üreten ve platform kurallarına uyan geliştiriciler ve tasarımcılar doğrulanmış rozet alabilir. Lütfen projelerinizi ve katkılarınızı özetleyin.
             </p>
@@ -170,7 +170,7 @@ export function SettingsVerification() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Geliştirdiğim açık kaynak projeler, topluluk etkinlikleri ve çalışmalarım..."
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
             />
           </div>
 

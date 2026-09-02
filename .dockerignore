@@ -11,3 +11,4 @@ pnpm-debug.log*
 .vscode
 nginx
 patch_*
+uploads

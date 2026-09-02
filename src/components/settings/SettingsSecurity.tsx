@@ -242,7 +242,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
       <form onSubmit={handleChangePassword} className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-indigo-600" />
+            <KeyRound className="w-5 h-5 text-slate-900" />
             Şifre Değiştir
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -261,7 +261,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 
@@ -276,7 +276,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="En az 6 karakter"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
 
@@ -290,7 +290,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Şifreyi tekrar yazın"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -347,7 +347,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
         {setupMode && !is2FAEnabled && (
           <form onSubmit={handleEnable2FA} className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-5 space-y-6">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 font-bold">1</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">1</div>
               <div>
                 <p className="text-sm font-bold text-slate-900">Authenticator Uygulamasını İndirin</p>
                 <p className="text-xs text-slate-500 mt-0.5">Google Authenticator, Microsoft Authenticator veya Authy kullanabilirsiniz.</p>
@@ -355,7 +355,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 font-bold">2</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">2</div>
               <div className="w-full">
                 <p className="text-sm font-bold text-slate-900 mb-3">QR Kodu Taratın</p>
                 <div className="flex flex-col sm:flex-row items-center gap-6 bg-white p-4 rounded-xl border border-slate-200/80">
@@ -375,7 +375,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 font-bold">3</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">3</div>
               <div className="w-full">
                 <p className="text-sm font-bold text-slate-900 mb-3">Doğrulama Kodunu Girin</p>
                 <div className="flex gap-3">
@@ -386,7 +386,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                     value={setupCode}
                     onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="000000"
-                    className="w-32 bg-white border border-slate-200 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                    className="w-32 bg-white border border-slate-200 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-300"
                   />
                   <Button type="submit" variant="primary" size="md" isLoading={loading} className="rounded-xl font-bold">
                     Doğrula & Etkinleştir
@@ -494,7 +494,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Shield className="w-5 h-5 text-indigo-600" />
+              <Shield className="w-5 h-5 text-slate-900" />
               Aktif Oturumlar
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">

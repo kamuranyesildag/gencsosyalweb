@@ -33,7 +33,7 @@ export function Terms() {
               </p>
             </div>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+          <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-100 flex items-center justify-center text-slate-900">
             <FileText className="w-5 h-5" />
           </div>
         </div>

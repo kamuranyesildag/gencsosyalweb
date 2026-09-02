@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { fetchApi } from "../lib/api";
+import { useSEO } from "../hooks/useSEO";
 import { 
   Users, 
   ArrowLeft, 
@@ -48,6 +49,11 @@ export function CommunityDetail() {
     loadMore,
     addItem,
   } = usePagination(community ? `/communities/${community.id}/posts` : "");
+
+  useSEO({
+    title: community ? `${community.name} - Genç Sosyal Topluluğu` : undefined,
+    description: community?.description ? community.description.substring(0, 150) : undefined,
+  });
 
   useEffect(() => {
     if (community) {
@@ -136,14 +142,13 @@ export function CommunityDetail() {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center min-h-[60vh] bg-white">
         <EmptyState
-          icon={Users}
+          icon={<Users className="w-7 h-7" />}
           title="Topluluk Bulunamadı"
           description="Aradığınız topluluk mevcut değil veya silinmiş olabilir."
-          action={
-            <Button variant="primary" size="md" onClick={() => navigate("/communities")}>
-              Topluluklara Dön
-            </Button>
-          }
+          action={{
+            label: "Topluluklara Dön",
+            onClick: () => navigate("/communities")
+          }}
         />
       </div>
     );
@@ -197,14 +202,14 @@ export function CommunityDetail() {
           {community.avatarUrl ? (
             <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
           ) : (
-            <Users className="w-12 h-12 text-indigo-600 stroke-[1.8]" />
+            <Users className="w-12 h-12 text-slate-900 stroke-[1.8]" />
           )}
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
           {community.name}
         </h2>
-        <div className="text-xs sm:text-sm font-semibold text-indigo-600 mb-3">
+        <div className="text-xs sm:text-sm font-semibold text-slate-900 mb-3">
           {community.memberCount || 0} Üye &bull; c/{community.slug}
         </div>
 
@@ -246,7 +251,7 @@ export function CommunityDetail() {
           onClick={() => setActiveTab("posts")}
           className={`flex items-center gap-2 py-3.5 px-4 text-sm font-bold border-b-2 transition-colors ${
             activeTab === "posts"
-              ? "border-indigo-600 text-indigo-600"
+              ? "border-slate-900 text-slate-900"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -258,7 +263,7 @@ export function CommunityDetail() {
           onClick={() => setActiveTab("members")}
           className={`flex items-center gap-2 py-3.5 px-4 text-sm font-bold border-b-2 transition-colors ${
             activeTab === "members"
-              ? "border-indigo-600 text-indigo-600"
+              ? "border-slate-900 text-slate-900"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -286,16 +291,12 @@ export function CommunityDetail() {
                 <SkeletonCard />
               </div>
             ) : posts.length > 0 ? (
-              <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-                <div className="divide-y divide-slate-100">
-                  {posts.map((post) => (
+              <div className="divide-y divide-slate-100"><InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (
                     <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              </InfiniteScroll>
+                  )} /></div>
             ) : (
               <EmptyState
-                icon={FileText}
+                icon={<FileText className="w-7 h-7" />}
                 title="Henüz Gönderi Yok"
                 description="Bu toplulukta henüz bir paylaşım yapılmadı. İlk gönderiyi siz paylaşın!"
               />

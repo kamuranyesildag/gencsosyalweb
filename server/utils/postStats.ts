@@ -95,7 +95,7 @@ export async function populatePostStats(postsList: any[], currentUserId: number)
   });
 
   return postsList.map(p => {
-    const pMedia = (mediaMap.get(p.id) || []).sort((a, b) => a.sortOrder - b.sortOrder);
+    const pMedia = (mediaMap.get(p.id) || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder);
     const pCollabs = collabsMap.get(p.id) || [];
     
     const rStat = repostsMap.get(p.id) || { count: 0, isReposted: false };
@@ -103,14 +103,14 @@ export async function populatePostStats(postsList: any[], currentUserId: number)
     const bStat = bookmarksMap.get(p.id) || { isSaved: false };
     const cStat = commentsMap.get(p.id) || { count: 0 };
 
-    let pPollOptions = undefined;
+    let pPollOptions: any = undefined;
     if (p.postType === 'POLL') {
-      const options = (pollOptionsMap.get(p.id) || []).sort((a, b) => a.order - b.order);
+      const options = (pollOptionsMap.get(p.id) || []).sort((a: any, b: any) => a.order - b.order);
       const votes = pollVotesMap.get(p.id) || [];
       let totalVotes = 0;
       let userVotedOptionId = null;
-      const optionsWithVotes = options.map(o => {
-        const vStat = votes.find(v => v.optionId === o.id) || { count: 0, isVoted: 0 };
+      const optionsWithVotes = options.map((o: any) => {
+        const vStat = votes.find((v: any) => v.optionId === o.id) || { count: 0, isVoted: 0 };
         totalVotes += vStat.count;
         if (vStat.isVoted) userVotedOptionId = o.id;
         return { ...o, voteCount: vStat.count };
@@ -132,7 +132,7 @@ export async function populatePostStats(postsList: any[], currentUserId: number)
       isLiked: lStat.isLiked,
       commentCount: cStat.count,
       isSaved: bStat.isSaved,
-      collaborators: pCollabs.map(c => ({ userId: c.userId, username: c.username, displayName: c.displayName, avatarUrl: c.avatarUrl }))
+      collaborators: pCollabs.map((c: any) => ({ userId: c.userId, username: c.username, displayName: c.displayName, avatarUrl: c.avatarUrl }))
     };
   });
 }

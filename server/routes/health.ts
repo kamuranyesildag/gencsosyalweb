@@ -7,20 +7,28 @@ export const healthRouter = Router();
 healthRouter.get("/", async (req, res) => {
   let dbStatus = "ok";
   let error: any;
+  let statusCode = 200;
+
   try {
-    await db.execute(sql`SELECT 1`);
-  } catch (e) {
+    const isSetupMode = process.env.NODE_ENV === "production" && process.env.SETUP_COMPLETED !== "true";
+    if (isSetupMode || !process.env.DATABASE_URL) {
+      dbStatus = "setup_mode";
+    } else {
+      await db.execute(sql`SELECT 1`);
+    }
+  } catch (e: any) {
     dbStatus = "error";
-    error = String(e) + (e.stack ? e.stack : "");
+    statusCode = 503;
+    error = e;
     console.error("Health check DB error:", e);
   }
 
-  res.json({
-    success: true,
+  res.status(statusCode).json({
+    success: statusCode === 200,
     data: {
       api: "ok",
       database: dbStatus,
-      error: typeof error !== "undefined" ? (error as any).message : undefined,
+      error: error ? String(error) : undefined,
       environment: process.env.NODE_ENV || "development",
       timestamp: new Date().toISOString()
     }

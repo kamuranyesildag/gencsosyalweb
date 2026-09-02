@@ -37,7 +37,7 @@ hashtagsRouter.get("/:name", optionalAuth, async (req, res) => {
     if (currentUserId !== -1) {
       // Get following IDs for FOLLOWERS visibility
       const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId));
-      const followingIds = followingRecords.map(f => f.followingId);
+      const followingIds = followingRecords.map((f: any) => f.followingId);
       const followingIdsWithSelf = followingIds.length > 0 ? followingIds : [-1];
 
       visibilityCondition = or(
@@ -87,7 +87,7 @@ hashtagsRouter.get("/:name", optionalAuth, async (req, res) => {
     const fetchedPostIds = populatedPosts.map(p => p.id);
     const allMedia = await db.select().from(postMedia).where(inArray(postMedia.postId, fetchedPostIds));
     
-    const mediaByPost = allMedia.reduce((acc, media) => {
+    const mediaByPost = allMedia.reduce((acc: any, media: any) => {
       if (!acc[media.postId]) acc[media.postId] = [];
       acc[media.postId].push(media);
       return acc;

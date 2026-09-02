@@ -187,7 +187,7 @@ export function VerificationBottomSheet({ isOpen, onClose }: { isOpen: boolean; 
               onClose();
               navigate('/settings?tab=verification');
             }}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[15px] rounded-2xl py-4 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-blue-600 to-slate-600 hover:from-blue-500 hover:to-slate-500 text-white font-bold text-[15px] rounded-2xl py-4 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {btnText} <ArrowRight className="w-5 h-5" />
           </button>

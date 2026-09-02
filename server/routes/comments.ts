@@ -18,7 +18,7 @@ commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
     const offset = (page - 1) * limit;
-    let cursorCondition = undefined;
+    let cursorCondition: any = undefined;
     if (cursor) {
       const decoded = decodeCursor(cursor);
       if (decoded) {
@@ -46,7 +46,7 @@ commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
     .limit(limit)
     .offset(offset);
 
-    let nextCursor = undefined;
+    let nextCursor: string | undefined = undefined;
     if (list.length === limit) {
       const last = list[list.length - 1];
       nextCursor = encodeCursor(last.createdAt, last.id);

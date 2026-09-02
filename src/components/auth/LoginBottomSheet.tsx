@@ -68,8 +68,8 @@ export function LoginBottomSheet() {
 
             {/* Header / Close button */}
             <div className="flex items-center justify-between px-6 pt-4 pb-2">
-              <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 flex items-center justify-center text-slate-900">
                   <Hexagon className="w-4 h-4 fill-current" />
                 </div>
                 <span>Genç Sosyal</span>
@@ -96,7 +96,7 @@ export function LoginBottomSheet() {
               {/* Feature Highlights */}
               <div className="grid grid-cols-1 gap-2.5 my-5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
                 <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700">
-                  <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center shrink-0">
                     <Heart className="w-3.5 h-3.5 fill-current" />
                   </div>
                   <span>Gönderilerle etkileşime geç ve kaydet</span>

@@ -154,7 +154,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                     onClick={handleCopy}
                     className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100/60 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       {copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -173,7 +173,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                     onClick={() => setShowQR(true)}
                     className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100/60 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <QrCode className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -190,7 +190,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                     onClick={handleWebShare}
                     className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100/60 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <Share2 className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">

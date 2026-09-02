@@ -165,7 +165,7 @@ export function ConfirmDialog({
                     ? 'bg-rose-100/80 text-rose-600'
                     : variant === 'warning'
                     ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-indigo-100/80 text-indigo-600'
+                    : 'bg-slate-100/80 text-slate-900'
                 )}
               >
                 {variant === 'danger' ? (
@@ -270,7 +270,7 @@ export function ConfirmDialogContainer() {
                     ? 'bg-rose-100/80 text-rose-600'
                     : variant === 'warning'
                     ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-indigo-100/80 text-indigo-600'
+                    : 'bg-slate-100/80 text-slate-900'
                 )}
               >
                 {variant === 'danger' ? (

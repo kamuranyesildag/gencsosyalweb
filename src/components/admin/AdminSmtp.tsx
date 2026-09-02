@@ -135,7 +135,7 @@ export function AdminSmtp() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Mail className="w-6 h-6 text-indigo-600" />
+            <Mail className="w-6 h-6 text-slate-900" />
             <span>SMTP ve E-posta Yapılandırması</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -315,7 +315,7 @@ export function AdminSmtp() {
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2 text-xs text-slate-600">
                 <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-indigo-600" /> Test E-postası Hakkında
+                  <Info className="w-3.5 h-3.5 text-slate-900" /> Test E-postası Hakkında
                 </div>
                 <p>
                   Sistem, belirtilen e-posta adresine Genç Sosyal markalı HTML test mesajı gönderecektir.

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments } from "../../src/db/schema.js";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects } from "../../src/db/schema.js";
 import { eq, ilike, or, desc, sql, and } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { sendVerificationStatusEmail } from "../utils/mailer.js";
@@ -119,7 +119,7 @@ adminRouter.patch("/verifications/:id", async (req: Request, res: Response): Pro
     const requestId = parseInt(req.params.id as string);
     if (isNaN(requestId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
     const { status, adminNote, rejectionReason } = req.body;
-    const adminId = req.user!.userId;
+    const adminId = (req.user?.userId || -1);
 
     if (!['pending', 'under_review', 'approved', 'rejected'].includes(status)) {
       res.status(400).json({ success: false, error: { message: "Geçersiz durum." } });
@@ -183,7 +183,7 @@ adminRouter.patch("/users/:id/verify", async (req: Request, res: Response): Prom
     const targetUserId = parseInt(req.params.id as string);
     if (isNaN(targetUserId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
     const { isVerified } = req.body;
-    const adminId = req.user!.userId;
+    const adminId = (req.user?.userId || -1);
     
     if (typeof isVerified !== 'boolean') {
       res.status(400).json({ success: false, error: { message: "Geçersiz veri." } });
@@ -210,6 +210,42 @@ adminRouter.patch("/users/:id/verify", async (req: Request, res: Response): Prom
     res.json({ success: true, data: { message: `Kullanıcı doğrulama durumu güncellendi: ${isVerified}` } });
   } catch (error) {
     console.error("Admin user verify update error:", error);
+    res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });
+  }
+});
+
+// POST /api/v1/admin/users/:id/reset-2fa
+adminRouter.post("/users/:id/reset-2fa", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const targetUserId = parseInt(req.params.id as string);
+    if (isNaN(targetUserId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
+    const adminId = (req.user?.userId || -1);
+    
+    const userRecord = await db.select().from(users).where(eq(users.id, targetUserId)).limit(1);
+    
+    if (userRecord.length === 0) {
+      res.status(404).json({ success: false, error: { message: "Kullanıcı bulunamadı." } });
+      return;
+    }
+
+    const { recoveryCodes } = await import("../../src/db/schema.js");
+
+    await db.transaction(async (tx: any) => {
+      await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, targetUserId));
+      await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, targetUserId));
+      
+      await tx.insert(adminAuditLogs).values({
+        adminUserId: adminId,
+        action: 'admin_2fa_reset',
+        targetType: 'user',
+        targetId: targetUserId.toString(),
+        metadata: { message: "2FA manually reset by admin." }
+      });
+    });
+
+    res.json({ success: true, data: { message: "Kullanıcının 2FA ayarları başarıyla sıfırlandı." } });
+  } catch (error) {
+    console.error("Admin 2FA reset error:", error);
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });
   }
 });
@@ -249,7 +285,7 @@ adminRouter.patch("/reports/:id", async (req: Request, res: Response): Promise<v
   try {
     const reportId = parseInt(req.params.id as string);
     const { status, action } = req.body;
-    const adminId = req.user!.userId;
+    const adminId = (req.user?.userId || -1);
     const reports = require("../../src/db/schema.js").reports;
     const posts = require("../../src/db/schema.js").posts;
     const comments = require("../../src/db/schema.js").comments;
@@ -367,18 +403,18 @@ adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => 
       updates.push({ key: "smtp_pass", value: encryptString(pass) });
     }
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       for (const update of updates) {
         await tx.insert(systemSettings)
-          .values({ key: update.key, value: update.value, updatedBy: req.user!.userId })
+          .values({ key: update.key, value: update.value, updatedBy: (req.user?.userId || -1) })
           .onConflictDoUpdate({
             target: systemSettings.key,
-            set: { value: update.value, updatedBy: req.user!.userId, updatedAt: new Date() }
+            set: { value: update.value, updatedBy: (req.user?.userId || -1), updatedAt: new Date() }
           });
       }
 
       await tx.insert(adminAuditLogs).values({
-        adminUserId: req.user!.userId,
+        adminUserId: (req.user?.userId || -1),
         action: "update_smtp_settings",
         targetId: '0',
         targetType: "system",
@@ -467,7 +503,7 @@ adminRouter.get("/auto-follow", async (req, res) => {
       } catch (e) {}
     }
     
-    let autoFollowUsers = [];
+    let autoFollowUsers: any[] = [];
     if (userIds.length > 0) {
         autoFollowUsers = await db.select({
             id: users.id,
@@ -492,10 +528,10 @@ adminRouter.put("/auto-follow", async (req, res) => {
     }
     
     await db.insert(systemSettings)
-      .values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: req.user!.userId })
+      .values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: (req.user?.userId || -1) })
       .onConflictDoUpdate({
         target: systemSettings.key,
-        set: { value: JSON.stringify(userIds), updatedBy: req.user!.userId, updatedAt: new Date() }
+        set: { value: JSON.stringify(userIds), updatedBy: (req.user?.userId || -1), updatedAt: new Date() }
       });
       
     res.json({ success: true, message: "Otomatik takip listesi güncellendi." });
@@ -564,11 +600,12 @@ adminRouter.get("/moderation/queue", async (req, res) => {
     .from(moderationLogs)
     .innerJoin(users, eq(moderationLogs.userId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(eq(moderationLogs.status, 'PENDING'))
     .orderBy(desc(moderationLogs.createdAt))
     .limit(50);
     
     // Fetch content
-    const result = await Promise.all(pendingLogs.map(async (log) => {
+    const result = await Promise.all(pendingLogs.map(async (log: any) => {
       let content = "";
       if (log.entityType === 'POST') {
         const p = await db.select({ content: posts.content }).from(posts).where(eq(posts.id, log.entityId)).limit(1);
@@ -579,6 +616,12 @@ adminRouter.get("/moderation/queue", async (req, res) => {
       } else if (log.entityType === 'PROFILE') {
         const p = await db.select({ bio: profiles.bio }).from(profiles).where(eq(profiles.userId, log.entityId)).limit(1);
         if (p.length > 0) content = p[0].bio || "";
+      } else if (log.entityType === 'PROJECT_COMMENT') {
+        const pc = await db.select({ content: projectComments.content }).from(projectComments).where(eq(projectComments.id, log.entityId)).limit(1);
+        if (pc.length > 0) content = pc[0].content || "";
+      } else if (log.entityType === 'PROJECT') {
+        const pj = await db.select({ description: projects.description }).from(projects).where(eq(projects.id, log.entityId)).limit(1);
+        if (pj.length > 0) content = pj[0].description || "";
       }
       return { ...log, content };
     }));
@@ -594,7 +637,7 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
   try {
     const logId = parseInt(req.params.id);
     const { action } = req.body; // 'APPROVE' or 'REJECT'
-    const adminId = req.user!.userId;
+    const adminId = (req.user?.userId || -1);
 
     if (action !== 'APPROVE' && action !== 'REJECT') {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz aksiyon." }});
@@ -607,7 +650,7 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
 
     const log = logRecord[0];
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       await tx.update(moderationLogs)
         .set({ status: 'RESOLVED', actionTaken: action === 'APPROVE' ? 'APPROVED' : 'REJECTED', adminId, updatedAt: new Date() })
         .where(eq(moderationLogs.id, logId));
@@ -618,8 +661,10 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
         await tx.update(posts).set({ moderationStatus: newStatus }).where(eq(posts.id, log.entityId));
       } else if (log.entityType === 'COMMENT') {
         await tx.update(comments).set({ moderationStatus: newStatus }).where(eq(comments.id, log.entityId));
-      } else if (log.entityType === 'PROFILE') {
-        // Just resolve the log, bio is already either saved or blocked.
+      } else if (log.entityType === 'PROJECT_COMMENT') {
+        await tx.update(projectComments).set({ moderationStatus: newStatus }).where(eq(projectComments.id, log.entityId));
+      } else if (log.entityType === 'PROFILE' || log.entityType === 'PROJECT') {
+        // Just resolve the log, entity is already either saved or blocked.
       }
 
       await tx.insert(adminAuditLogs).values({

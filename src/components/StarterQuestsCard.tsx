@@ -100,11 +100,11 @@ export function StarterQuestsCard() {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden mb-6 relative group"
+      className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6 relative group"
     >
       <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
         <motion.div
-          className="h-full bg-indigo-500"
+          className="h-full bg-slate-1000"
           initial={{ width: 0 }}
           animate={{ width: `${(completedCount / tasks.length) * 100}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}
@@ -114,8 +114,8 @@ export function StarterQuestsCard() {
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-slate-900" />
             </div>
             <div>
               <h2 className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Genç Sosyal'e Başla</h2>
@@ -165,12 +165,12 @@ export function StarterQuestsCard() {
               animate={{ opacity: 1, height: "auto", marginTop: 16 }}
               className="flex flex-col gap-3"
             >
-              <div className="p-3 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl text-center border border-indigo-100">
+              <div className="p-3 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl text-center border border-slate-100">
                 🎉 Harika! Tüm görevleri tamamladın.
               </div>
               <button
                 onClick={handleCompleteOnboarding}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm"
+                className="w-full bg-slate-900 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm"
               >
                 Keşfetmeye Başla
               </button>

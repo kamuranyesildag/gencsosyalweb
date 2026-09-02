@@ -150,7 +150,7 @@ export function AdminVerification() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileCheck2 className="w-6 h-6 text-indigo-600" />
+            <FileCheck2 className="w-6 h-6 text-slate-900" />
             <span>Doğrulama (Mavi Tik) Başvuruları</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -178,7 +178,7 @@ export function AdminVerification() {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-white text-indigo-950 shadow-xs border border-slate-200/70'
+                  ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -255,13 +255,13 @@ export function AdminVerification() {
                             <div className="flex items-center gap-2">
                               <Link
                                 to={`/profile/${v.username}`}
-                                className="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-base truncate"
+                                className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-base truncate"
                               >
                                 {v.displayName || v.username}
                               </Link>
                               <Link
                                 to={`/profile/${v.username}`}
-                                className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                className="text-slate-400 hover:text-slate-900 transition-colors"
                                 title="Profili Aç"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -290,7 +290,7 @@ export function AdminVerification() {
                       {/* Reason Description Box */}
                       <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
                         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                          <MessageSquare className="w-3.5 h-3.5 text-slate-900" />
                           <span>Başvuru Gerekçesi / Tanıtım</span>
                         </div>
                         <p className="text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">

@@ -89,9 +89,9 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
           <Button
             variant="secondary"
             size="sm"
-            leftIcon={<Plus className="w-4 h-4 text-indigo-600" />}
+            leftIcon={<Plus className="w-4 h-4 text-slate-900" />}
             onClick={() => navigate("/settings?tab=projects")}
-            className="rounded-xl font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/70 border-indigo-100/60"
+            className="rounded-xl font-bold text-slate-900 hover:text-slate-700 bg-slate-100/70 hover:bg-slate-100/70 border-slate-100/60"
           >
             Proje Ekle
           </Button>
@@ -127,7 +127,7 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
               transition={{ delay: idx * 0.04 }}
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white border border-slate-200/80 shadow-xs rounded-2xl hover:shadow-md hover:border-indigo-200 transition-all flex flex-col group relative overflow-hidden cursor-pointer"
+              className="bg-white border border-slate-200/80 shadow-xs rounded-2xl hover:shadow-md hover:border-slate-200 transition-all flex flex-col group relative overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (
@@ -140,15 +140,15 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
                   />
                 </div>
               ) : (
-                <div className="w-full h-24 bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center flex-shrink-0 border-b border-slate-100">
-                  <Rocket className="w-8 h-8 text-indigo-300" />
+                <div className="w-full h-24 bg-gradient-to-br from-slate-50 to-slate-50 flex items-center justify-center flex-shrink-0 border-b border-slate-100">
+                  <Rocket className="w-8 h-8 text-slate-300" />
                 </div>
               )}
 
               {/* Content Area */}
               <div className="flex-1 p-4 sm:p-5 flex flex-col">
                 <div className="flex justify-between items-start gap-2 mb-1.5">
-                  <h4 className="font-bold text-slate-900 text-base sm:text-lg leading-tight line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                  <h4 className="font-bold text-slate-900 text-base sm:text-lg leading-tight line-clamp-1 group-hover:text-slate-900 transition-colors">
                     {project.title}
                   </h4>
                   {isOwner && (
@@ -160,7 +160,7 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
                           e.stopPropagation();
                           navigate(`/settings?tab=projects&edit=${project.id}`);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
@@ -180,7 +180,7 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                  <span className="text-[11px] font-bold tracking-wide text-indigo-700 uppercase bg-indigo-50 px-2 py-0.5 rounded-md whitespace-nowrap">
+                  <span className="text-[11px] font-bold tracking-wide text-slate-700 uppercase bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
                     {project.category}
                   </span>
                   <span className="text-[10px] font-bold tracking-wide text-slate-600 uppercase bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
@@ -227,7 +227,7 @@ export function ProfileProjects({ userId }: ProfileProjectsProps) {
                         onClick={(e) => e.stopPropagation()}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                        className="flex items-center gap-1 font-semibold text-slate-900 hover:text-slate-700 transition-colors"
                       >
                         <LinkIcon className="w-3.5 h-3.5" /> Demo
                       </a>

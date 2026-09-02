@@ -111,7 +111,7 @@ export function Admin() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
@@ -144,18 +144,18 @@ export function Admin() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                     isActive
-                      ? 'text-indigo-600 bg-indigo-50/90 shadow-xs'
+                      ? 'text-slate-900 bg-slate-100/90 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                   }`}
                 >
-                  <span className={`${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  <span className={`${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {tab.icon}
                   </span>
                   <span>{tab.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="admin-active-pill"
-                      className="absolute inset-0 bg-indigo-50 rounded-xl -z-10 border border-indigo-200/60"
+                      className="absolute inset-0 bg-slate-100 rounded-xl -z-10 border border-slate-200/60"
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     />
                   )}

@@ -9,7 +9,7 @@ export const onboardingRouter = Router();
 // GET /api/onboarding/progress
 onboardingRouter.get("/progress", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     // Check follows count
     const followCountResult = await db.select({ count: sql<number>`count(*)::int` })
@@ -52,7 +52,7 @@ onboardingRouter.get("/progress", requireAuth, async (req, res) => {
 // POST /api/onboarding/complete
 onboardingRouter.post("/complete", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     await db.update(profiles)
       .set({ onboardingCompleted: true })
       .where(eq(profiles.userId, currentUserId));
@@ -67,14 +67,14 @@ onboardingRouter.post("/complete", requireAuth, async (req, res) => {
 // GET /api/onboarding/suggested-users
 onboardingRouter.get("/suggested-users", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     // Get already followed
     const followedResult = await db.select({ followingId: follows.followingId })
       .from(follows)
       .where(eq(follows.followerId, currentUserId));
     
-    const excludedUserIds = followedResult.map(f => f.followingId);
+    const excludedUserIds = followedResult.map((f: any) => f.followingId);
     excludedUserIds.push(currentUserId);
 
     // Also exclude blocked if implemented (mocked for now, assuming standard logic)

@@ -35,7 +35,7 @@ export function CommunityMembers({ communityId, isOwnerOrAdmin, currentUserId }:
     }
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-slate-900" /></div>;
 
   if (members.length === 0) {
     return <div className="p-12 text-center text-gray-500">Üye bulunamadı.</div>;
@@ -43,8 +43,12 @@ export function CommunityMembers({ communityId, isOwnerOrAdmin, currentUserId }:
 
   return (
     <div className="divide-y divide-gray-100">
-      <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-        {members.map((member) => (
+      <InfiniteScroll 
+        items={members}
+        hasMore={hasMore} 
+        isLoading={loadingMore} 
+        onLoadMore={loadMore}
+        renderItem={(member) => (
           <div key={member.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
             <Link to={`/profile/${member.user.username}`}>
               <Avatar url={member.user.avatarUrl} size="md" />
@@ -55,7 +59,7 @@ export function CommunityMembers({ communityId, isOwnerOrAdmin, currentUserId }:
                   {member.user.displayName || member.user.username}
                 </Link>
                 {['admin', 'OWNER', 'MODERATOR'].includes(member.role) && (
-                  <span className="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                     {member.role === 'admin' || member.role === 'OWNER' ? 'Kurucu' : 'Mod'}
                   </span>
                 )}
@@ -74,8 +78,8 @@ export function CommunityMembers({ communityId, isOwnerOrAdmin, currentUserId }:
               </button>
             )}
           </div>
-        ))}
-      </InfiniteScroll>
+        )}
+      />
     </div>
   );
 }

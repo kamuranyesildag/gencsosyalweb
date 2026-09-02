@@ -80,7 +80,7 @@ export function SettingsInvites() {
     <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
       <div>
         <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-indigo-600" />
+          <UserCheck className="w-5 h-5 text-slate-900" />
           Ortak Üretici & Katkı Davetleri
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -97,7 +97,7 @@ export function SettingsInvites() {
 
       {loading ? (
         <div className="flex justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
         </div>
       ) : invites.length === 0 ? (
         <div className="py-8">

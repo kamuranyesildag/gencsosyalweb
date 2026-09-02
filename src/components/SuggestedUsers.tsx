@@ -4,6 +4,7 @@ import { fetchApi } from "../lib/api";
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "./ui/Toast";
 import { UserPlus, Check } from "lucide-react";
 
 export function SuggestedUsers({ onFollowChange }: { onFollowChange?: () => void }) {
@@ -38,6 +39,7 @@ export function SuggestedUsers({ onFollowChange }: { onFollowChange?: () => void
         method: isFollowing ? "DELETE" : "POST",
         data: isFollowing ? undefined : { followingId: userId },
       });
+      toast.success(isFollowing ? "Takipten çıkıldı" : "Takip ediliyor");
     } catch (e) {
       // Revert on error
       setFollowingMap((prev) => ({ ...prev, [userId]: isFollowing }));

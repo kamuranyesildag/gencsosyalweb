@@ -15,7 +15,7 @@ const variantStyles: Record<CardVariant, string> = {
   flat: 'bg-slate-50/80 border border-slate-200/60 shadow-none',
   elevated: 'bg-white border border-slate-100 shadow-md shadow-slate-200/50',
   interactive:
-    'bg-white border border-slate-200/80 shadow-xs md:hover:shadow-md md:hover:border-indigo-200/90 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
+    'bg-white border border-slate-200/80 shadow-xs md:hover:shadow-md md:hover:border-slate-200/90 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
 };
 
 const paddingStyles = {

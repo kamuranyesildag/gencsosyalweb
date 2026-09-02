@@ -68,6 +68,7 @@ export function Register() {
     if (step === 6) {
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
+
       }, 150);
     }
   }, [step]);
@@ -313,7 +314,7 @@ export function Register() {
         <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white relative overflow-hidden">
           {/* Header Brand */}
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-500/25 mb-3">
               <Hexagon className="w-6 h-6 fill-current" />
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -329,7 +330,7 @@ export function Register() {
             <div className="relative flex items-center justify-between px-1">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 rounded-full" />
               <motion.div
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full origin-left"
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-slate-900 rounded-full origin-left"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: (step - 1) / (STEPS.length - 1) }}
                 transition={{ duration: 0.35, ease: 'easeInOut' }}
@@ -342,9 +343,9 @@ export function Register() {
                     <motion.div
                       className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-xs font-bold transition-all duration-200 ${
                         isActive
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 scale-110'
+                          ? 'bg-slate-900 text-white shadow-md shadow-slate-500/30 scale-110'
                           : isCompleted
-                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          ? 'bg-slate-100 text-slate-700 border border-slate-200'
                           : 'bg-white border-2 border-slate-200 text-slate-400'
                       }`}
                     >
@@ -413,7 +414,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="kullanici_adi"
                       />
                     </div>
@@ -448,7 +449,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="isim@ornek.com"
                       />
                     </div>
@@ -484,7 +485,7 @@ export function Register() {
                               handleNext();
                             }
                           }}
-                          className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                          className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                           placeholder="••••••••"
                         />
                         <button
@@ -552,7 +553,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="Örn. Ahmet Yılmaz"
                       />
                     </div>
@@ -586,13 +587,13 @@ export function Register() {
                         name="termsAccepted"
                         checked={formData.termsAccepted}
                         onChange={handleChange}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 shrink-0"
+                        className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20 accent-slate-600 shrink-0"
                       />
                       <span className="text-xs sm:text-sm text-slate-600 leading-relaxed group-hover:text-slate-900 select-none">
                         <Link
                           to="/terms"
                           target="_blank"
-                          className="text-indigo-600 hover:underline font-bold"
+                          className="text-slate-900 hover:underline font-bold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Kullanım Koşulları
@@ -601,7 +602,7 @@ export function Register() {
                         <Link
                           to="/privacy"
                           target="_blank"
-                          className="text-indigo-600 hover:underline font-bold"
+                          className="text-slate-900 hover:underline font-bold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Gizlilik Politikası
@@ -616,7 +617,7 @@ export function Register() {
                 {step === 6 && (
                   <div className="space-y-5 text-center">
                     {/* Sent Email Pill */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100 max-w-full">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold border border-slate-100 max-w-full">
                       <Mail className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{formData.email}</span>
                       <button
@@ -625,7 +626,7 @@ export function Register() {
                           setError('');
                           setStep(2);
                         }}
-                        className="ml-1 text-indigo-500 hover:text-indigo-800 transition-colors"
+                        className="ml-1 text-slate-500 hover:text-slate-800 transition-colors"
                         title="E-postayı Değiştir"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -647,8 +648,8 @@ export function Register() {
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                           className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all outline-none ${
                             digit
-                              ? 'border-indigo-600 bg-indigo-50/40 text-indigo-900 ring-2 ring-indigo-500/20'
-                              : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-600 focus:bg-white focus:ring-2 focus:ring-indigo-500/20'
+                              ? 'border-slate-900 bg-slate-100/40 text-slate-900 ring-2 ring-slate-900/10'
+                              : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/10'
                           }`}
                           autoComplete="one-time-code"
                         />
@@ -679,7 +680,7 @@ export function Register() {
                           type="button"
                           onClick={handleResendOtp}
                           disabled={resending}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 hover:text-slate-700 hover:underline transition-colors disabled:opacity-50"
                         >
                           <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                           {resending ? 'Kod Gönderiliyor...' : 'Kodu Tekrar Gönder'}
@@ -732,7 +733,7 @@ export function Register() {
               Zaten hesabınız var mı?{' '}
               <Link
                 to="/login"
-                className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors"
+                className="font-bold text-slate-900 hover:text-slate-700 hover:underline transition-colors"
               >
                 Giriş Yapın
               </Link>

@@ -47,14 +47,14 @@ export function Notifications() {
         };
       case "comment":
         return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-indigo-600 fill-indigo-600" />,
-          bg: "bg-indigo-50 border-indigo-100 text-indigo-600",
+          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 fill-slate-600" />,
+          bg: "bg-slate-100 border-slate-100 text-slate-900",
           text: "gönderine yorum yaptı.",
         };
       case "project_comment":
         return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-indigo-600 fill-indigo-600" />,
-          bg: "bg-indigo-50 border-indigo-100 text-indigo-600",
+          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 fill-slate-600" />,
+          bg: "bg-slate-100 border-slate-100 text-slate-900",
           text: "projene yorum yaptı.",
         };
       case "follow":
@@ -71,8 +71,8 @@ export function Notifications() {
         };
       case "post":
         return {
-          icon: <Megaphone className="w-4.5 h-4.5 text-indigo-600" />,
-          bg: "bg-indigo-50 border-indigo-100 text-indigo-600",
+          icon: <Megaphone className="w-4.5 h-4.5 text-slate-900" />,
+          bg: "bg-slate-100 border-slate-100 text-slate-900",
           text: "yeni bir duyuru/gönderi paylaştı.",
         };
       case "verification":
@@ -123,7 +123,7 @@ export function Notifications() {
             Bildirimler
           </h1>
           {unreadCount > 0 && (
-            <span className="px-2 py-0.5 bg-indigo-600 text-white font-bold text-xs rounded-full">
+            <span className="px-2 py-0.5 bg-slate-900 text-white font-bold text-xs rounded-full">
               {unreadCount} yeni
             </span>
           )}
@@ -149,10 +149,8 @@ export function Notifications() {
             ))}
           </div>
         ) : notifications.length > 0 ? (
-          <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-            <div className="divide-y divide-slate-100">
-              {notifications.map((notif) => {
-                const details = getNotificationDetails(notif.type);
+          <div className="divide-y divide-slate-100">
+<InfiniteScroll items={notifications} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(notif) => {const details = getNotificationDetails(notif.type);
                 const isUnread = !notif.isRead;
 
                 return (
@@ -161,13 +159,13 @@ export function Notifications() {
                     onClick={() => handleNotificationClick(notif)}
                     className={`flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 transition-colors cursor-pointer group relative ${
                       isUnread
-                        ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+                        ? "bg-slate-100/40 hover:bg-slate-100/70"
                         : "hover:bg-slate-50/80 bg-white"
                     }`}
                   >
                     {/* Unread Left Border Highlight Indicator */}
                     {isUnread && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-900" />
                     )}
 
                     {/* Icon Badge */}
@@ -193,25 +191,25 @@ export function Notifications() {
                                 url={notif.actor.avatarUrl}
                                 name={notif.actor.displayName || notif.actor.username}
                                 size="sm"
-                                className="ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-all"
+                                className="ring-1 ring-slate-200 group-hover:ring-slate-300 transition-all"
                               />
                             </Link>
                           )}
                           <Link
                             to={notif.actor ? `/profile/${notif.actor.username}` : "#"}
                             onClick={(e) => e.stopPropagation()}
-                            className="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-sm sm:text-[15px]"
+                            className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-sm sm:text-[15px]"
                           >
                             {notif.actor?.displayName || notif.actor?.username || "Genç Sosyal"}
                           </Link>
                           {notif.actor?.isVerified && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 fill-indigo-100 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
                           )}
                         </div>
 
                         {/* Unread Status Dot */}
                         {isUnread && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-100 shrink-0 mt-1" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-slate-100 shrink-0 mt-1" />
                         )}
                       </div>
 
@@ -233,16 +231,15 @@ export function Notifications() {
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </InfiniteScroll>
+                );}} />
+</div>
         ) : (
           <div className="px-6 py-16 max-w-md mx-auto text-center">
             <EmptyState
               icon={<Bell className="w-8 h-8 text-slate-400" />}
               title="Henüz Bildirim Yok"
               description="Yeni bir beğeni, yorum, takipçi veya etkileşim aldığınızda burada listelenecektir."
+              action={{ label: "Topluluğu Keşfet", onClick: () => navigate("/explore") }}
             />
           </div>
         )}

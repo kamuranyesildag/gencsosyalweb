@@ -195,7 +195,7 @@ export function ToastContainer() {
                     t.action?.onClick();
                     removeToast(t.id);
                   }}
-                  className="shrink-0 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="shrink-0 text-xs font-bold text-slate-900 hover:text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   {t.action.label}
                 </button>

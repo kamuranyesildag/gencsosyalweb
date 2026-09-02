@@ -1,10 +1,12 @@
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
-import { projects, users, profiles, projectLikes, projectComments, notifications, projectCollaborators } from "../../src/db/schema.js";
+import { projects, users, profiles, projectLikes, projectComments, notifications, projectCollaborators, moderationLogs } from "../../src/db/schema.js";
 import { eq, desc, and, ilike, or, asc, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth.js";
+import { standardLimiter, strictLimiter } from "../middleware/rateLimiter.js";
 import { notify } from "../utils/notifications.js";
 import { projectSchema } from "../validators/project.js";
+import { moderateContent } from "../services/moderation/index.js";
 
 export const projectsRouter = Router();
 
@@ -18,7 +20,7 @@ projectsRouter.get("/", async (req: Request, res: Response): Promise<void> => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10) || 20));
     const offset = (pageNum - 1) * limitNum;
     
-    let conditions = [];
+    let conditions: any[] = [];
     
     if (category) {
       conditions.push(eq(projects.category, category as string));
@@ -198,8 +200,27 @@ projectsRouter.post("/", requireAuth, async (req: Request, res: Response): Promi
       (data.tags || []).map(t => t.trim()).filter(t => t.length > 0 && t.length <= 30)
     )).slice(0, 10);
 
+    const currentUserId = req.user?.userId || -1;
+    const contentToModerate = `${data.title} ${data.description} ${data.detailedDescription || ""}`;
+    const modResult = await moderateContent(contentToModerate);
+    
+    if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {
+      await db.insert(moderationLogs).values({
+         entityType: 'PROJECT',
+         entityId: currentUserId, // We don't have project id yet, fallback to user id
+         userId: currentUserId,
+         status: 'RESOLVED',
+         actionTaken: 'REJECTED',
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+      res.status(403).json({ error: { message: "Projeniz topluluk kurallarına aykırı içerik barındırdığı için oluşturulamadı." } });
+      return;
+    }
+
     const newProject = await db.insert(projects).values({
-      userId: req.user!.userId,
+      userId: currentUserId,
       title: data.title,
       description: data.description,
       detailedDescription: data.detailedDescription || null,
@@ -243,7 +264,7 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
       return;
     }
     
-    if (existing[0].userId !== req.user!.userId) {
+    if (existing[0].userId !== (req.user?.userId || -1)) {
       res.status(403).json({ error: { message: "Bu projeyi düzenleme yetkiniz yok." } });
       return;
     }
@@ -268,6 +289,25 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
     const cleanedTags = Array.from(new Set(
       (data.tags || []).map(t => t.trim()).filter(t => t.length > 0 && t.length <= 30)
     )).slice(0, 10);
+
+    const currentUserId = req.user?.userId || -1;
+    const contentToModerate = `${data.title} ${data.description} ${data.detailedDescription || ""}`;
+    const modResult = await moderateContent(contentToModerate);
+    
+    if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {
+      await db.insert(moderationLogs).values({
+         entityType: 'PROJECT',
+         entityId: projectId,
+         userId: currentUserId,
+         status: 'RESOLVED',
+         actionTaken: 'REJECTED',
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+      res.status(403).json({ error: { message: "Projeniz topluluk kurallarına aykırı içerik barındırdığı için güncellenemedi." } });
+      return;
+    }
 
     const updated = await db.update(projects).set({
       title: data.title,
@@ -308,7 +348,7 @@ projectsRouter.delete("/:id", requireAuth, async (req: Request, res: Response): 
       return;
     }
     
-    if (existing[0].userId !== req.user!.userId) {
+    if (existing[0].userId !== (req.user?.userId || -1)) {
       res.status(403).json({ error: { message: "Bu projeyi silme yetkiniz yok." } });
       return;
     }
@@ -370,7 +410,7 @@ projectsRouter.get("/:id/like", async (req: Request, res: Response): Promise<voi
 
 // POST /api/v1/projects/:id/like
 // Like a project
-projectsRouter.post("/:id/like", requireAuth, async (req: Request, res: Response): Promise<void> => {
+projectsRouter.post("/:id/like", requireAuth, standardLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const projectId = parseInt(req.params.id as string, 10);
     if (isNaN(projectId)) {
@@ -378,12 +418,17 @@ projectsRouter.post("/:id/like", requireAuth, async (req: Request, res: Response
       return;
     }
     
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
 
     // Check if project exists
     const project = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
     if (project.length === 0) {
       res.status(404).json({ error: { message: "Proje bulunamadı." } });
+      return;
+    }
+
+    if (project[0].userId === userId) {
+      res.status(400).json({ error: { message: "Kendi projenizi beğenemezsiniz." } });
       return;
     }
 
@@ -427,7 +472,7 @@ projectsRouter.delete("/:id/like", requireAuth, async (req: Request, res: Respon
       return;
     }
     
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     
     await db.delete(projectLikes)
       .where(and(eq(projectLikes.projectId, projectId), eq(projectLikes.userId, userId)));
@@ -463,7 +508,7 @@ projectsRouter.get("/:id/comments", async (req: Request, res: Response): Promise
     .from(projectComments)
     .innerJoin(users, eq(projectComments.userId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId))
-    .where(eq(projectComments.projectId, projectId))
+    .where(and(eq(projectComments.projectId, projectId), eq(projectComments.moderationStatus, 'APPROVED')))
     .orderBy(asc(projectComments.createdAt));
 
     res.json({ success: true, data: { comments: commentsList } });
@@ -475,7 +520,7 @@ projectsRouter.get("/:id/comments", async (req: Request, res: Response): Promise
 
 // POST /api/v1/projects/:id/comments
 // Add a comment
-projectsRouter.post("/:id/comments", requireAuth, async (req: Request, res: Response): Promise<void> => {
+projectsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const projectId = parseInt(req.params.id as string, 10);
     if (isNaN(projectId)) {
@@ -494,7 +539,7 @@ projectsRouter.post("/:id/comments", requireAuth, async (req: Request, res: Resp
       return;
     }
     
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
 
     // Check if project exists
     const project = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
@@ -503,14 +548,36 @@ projectsRouter.post("/:id/comments", requireAuth, async (req: Request, res: Resp
       return;
     }
 
+    const modResult = await moderateContent(content.trim());
+    const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
+
     const newComment = await db.insert(projectComments).values({
       projectId,
       userId,
-      content: content.trim()
+      content: content.trim(),
+      moderationStatus: modStatus
     }).returning();
+
+    if (modStatus !== 'APPROVED') {
+      await db.insert(moderationLogs).values({
+         entityType: 'PROJECT_COMMENT',
+         entityId: newComment[0].id,
+         userId,
+         status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
+         actionTaken: modStatus === 'REJECTED' ? 'REJECTED' : null,
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+    }
+
+    if (modStatus === 'REJECTED') {
+      res.status(403).json({ error: { message: "Yorumunuz topluluk kurallarına aykırı olduğu için yayınlanamadı." } });
+      return;
+    }
     
     // Create notification
-    if (project[0].userId !== userId) {
+    if (modStatus === 'APPROVED' && project[0].userId !== userId) {
       await db.insert(notifications).values({
         recipientId: project[0].userId,
         actorId: userId,
@@ -556,7 +623,7 @@ projectsRouter.delete("/:id/comments/:commentId", requireAuth, async (req: Reque
       return;
     }
     
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     
     // Check if comment exists and belongs to user
     const comment = await db.select().from(projectComments)
@@ -595,7 +662,7 @@ projectsRouter.post("/:id/collaborators", requireAuth, async (req: Request, res:
       return;
     }
     
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     if (targetUserId === currentUserId) {
       res.status(400).json({ error: { message: "Kendinizi ortak üretici olarak ekleyemezsiniz." } });
@@ -666,7 +733,7 @@ projectsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req: Req
       return;
     }
     
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     const proj = await db.select({ userId: projects.userId }).from(projects).where(eq(projects.id, projectId)).limit(1);
     if (proj.length === 0) {

@@ -209,7 +209,7 @@ export function AdminOfficialAccounts() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Megaphone className="w-6 h-6 text-indigo-600" />
+            <Megaphone className="w-6 h-6 text-slate-900" />
             <span>Resmi Hesap Yönetimi</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -357,7 +357,7 @@ export function AdminOfficialAccounts() {
                           <div className="flex items-center gap-2">
                             <Link
                               to={`/profile/${acc.username}`}
-                              className="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-base truncate"
+                              className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-base truncate"
                             >
                               {acc.displayName || acc.username}
                             </Link>

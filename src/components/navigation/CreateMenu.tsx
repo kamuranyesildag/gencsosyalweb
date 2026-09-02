@@ -66,7 +66,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   type="button"
                   onClick={onClose}
                   aria-label="Kapat"
-                  className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                  className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -76,13 +76,13 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <button
                   type="button"
                   onClick={() => handleNavigate('/home')}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 hover:border-indigo-200 transition-all text-left group"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200/70 hover:border-slate-200 transition-all text-left group"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                     <PenTool className="w-6 h-6 stroke-[2]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-slate-900 text-base group-hover:text-indigo-600 transition-colors">
+                    <div className="font-bold text-slate-900 text-base group-hover:text-slate-900 transition-colors">
                       Yeni Gönderi
                     </div>
                     <div className="text-xs sm:text-sm text-slate-500">

@@ -9,10 +9,12 @@ import { users, profiles, follows, blocks } from "../../src/db/schema.js";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
-import { authRateLimiter } from "../middleware/rate-limit.js";
+import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { updateProfileSchema } from "../validators/api.js";
 import { moderateContent } from "../services/moderation/index.js";
 import { moderationLogs } from "../../src/db/schema.js";
+import { authenticator } from "otplib";
+import { decryptString } from "../utils/encryption.js";
 
 export const usersRouter = Router();
 
@@ -85,7 +87,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
         .from(follows)
         .where(eq(follows.followerId, currentUserId));
       
-      const myFollowingIds = myFollowing.map(f => f.followingId);
+      const myFollowingIds = myFollowing.map((f: any) => f.followingId);
 
       if (myFollowingIds.length > 0) {
         const mutuals = await db.select({
@@ -128,7 +130,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
 
 usersRouter.patch("/me", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = updateProfileSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -138,7 +140,7 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
 
     if (parsed.data.bio) {
       const modResult = await moderateContent(parsed.data.bio);
-      if (modResult.riskLevel === 'HIGH_RISK') {
+      if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {
         await db.insert(moderationLogs).values({
            entityType: 'PROFILE',
            entityId: currentUserId,
@@ -149,7 +151,7 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
            category: modResult.category,
            reason: modResult.reason || null
         });
-        res.status(403).json({ success: false, error: { code: "POLICY_VIOLATION", message: "Biyografiniz topluluk kurallarına aykırı." }});
+        res.status(403).json({ success: false, error: { code: "POLICY_VIOLATION", message: "Biyografiniz topluluk kurallarına aykırı olduğu için güncellenemedi." }});
         return;
       }
     }
@@ -169,7 +171,7 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
 // Endpoint: PUT /users/me/password
 usersRouter.put("/me/password", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = changePasswordSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -187,6 +189,9 @@ usersRouter.put("/me/password", requireAuth, authRateLimiter, async (req, res) =
     const newHash = await argon2.hash(newPassword);
     await db.update(users).set({ passwordHash: newHash, updatedAt: new Date() }).where(eq(users.id, currentUserId));
 
+    // Revoke all existing sessions
+    await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.userId, currentUserId));
+
     sendSecurityAlertEmail(userRecord[0].email, userRecord[0].username, "Şifre Değişikliği", new Date().toLocaleString('tr-TR')).catch(console.error);
 
     res.json({ success: true, data: { message: "Şifre başarıyla güncellendi." }});
@@ -198,7 +203,7 @@ usersRouter.put("/me/password", requireAuth, authRateLimiter, async (req, res) =
 // Endpoint: PUT /users/me/email
 usersRouter.put("/me/email", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = changeEmailSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -229,40 +234,10 @@ usersRouter.put("/me/email", requireAuth, authRateLimiter, async (req, res) => {
   }
 });
 
-// Endpoint: GET /users/me/sessions
-usersRouter.get("/me/sessions", requireAuth, async (req, res) => {
-  try {
-    const currentUserId = req.user!.userId;
-    const sessions = await db.select({
-      id: refreshTokens.id,
-      createdAt: refreshTokens.createdAt,
-      expiresAt: refreshTokens.expiresAt,
-      revokedAt: refreshTokens.revokedAt
-    }).from(refreshTokens).where(eq(refreshTokens.userId, currentUserId));
-
-    res.json({ success: true, data: sessions.filter(s => !s.revokedAt && new Date(s.expiresAt) > new Date()) });
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
-  }
-});
-
-// Endpoint: DELETE /users/me/sessions/:id
-usersRouter.delete("/me/sessions/:id", requireAuth, async (req, res) => {
-  try {
-    const currentUserId = req.user!.userId;
-    const sessionId = parseInt(req.params.id as string);
-    if (isNaN(sessionId)) { return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz ID." }}); }
-    await db.update(refreshTokens).set({ revokedAt: new Date() }).where(and(eq(refreshTokens.id, sessionId), eq(refreshTokens.userId, currentUserId)));
-    res.json({ success: true, data: { message: "Oturum sonlandırıldı." }});
-  } catch (error) {
-    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
-  }
-});
-
 // Endpoint: POST /users/me/delete
 usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = deleteAccountSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -274,6 +249,22 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
     
     const isPasswordValid = await argon2.verify(userRecord[0].passwordHash, password);
     if (!isPasswordValid) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Şifre hatalı." }});
+
+    if (userRecord[0].twoFactorEnabled) {
+      const code = req.body.code as string;
+      if (!code) {
+        return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "İki faktörlü doğrulama kodu gerekli." }});
+      }
+      try {
+        const secret = decryptString(userRecord[0].twoFactorSecret!);
+        const isValid = authenticator.verify({ token: code, secret });
+        if (!isValid) {
+          return res.status(400).json({ success: false, error: { code: "INVALID_CODE", message: "Doğrulama kodu hatalı." }});
+        }
+      } catch (e) {
+        return res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Güvenlik ayarları okunamadı." }});
+      }
+    }
 
     await db.delete(users).where(eq(users.id, currentUserId));
     
@@ -289,7 +280,7 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
 usersRouter.post("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     if (isNaN(targetUserId) || targetUserId === currentUserId) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz kullanıcı." }});
@@ -319,7 +310,7 @@ usersRouter.post("/:id/block", requireAuth, async (req, res) => {
 usersRouter.delete("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     if (isNaN(targetUserId)) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz kullanıcı." }});
@@ -339,7 +330,7 @@ usersRouter.delete("/:id/block", requireAuth, async (req, res) => {
 usersRouter.put("/:id/follow-preference", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const { preference } = req.body;
     
     if (isNaN(targetUserId) || !['none', 'standard', 'all'].includes(preference)) {

@@ -20,7 +20,7 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generate
 import { encryptString, decryptString } from "../utils/encryption.js";
 import { authenticator } from "otplib";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail } from "../utils/mailer.js";
-import { authRateLimiter, loginRateLimiter, registerRateLimiter, otpSendRateLimiter, otpVerifyRateLimiter } from "../middleware/rate-limit.js";
+import { authRateLimiter, loginRateLimiter, registerRateLimiter, otpSendRateLimiter, otpVerifyRateLimiter } from "../middleware/rateLimiter.js";
 import { requireAuth } from "../middleware/auth.js";
 
 export const authRouter = Router();
@@ -154,30 +154,6 @@ authRouter.post("/register/send-otp", otpSendRateLimiter, async (req, res) => {
   }
 });
 
-// Alias for Send OTP
-authRouter.post("/send-otp", otpSendRateLimiter, async (req, res) => {
-  try {
-    const parsed = sendOtpSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        success: false,
-        error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message }
-      });
-      return;
-    }
-
-    const { email, displayName, username, password } = parsed.data;
-    const result = await handleSendOtp(email, displayName, username, password);
-    res.status(result.status).json(result.body);
-  } catch (error) {
-    console.error("Send OTP error:", error);
-    res.status(500).json({
-      success: false,
-      error: { code: "INTERNAL_SERVER_ERROR", message: "Doğrulama kodu gönderilirken bir hata oluştu." }
-    });
-  }
-});
-
 // 2. Resend OTP Endpoint
 authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => {
   try {
@@ -225,101 +201,6 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
     }
 
     // Generate new OTP
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
-    const otpHash = await argon2.hash(otpCode);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    if (existingOtpRecords.length > 0) {
-      await db.update(otpVerifications).set({
-        otpHash,
-        attempts: 0,
-        expiresAt,
-        lastSentAt: new Date(),
-        verifiedAt: null,
-      }).where(eq(otpVerifications.id, existingOtpRecords[0].id));
-    } else {
-      await db.insert(otpVerifications).values({
-        email,
-        otpHash,
-        type: 'REGISTER',
-        attempts: 0,
-        maxAttempts: 5,
-        expiresAt,
-        lastSentAt: new Date(),
-      });
-    }
-
-    try {
-      await sendOtpVerificationEmail(email, displayName || 'Kullanıcı', otpCode);
-    } catch (err) {
-      console.error("Failed to resend OTP email:", err);
-      return res.status(500).json({
-        success: false,
-        error: { code: "SMTP_ERROR", message: "E-posta gönderimi başarısız oldu." }
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        message: "Yeni doğrulama kodu e-posta adresinize gönderildi.",
-        cooldownSeconds: 60,
-        expiresInSeconds: 600
-      }
-    });
-  } catch (error) {
-    console.error("Resend OTP error:", error);
-    res.status(500).json({
-      success: false,
-      error: { code: "INTERNAL_SERVER_ERROR", message: "Doğrulama kodu yeniden gönderilemedi." }
-    });
-  }
-});
-
-// Alias for Resend OTP
-authRouter.post("/resend-otp", otpSendRateLimiter, async (req, res) => {
-  try {
-    const parsed = resendOtpSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        success: false,
-        error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message }
-      });
-      return;
-    }
-
-    const { email, displayName } = parsed.data;
-
-    const existingUser = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-    if (existingUser.length > 0) {
-      res.status(409).json({
-        success: false,
-        error: { code: "EMAIL_TAKEN", message: "Bu e-posta adresi zaten kayıtlı." }
-      });
-      return;
-    }
-
-    const existingOtpRecords = await db.select().from(otpVerifications).where(
-      and(eq(otpVerifications.email, email), eq(otpVerifications.type, 'REGISTER'))
-    ).limit(1);
-
-    if (existingOtpRecords.length > 0) {
-      const existingOtp = existingOtpRecords[0];
-      const diffMs = Date.now() - new Date(existingOtp.lastSentAt).getTime();
-      if (diffMs < 60 * 1000) {
-        const remainingSeconds = Math.ceil((60 * 1000 - diffMs) / 1000);
-        res.status(429).json({
-          success: false,
-          error: {
-            code: "COOLDOWN_ACTIVE",
-            message: `Lütfen yeni bir kod talep etmeden önce ${remainingSeconds} saniye bekleyin.`,
-            remainingSeconds
-          }
-        });
-        return;
-      }
-    }
-
     const otpCode = crypto.randomInt(100000, 1000000).toString();
     const otpHash = await argon2.hash(otpCode);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -442,7 +323,7 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
 
   let newUser: any;
   try {
-    newUser = await db.transaction(async (tx) => {
+    newUser = await db.transaction(async (tx: any) => {
       // Check collision one more time in transaction
       const existingUser = await tx.select().from(users).where(
         or(eq(users.username, username), eq(users.email, email))
@@ -474,17 +355,17 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
         const { systemSettings, follows } = await import("../../src/db/schema.js");
         const setting = await tx.select().from(systemSettings).where(eq(systemSettings.key, 'auto_follow_users')).limit(1);
         if (setting.length > 0 && setting[0].value) {
-          let userIds: number[] = JSON.parse(setting[0].value);
-          if (Array.isArray(userIds) && userIds.length > 0) {
-            userIds = userIds.filter(id => id !== createdUser.id);
-            if (userIds.length > 0) {
-               const followsToInsert = userIds.map(id => ({
-                  followerId: createdUser.id,
-                  followingId: id,
-                  notificationPreference: 'standard'
-               }));
-               await tx.insert(follows).values(followsToInsert).onConflictDoNothing();
-            }
+          const parsed = JSON.parse(setting[0].value);
+          let userIds: number[] = Array.isArray(parsed)
+            ? parsed.map((u: any) => (typeof u === 'number' ? u : u.id)).filter((id: any) => typeof id === 'number' && id !== createdUser.id)
+            : [];
+          if (userIds.length > 0) {
+            const followsToInsert = userIds.map(id => ({
+              followerId: createdUser.id,
+              followingId: id,
+              notificationPreference: 'standard'
+            }));
+            await tx.insert(follows).values(followsToInsert).onConflictDoNothing();
           }
         }
       } catch (e) {
@@ -901,7 +782,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
 
 authRouter.post("/2fa/setup", requireAuth, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].isActive) {
@@ -945,7 +826,7 @@ authRouter.post("/2fa/enable", requireAuth, async (req, res) => {
       return;
     }
 
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].twoFactorSecret || userRecord[0].twoFactorEnabled) {
@@ -970,8 +851,8 @@ authRouter.post("/2fa/enable", requireAuth, async (req, res) => {
     const { securityAuditLogs, recoveryCodes } = await import("../../src/db/schema.js");
 
     // Generate 10 recovery codes
-    const newCodes = [];
-    const plainCodes = [];
+    const newCodes: Array<{ userId: number; codeHash: string }> = [];
+    const plainCodes: string[] = [];
     for (let i = 0; i < 10; i++) {
       const code = crypto.randomBytes(4).toString('hex').toUpperCase();
       plainCodes.push(code);
@@ -979,7 +860,7 @@ authRouter.post("/2fa/enable", requireAuth, async (req, res) => {
       newCodes.push({ userId, codeHash: hash });
     }
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       await tx.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, userId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId)); // clear any old codes
       await tx.insert(recoveryCodes).values(newCodes);
@@ -1015,7 +896,7 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
       return;
     }
 
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].twoFactorEnabled) {
@@ -1045,7 +926,7 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
 
     const { securityAuditLogs, recoveryCodes } = await import("../../src/db/schema.js");
 
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, userId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId));
       
@@ -1097,16 +978,41 @@ authRouter.post("/refresh", async (req, res) => {
     const activeTokens = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, decoded.userId));
     
     let matchedTokenId: number | null = null;
+    let reusedTokenDetected = false;
 
     for (const record of activeTokens) {
-      if (record.revokedAt) continue;
-      if (new Date() > record.expiresAt) continue;
-
-      const isValid = await argon2.verify(record.tokenHash, refreshToken);
+      const isValid = await argon2.verify(record.tokenHash, refreshToken).catch(() => false);
       if (isValid) {
-        matchedTokenId = record.id;
+        if (record.revokedAt) {
+          reusedTokenDetected = true;
+        } else if (new Date() <= record.expiresAt) {
+          matchedTokenId = record.id;
+        }
         break;
       }
+    }
+
+    if (reusedTokenDetected) {
+      // 1. Revoke ALL tokens for this user
+      await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.userId, decoded.userId));
+      
+      // 2. Log to security audit logs
+      const { securityAuditLogs } = await import("../../src/db/schema.js");
+      await db.insert(securityAuditLogs).values({
+        userId: decoded.userId,
+        action: "refresh_token_reuse",
+        metadata: {
+          details: "İptal edilmiş bir oturum yenileme tokeni tekrar kullanıldı. Olası token hırsızlığına karşı kullanıcının tüm oturumları sonlandırıldı.",
+          ipAddress: (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim().substring(0, 45)
+        }
+      }).catch(console.error);
+
+      res.clearCookie("refreshToken");
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Şüpheli oturum hareketi algılandı. Tüm oturumlarınız güvenlik amacıyla sonlandırıldı, lütfen tekrar giriş yapın." }
+      });
+      return;
     }
 
     if (!matchedTokenId) {
@@ -1203,7 +1109,7 @@ authRouter.post("/logout", async (req, res) => {
 
 authRouter.get("/me", requireAuth, async (req, res) => {
   try {
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const userRecord = await db.select({
       id: users.id,
       username: users.username,
@@ -1356,7 +1262,7 @@ authRouter.get("/sessions", requireAuth, async (req, res) => {
   try {
     const activeTokens = await db.select().from(refreshTokens).where(
       and(
-        eq(refreshTokens.userId, req.user!.userId),
+        eq(refreshTokens.userId, (req.user?.userId || -1)),
         sql`${refreshTokens.revokedAt} IS NULL`,
         sql`${refreshTokens.expiresAt} > NOW()`
       )
@@ -1383,7 +1289,7 @@ authRouter.get("/sessions", requireAuth, async (req, res) => {
       }
     }
 
-    const sessions = activeTokens.map(t => ({
+    const sessions = activeTokens.map((t: any) => ({
       id: t.id,
       deviceInfo: t.deviceInfo,
       browser: t.browser,
@@ -1404,12 +1310,12 @@ authRouter.get("/sessions", requireAuth, async (req, res) => {
 authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
   try {
     const currentToken = req.cookies.refreshToken;
-    let currentId = null;
+    let currentId: number | null = null;
 
     if (currentToken) {
       const activeTokens = await db.select().from(refreshTokens).where(
         and(
-          eq(refreshTokens.userId, req.user!.userId),
+          eq(refreshTokens.userId, (req.user?.userId || -1)),
           sql`${refreshTokens.revokedAt} IS NULL`,
           sql`${refreshTokens.expiresAt} > NOW()`
         )
@@ -1430,7 +1336,7 @@ authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
         .set({ revokedAt: new Date() })
         .where(
           and(
-            eq(refreshTokens.userId, req.user!.userId),
+            eq(refreshTokens.userId, (req.user?.userId || -1)),
             sql`${refreshTokens.id} != ${currentId}`
           )
         );
@@ -1438,7 +1344,7 @@ authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
       // if current session not identified, revoke all
       await db.update(refreshTokens)
         .set({ revokedAt: new Date() })
-        .where(eq(refreshTokens.userId, req.user!.userId));
+        .where(eq(refreshTokens.userId, (req.user?.userId || -1)));
     }
 
     res.json({ success: true, message: "Diğer oturumlar başarıyla kapatıldı." });
@@ -1453,13 +1359,13 @@ authRouter.delete("/sessions/:id", requireAuth, async (req, res) => {
     const sessionId = parseInt(req.params.id as string);
     if (isNaN(sessionId)) return res.status(400).json({ success: false, error: { message: "Geçersiz ID" } });
 
-    // IDOR protection: only update if it belongs to req.user!.userId
+    // IDOR protection: only update if it belongs to (req.user?.userId || -1)
     const result = await db.update(refreshTokens)
       .set({ revokedAt: new Date() })
       .where(
         and(
           eq(refreshTokens.id, sessionId),
-          eq(refreshTokens.userId, req.user!.userId)
+          eq(refreshTokens.userId, (req.user?.userId || -1))
         )
       );
 

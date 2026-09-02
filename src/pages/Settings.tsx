@@ -154,7 +154,7 @@ export function Settings() {
   if (profileLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
       </div>
     );
   }
@@ -187,7 +187,7 @@ export function Settings() {
                 onClick={() => handleTabChange(item.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                   isActive
-                    ? "bg-indigo-600 text-white shadow-xs"
+                    ? "bg-slate-900 text-white shadow-xs"
                     : "bg-white text-slate-600 border border-slate-200/70 hover:bg-slate-50"
                 }`}
               >
@@ -219,7 +219,7 @@ export function Settings() {
                           onClick={() => handleTabChange(item.id)}
                           className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl font-bold transition-all text-left group ${
                             isActive
-                              ? "bg-indigo-600 text-white shadow-xs shadow-indigo-500/20"
+                              ? "bg-slate-900 text-white shadow-xs shadow-slate-500/20"
                               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                         >
@@ -227,7 +227,7 @@ export function Settings() {
                             className={`p-1.5 rounded-xl transition-colors ${
                               isActive
                                 ? "bg-white/20 text-white"
-                                : "bg-slate-100 text-slate-500 group-hover:text-indigo-600 group-hover:bg-indigo-50"
+                                : "bg-slate-100 text-slate-500 group-hover:text-slate-900 group-hover:bg-slate-100"
                             }`}
                           >
                             <Icon className="w-4 h-4" />

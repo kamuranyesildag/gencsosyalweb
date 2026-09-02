@@ -1,1 +1,2 @@
 ALTER TABLE "profiles" ADD COLUMN "onboarding_completed" boolean DEFAULT false NOT NULL;
+--> statement-breakpoint

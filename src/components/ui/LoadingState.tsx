@@ -21,7 +21,7 @@ export function Spinner({
     md: 'w-6 h-6',
     lg: 'w-8 h-8',
   };
-  return <Loader2 className={cn('animate-spin text-indigo-600', sizes[size], className)} aria-hidden="true" />;
+  return <Loader2 className={cn('animate-spin text-slate-900', sizes[size], className)} aria-hidden="true" />;
 }
 
 export function LoadingState({
@@ -41,7 +41,7 @@ export function LoadingState({
   const content = (
     <div className={cn('flex flex-col items-center justify-center gap-3 p-6 select-none', className)}>
       <div className="relative flex items-center justify-center">
-        <Loader2 className={cn('animate-spin text-indigo-600', config.spinner)} aria-hidden="true" />
+        <Loader2 className={cn('animate-spin text-slate-900', config.spinner)} aria-hidden="true" />
       </div>
       {text && (
         <p className={cn('font-medium text-slate-500 tracking-wide', config.text)}>

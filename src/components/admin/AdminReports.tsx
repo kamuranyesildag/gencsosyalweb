@@ -148,7 +148,7 @@ export function AdminReports() {
           onClick={() => setReportStatus('PENDING')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'PENDING'
-              ? 'bg-white text-indigo-950 shadow-xs border border-slate-200/70'
+              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -158,7 +158,7 @@ export function AdminReports() {
           onClick={() => setReportStatus('RESOLVED')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'RESOLVED'
-              ? 'bg-white text-indigo-950 shadow-xs border border-slate-200/70'
+              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -168,7 +168,7 @@ export function AdminReports() {
           onClick={() => setReportStatus('DISMISSED')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'DISMISSED'
-              ? 'bg-white text-indigo-950 shadow-xs border border-slate-200/70'
+              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >

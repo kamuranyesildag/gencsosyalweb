@@ -54,7 +54,7 @@ export function VerifyEmail() {
         <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white text-center">
           {/* Header Brand */}
           <div className="flex flex-col items-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
               <Hexagon className="w-7 h-7 fill-current" />
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -64,7 +64,7 @@ export function VerifyEmail() {
 
           {status === 'loading' && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+              <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
               <p className="text-sm font-medium text-slate-600">
                 Hesabınız doğrulanıyor, lütfen bekleyin...
               </p>

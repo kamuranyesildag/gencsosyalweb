@@ -11,5 +11,8 @@ CREATE TABLE "otp_verifications" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE INDEX "otp_verifications_email_idx" ON "otp_verifications" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "otp_verifications_type_idx" ON "otp_verifications" USING btree ("type");
+--> statement-breakpoint

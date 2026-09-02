@@ -18,7 +18,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { PostCard } from "../components/PostCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Skeleton, SkeletonCircle, SkeletonCard } from "../components/ui/Skeleton";
+import { Skeleton, SkeletonCircle, SkeletonList } from "../components/ui/Skeleton";
 
 export type ExploreTab = "users" | "posts" | "tags";
 
@@ -73,11 +73,11 @@ export function Explore() {
         {/* Search Input Box */}
         <div className="px-4 pt-3.5 pb-2.5">
           <div className="relative group">
-            <Search className="w-4.5 h-4.5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" />
+            <Search className="w-4.5 h-4.5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors pointer-events-none" />
             <input
               type="text"
               placeholder="Kişiler, gönderiler veya etiketler ara..."
-              className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white rounded-2xl pl-11 pr-10 py-3 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-900 placeholder:text-slate-400 text-sm sm:text-[15px]"
+              className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white rounded-2xl pl-11 pr-10 py-3 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all font-medium text-slate-900 placeholder:text-slate-400 text-sm sm:text-[15px]"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Keşfet Arama"
@@ -107,7 +107,7 @@ export function Explore() {
             aria-selected={activeTab === "users"}
             onClick={() => setActiveTab("users")}
             className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "users" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+              activeTab === "users" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
@@ -117,7 +117,7 @@ export function Explore() {
             {activeTab === "users" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-indigo-600 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -129,7 +129,7 @@ export function Explore() {
             aria-selected={activeTab === "posts"}
             onClick={() => setActiveTab("posts")}
             className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "posts" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+              activeTab === "posts" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
@@ -139,7 +139,7 @@ export function Explore() {
             {activeTab === "posts" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-indigo-600 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -151,7 +151,7 @@ export function Explore() {
             aria-selected={activeTab === "tags"}
             onClick={() => setActiveTab("tags")}
             className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "tags" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+              activeTab === "tags" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
@@ -161,7 +161,7 @@ export function Explore() {
             {activeTab === "tags" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-indigo-600 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -189,8 +189,8 @@ export function Explore() {
 
             {activeTab === "posts" && (
               <>
-                <SkeletonCard />
-                <SkeletonCard />
+                <SkeletonList count={2} />
+                <SkeletonList count={2} />
               </>
             )}
 
@@ -243,15 +243,15 @@ export function Explore() {
                         url={user.avatarUrl}
                         name={user.displayName || user.username}
                         size="md"
-                        className="ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-all shrink-0"
+                        className="ring-1 ring-slate-200 group-hover:ring-slate-300 transition-all shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate text-sm sm:text-base">
+                          <span className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors truncate text-sm sm:text-base">
                             {user.displayName || user.username}
                           </span>
                           {user.isVerified && (
-                            <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-100 shrink-0" />
+                            <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
                           )}
                         </div>
                         <p className="text-xs sm:text-sm text-slate-500 font-medium truncate">
@@ -266,7 +266,7 @@ export function Explore() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="rounded-full shrink-0 font-bold group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-200 transition-colors"
+                        className="rounded-full shrink-0 font-bold group-hover:bg-slate-100 group-hover:text-slate-900 group-hover:border-slate-200 transition-colors"
                       >
                         Profili Gör
                       </Button>
@@ -294,18 +294,18 @@ export function Explore() {
                       to={`/hashtags/${encodeURIComponent(tag.name)}`}
                       className="flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-200/70 transition-all group"
                     >
-                      <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100/60 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                         <Hash className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-indigo-600 transition-colors truncate">
+                        <div className="font-bold text-slate-900 text-sm sm:text-base group-hover:text-slate-900 transition-colors truncate">
                           #{tag.name}
                         </div>
                         <div className="text-xs text-slate-500 font-medium mt-0.5">
                           {tag.postCount || 0} gönderi
                         </div>
                       </div>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 group-hover:text-slate-900 group-hover:bg-slate-100 transition-all">
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     </Link>
@@ -332,7 +332,7 @@ export function Explore() {
         {/* 5. Starter State (Prompt to Search) */}
         {!loading && !error && query.trim().length < 2 && (
           <div className="px-6 py-12 max-w-md mx-auto text-center flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100/80 text-indigo-600 flex items-center justify-center mb-4 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-100/80 text-slate-900 flex items-center justify-center mb-4 shadow-xs">
               <Sparkles className="w-7 h-7" />
             </div>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight mb-1">
@@ -357,7 +357,7 @@ export function Explore() {
                       setQuery(sug);
                       setActiveTab("tags");
                     }}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-semibold text-xs rounded-xl transition-all border border-slate-200/60"
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-100 hover:text-slate-900 text-slate-700 font-semibold text-xs rounded-xl transition-all border border-slate-200/60"
                   >
                     #{sug}
                   </button>

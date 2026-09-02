@@ -1,18 +1,31 @@
-ALTER TABLE "post_views" DROP CONSTRAINT "post_views_community_id_communities_id_fk";
+ALTER TABLE "post_views" DROP CONSTRAINT IF EXISTS "post_views_community_id_communities_id_fk";
 --> statement-breakpoint
-ALTER TABLE "projects" DROP CONSTRAINT "projects_community_id_communities_id_fk";
+
 --> statement-breakpoint
-ALTER TABLE "refresh_tokens" DROP CONSTRAINT "refresh_tokens_community_id_communities_id_fk";
+ALTER TABLE "projects" DROP CONSTRAINT IF EXISTS "projects_community_id_communities_id_fk";
 --> statement-breakpoint
-ALTER TABLE "reposts" DROP CONSTRAINT "reposts_community_id_communities_id_fk";
+
 --> statement-breakpoint
-ALTER TABLE "stories" DROP CONSTRAINT "stories_community_id_communities_id_fk";
+ALTER TABLE "refresh_tokens" DROP CONSTRAINT IF EXISTS "refresh_tokens_community_id_communities_id_fk";
 --> statement-breakpoint
-ALTER TABLE "verification_requests" DROP CONSTRAINT "verification_requests_community_id_communities_id_fk";
+
 --> statement-breakpoint
-ALTER TABLE "post_views" DROP COLUMN "community_id";--> statement-breakpoint
-ALTER TABLE "projects" DROP COLUMN "community_id";--> statement-breakpoint
-ALTER TABLE "refresh_tokens" DROP COLUMN "community_id";--> statement-breakpoint
-ALTER TABLE "reposts" DROP COLUMN "community_id";--> statement-breakpoint
-ALTER TABLE "stories" DROP COLUMN "community_id";--> statement-breakpoint
-ALTER TABLE "verification_requests" DROP COLUMN "community_id";
+ALTER TABLE "reposts" DROP CONSTRAINT IF EXISTS "reposts_community_id_communities_id_fk";
+--> statement-breakpoint
+
+--> statement-breakpoint
+ALTER TABLE "stories" DROP CONSTRAINT IF EXISTS "stories_community_id_communities_id_fk";
+--> statement-breakpoint
+
+--> statement-breakpoint
+ALTER TABLE "verification_requests" DROP CONSTRAINT IF EXISTS "verification_requests_community_id_communities_id_fk";
+--> statement-breakpoint
+
+--> statement-breakpoint
+ALTER TABLE "post_views" DROP COLUMN IF EXISTS "community_id";--> statement-breakpoint
+ALTER TABLE "projects" DROP COLUMN IF EXISTS "community_id";--> statement-breakpoint
+ALTER TABLE "refresh_tokens" DROP COLUMN IF EXISTS "community_id";--> statement-breakpoint
+ALTER TABLE "reposts" DROP COLUMN IF EXISTS "community_id";--> statement-breakpoint
+ALTER TABLE "stories" DROP COLUMN IF EXISTS "community_id";--> statement-breakpoint
+ALTER TABLE "verification_requests" DROP COLUMN IF EXISTS "community_id";
+--> statement-breakpoint

@@ -34,10 +34,11 @@ export const getSmtpConfig = async () => {
 
 export const getTransporter = async () => {
   const config = await getSmtpConfig();
+  
   return nodemailer.createTransport({
     host: config.host,
     port: config.port,
-    secure: config.secure, // true for 465, false for other ports
+    secure: config.secure,
     auth: {
       user: config.user,
       pass: config.pass,

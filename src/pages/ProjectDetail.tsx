@@ -212,14 +212,13 @@ export function ProjectDetail() {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4 text-center min-h-[60vh] flex items-center justify-center">
         <EmptyState
-          icon={Rocket}
+          icon={<Rocket className="w-7 h-7" />}
           title="Proje Bulunamadı"
           description={error || "Görüntülemek istediğiniz proje mevcut değil veya kaldırılmış."}
-          action={
-            <Button variant="primary" size="md" onClick={() => navigate("/projects")}>
-              Projelere Dön
-            </Button>
-          }
+          action={{
+            label: "Projelere Dön",
+            onClick: () => navigate("/projects")
+          }}
         />
       </div>
     );
@@ -279,7 +278,7 @@ export function ProjectDetail() {
         <div className="p-6 sm:p-8 md:p-10 space-y-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-100 px-3 py-1 rounded-full">
                 {project.category}
               </span>
               <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
@@ -294,7 +293,7 @@ export function ProjectDetail() {
               >
                 <Avatar name={project.username} size="sm" />
                 <div>
-                  <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  <div className="text-sm font-bold text-slate-900 group-hover:text-slate-900 transition-colors">
                     @{project.username}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold">Proje Sahibi</div>
@@ -358,7 +357,7 @@ export function ProjectDetail() {
                   href={project.projectUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-indigo-700 transition-colors shadow-xs"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-700 transition-colors shadow-xs"
                 >
                   <LinkIcon className="w-4 h-4" /> İncele
                 </a>
@@ -398,7 +397,7 @@ export function ProjectDetail() {
       {/* Comments Section */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
         <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-5 flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-indigo-600" />
+          <MessageSquare className="w-5 h-5 text-slate-900" />
           Yorumlar ({comments.length})
         </h3>
 
@@ -413,7 +412,7 @@ export function ProjectDetail() {
               onClick={() => {
                 if (!isAuthenticated) openModal();
               }}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none"
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all resize-none"
             />
             <div className="flex justify-end">
               <Button

@@ -144,7 +144,7 @@ export function AdminAutoFollow() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <UserCheck className="w-6 h-6 text-indigo-600" />
+            <UserCheck className="w-6 h-6 text-slate-900" />
             <span>Otomatik Takip (Auto-Follow)</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -163,8 +163,8 @@ export function AdminAutoFollow() {
       </div>
 
       {/* Explanatory Info Card */}
-      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-3 text-indigo-900 text-xs sm:text-sm leading-relaxed">
-        <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+      <div className="p-4 rounded-2xl bg-slate-100/70 border border-slate-100 flex items-start gap-3 text-slate-900 text-xs sm:text-sm leading-relaxed">
+        <Info className="w-5 h-5 text-slate-900 shrink-0 mt-0.5" />
         <div>
           <span className="font-bold">Nasıl Çalışır?</span> Bu listede yer alan hesaplar, platforma yeni kaydolan her kullanıcı için kayıt anında otomatik takip kuyruğuna alınır. Böylece yeni üyeler boş bir akış yerine Genç Sosyal resmi duyuruları ve kaliteli vitrin içerikleriyle karşılaşır.
         </div>
@@ -299,7 +299,7 @@ export function AdminAutoFollow() {
                           <div className="flex items-center gap-1.5">
                             <Link
                               to={`/profile/${u.username}`}
-                              className="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-sm sm:text-base truncate"
+                              className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-sm sm:text-base truncate"
                             >
                               {u.displayName || u.username}
                             </Link>
@@ -316,7 +316,7 @@ export function AdminAutoFollow() {
                       <div className="flex items-center gap-2 shrink-0">
                         <Link
                           to={`/profile/${u.username}`}
-                          className="hidden sm:inline-flex p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors"
+                          className="hidden sm:inline-flex p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
                           title="Profili Gör"
                         >
                           <ExternalLink className="w-4 h-4" />

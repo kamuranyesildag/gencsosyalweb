@@ -37,7 +37,7 @@ export function Messages() {
             Mesajlar
           </h1>
           {totalUnread > 0 && (
-            <span className="px-2 py-0.5 bg-indigo-600 text-white font-bold text-xs rounded-full">
+            <span className="px-2 py-0.5 bg-slate-900 text-white font-bold text-xs rounded-full">
               {totalUnread} okunmamış
             </span>
           )}
@@ -48,7 +48,7 @@ export function Messages() {
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
           onClick={() => setShowNewMsg(true)}
-          className="rounded-full font-bold shadow-xs shadow-indigo-500/20"
+          className="rounded-full font-bold shadow-xs shadow-slate-500/20"
         >
           Yeni Mesaj
         </Button>
@@ -73,10 +73,8 @@ export function Messages() {
             ))}
           </div>
         ) : conversations.length > 0 ? (
-          <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-            <div className="divide-y divide-slate-100">
-              {conversations.map((conv) => {
-                const hasUnread = conv.unreadCount > 0;
+          <div className="divide-y divide-slate-100">
+<InfiniteScroll items={conversations} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(conv) => {const hasUnread = conv.unreadCount > 0;
                 const otherUser = conv.otherUser;
 
                 return (
@@ -85,13 +83,13 @@ export function Messages() {
                       to={`/messages/${conv.id}`}
                       className={`flex items-center gap-3.5 sm:gap-4 p-4 sm:p-5 transition-all group relative ${
                         hasUnread
-                          ? "bg-indigo-50/30 hover:bg-indigo-50/60"
+                          ? "bg-slate-100/30 hover:bg-slate-100/60"
                           : "hover:bg-slate-50/80 bg-white"
                       }`}
                     >
                       {/* Unread Left Border Highlight */}
                       {hasUnread && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-900" />
                       )}
 
                       {/* Avatar */}
@@ -99,7 +97,7 @@ export function Messages() {
                         url={otherUser?.avatarUrl}
                         name={otherUser?.displayName || otherUser?.username}
                         size="lg"
-                        className="ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-all shrink-0"
+                        className="ring-1 ring-slate-200 group-hover:ring-slate-300 transition-all shrink-0"
                       />
 
                       {/* Conversation Body */}
@@ -109,14 +107,14 @@ export function Messages() {
                             <span
                               className={`font-bold truncate text-sm sm:text-base transition-colors ${
                                 hasUnread
-                                  ? "text-slate-900 group-hover:text-indigo-600"
-                                  : "text-slate-900 group-hover:text-indigo-600"
+                                  ? "text-slate-900 group-hover:text-slate-900"
+                                  : "text-slate-900 group-hover:text-slate-900"
                               }`}
                             >
                               {otherUser?.displayName || otherUser?.username || "Kullanıcı"}
                             </span>
                             {otherUser?.isVerified && (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 fill-indigo-100 shrink-0" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
                             )}
                             <span className="text-xs text-slate-400 font-medium truncate hidden sm:inline">
                               @{otherUser?.username}
@@ -125,7 +123,7 @@ export function Messages() {
 
                           <span
                             className={`text-xs shrink-0 font-medium ${
-                              hasUnread ? "text-indigo-600 font-bold" : "text-slate-400"
+                              hasUnread ? "text-slate-900 font-bold" : "text-slate-400"
                             }`}
                           >
                             {formatTimeAgo(conv.updatedAt)}
@@ -144,7 +142,7 @@ export function Messages() {
                           </p>
 
                           {hasUnread && (
-                            <span className="bg-indigo-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shrink-0 shadow-xs">
+                            <span className="bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shrink-0 shadow-xs">
                               {conv.unreadCount}
                             </span>
                           )}
@@ -152,10 +150,8 @@ export function Messages() {
                       </div>
                     </Link>
                   </div>
-                );
-              })}
-            </div>
-          </InfiniteScroll>
+                );}} />
+</div>
         ) : (
           <div className="px-6 py-16 max-w-md mx-auto text-center">
             <EmptyState

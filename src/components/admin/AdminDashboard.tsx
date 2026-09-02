@@ -95,8 +95,8 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
       title: 'Toplam Kullanıcı',
       value: stats?.totalUsers ?? 0,
       icon: <Users className="w-5 h-5" />,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50',
+      color: 'text-slate-900',
+      bg: 'bg-slate-100',
       badge: 'Aktif Platform',
       badgeVariant: 'default' as const,
       tab: 'users' as const,
@@ -141,11 +141,11 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
       className="space-y-6"
     >
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-slate-1000/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-indigo-200 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-slate-200 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Yönetim ve Güvenlik Merkezi</span>
             </div>
@@ -222,7 +222,7 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900 group-hover:text-slate-700">
                     <span>Yönetime Git</span>
                     <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
@@ -240,19 +240,19 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
               <h3 className="text-base font-bold text-slate-900">Hızlı Yönetim İşlemleri</h3>
               <p className="text-xs text-slate-500 font-medium">Sık kullanılan yönetim sayfalarına doğrudan erişim</p>
             </div>
-            <Activity className="w-5 h-5 text-indigo-600" />
+            <Activity className="w-5 h-5 text-slate-900" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => onNavigateTab('verifications')}
-              className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50/80 hover:bg-indigo-50/60 border border-slate-200/70 hover:border-indigo-200 text-left transition-all group"
+              className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-100/60 border border-slate-200/70 hover:border-slate-200 text-left transition-all group"
             >
               <div className="w-10 h-10 rounded-xl bg-amber-100/80 text-amber-700 flex items-center justify-center shrink-0">
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-700 flex items-center justify-between">
+                <div className="text-sm font-bold text-slate-900 group-hover:text-slate-700 flex items-center justify-between">
                   <span>Mavi Tik Başvuruları</span>
                   <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
@@ -310,13 +310,13 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
 
             <button
               onClick={() => onNavigateTab('smtp')}
-              className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50/80 hover:bg-indigo-50/60 border border-slate-200/70 hover:border-indigo-200 text-left transition-all group"
+              className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-100/60 border border-slate-200/70 hover:border-slate-200 text-left transition-all group"
             >
-              <div className="w-10 h-10 rounded-xl bg-indigo-100/80 text-indigo-700 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-100/80 text-slate-700 flex items-center justify-center shrink-0">
                 <Mail className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-700 flex items-center justify-between">
+                <div className="text-sm font-bold text-slate-900 group-hover:text-slate-700 flex items-center justify-between">
                   <span>SMTP / E-posta</span>
                   <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
@@ -367,7 +367,7 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="font-semibold text-slate-600">API Durumu</span>
-                <span className="font-bold text-indigo-600 flex items-center gap-1">
+                <span className="font-bold text-slate-900 flex items-center gap-1">
                   <Server className="w-3.5 h-3.5" /> v1 / Aktif
                 </span>
               </div>

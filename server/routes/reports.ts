@@ -16,7 +16,7 @@ const reportSchema = z.object({
 
 reportsRouter.post("/", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = reportSchema.safeParse(req.body);
     
     if (!parsed.success) {

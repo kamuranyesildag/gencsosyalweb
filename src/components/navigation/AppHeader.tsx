@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router';
-import { Search, Bell, Mail, Hexagon, X, Sparkles } from 'lucide-react';
+import { Menu, Search, Bell, Mail, Hexagon, X, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
+import { useLiveSearch } from "../../hooks/useLiveSearch";
+import { Avatar } from "../ui/Avatar";
+import { motion, AnimatePresence } from "motion/react";
 import { UserMenu } from './UserMenu';
 import { Button } from '../ui/Button';
 
-export function AppHeader() {
+export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const { results: searchResults, loading: searchLoading } = useLiveSearch(query, "users");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,37 +31,50 @@ export function AppHeader() {
   const isMessagesActive = location.pathname === '/messages';
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs h-14 md:h-16 flex items-center justify-center transition-colors">
+    <header className="sticky top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100 h-14 md:h-[60px] flex items-center justify-center transition-colors">
       <div className="w-full max-w-7xl px-4 sm:px-6 flex justify-between items-center h-full">
-        {/* Left: Logo */}
-        <Link 
-          to="/home" 
-          className="flex items-center gap-2.5 group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-xl p-1 -ml-1 select-none"
+        {/* Left: Logo & Mobile Menu */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="md:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            aria-label="Menüyü aç"
+          >
+            <Menu className="w-5 h-5 stroke-[2]" />
+          </button>
+          
+          <Link 
+            to="/home" 
+          className="flex items-center gap-2.5 group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 rounded-xl p-1 -ml-1 select-none"
           aria-label="Genç Sosyal Ana Sayfa"
         >
-          <div className="w-8 h-8 md:w-10 md:h-10 rounded-[10px] md:rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 p-0.5 shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/30 group-hover:scale-105 transition-all duration-200 flex items-center justify-center text-white">
-            <Hexagon className="w-4 h-4 md:w-6 md:h-6 fill-white/20 stroke-white stroke-[2.2]" />
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-[10px] md:rounded-xl bg-slate-900 p-0.5 group-hover:bg-slate-800 transition-colors transition-all duration-200 flex items-center justify-center text-white">
+            <Hexagon className="w-4 h-4 md:w-6 md:h-6 fill-transparent stroke-white stroke-[2]" />
           </div>
           <div className="flex flex-col">
-            <span className="text-base md:text-xl font-black tracking-tight text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors">
+            <span className="text-base md:text-xl font-black tracking-tight text-slate-900 leading-tight group-hover:text-slate-900 transition-colors">
               Genç Sosyal
             </span>
           </div>
         </Link>
+        </div>
 
         {/* Middle: Search Box (Desktop) */}
         <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl mx-6">
           <form onSubmit={handleSearch} className="w-full relative group" role="search">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-900 transition-colors">
               <Search className="h-4 w-4 stroke-[2.2]" />
             </div>
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
               placeholder="Genç Sosyal'de ara..."
               aria-label="Genç Sosyal'de ara"
-              className="w-full pl-10 pr-10 py-2 bg-slate-100/80 hover:bg-slate-100 border border-transparent hover:border-slate-200/80 focus:border-indigo-500 focus:bg-white rounded-full text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 h-10"
+              className="w-full pl-10 pr-10 py-2 bg-slate-50 hover:bg-slate-100 border border-transparent focus:bg-white focus:border-slate-300 focus:bg-white rounded-full text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 transition-all duration-200 h-10"
             />
             {query && (
               <button
@@ -68,20 +86,42 @@ export function AppHeader() {
                 <X className="w-4 h-4" />
               </button>
             )}
+            <AnimatePresence>
+              {searchFocused && query.trim().length >= 2 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden z-50"
+                >
+                  {searchLoading ? (
+                    <div className="p-4 text-center text-sm text-slate-500">Aranıyor...</div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="py-2">
+                      {searchResults.map((u: any) => (
+                        <Link key={u.id} to={`/profile/${u.username}`} onClick={() => setSearchFocused(false)} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 transition-colors">
+                          <Avatar url={u.avatarUrl} name={u.displayName || u.username} size="sm" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">{u.displayName || u.username}</p>
+                            <p className="text-xs text-slate-500">@{u.username}</p>
+                          </div>
+                        </Link>
+                      ))}
+                      <button type="button" onClick={handleSearch} className="w-full text-left px-4 py-2 text-sm text-slate-900 font-medium hover:bg-slate-100 mt-1 border-t border-slate-100">Tüm sonuçları gör &rarr;</button>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-slate-500">Sonuç bulunamadı</div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
-          {/* Mobile Search Icon */}
-          <button
-            type="button"
-            onClick={() => navigate('/explore')}
-            className="md:hidden flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-            aria-label="Keşfet ve Ara"
-          >
-            <Search className="w-5 h-5 stroke-[2]" />
-          </button>
+          
 
           {isAuthenticated ? (
             <>
@@ -89,10 +129,10 @@ export function AppHeader() {
               <button
                 type="button"
                 onClick={() => navigate('/notifications')}
-                className={`flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+                className={`hidden md:flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${
                   isNotificationsActive
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-100'
+                    ? 'bg-slate-100 text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
                 aria-label="Bildirimler"
               >
@@ -103,10 +143,10 @@ export function AppHeader() {
               <button
                 type="button"
                 onClick={() => navigate('/messages')}
-                className={`flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+                className={`hidden md:flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${
                   isMessagesActive
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-100'
+                    ? 'bg-slate-100 text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
                 aria-label="Mesajlar"
               >
@@ -114,7 +154,7 @@ export function AppHeader() {
               </button>
 
               {/* Profile / User Menu */}
-              <div className="ml-1">
+              <div className="hidden md:block ml-1">
                 <UserMenu />
               </div>
             </>

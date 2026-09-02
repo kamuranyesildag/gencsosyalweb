@@ -60,7 +60,7 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+        <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
       </label>
     </div>
   );
@@ -70,7 +70,7 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Bell className="w-5 h-5 text-indigo-600" />
+            <Bell className="w-5 h-5 text-slate-900" />
             Bildirim Tercihleri
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">

@@ -23,7 +23,7 @@ sitemapRouter.get("/sitemap.xml", async (req, res) => {
     xml += `  <url>\n    <loc>${domain}/</loc>\n    <changefreq>always</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
 
     // Profile pages
-    publicProfiles.forEach((profile) => {
+    publicProfiles.forEach((profile: any) => {
       xml += `  <url>\n    <loc>${domain}/profile/${profile.username}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
     });
 

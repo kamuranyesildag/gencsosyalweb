@@ -62,7 +62,7 @@ export function Tooltip({
       onBlur={hide}
     >
       {React.cloneElement(children, {
-        'aria-describedby': isVisible ? tooltipId : undefined,
+        ...({ 'aria-describedby': isVisible ? tooltipId : undefined } as any),
       })}
 
       <AnimatePresence>

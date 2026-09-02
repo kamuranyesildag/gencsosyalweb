@@ -13,13 +13,13 @@ export const messagesRouter = Router();
 // GET /conversations
 messagesRouter.get("/conversations", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;
 
     const memberships = await db.select().from(conversationMembers).where(eq(conversationMembers.userId, currentUserId));
-    const convIds = memberships.map(m => m.conversationId);
+    const convIds = memberships.map((m: any) => m.conversationId);
     
     if (convIds.length === 0) {
       return res.json({ success: true, data: [] });
@@ -27,36 +27,64 @@ messagesRouter.get("/conversations", requireAuth, async (req, res) => {
 
     const convs = await db.select().from(conversations).where(inArray(conversations.id, convIds)).orderBy(desc(conversations.updatedAt)).limit(limit).offset(offset);
     
-    // Attach other member and last message
-    for (let c of convs) {
-      const otherMembers = await db.select({
-        id: users.id,
-        username: users.username,
-        displayName: profiles.displayName,
-        avatarUrl: profiles.avatarUrl
-      })
-      .from(conversationMembers)
-      .innerJoin(users, eq(conversationMembers.userId, users.id))
-      .leftJoin(profiles, eq(users.id, profiles.userId))
-      .where(and(eq(conversationMembers.conversationId, c.id), not(eq(conversationMembers.userId, currentUserId))))
-      .limit(1);
-
-      (c as any).otherUser = otherMembers.length > 0 ? otherMembers[0] : null;
-
-      const lastMsgs = await db.select().from(messages).where(eq(messages.conversationId, c.id)).orderBy(desc(messages.createdAt)).limit(1);
-      (c as any).lastMessage = lastMsgs.length > 0 ? lastMsgs[0] : null;
-
-      const unread = await db.select({ count: sql<number>`count(*)` })
-        .from(messages)
-        .where(and(
-          eq(messages.conversationId, c.id),
-          eq(messages.isRead, false),
-          not(eq(messages.senderId, currentUserId))
-        ));
-      (c as any).unreadCount = unread.length > 0 ? Number(unread[0].count) : 0;
+    if (convs.length === 0) {
+      return res.json({ success: true, data: [] });
     }
 
-    res.json({ success: true, data: convs });
+    const fetchedConvIds = convs.map((c: any) => c.id);
+
+    // Fetch all other members
+    const allOtherMembers = await db.select({
+      conversationId: conversationMembers.conversationId,
+      id: users.id,
+      username: users.username,
+      displayName: profiles.displayName,
+      avatarUrl: profiles.avatarUrl
+    })
+    .from(conversationMembers)
+    .innerJoin(users, eq(conversationMembers.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(and(inArray(conversationMembers.conversationId, fetchedConvIds), not(eq(conversationMembers.userId, currentUserId))));
+
+    // Fetch all unread counts
+    const unreadCounts = await db.select({
+      conversationId: messages.conversationId,
+      count: sql<number>`cast(count(*) as integer)`
+    })
+    .from(messages)
+    .where(and(
+      inArray(messages.conversationId, fetchedConvIds),
+      eq(messages.isRead, false),
+      not(eq(messages.senderId, currentUserId))
+    ))
+    .groupBy(messages.conversationId);
+
+    // Fetch last messages concurrently
+    const lastMessagesList = await Promise.all(
+      fetchedConvIds.map((cid: any) => 
+        db.select().from(messages).where(eq(messages.conversationId, cid)).orderBy(desc(messages.createdAt)).limit(1)
+      )
+    );
+
+    const formattedConvs = convs.map((c: any, index: any) => {
+      const otherUser = allOtherMembers.find((m: any) => m.conversationId === c.id);
+      const unreadCount = unreadCounts.find((u: any) => u.conversationId === c.id)?.count || 0;
+      const lastMessage = lastMessagesList[index].length > 0 ? lastMessagesList[index][0] : null;
+
+      return {
+        ...c,
+        otherUser: otherUser ? {
+          id: otherUser.id,
+          username: otherUser.username,
+          displayName: otherUser.displayName,
+          avatarUrl: otherUser.avatarUrl
+        } : null,
+        unreadCount,
+        lastMessage
+      };
+    });
+
+    res.json({ success: true, data: formattedConvs });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }
@@ -65,7 +93,7 @@ messagesRouter.get("/conversations", requireAuth, async (req, res) => {
 // POST /conversations (create 1v1)
 messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const targetUserId = req.body.targetUserId;
 
     if (!targetUserId || targetUserId === currentUserId) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz." }});
@@ -94,7 +122,7 @@ messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, 
 
     const userConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where(eq(conversationMembers.userId, currentUserId));
 
-    const userConvIds = userConvs.map(c => c.convId);
+    const userConvIds = userConvs.map((c: any) => c.convId);
 
     if (userConvIds.length > 0) {
       const targetConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where(and(eq(conversationMembers.userId, targetUserId), inArray(conversationMembers.conversationId, userConvIds))).limit(1);
@@ -119,7 +147,7 @@ messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, 
 // GET /conversations/:id/messages
 messagesRouter.get("/conversations/:id/messages", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const conversationId = parseInt(req.params.id as string);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
@@ -163,7 +191,7 @@ const createMessageSchema = z.object({
 // POST /conversations/:id/messages
 messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const conversationId = parseInt(req.params.id as string);
     const parsed = createMessageSchema.safeParse(req.body);
 
@@ -192,7 +220,7 @@ messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter,
 // PATCH /conversations/:id/read
 messagesRouter.patch("/conversations/:id/read", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const conversationId = parseInt(req.params.id as string);
     
     // Verify membership

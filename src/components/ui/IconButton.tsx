@@ -17,7 +17,7 @@ export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-sm shadow-indigo-500/20 border border-transparent',
+    'bg-slate-900 hover:bg-slate-700 active:bg-slate-800 text-white shadow-sm shadow-slate-500/20 border border-transparent',
   secondary:
     'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 border border-slate-200/80 shadow-xs',
   outline:

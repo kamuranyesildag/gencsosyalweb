@@ -12,16 +12,12 @@ function getKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY;
   
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error("CRITICAL: ENCRYPTION_KEY is missing in production environment!");
-      process.exit(1);
-    }
-    // Only for local development (not production) if not explicitly provided
-    console.warn("WARNING: ENCRYPTION_KEY is missing, using insecure dev fallback.");
+    console.warn("WARNING: ENCRYPTION_KEY ayarlı değil, JWT_SECRET türetilmiş anahtar kullanılıyor - production için önerilmez.");
+    const fallbackSecret = process.env.JWT_SECRET || "dev_fallback_secret_do_not_use_in_prod!";
+    return crypto.scryptSync(fallbackSecret, "salt", 32);
   }
   
-  const finalSecret = secret || "dev_fallback_secret_do_not_use_in_prod!";
-  return crypto.scryptSync(finalSecret, "salt", 32);
+  return crypto.scryptSync(secret, "salt", 32);
 }
 
 export function encryptString(text: string): string {

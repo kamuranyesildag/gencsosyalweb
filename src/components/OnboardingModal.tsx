@@ -59,7 +59,7 @@ export function OnboardingModal() {
                 exit={{ opacity: 0, x: -20 }}
                 className="text-center"
               >
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3">
+                <div className="w-16 h-16 bg-slate-100 text-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3">
                   <Sparkles className="w-8 h-8" />
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-3">
@@ -70,7 +70,7 @@ export function OnboardingModal() {
                 </p>
                 <button
                   onClick={() => setStep(2)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl transition-colors shadow-sm flex items-center justify-center gap-2 group"
+                  className="w-full bg-slate-900 hover:bg-slate-700 text-white font-bold py-3.5 px-6 rounded-2xl transition-colors shadow-sm flex items-center justify-center gap-2 group"
                 >
                   <span>Başlayalım</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -111,7 +111,7 @@ export function OnboardingModal() {
                   </button>
                   <button
                     onClick={handleClose}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-2xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                    className="flex-1 bg-slate-900 hover:bg-slate-700 text-white font-bold py-3.5 px-6 rounded-2xl transition-colors shadow-sm flex items-center justify-center gap-2"
                   >
                     <span>Ana Sayfaya Git</span>
                   </button>

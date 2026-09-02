@@ -16,22 +16,48 @@ export interface ModerationResult {
   reason?: string;
 }
 
-// Basic heuristic moderation engine for demonstration
+// Basic heuristic moderation engine
 const KEYWORDS: Record<ModerationCategory, string[]> = {
-  HATE_SPEECH: ['nefret', 'ırkçı', 'pislik', 'geber', 'aşağılık'],
-  HARASSMENT: ['gerizekalı', 'aptal', 'salak', 'mal', 'beyinsiz', 'çirkin'],
-  EXPLICIT_CONTENT: ['porno', 'çıplak', 'seks', 'nsfw', 'xxx'],
-  VIOLENCE: ['öldür', 'kan', 'bıçakla', 'silah', 'vur', 'keserim', 'bombalar'],
-  SPAM: ['tıkla', 'kazan', 'ücretsiz hediye', 'bedava para', 'linke git', 'bitcoin kazan', 'kripto yatırım', 'çekiliş'],
-  SCAM: ['kredi kartsız', 'şifreni gönder', 'hesap çalma', 'hack', 'bedava iphone'],
-  SELF_HARM: ['intihar', 'kendimi asacağım', 'yaşamak istemiyorum', 'kendime zarar', 'jilet'],
+  HATE_SPEECH: ['nefret', 'irkci', 'pislik', 'geber', 'asagilik', 'kopek', 'serefsiz', 'pic', 'o.c', 'orospu'],
+  HARASSMENT: ['gerizekali', 'aptal', 'salak', 'mal', 'beyinsiz', 'cirkin', 'koyun', 'cahil'],
+  EXPLICIT_CONTENT: ['porno', 'ciplak', 'seks', 'nsfw', 'xxx', 'escort', 'sik', 'amk', 'amcik', 'meme', 'yarak', 'sokuk'],
+  VIOLENCE: ['oldur', 'kan', 'bicakla', 'silah', 'vur', 'keserim', 'bombalar', 'gebert', 'kanini'],
+  SPAM: ['tikla', 'kazan', 'ucretsiz hediye', 'bedava para', 'linke git', 'bitcoin kazan', 'kripto yatirim', 'cekilis', 'kolay para', 'sende kazan'],
+  SCAM: ['kredi kartsiz', 'sifreni gonder', 'hesap calma', 'hack', 'bedava iphone', 'tc kimlik'],
+  SELF_HARM: ['intihar', 'kendimi asacagim', 'yasamak istemiyorum', 'kendime zarar', 'jilet', 'olmek istiyorum'],
   SAFE: []
 };
 
+// Map Turkish chars to ascii for robust matching
+function normalizeTurkish(text: string) {
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+}
+
 export async function moderateContent(text: string): Promise<ModerationResult> {
-  if (!text) return { riskLevel: 'SAFE', category: 'SAFE', score: 0 };
+  if (!text || text.trim() === '') return { riskLevel: 'SAFE', category: 'SAFE', score: 0 };
   
-  const lowerText = text.toLowerCase();
+  // Anti-bypass normalizations
+  let normalizedText = normalizeTurkish(text)
+    .replace(/[1!]/g, 'i')
+    .replace(/@/g, 'a')
+    .replace(/0/g, 'o')
+    .replace(/3/g, 'e')
+    // Remove repeated characters (e.g. piiiislik -> pislik)
+    .replace(/(.)\1{2,}/g, '$1$1')
+    // Replace punctuation with space to prevent bypass like p.i.s.l.i.k
+    .replace(/[.,_*/\-\\+!?()\[\]{}|<>="':;]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const noSpaceText = normalizedText.replace(/\s+/g, '');
+  
   let maxScore = 0;
   let topCategory: ModerationCategory = 'SAFE';
   
@@ -40,21 +66,45 @@ export async function moderateContent(text: string): Promise<ModerationResult> {
     
     let matchCount = 0;
     for (const word of words) {
-      // Create a regex to match the word as a whole word to reduce false positives
-      const regex = new RegExp(`\\b${word}\\b`, 'i');
-      if (regex.test(lowerText) || lowerText.includes(word)) { // includes fallback for Turkish specific matching issues with \b
-        matchCount++;
+      // Whole word matching
+      const regex = new RegExp(`(?:^|\\s)${word}(?:\\s|$)`, 'i');
+      if (regex.test(normalizedText)) {
+        matchCount += 1.0;
+      } else if (word.length >= 5 && noSpaceText.includes(word)) {
+        // Safe partial match for long words (catches spaced out words like p i s l i k)
+        matchCount += 0.8;
       }
     }
     
     if (matchCount > 0) {
-      let score = matchCount * 0.4;
-      if (score > 1) score = 1; // Normalize to 0-1
+      let score = matchCount * 0.5; // Two matches = 1.0
+      if (score > 1) score = 1;
       
       if (score > maxScore) {
         maxScore = score;
         topCategory = category as ModerationCategory;
       }
+    }
+  }
+
+  // Spam detection heuristics
+  const urls = text.match(/https?:\/\/[^\s]+/g) || [];
+  if (urls.length > 2 && text.length < 200) {
+    // Too many links for short text
+    if (maxScore < 0.8) {
+      maxScore = 0.8;
+      topCategory = 'SPAM';
+    }
+  }
+
+  // Repeated words/phrases spam
+  const wordsList = normalizedText.split(' ');
+  const uniqueWords = new Set(wordsList);
+  if (wordsList.length > 10 && uniqueWords.size < wordsList.length * 0.3) {
+    // 70% of words are repeated
+    if (maxScore < 0.6) {
+      maxScore = 0.6;
+      topCategory = 'SPAM';
     }
   }
   

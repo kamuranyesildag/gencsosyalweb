@@ -13,7 +13,7 @@ export const followsRouter = Router();
 followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     if (targetUserId === currentUserId) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi takip edemezsiniz." }});
@@ -48,7 +48,7 @@ followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res)
 followsRouter.delete("/:id/follow", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     await db.delete(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId)));
     res.json({ success: true, data: { message: "Takipten çıkıldı." }});
   } catch (error) {

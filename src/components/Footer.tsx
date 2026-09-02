@@ -9,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center gap-2.5 group mb-3">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs">
                 <Hexagon className="w-5 h-5 fill-current" />
               </div>
               <span className="text-xl font-black tracking-tight text-slate-900">
@@ -24,17 +24,17 @@ export function Footer() {
             <h4 className="font-bold text-slate-900 text-sm mb-3">Platform</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-600 font-medium">
               <li>
-                <Link to="/explore" className="hover:text-indigo-600 transition-colors">
+                <Link to="/explore" className="hover:text-slate-900 transition-colors">
                   Keşfet
                 </Link>
               </li>
               <li>
-                <Link to="/projects" className="hover:text-indigo-600 transition-colors">
+                <Link to="/projects" className="hover:text-slate-900 transition-colors">
                   Projeler
                 </Link>
               </li>
               <li>
-                <Link to="/communities" className="hover:text-indigo-600 transition-colors">
+                <Link to="/communities" className="hover:text-slate-900 transition-colors">
                   Topluluklar
                 </Link>
               </li>
@@ -44,12 +44,12 @@ export function Footer() {
             <h4 className="font-bold text-slate-900 text-sm mb-3">Yasal & Kurumsal</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-600 font-medium">
               <li>
-                <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
+                <Link to="/privacy" className="hover:text-slate-900 transition-colors">
                   Gizlilik Politikası
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-indigo-600 transition-colors">
+                <Link to="/terms" className="hover:text-slate-900 transition-colors">
                   Kullanım Koşulları
                 </Link>
               </li>

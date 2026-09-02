@@ -5,6 +5,8 @@ CREATE TABLE "blocks" (
 	CONSTRAINT "blocks_blocker_id_blocked_id_pk" PRIMARY KEY("blocker_id","blocked_id")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "bookmarks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"post_id" integer NOT NULL,
@@ -12,6 +14,8 @@ CREATE TABLE "bookmarks" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "bookmarks_user_post_unq" UNIQUE("user_id","post_id")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "comments" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -22,6 +26,8 @@ CREATE TABLE "comments" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "communities" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -36,6 +42,8 @@ CREATE TABLE "communities" (
 	CONSTRAINT "communities_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "community_members" (
 	"community_id" integer NOT NULL,
 	"user_id" integer NOT NULL,
@@ -44,6 +52,8 @@ CREATE TABLE "community_members" (
 	CONSTRAINT "community_members_community_id_user_id_pk" PRIMARY KEY("community_id","user_id")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "conversation_members" (
 	"conversation_id" integer NOT NULL,
 	"user_id" integer NOT NULL,
@@ -51,11 +61,15 @@ CREATE TABLE "conversation_members" (
 	CONSTRAINT "conversation_members_conversation_id_user_id_pk" PRIMARY KEY("conversation_id","user_id")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "conversations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "follows" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -65,12 +79,16 @@ CREATE TABLE "follows" (
 	CONSTRAINT "follows_follower_following_unq" UNIQUE("follower_id","following_id")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "hashtags" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "hashtags_name_unique" UNIQUE("name")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "likes" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -79,6 +97,8 @@ CREATE TABLE "likes" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "likes_user_post_unq" UNIQUE("user_id","post_id")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "messages" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -89,6 +109,8 @@ CREATE TABLE "messages" (
 	"is_read" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "notifications" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -101,11 +123,15 @@ CREATE TABLE "notifications" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "post_hashtags" (
 	"post_id" integer NOT NULL,
 	"hashtag_id" integer NOT NULL,
 	CONSTRAINT "post_hashtags_post_id_hashtag_id_pk" PRIMARY KEY("post_id","hashtag_id")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "post_media" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -119,6 +145,8 @@ CREATE TABLE "post_media" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "posts" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer NOT NULL,
@@ -127,6 +155,8 @@ CREATE TABLE "posts" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "profiles" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -141,6 +171,8 @@ CREATE TABLE "profiles" (
 	CONSTRAINT "profiles_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "reactions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"post_id" integer NOT NULL,
@@ -149,6 +181,8 @@ CREATE TABLE "reactions" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "reactions_user_post_unq" UNIQUE("user_id","post_id")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "refresh_tokens" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -159,6 +193,8 @@ CREATE TABLE "refresh_tokens" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "refresh_tokens_token_hash_unique" UNIQUE("token_hash")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "reports" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -171,6 +207,8 @@ CREATE TABLE "reports" (
 	"resolved_at" timestamp
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "stories" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer NOT NULL,
@@ -180,12 +218,16 @@ CREATE TABLE "stories" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+
+--> statement-breakpoint
 CREATE TABLE "story_views" (
 	"story_id" integer NOT NULL,
 	"user_id" integer NOT NULL,
 	"viewed_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "story_views_story_id_user_id_pk" PRIMARY KEY("story_id","user_id")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 CREATE TABLE "users" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -200,6 +242,8 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_username_unique" UNIQUE("username"),
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
+--> statement-breakpoint
+
 --> statement-breakpoint
 ALTER TABLE "blocks" ADD CONSTRAINT "blocks_blocker_id_users_id_fk" FOREIGN KEY ("blocker_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "blocks" ADD CONSTRAINT "blocks_blocked_id_users_id_fk" FOREIGN KEY ("blocked_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -248,3 +292,4 @@ CREATE INDEX "posts_user_id_idx" ON "posts" USING btree ("user_id");--> statemen
 CREATE INDEX "posts_created_at_idx" ON "posts" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "users_username_idx" ON "users" USING btree ("username");--> statement-breakpoint
 CREATE INDEX "users_email_idx" ON "users" USING btree ("email");
+--> statement-breakpoint

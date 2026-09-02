@@ -11,119 +11,82 @@ Genç Sosyal, React, Vite, Node.js (Express) ve PostgreSQL (Drizzle ORM) kullan�
 - **Güvenlik:** Helmet, Rate Limit, CORS, XSS Koruması
 
 ## Gereksinimler
-Uygulamayı kendi ortamınızda (local) çalıştırabilmek için aşağıdaki yazılımların kurulu olması gereklidir:
-- **Node.js:** v20.x veya daha üstü (LTS Önerilen)
-- **PostgreSQL:** v14 veya daha üstü bir veritabanı sunucusu
+
+Uygulama tamamen Docker mimarisi üzerine kuruludur. Uygulamayı sunucuda veya yerel bilgisayarınızda çalıştırabilmek için aşağıdaki yazılımların kurulu olması gereklidir:
+
+- **Docker**
+- **Docker Compose**
 
 ---
 
-## 🚀 Yerel Kurulum Talimatları
+## 🚀 Kurulum ve Çalıştırma (Docker Compose)
 
-### 1. Projeyi Klonlayın ve Bağımlılıkları Yükleyin
+Genç Sosyal, tüm servisleriyle (Uygulama, PostgreSQL, Veritabanı Migration, Nginx) birlikte sadece `docker-compose.yml` kullanılarak ayağa kaldırılacak şekilde tasarlanmıştır. Herhangi bir yerel Node.js veya PM2 kurulumuna gerek yoktur.
 
-Projenin kök dizinine gidin ve bağımlılıkları yüklemek için npm kullanın:
-
+### 1. Projeyi Klonlayın
 ```bash
-npm install
+git clone <repo-adresi>
+cd genc-sosyal
 ```
 
 ### 2. Çevresel Değişkenleri (Environment Variables) Ayarlayın
-
-Projenin çalışması için veritabanı bağlantısı, JWT gizli anahtarları ve e-posta (SMTP) ayarlarını yapılandırmanız gerekir.
-
 Kök dizinde bulunan `.env.example` dosyasını kopyalayarak `.env` adında yeni bir dosya oluşturun:
-
 ```bash
 cp .env.example .env
 ```
+`.env` dosyasını açıp gerekli tüm alanları (PostgreSQL bilgileri, JWT secret'lar, SMTP ayarları vb.) doldurun.
 
-`.env` dosyasını bir metin editörü ile açın ve aşağıdaki değerleri kendinize göre güncelleyin:
-
-```env
-# Server Port
-PORT=3000
-NODE_ENV="development"
-
-# Database URL (PostgreSQL bağlantı stringiniz)
-# Format: postgresql://kullanici_adi:sifre@localhost:5432/veritabani_adi
-DATABASE_URL="postgresql://postgres:sifreniz@localhost:5432/genc_sosyal"
-
-# Security (Kimlik doğrulama için karmaşık ve güvenli metinler girin)
-JWT_SECRET="gizli-anahtar-1"
-JWT_REFRESH_SECRET="gizli-anahtar-2"
-JWT_EMAIL_SECRET="gizli-anahtar-3"
-JWT_2FA_SECRET="gizli-anahtar-4"
-ENCRYPTION_KEY="32-karakterli-guvenli-anahtar"
-
-ACCESS_TOKEN_EXPIRES_IN="15m"
-REFRESH_TOKEN_EXPIRES_IN="7d"
-
-# Frontend URL (CORS ve email linkleri için)
-FRONTEND_URL="http://localhost:3000"
-CORS_ORIGIN="http://localhost:3000"
-
-# --- Opsiyonel SMTP Ayarları ---
-# E-posta doğrulama ve şifre sıfırlama için doldurabilirsiniz.
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=senin-mailin@gmail.com
-SMTP_PASS=uygulama-parolasi
-SMTP_FROM="Genç Sosyal <noreply@localhost.com>"
-```
-
-### 3. Veritabanını Hazırlayın
-
-Ayarladığınız PostgreSQL veritabanına uygulamanın tablolarını aktarmanız (migrate) gerekmektedir. Drizzle ORM bu işlemi sizin için otomatik yapar.
-
+### 3. Uygulamayı Başlatın
+Tüm sistemi inşa edip arka planda çalıştırmak için aşağıdaki komutu kullanın:
 ```bash
-# Tabloları veritabanına aktarmak için
-npm run db:push
+docker compose up -d --build
 ```
 
-*(Geliştirme sürecinde Drizzle stüdyosunu açıp veritabanını görsel olarak yönetmek isterseniz `npm run db:studio` komutunu kullanabilirsiniz.)*
+Bu komut sırasıyla şunları gerçekleştirir:
+1. `gencsosyal-postgres`: PostgreSQL veritabanını başlatır.
+2. `gencsosyal-migrate`: Drizzle ORM ile veritabanı tablolarını (migration) oluşturur.
+3. `gencsosyal-app`: Uygulamayı derleyip (build) production modunda çalıştırır.
+4. `gencsosyal-nginx`: Nginx reverse proxy'yi başlatarak 80 portuna gelen istekleri uygulamaya yönlendirir.
 
-### 4. Geliştirme Sunucusunu Başlatın
-
-Uygulamanızı geliştirmek ve test etmek için (Hem Vite frontend hem de Express backend aynı anda çalışacaktır):
-
-```bash
-npm run dev
-```
-
-Sunucu başarıyla başladığında, tarayıcınızdan şu adrese giderek Genç Sosyal'i kullanabilirsiniz:
-👉 **http://localhost:3000**
+Tüm servisler "healthy" durumuna geldiğinde uygulamanız Nginx üzerinden **http://localhost** veya yapılandırdığınız domain adresinde yayında olacaktır.
 
 ---
 
-## 📦 Production (Üretim) Kurulumu
+## 📂 Depolama ve Volume Mantığı
 
-Uygulamayı bir sunucuya (VDS, VPS, Heroku, Render, vb.) deploy etmek için:
+Uygulamadaki kalıcı veriler (database ve upload edilen dosyalar) Docker Volume ile korunmaktadır:
 
-**1. Projeyi Derleyin (Build):**
-```bash
-npm run build
-```
-Bu komut; 
-- Frontend'i statik dosyalar olarak `dist/` klasörüne derler.
-- Backend'i `dist/server.cjs` olarak tekil bir dosyaya paketler.
-- Veritabanı migrasyon dosyasını `dist/migrate.cjs` olarak paketler.
+- `postgres_data`: Veritabanı dosyaları.
+- `uploads_data:/app/uploads`: Kullanıcıların yüklediği görseller ve medya dosyaları.
 
-**2. Production Sunucusunu Başlatın:**
-```bash
-npm run start
-```
-Bu komut, derlenmiş Node.js sunucusunu (`dist/server.cjs`) çalıştırır. Production ortamında `.env` dosyanızda `NODE_ENV="production"` olduğundan ve URL/SMTP ayarlarınızın canlı domaininize uygun olduğundan emin olun.
+> **Uyarı:** `uploads_data:/app/uploads` mantığı şu an yerel container izolasyonunu korumaktadır ancak **Production için ileride AWS S3 veya Cloudflare R2'ye geçilecektir**. Bu mimari, verilerin daha güvenli saklanması ve sunucunun bağımsız şekilde yatay ölçeklenebilmesi (horizontal scaling) için gereklidir.
 
 ---
 
-## 🛠 Kullanılan NPM Script'leri
+## ⚙️ Nginx ve Cloudflare Ayarları
 
-- `npm run dev` : Uygulamayı geliştirme modunda başlatır (`tsx` ile).
-- `npm run build` : Uygulamayı production için derler.
-- `npm run start` : Derlenmiş (build edilmiş) projeyi başlatır.
-- `npm run lint` : TypeScript hata denetimi yapar.
-- `npm run db:push` : Şema değişikliklerini veritabanına doğrudan uygular.
-- `npm run db:generate` : SQL migrasyon dosyalarını oluşturur.
-- `npm run db:migrate` : Oluşturulan migrasyon dosyalarını veritabanına uygular.
-- `npm run db:studio` : Drizzle Studio'yu başlatarak veritabanı paneli açar.
+Projeyle birlikte gelen Nginx yapılandırması (`nginx/default.conf`), Cloudflare proxy'si arkasında çalışacak şekilde ayarlanmıştır. Nginx konfigürasyonunuz şuna benzer:
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+    
+    # Cloudflare real IP pass ayarları
+    # ...
+    
+    location / {
+        proxy_pass http://gencsosyal-app:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Cloudflare kullandığınızda `X-Forwarded-Proto` ve WebSocket `Upgrade` bağlantıları da sorunsuz şekilde aktarılacaktır.

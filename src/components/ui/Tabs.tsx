@@ -112,11 +112,11 @@ export function TabTrigger({
         'relative flex items-center justify-center gap-2 font-semibold text-sm transition-colors duration-200 select-none whitespace-nowrap min-h-[40px] px-4 py-2',
         variant === 'pills' && [
           'rounded-xl z-10 flex-1',
-          isActive ? 'text-indigo-950 font-bold' : 'text-slate-600 hover:text-slate-900',
+          isActive ? 'text-slate-950 font-bold' : 'text-slate-600 hover:text-slate-900',
         ],
         variant === 'underline' && [
           'pb-3 font-medium',
-          isActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-800',
+          isActive ? 'text-slate-900 font-bold' : 'text-slate-500 hover:text-slate-800',
         ],
         disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
         className
@@ -139,7 +139,7 @@ export function TabTrigger({
         <motion.div
           layoutId={`${layoutIdPrefix}-line-indicator`}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 rounded-full"
         />
       )}
     </button>

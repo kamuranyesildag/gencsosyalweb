@@ -1,1 +1,2 @@
 ALTER TABLE "profiles" ADD COLUMN "location" varchar(100);
+--> statement-breakpoint

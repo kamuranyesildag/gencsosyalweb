@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { fetchApi, api } from "../lib/api";
+import { useSEO } from "../hooks/useSEO";
 import { motion, AnimatePresence } from "motion/react";
 import { PostCard } from "../components/PostCard";
 import { RichText } from "../components/RichText";
@@ -165,7 +166,7 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
         {isEditing ? (
           <div className="mt-2 space-y-2.5 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
             <textarea
-              className="w-full bg-slate-50/50 border border-slate-200/60 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-[14px] sm:text-[15px] text-slate-800 outline-none transition-colors min-h-[80px] resize-none"
+              className="w-full bg-slate-50/50 border border-slate-200/60 focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-[14px] sm:text-[15px] text-slate-800 outline-none transition-colors min-h-[80px] resize-none"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               placeholder="Yorumunuzu düzenleyin..."
@@ -236,6 +237,11 @@ export function PostDetail() {
     loadMore,
     addItem,
   } = usePagination(`/posts/${id}/comments`);
+
+  useSEO({
+    title: post ? `${post.user?.displayName || post.user?.username} (@${post.user?.username}) - Genç Sosyal` : undefined,
+    description: post?.content ? (post.content.length > 150 ? post.content.substring(0, 150) + "..." : post.content) : undefined,
+  });
 
   useEffect(() => {
     const loadPost = async () => {
@@ -332,14 +338,13 @@ export function PostDetail() {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center min-h-[60vh] bg-white">
         <EmptyState
-          icon={MessageCircle}
+          icon={<MessageCircle className="w-7 h-7" />}
           title="Gönderi Bulunamadı"
           description="Görüntülemek istediğiniz gönderi mevcut değil veya silinmiş olabilir."
-          action={
-            <Button variant="primary" size="md" onClick={() => navigate("/home")}>
-              Ana Sayfaya Dön
-            </Button>
-          }
+          action={{
+            label: "Ana Sayfaya Dön",
+            onClick: () => navigate("/home")
+          }}
         />
       </div>
     );
@@ -370,7 +375,7 @@ export function PostDetail() {
         {collaborators.length > 0 || user?.id === post.userId ? (
           <div className="p-4 sm:p-5 bg-slate-50/70 border-t border-slate-100">
             <h3 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-indigo-600" />
+              <Users className="w-4 h-4 text-slate-900" />
               Ortak Üreticiler
             </h3>
 
@@ -409,7 +414,7 @@ export function PostDetail() {
                   placeholder="Kullanıcı adı ile davet et..."
                   value={collabUserId}
                   onChange={(e) => setCollabUserId(e.target.value)}
-                  className="flex-1 text-xs sm:text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none"
+                  className="flex-1 text-xs sm:text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none"
                 />
                 <Button
                   type="submit"
@@ -434,7 +439,7 @@ export function PostDetail() {
               ref={inputRef as any}
               type="text"
               placeholder="Düşünceni veya yanıtını yaz..."
-              className="w-full bg-white border border-slate-200 rounded-full px-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all min-h-[44px]"
+              className="w-full bg-white border border-slate-200 rounded-full px-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all min-h-[44px]"
               value={commentText}
               onClick={() => {
                 if (!isAuthenticated) openModal();
@@ -472,9 +477,10 @@ export function PostDetail() {
       {/* Comments List */}
       <div className="flex flex-col flex-1">
         {comments.length > 0 ? (
-          <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-            {comments.map((comment) => (
-              <CommentItem
+          <InfiniteScroll 
+        items={comments}
+        renderItem={(comment) => (
+          <CommentItem
                 key={comment.id}
                 comment={comment}
                 postId={post.id}
@@ -486,8 +492,11 @@ export function PostDetail() {
                   }));
                 }}
               />
-            ))}
-          </InfiniteScroll>
+        )}
+        hasMore={hasMore} 
+        isLoading={loadingMore} 
+        onLoadMore={loadMore} 
+      />
         ) : (
           <div className="p-8 text-center text-slate-400 text-xs sm:text-sm font-medium">
             Henüz bir yanıt yok. İlk düşünceyi sen paylaş!

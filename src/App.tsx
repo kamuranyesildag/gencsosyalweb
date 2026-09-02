@@ -1,6 +1,7 @@
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { MotionConfig } from "motion/react";
 import { AppLayout } from "./layouts/AppLayout";
 import { Feed } from "./pages/Feed";
 import { CreatePostPage } from "./pages/CreatePostPage";
@@ -48,48 +49,50 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <ErrorBoundary>
-        <SplashScreen onComplete={() => {}} />
-        <AuthWrapper>
-          <Routes>
-            {/* Logged Out Routes using simple BaseLayout */}
-            <Route element={<BaseLayout />}>
-              <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-              <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-              <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-              <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
-              <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-            </Route>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <ErrorBoundary>
+          <SplashScreen onComplete={() => {}} />
+          <AuthWrapper>
+            <Routes>
+              {/* Logged Out Routes using simple BaseLayout */}
+              <Route element={<BaseLayout />}>
+                <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+                <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+                <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+                <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+                <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
+                <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+              </Route>
 
-            {/* Logged In Routes using AppLayout (Sidebars) */}
-            <Route element={<AppLayout />}>
-              <Route path="/home" element={<Feed />} />
-              <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-              <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
-              <Route path="/bookmarks" element={<ProtectedRoute><Bookmarks /></ProtectedRoute>} />
-              <Route path="/communities" element={<Communities />} />
-              <Route path="/communities/:slug" element={<CommunityDetail />} />
-              <Route path="/profile/:username" element={<Profile />} />
-              <Route path="/post/:id" element={<PostDetail />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/hashtags/:name" element={<HashtagDetail />} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            </Route>
-            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-          </Routes>
-        </AuthWrapper>
-      </ErrorBoundary>
-      <ToastContainer />
-  <ConfirmDialogContainer />
-    </BrowserRouter>
+              {/* Logged In Routes using AppLayout (Sidebars) */}
+              <Route element={<AppLayout />}>
+                <Route path="/home" element={<Feed />} />
+                <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
+                <Route path="/explore" element={<Explore />} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+                <Route path="/messages/:id" element={<ProtectedRoute><MessageDetail /></ProtectedRoute>} />
+                <Route path="/bookmarks" element={<ProtectedRoute><Bookmarks /></ProtectedRoute>} />
+                <Route path="/communities" element={<Communities />} />
+                <Route path="/communities/:slug" element={<CommunityDetail />} />
+                <Route path="/profile/:username" element={<Profile />} />
+                <Route path="/post/:id" element={<PostDetail />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:id" element={<ProjectDetail />} />
+                <Route path="/hashtags/:name" element={<HashtagDetail />} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+              </Route>
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+            </Routes>
+          </AuthWrapper>
+        </ErrorBoundary>
+        <ToastContainer />
+        <ConfirmDialogContainer />
+      </BrowserRouter>
+    </MotionConfig>
   );
 }

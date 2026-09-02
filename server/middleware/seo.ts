@@ -17,6 +17,16 @@ function isBot(userAgent: string): boolean {
   return BOT_USER_AGENTS.some(bot => ua.includes(bot));
 }
 
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export const seoMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const userAgent = req.headers["user-agent"] || "";
   
@@ -31,15 +41,16 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     let url = "https://gencsosyal.com" + req.originalUrl;
 
     const postMatch = req.path.match(/^\/post\/(\d+)$/);
-    const profileMatch = req.path.match(/^\/([a-zA-Z0-9_]{3,30})$/);
-    const communityMatch = req.path.match(/^\/community\/(\d+)$/);
+    const profileMatch = req.path.match(/^\/profile\/([a-zA-Z0-9_]{3,30})$/);
+    const communityMatch = req.path.match(/^\/communities\/([a-zA-Z0-9_-]+)$/);
 
     if (postMatch) {
       const postId = parseInt(postMatch[1]);
       const postRecord = await db.select({
         content: posts.content,
-      postType: posts.postType,
-      contentWarning: posts.contentWarning,
+        postType: posts.postType,
+        contentWarning: posts.contentWarning,
+        visibility: posts.visibility,
         displayName: profiles.displayName,
         username: users.username
       }).from(posts)
@@ -49,19 +60,21 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
 
       if (postRecord.length > 0) {
         const p = postRecord[0];
-        title = `${p.displayName} (@${p.username}) - Genç Sosyal`;
-        description = p.content ? (p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "")) : "Gönderiye göz at.";
+        if (p.visibility === 'PUBLIC') {
+          title = `${p.displayName} (@${p.username}) - Genç Sosyal`;
+          description = p.content ? (p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "")) : "Gönderiye göz at.";
+        }
       }
     } else if (communityMatch) {
-      const communityId = parseInt(communityMatch[1]);
-      const commRecord = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
+      const communitySlug = communityMatch[1];
+      const commRecord = await db.select().from(communities).where(eq(communities.slug, communitySlug)).limit(1);
       if (commRecord.length > 0) {
         const c = commRecord[0];
         title = `${c.name} - Genç Sosyal Topluluğu`;
         description = c.description ? c.description.substring(0, 150) : "Bu topluluğa katıl ve tartışmalara başla.";
         if (c.avatarUrl) imageUrl = c.avatarUrl;
       }
-    } else if (profileMatch && !["login", "register", "explore", "messages", "notifications", "settings", "feed", "admin"].includes(profileMatch[1].toLowerCase())) {
+    } else if (profileMatch) {
       const username = profileMatch[1];
       const userRecord = await db.select({
         displayName: profiles.displayName,
@@ -81,6 +94,11 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
       return next();
     }
 
+    const safeTitle = escapeHtml(title);
+    const safeDescription = escapeHtml(description);
+    const safeImageUrl = escapeHtml(imageUrl);
+    const safeUrl = escapeHtml(url);
+
     // Return the HTML with dynamically injected meta tags
     const html = `
       <!doctype html>
@@ -88,25 +106,25 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>${title}</title>
-          <meta name="description" content="${description}" />
+          <title>${safeTitle}</title>
+          <meta name="description" content="${safeDescription}" />
           
           <!-- Open Graph -->
           <meta property="og:type" content="website" />
-          <meta property="og:url" content="${url}" />
-          <meta property="og:title" content="${title}" />
-          <meta property="og:description" content="${description}" />
-          <meta property="og:image" content="${imageUrl}" />
+          <meta property="og:url" content="${safeUrl}" />
+          <meta property="og:title" content="${safeTitle}" />
+          <meta property="og:description" content="${safeDescription}" />
+          <meta property="og:image" content="${safeImageUrl}" />
           
           <!-- Twitter -->
           <meta property="twitter:card" content="summary_large_image" />
-          <meta property="twitter:url" content="${url}" />
-          <meta property="twitter:title" content="${title}" />
-          <meta property="twitter:description" content="${description}" />
-          <meta property="twitter:image" content="${imageUrl}" />
+          <meta property="twitter:url" content="${safeUrl}" />
+          <meta property="twitter:title" content="${safeTitle}" />
+          <meta property="twitter:description" content="${safeDescription}" />
+          <meta property="twitter:image" content="${safeImageUrl}" />
         </head>
         <body>
-          <p>${description}</p>
+          <p>${safeDescription}</p>
         </body>
       </html>
     `;

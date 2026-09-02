@@ -46,7 +46,7 @@ export function HashtagDetail() {
         </button>
         <div>
           <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-            <span className="text-indigo-600">#</span>
+            <span className="text-slate-900">#</span>
             {name}
           </h1>
           {hashtagInfo && (
@@ -63,17 +63,13 @@ export function HashtagDetail() {
             <SkeletonCard />
           </div>
         ) : posts.length > 0 ? (
-          <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-            <div className="divide-y divide-slate-100">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          </InfiniteScroll>
+          <div className="divide-y divide-slate-100">
+<InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={post} />)} />
+</div>
         ) : (
           <div className="flex-1 flex items-center justify-center p-6">
             <EmptyState
-              icon={Hash}
+              icon={<Hash className="w-7 h-7" />}
               title="Gönderi Bulunamadı"
               description={`#${name} etiketiyle henüz bir gönderi paylaşılmamış.`}
             />

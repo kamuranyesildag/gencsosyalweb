@@ -127,7 +127,7 @@ export function AdminAuditLogs() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <History className="w-6 h-6 text-indigo-600" />
+            <History className="w-6 h-6 text-slate-900" />
             <span>Yönetici Denetim Kayıtları (Audit Logs)</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -161,7 +161,7 @@ export function AdminAuditLogs() {
               onClick={() => setActionFilter(tab.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-white text-indigo-950 shadow-xs border border-slate-200/70'
+                  ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -361,10 +361,10 @@ export function AdminAuditLogs() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Code className="w-3.5 h-3.5 text-indigo-600" />
+              <Code className="w-3.5 h-3.5 text-slate-900" />
               <span>Ham Eylem Verisi (Metadata Payload)</span>
             </label>
-            <pre className="p-4 rounded-2xl bg-slate-900 text-indigo-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
+            <pre className="p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
               {JSON.stringify(selectedLogMetadata?.metadata || {}, null, 2)}
             </pre>
           </div>

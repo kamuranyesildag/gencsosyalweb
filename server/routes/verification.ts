@@ -11,7 +11,7 @@ verificationRouter.use(requireAuth);
 // GET /api/v1/verification/me - Get current user's verification requests
 verificationRouter.get("/me", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const requests = await db
       .select()
       .from(verificationRequests)
@@ -29,7 +29,7 @@ verificationRouter.get("/me", async (req: Request, res: Response): Promise<void>
 // POST /api/v1/verification - Create a new verification request
 verificationRouter.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.userId;
+    const userId = (req.user?.userId || -1);
     const { reason } = req.body;
     
     if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
@@ -50,7 +50,7 @@ verificationRouter.post("/", async (req: Request, res: Response): Promise<void> 
       .orderBy(desc(verificationRequests.createdAt))
       .limit(5);
       
-    const hasActive = existingActive.some(r => r.status === "pending" || r.status === "under_review");
+    const hasActive = existingActive.some((r: any) => r.status === "pending" || r.status === "under_review");
     if (hasActive) {
       res.status(400).json({ success: false, error: { message: "Hali hazırda devam eden bir başvurunuz bulunmaktadır." } });
       return;

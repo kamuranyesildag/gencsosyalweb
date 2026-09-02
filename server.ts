@@ -11,21 +11,19 @@ if (process.env.NODE_ENV !== "production") {
   import("dotenv").then((dotenv) => dotenv.config());
 }
 
-import { healthRouter } from "./server/routes/health.js";
-import { sitemapRouter } from "./server/routes/sitemap.js";
-import { db } from "./src/db/index.js";
-import { projectsRouter } from "./server/routes/projects.js";
-
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
-
+  
+  // Detect if we need to enter Setup Mode
+  let setupMode = false;
   if (isProd) {
     const requiredEnvVars = ["JWT_SECRET", "JWT_REFRESH_SECRET", "JWT_EMAIL_SECRET", "DATABASE_URL", "ENCRYPTION_KEY"];
     const missingVars = requiredEnvVars.filter(v => !process.env[v]);
     
-    if (missingVars.length > 0) {
-      console.error(`FATAL ERROR: Missing required production environment variables: ${missingVars.join(", ")}`);
-      process.exit(1);
+    if (missingVars.length > 0 || process.env.SETUP_COMPLETED !== "true") {
+      setupMode = true;
+      console.warn(`⚠️ Setup Mode Active: Missing required environment variables or SETUP_COMPLETED is not true.`);
+      if (missingVars.length > 0) console.warn(`Missing vars: ${missingVars.join(", ")}`);
     }
   }
 
@@ -54,10 +52,10 @@ async function startServer() {
     crossOriginEmbedderPolicy: false,
   }));
   let corsOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
-  if (isProd && !corsOrigin) {
+  if (isProd && !corsOrigin && !setupMode) {
     throw new Error("FATAL: CORS_ORIGIN or FRONTEND_URL must be defined in production.");
   }
-  app.use(cors({ origin: corsOrigin || "http://localhost:3000", credentials: true }));
+  app.use(cors({ origin: corsOrigin || true, credentials: true }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -71,69 +69,79 @@ async function startServer() {
   app.use("/uploads", express.static(uploadDir));
 
   // --- API Routes Start ---
+  const { healthRouter } = await import("./server/routes/health.js");
   app.use("/api/v1/health", healthRouter);
-  app.use("/", sitemapRouter);
-  app.use("/api/v1/projects", projectsRouter);
   app.use("/api/health", healthRouter);
-  
-  const { authRouter } = await import("./server/routes/auth.js");
-  app.use("/api/v1/auth", authRouter);
+
+  if (setupMode) {
+    // In setup mode, we ONLY load health check and a dedicated setup router
+    console.log("🚧 Application is in Setup Mode. Only serving /api/setup and frontend assets.");
+    // We will dynamically import the setup router in the next phases
+  } else {
+    const { sitemapRouter } = await import("./server/routes/sitemap.js");
+    app.use("/", sitemapRouter);
+    const { projectsRouter } = await import("./server/routes/projects.js");
+    app.use("/api/v1/projects", projectsRouter);
+    
+    const { authRouter } = await import("./server/routes/auth.js");
+    app.use("/api/v1/auth", authRouter);
     const { usersRouter } = await import("./server/routes/users.js");
-  app.use("/api/v1/users", usersRouter);
+    app.use("/api/v1/users", usersRouter);
 
-  const { postsRouter } = await import("./server/routes/posts.js");
-  app.use("/api/v1/posts", postsRouter);
+    const { postsRouter } = await import("./server/routes/posts.js");
+    app.use("/api/v1/posts", postsRouter);
 
-  const { feedRouter } = await import("./server/routes/feed.js");
-  app.use("/api/v1/feed", feedRouter);
+    const { feedRouter } = await import("./server/routes/feed.js");
+    app.use("/api/v1/feed", feedRouter);
 
-  const { userPostsRouter } = await import("./server/routes/userPosts.js");
-  app.use("/api/v1/users", userPostsRouter);
+    const { userPostsRouter } = await import("./server/routes/userPosts.js");
+    app.use("/api/v1/users", userPostsRouter);
 
-  const { followsRouter } = await import("./server/routes/follows.js");
-  app.use("/api/v1/users", followsRouter);
+    const { followsRouter } = await import("./server/routes/follows.js");
+    app.use("/api/v1/users", followsRouter);
 
-  const { bookmarksRouter } = await import("./server/routes/bookmarks.js");
-  app.use("/api/v1/bookmarks", bookmarksRouter);
+    const { bookmarksRouter } = await import("./server/routes/bookmarks.js");
+    app.use("/api/v1/bookmarks", bookmarksRouter);
 
-  const { searchRouter } = await import("./server/routes/search.js");
-  app.use("/api/v1/search", searchRouter);
+    const { searchRouter } = await import("./server/routes/search.js");
+    app.use("/api/v1/search", searchRouter);
 
-  const { notificationsRouter } = await import("./server/routes/notifications.js");
-  app.use("/api/v1/notifications", notificationsRouter);
+    const { notificationsRouter } = await import("./server/routes/notifications.js");
+    app.use("/api/v1/notifications", notificationsRouter);
 
-  const { blocksRouter } = await import("./server/routes/blocks.js");
-  app.use("/api/v1/users", blocksRouter);
-  const { mediaRouter } = await import("./server/routes/media.js");
-  app.use("/api/v1/media", mediaRouter);
+    const { blocksRouter } = await import("./server/routes/blocks.js");
+    app.use("/api/v1/users", blocksRouter);
+    const { mediaRouter } = await import("./server/routes/media.js");
+    app.use("/api/v1/media", mediaRouter);
 
-  const { storiesRouter } = await import("./server/routes/stories.js");
-  app.use("/api/v1/stories", storiesRouter);
+    const { storiesRouter } = await import("./server/routes/stories.js");
+    app.use("/api/v1/stories", storiesRouter);
 
-  const { messagesRouter } = await import("./server/routes/messages.js");
-  app.use("/api/v1/messages", messagesRouter);
+    const { messagesRouter } = await import("./server/routes/messages.js");
+    app.use("/api/v1/messages", messagesRouter);
 
-  const { communitiesRouter } = await import("./server/routes/communities.js");
-  app.use("/api/v1/communities", communitiesRouter);
-  const { reactionsRouter } = await import("./server/routes/reactions.js");
-  app.use("/api/v1/posts", reactionsRouter);
-  const { commentsRouter } = await import("./server/routes/comments.js");
-  app.use("/api/v1/posts", commentsRouter);
-  const { reportsRouter } = await import("./server/routes/reports.js");
-  app.use("/api/v1/reports", reportsRouter);
-  
-  const { adminRouter } = await import("./server/routes/admin.js");
-  const { verificationRouter } = await import("./server/routes/verification.js");
-  const { hashtagsRouter } = await import("./server/routes/hashtags.js");
-  const { collaboratorsRouter } = await import("./server/routes/collaborators.js");
-  app.use("/api/v1/admin", adminRouter);
-  app.use("/api/v1/verification", verificationRouter);
-  app.use("/api/v1/hashtags", hashtagsRouter);
-  app.use("/api/v1/collaborators", collaboratorsRouter);
+    const { communitiesRouter } = await import("./server/routes/communities.js");
+    app.use("/api/v1/communities", communitiesRouter);
+    const { reactionsRouter } = await import("./server/routes/reactions.js");
+    app.use("/api/v1/posts", reactionsRouter);
+    const { commentsRouter } = await import("./server/routes/comments.js");
+    app.use("/api/v1/posts", commentsRouter);
+    const { reportsRouter } = await import("./server/routes/reports.js");
+    app.use("/api/v1/reports", reportsRouter);
+    
+    const { adminRouter } = await import("./server/routes/admin.js");
+    const { verificationRouter } = await import("./server/routes/verification.js");
+    const { hashtagsRouter } = await import("./server/routes/hashtags.js");
+    const { collaboratorsRouter } = await import("./server/routes/collaborators.js");
+    app.use("/api/v1/admin", adminRouter);
+    app.use("/api/v1/verification", verificationRouter);
+    app.use("/api/v1/hashtags", hashtagsRouter);
+    app.use("/api/v1/collaborators", collaboratorsRouter);
+
+    const { seoMiddleware } = await import("./server/middleware/seo.js");
+    app.use(seoMiddleware);
+  }
 // --- API Routes End ---
-
-  const { seoMiddleware } = await import("./server/middleware/seo.js");
-  app.use(seoMiddleware);
 
   // Vite middleware for development or static serving for production
   if (process.env.NODE_ENV !== "production") {

@@ -57,7 +57,6 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   const navItems: NavItem[] = [
     { name: 'Profilim', path: `/profile/${user?.username}`, icon: User },
     { name: 'Mesajlar', path: '/messages', icon: Mail },
-    { name: 'Bildirimler', path: '/notifications', icon: Bell },
     { name: 'Projeler', path: '/projects', icon: Rocket },
     { name: 'Topluluklar', path: '/communities', icon: Users },
     { name: 'Kaydedilenler', path: '/bookmarks', icon: Bookmark },
@@ -89,7 +88,7 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             role="dialog"
             aria-modal="true"
             aria-labelledby="more-sheet-title"
-            className="relative z-10 w-full bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl pb-safe overflow-hidden max-h-[88vh] flex flex-col"
+            className="relative z-10 w-full bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl pb-[env(safe-area-inset-bottom,20px)] overflow-hidden max-h-[88vh] flex flex-col"
           >
             {/* Handle bar */}
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 shrink-0" />
@@ -109,7 +108,7 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                       {user?.displayName || user?.username}
                     </h3>
                     {user?.isVerified && (
-                      <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-100 shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
                     )}
                   </div>
                   <p className="text-xs text-slate-500 truncate font-medium">@{user?.username}</p>
@@ -118,9 +117,9 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                   type="button"
                   onClick={onClose}
                   aria-label="Kapat"
-                  className="flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-full bg-white text-slate-500 hover:text-slate-900 border border-slate-200/80 transition-colors"
+                  className="flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white text-slate-500 hover:text-slate-900 border border-slate-200/80 transition-colors"
                 >
-                  <X className="w-4.5 h-4.5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -136,7 +135,7 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                       className={({ isActive }) =>
                         `flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all group select-none min-h-[44px] ${
                           isActive
-                            ? 'text-indigo-600 font-semibold'
+                            ? 'text-slate-900 font-semibold'
                             : 'text-slate-600 hover:text-slate-900'
                         }`
                       }
@@ -144,9 +143,9 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                       {({ isActive }) => (
                         <>
                           <div
-                            className={`w-13 h-13 rounded-2xl flex items-center justify-center transition-all ${
+                            className={`w-[52px] h-[52px] rounded-2xl flex items-center justify-center transition-all ${
                               isActive
-                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-105'
+                                ? 'bg-slate-900 text-white shadow-md shadow-slate-500/20 scale-105'
                                 : item.isAdmin
                                 ? 'bg-amber-50 text-amber-600 border border-amber-200/70 group-hover:bg-amber-100'
                                 : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200/80'
@@ -171,7 +170,7 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                   onClick={handleLogout}
                   className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-2xl text-rose-600 font-semibold bg-rose-50 hover:bg-rose-100/80 transition-colors min-h-[44px]"
                 >
-                  <LogOut className="w-4.5 h-4.5 stroke-[2]" />
+                  <LogOut className="w-5 h-5 stroke-[2]" />
                   <span>Hesaptan Çıkış Yap</span>
                 </button>
               </div>

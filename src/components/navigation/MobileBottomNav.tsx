@@ -30,7 +30,7 @@ export function MobileBottomNav() {
           aria-label="Ana Sayfa"
           aria-current={isHomeActive ? 'page' : undefined}
           className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
-            isHomeActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900 active:text-indigo-600'
+            isHomeActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900 active:text-slate-900'
           }`}
         >
           <div className="relative flex flex-col items-center">
@@ -38,7 +38,7 @@ export function MobileBottomNav() {
             {isHomeActive && (
               <motion.span
                 layoutId="bottomNavDot"
-                className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1"
+                className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-1"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
@@ -51,7 +51,7 @@ export function MobileBottomNav() {
           aria-label="Keşfet"
           aria-current={isExploreActive ? 'page' : undefined}
           className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
-            isExploreActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900 active:text-indigo-600'
+            isExploreActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900 active:text-slate-900'
           }`}
         >
           <div className="relative flex flex-col items-center">
@@ -59,7 +59,7 @@ export function MobileBottomNav() {
             {isExploreActive && (
               <motion.span
                 layoutId="bottomNavDot"
-                className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1"
+                className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-1"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
@@ -77,7 +77,7 @@ export function MobileBottomNav() {
               else navigate('/create');
             }}
             aria-label="Oluştur"
-            className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-4 ring-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/40 -mt-4"
+            className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 ring-4 ring-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20 -mt-4"
           >
             <Plus className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
           </motion.button>
@@ -95,7 +95,7 @@ export function MobileBottomNav() {
           aria-label="Bildirimler"
           aria-current={isNotificationsActive ? 'page' : undefined}
           className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
-            isNotificationsActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900 active:text-indigo-600'
+            isNotificationsActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900 active:text-slate-900'
           }`}
         >
           <div className="relative flex flex-col items-center">
@@ -103,7 +103,7 @@ export function MobileBottomNav() {
             {isNotificationsActive && (
               <motion.span
                 layoutId="bottomNavDot"
-                className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1"
+                className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-1"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
@@ -122,7 +122,7 @@ export function MobileBottomNav() {
           }}
           aria-label="Profil ve Menü"
           className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
-            isProfileActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'
+            isProfileActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           <div className="relative flex flex-col items-center">
@@ -132,7 +132,7 @@ export function MobileBottomNav() {
                 name={user?.displayName || user?.username}
                 size="xs"
                 className={`ring-2 transition-all ${
-                  isProfileActive ? 'ring-indigo-600 scale-105' : 'ring-transparent hover:ring-slate-300'
+                  isProfileActive ? 'ring-slate-900 scale-105' : 'ring-transparent hover:ring-slate-300'
                 }`}
               />
             ) : (
@@ -141,7 +141,7 @@ export function MobileBottomNav() {
             {isProfileActive && (
               <motion.span
                 layoutId="bottomNavDot"
-                className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1"
+                className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-1"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}

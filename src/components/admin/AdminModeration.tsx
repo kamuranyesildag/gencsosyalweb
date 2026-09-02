@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from "../ui/Toast";
+import { confirmDialog } from "../ui/ConfirmDialog";
+import { fetchApi } from "../../lib/api";
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -8,7 +11,7 @@ import { ShieldAlert, CheckCircle, XCircle, AlertTriangle, MessageSquare, FileTe
 
 interface ModerationLog {
   id: number;
-  entityType: 'POST' | 'COMMENT' | 'PROFILE';
+  entityType: 'POST' | 'COMMENT' | 'PROFILE' | 'PROJECT' | 'PROJECT_COMMENT';
   entityId: number;
   status: 'PENDING' | 'RESOLVED';
   riskLevel: 'SAFE' | 'LOW_RISK' | 'MEDIUM_RISK' | 'HIGH_RISK';
@@ -32,9 +35,7 @@ export function AdminModeration() {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch('/api/v1/admin/moderation/queue', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await fetchApi('/admin/moderation/queue');
       const data = await res.json();
       if (data.success) {
         setLogs(data.data);
@@ -47,25 +48,29 @@ export function AdminModeration() {
   };
 
   const handleAction = async (id: number, action: 'APPROVE' | 'REJECT') => {
-    if (!confirm(`İçeriği ${action === 'APPROVE' ? 'onaylamak' : 'reddetmek'} istediğinize emin misiniz?`)) return;
+    const isApproved = action === 'APPROVE';
+    const confirmed = await confirmDialog({
+      title: isApproved ? 'İçeriği Onayla' : 'İçeriği Engelle',
+      message: `İçeriği ${isApproved ? 'onaylamak ve yayına almak' : 'engellemek ve yayından kaldırmak'} istediğinize emin misiniz?`,
+      confirmLabel: isApproved ? 'Yayınla' : 'Engelle',
+      variant: isApproved ? 'primary' : 'danger',
+    });
+    if (!confirmed) return;
+
     try {
-      const res = await fetch(`/api/v1/admin/moderation/${id}/action`, {
+      const res = await fetchApi(`/admin/moderation/${id}/action`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action })
+        data: { action }
       });
       const data = await res.json();
       if (data.success) {
         setLogs(prev => prev.filter(log => log.id !== id));
       } else {
-        alert(data.error?.message || "Hata oluştu");
+        toast.error(data.error?.message || "Hata oluştu");
       }
     } catch (err) {
       console.error(err);
-      alert("Bağlantı hatası");
+      toast.error("Bağlantı hatası");
     }
   };
 
@@ -104,7 +109,7 @@ export function AdminModeration() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
-                      {log.entityType === 'POST' ? <FileText className="w-5 h-5" /> : log.entityType === 'COMMENT' ? <MessageSquare className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                      {log.entityType === 'POST' || log.entityType === 'PROJECT' ? <FileText className="w-5 h-5" /> : log.entityType === 'COMMENT' || log.entityType === 'PROJECT_COMMENT' ? <MessageSquare className="w-5 h-5" /> : <User className="w-5 h-5" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -138,7 +143,7 @@ export function AdminModeration() {
         <div className="space-y-4">
           <Card className="p-5">
             <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-indigo-500" />
+              <ShieldAlert className="w-5 h-5 text-slate-500" />
               Sistem Durumu
             </h3>
             <div className="space-y-3 text-sm">

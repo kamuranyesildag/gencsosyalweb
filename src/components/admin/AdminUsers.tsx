@@ -112,7 +112,7 @@ export function AdminUsers() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-indigo-600" />
+            <Users className="w-6 h-6 text-slate-900" />
             <span>Kullanıcı Yönetimi</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -188,7 +188,7 @@ export function AdminUsers() {
           <span>Toplam {filteredUsers.length} kullanıcı gösteriliyor</span>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900" />
               {users.filter((u) => u.isVerified).length} Doğrulanmış
             </span>
             <span className="flex items-center gap-1">
@@ -281,12 +281,12 @@ export function AdminUsers() {
                                 <div className="flex items-center gap-1.5">
                                   <Link
                                     to={`/profile/${u.username}`}
-                                    className="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate"
+                                    className="font-bold text-slate-900 hover:text-slate-900 transition-colors truncate"
                                   >
                                     {u.displayName || u.username}
                                   </Link>
                                   {u.isVerified && (
-                                    <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-600/10 shrink-0" />
+                                    <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-600/10 shrink-0" />
                                   )}
                                 </div>
                                 <div className="text-xs text-slate-500 font-medium truncate flex items-center gap-2 mt-0.5">
@@ -336,7 +336,7 @@ export function AdminUsers() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 to={`/profile/${u.username}`}
-                                className="p-2 text-slate-400 hover:text-indigo-600 rounded-xl hover:bg-slate-100 transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
                                 title="Profili Görüntüle"
                               >
                                 <ExternalLink className="w-4 h-4" />
@@ -372,12 +372,12 @@ export function AdminUsers() {
                             <div className="flex items-center gap-1.5">
                               <Link
                                 to={`/profile/${u.username}`}
-                                className="font-bold text-slate-900 hover:text-indigo-600 truncate text-sm"
+                                className="font-bold text-slate-900 hover:text-slate-900 truncate text-sm"
                               >
                                 {u.displayName || u.username}
                               </Link>
                               {u.isVerified && (
-                                <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                                <CheckCircle2 className="w-4 h-4 text-slate-900 shrink-0" />
                               )}
                             </div>
                             <div className="text-xs text-slate-500 truncate">@{u.username}</div>
@@ -406,7 +406,7 @@ export function AdminUsers() {
                       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                         <Link
                           to={`/profile/${u.username}`}
-                          className="text-xs font-semibold text-indigo-600 flex items-center gap-1"
+                          className="text-xs font-semibold text-slate-900 flex items-center gap-1"
                         >
                           <ExternalLink className="w-3.5 h-3.5" /> Profili Gör
                         </Link>

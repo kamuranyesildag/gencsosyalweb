@@ -12,7 +12,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownDivider } from "../components/ui/Dropdown";
-import { Skeleton, SkeletonCircle, SkeletonText, SkeletonCard } from "../components/ui/Skeleton";
+import { Skeleton, SkeletonCircle, SkeletonText, SkeletonList } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { confirmDialog } from "../components/ui/ConfirmDialog";
 import { toast } from "../components/ui/Toast";
@@ -59,7 +59,11 @@ export function Profile() {
   const [showShare, setShowShare] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
 
-  useSEO(profile?.allowIndexing ?? true);
+  useSEO({
+    allowIndexing: profile?.allowIndexing ?? true,
+    title: profile ? `${profile.displayName || profile.username} (@${profile.username}) - Genç Sosyal` : undefined,
+    description: profile?.bio ? profile.bio.substring(0, 150) : undefined,
+  });
 
   const postsQuery = usePagination(profile ? `/users/${profile.id}/posts` : "");
   const followersQuery = usePagination(profile ? `/users/${profile.id}/followers` : "");
@@ -212,10 +216,7 @@ export function Profile() {
         </div>
 
         {/* Feed Skeleton */}
-        <div className="p-4 space-y-4">
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
+        <SkeletonList count={3} className="p-4" />
       </div>
     );
   }
@@ -245,13 +246,14 @@ export function Profile() {
       <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100/90 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <IconButton
-            icon={<ArrowLeft className="w-5 h-5" />}
             aria-label="Geri Dön"
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
             className="rounded-full shrink-0 -ml-1 text-slate-700 hover:text-slate-900"
-          />
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </IconButton>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <h1 className="text-base sm:text-lg font-black text-slate-900 truncate tracking-tight">
@@ -264,7 +266,7 @@ export function Profile() {
                   aria-label="Doğrulanmış Rozet"
                   className="shrink-0 inline-flex items-center"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-100 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
                 </button>
               )}
             </div>
@@ -277,18 +279,19 @@ export function Profile() {
         {/* Top Right Quick Actions */}
         <div className="flex items-center gap-1">
           <IconButton
-            icon={<Share2 className="w-4.5 h-4.5" />}
             aria-label="Profili Paylaş"
             variant="ghost"
             size="sm"
             onClick={() => setShowShare(true)}
             className="rounded-full text-slate-500 hover:text-slate-900"
-          />
+          >
+            <Share2 className="w-4.5 h-4.5" />
+          </IconButton>
         </div>
       </header>
 
       {/* COVER IMAGE */}
-      <div className="relative h-28 sm:h-40 md:h-48 bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-700 w-full overflow-hidden shrink-0">
+      <div className="relative h-28 sm:h-40 md:h-48 bg-gradient-to-tr from-slate-500 via-slate-600 to-violet-700 w-full overflow-hidden shrink-0">
         <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
       </div>
 
@@ -311,13 +314,14 @@ export function Profile() {
             {!isMe ? (
               <>
                 <IconButton
-                  icon={<Mail className="w-4.5 h-4.5" />}
                   aria-label="Mesaj Gönder"
                   variant="secondary"
                   size="md"
                   onClick={handleMessage}
                   className="rounded-full text-slate-700 shadow-xs"
-                />
+                >
+                  <Mail className="w-4.5 h-4.5" />
+                </IconButton>
 
                 <Button
                   variant={following ? "secondary" : "primary"}
@@ -327,7 +331,7 @@ export function Profile() {
                   className={`rounded-full px-5 font-bold transition-all shadow-xs ${
                     following
                       ? "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                      : "shadow-indigo-500/20"
+                      : "shadow-slate-500/20"
                   }`}
                 >
                   {following ? "Takip Ediliyor" : "Takip Et"}
@@ -395,7 +399,7 @@ export function Profile() {
                 aria-label="Doğrulanmış Hesap"
                 className="inline-flex items-center focus:outline-none"
               >
-                <CheckCircle2 className="w-5 h-5 text-indigo-600 fill-indigo-100 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-slate-900 fill-slate-100 shrink-0" />
               </button>
             )}
           </div>
@@ -425,7 +429,7 @@ export function Profile() {
                 href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-indigo-600 font-semibold hover:underline inline-flex items-center gap-0.5"
+                className="text-slate-900 font-semibold hover:underline inline-flex items-center gap-0.5"
               >
                 <span>{profile.website.replace(/^https?:\/\//, "")}</span>
                 <ExternalLink className="w-3 h-3 opacity-70" />
@@ -452,7 +456,7 @@ export function Profile() {
             onClick={() => setActiveTab("following")}
             className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none"
           >
-            <span className="font-extrabold text-slate-900 group-hover/stat:text-indigo-600 transition-colors">
+            <span className="font-extrabold text-slate-900 group-hover/stat:text-slate-900 transition-colors">
               {profile.followingCount || 0}
             </span>
             <span className="text-slate-500 font-medium group-hover/stat:text-slate-700">Takip Edilen</span>
@@ -463,7 +467,7 @@ export function Profile() {
             onClick={() => setActiveTab("followers")}
             className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none"
           >
-            <span className="font-extrabold text-slate-900 group-hover/stat:text-indigo-600 transition-colors">
+            <span className="font-extrabold text-slate-900 group-hover/stat:text-slate-900 transition-colors">
               {profile.followersCount || 0}
             </span>
             <span className="text-slate-500 font-medium group-hover/stat:text-slate-700">Takipçi</span>
@@ -514,14 +518,14 @@ export function Profile() {
           aria-selected={activeTab === "posts"}
           onClick={() => setActiveTab("posts")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "posts" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+            activeTab === "posts" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
           }`}
         >
           <span>Gönderiler</span>
           {activeTab === "posts" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-indigo-600 rounded-full"
+              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -533,14 +537,14 @@ export function Profile() {
           aria-selected={activeTab === "projects"}
           onClick={() => setActiveTab("projects")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "projects" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+            activeTab === "projects" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
           }`}
         >
           <span>Projeler</span>
           {activeTab === "projects" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-indigo-600 rounded-full"
+              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -552,14 +556,14 @@ export function Profile() {
           aria-selected={activeTab === "followers"}
           onClick={() => setActiveTab("followers")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "followers" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+            activeTab === "followers" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
           }`}
         >
           <span>Takipçiler</span>
           {activeTab === "followers" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-indigo-600 rounded-full"
+              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -571,14 +575,14 @@ export function Profile() {
           aria-selected={activeTab === "following"}
           onClick={() => setActiveTab("following")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "following" ? "text-indigo-600" : "text-slate-500 hover:text-slate-900"
+            activeTab === "following" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
           }`}
         >
           <span>Takip Edilenler</span>
           {activeTab === "following" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-indigo-600 rounded-full"
+              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -590,20 +594,15 @@ export function Profile() {
         {/* 1. Posts Tab */}
         {activeTab === "posts" && (
           postsQuery.loading ? (
-            <div className="p-4 space-y-4">
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
+            <SkeletonList count={3} className="p-4" />
           ) : postsQuery.data.length > 0 ? (
             <InfiniteScroll
-              hasMore={postsQuery.hasMore}
-              isLoading={postsQuery.loadingMore}
-              onLoadMore={postsQuery.loadMore}
-            >
-              {postsQuery.data.map((post) => (
-                <PostCard key={post.id} post={{ ...post, user: profile }} />
-              ))}
-            </InfiniteScroll>
+    items={postsQuery.data}
+    hasMore={postsQuery.hasMore}
+    isLoading={postsQuery.loadingMore}
+    onLoadMore={postsQuery.loadMore}
+    renderItem={(post) => (<PostCard key={post.id} post={{ ...post, user: profile }} />)}
+  />
           ) : (
             <div className="px-4 py-8 max-w-md mx-auto">
               <EmptyState
@@ -646,12 +645,11 @@ export function Profile() {
             </div>
           ) : (activeTab === "followers" ? followersQuery : followingQuery).data.length > 0 ? (
             <InfiniteScroll
-              hasMore={(activeTab === "followers" ? followersQuery : followingQuery).hasMore}
-              isLoading={(activeTab === "followers" ? followersQuery : followingQuery).loadingMore}
-              onLoadMore={(activeTab === "followers" ? followersQuery : followingQuery).loadMore}
-            >
-              {(activeTab === "followers" ? followersQuery : followingQuery).data.map((u) => {
-                const user = u.follower || u.following || u;
+    items={(activeTab === "followers" ? followersQuery : followingQuery).data}
+    hasMore={(activeTab === "followers" ? followersQuery : followingQuery).hasMore}
+    isLoading={(activeTab === "followers" ? followersQuery : followingQuery).loadingMore}
+    onLoadMore={(activeTab === "followers" ? followersQuery : followingQuery).loadMore}
+    renderItem={(u) => {const user = u.follower || u.following || u;
                 return (
                   <Link
                     key={user.id}
@@ -662,15 +660,15 @@ export function Profile() {
                       url={user.avatarUrl}
                       name={user.displayName || user.username}
                       size="md"
-                      className="ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-all"
+                      className="ring-1 ring-slate-200 group-hover:ring-slate-300 transition-all"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate text-sm sm:text-base">
+                        <span className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors truncate text-sm sm:text-base">
                           {user.displayName || user.username}
                         </span>
                         {user.isVerified && (
-                          <CheckCircle2 className="w-4 h-4 text-indigo-600 fill-indigo-100 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
                         )}
                       </div>
                       <p className="text-xs sm:text-sm text-slate-500 truncate">@{user.username}</p>
@@ -681,9 +679,8 @@ export function Profile() {
                       )}
                     </div>
                   </Link>
-                );
-              })}
-            </InfiniteScroll>
+                );}}
+  />
           ) : (
             <div className="px-4 py-8 max-w-md mx-auto">
               <EmptyState

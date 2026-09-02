@@ -25,7 +25,7 @@ export function Sidebar() {
     <div className="flex flex-col h-full py-6 px-4 xl:px-6">
       <div className="flex-1 flex flex-col gap-1.5">
         <NavLink to="/home" className="flex items-center gap-3 px-4 py-3 mb-6 transition-transform hover:scale-105 origin-left">
-          <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-md shadow-indigo-200">
+          <div className="bg-slate-900 p-2 rounded-xl text-white shadow-md shadow-slate-200">
             <Hexagon className="w-6 h-6 fill-current" />
           </div>
           <span className="text-2xl font-black tracking-tight text-gray-900 hidden xl:block">Genç Sosyal</span>

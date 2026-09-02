@@ -10,11 +10,11 @@ export const notificationsRouter = Router();
 
 notificationsRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
     const offset = (page - 1) * limit;
-    let cursorCondition = undefined;
+    let cursorCondition: any = undefined;
     if (cursor) {
       const decoded = decodeCursor(cursor);
       if (decoded) {
@@ -45,7 +45,7 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
     .limit(limit)
     .offset(offset);
 
-    let nextCursor = undefined;
+    let nextCursor: string | undefined = undefined;
     if (list.length === limit) {
       const last = list[list.length - 1];
       nextCursor = encodeCursor(last.createdAt, last.id);
@@ -58,7 +58,7 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
 
 notificationsRouter.put("/read", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     await db.update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.recipientId, currentUserId));
@@ -72,7 +72,7 @@ notificationsRouter.put("/read", requireAuth, async (req, res) => {
 notificationsRouter.post("/:id/read", requireAuth, async (req, res) => {
   try {
     const notifId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     await db.update(notifications)
       .set({ isRead: true })

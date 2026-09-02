@@ -160,7 +160,7 @@ export function SettingsProjects() {
   if (loading) {
     return (
       <div className="flex justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
       </div>
     );
   }
@@ -201,7 +201,7 @@ export function SettingsProjects() {
         <form onSubmit={handleSave} className="space-y-6">
           {/* Bölüm 1: Temel Bilgiler */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
+            <div className="flex items-center gap-2 text-slate-900 mb-1">
               <LayoutDashboard className="w-5 h-5" />
               <h4 className="font-bold text-slate-900 text-base">Temel Bilgiler</h4>
             </div>
@@ -218,7 +218,7 @@ export function SettingsProjects() {
                 onChange={(e) =>
                   setEditingProject({ ...editingProject, title: e.target.value })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                 placeholder="Örn: Akıllı Tarım & Sera Otomasyonu"
               />
             </div>
@@ -234,7 +234,7 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, category: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
                 >
                   <option value="" disabled>Seçiniz</option>
                   <option value="Yazılım">Yazılım</option>
@@ -259,7 +259,7 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, status: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
                 >
                   <option value="" disabled>Seçiniz</option>
                   <option value="Fikir aşamasında">Fikir aşamasında</option>
@@ -274,7 +274,7 @@ export function SettingsProjects() {
 
           {/* Bölüm 2: Proje Detayları */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
+            <div className="flex items-center gap-2 text-slate-900 mb-1">
               <Info className="w-5 h-5" />
               <h4 className="font-bold text-slate-900 text-base">Açıklama & Detaylar</h4>
             </div>
@@ -291,7 +291,7 @@ export function SettingsProjects() {
                 onChange={(e) =>
                   setEditingProject({ ...editingProject, description: e.target.value })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
                 placeholder="Projenin amacını ve öne çıkan özelliklerini kısaca açıklayın..."
               />
             </div>
@@ -310,7 +310,7 @@ export function SettingsProjects() {
                     detailedDescription: e.target.value,
                   })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-y placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-y placeholder:text-slate-400"
                 placeholder="Mimari, hedefler ve kullanılan yöntemler hakkında detay verin..."
               />
             </div>
@@ -318,7 +318,7 @@ export function SettingsProjects() {
 
           {/* Bölüm 3: Teknolojiler */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
+            <div className="flex items-center gap-2 text-slate-900 mb-1">
               <Code className="w-5 h-5" />
               <h4 className="font-bold text-slate-900 text-base">Teknolojiler & Etiketler</h4>
             </div>
@@ -332,7 +332,7 @@ export function SettingsProjects() {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={addTag}
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                 placeholder="React, TypeScript, Python yazıp Enter'a basın..."
               />
               <p className="text-xs text-slate-400 font-medium">
@@ -344,13 +344,13 @@ export function SettingsProjects() {
                   {editingProject.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-100"
                     >
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="text-indigo-400 hover:text-indigo-700 transition-colors"
+                        className="text-slate-400 hover:text-slate-700 transition-colors"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                       </button>
@@ -363,7 +363,7 @@ export function SettingsProjects() {
 
           {/* Bölüm 4: Bağlantılar */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
+            <div className="flex items-center gap-2 text-slate-900 mb-1">
               <LinkIcon className="w-5 h-5" />
               <h4 className="font-bold text-slate-900 text-base">Medya & Bağlantılar</h4>
             </div>
@@ -380,7 +380,7 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, imageUrl: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                   placeholder="https://example.com/banner.png"
                 />
               </div>
@@ -397,7 +397,7 @@ export function SettingsProjects() {
                     onChange={(e) =>
                       setEditingProject({ ...editingProject, githubUrl: e.target.value })
                     }
-                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                     placeholder="https://github.com/kullanici/repo"
                   />
                 </div>
@@ -413,7 +413,7 @@ export function SettingsProjects() {
                     onChange={(e) =>
                       setEditingProject({ ...editingProject, projectUrl: e.target.value })
                     }
-                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                     placeholder="https://proje-adresi.com"
                   />
                 </div>
@@ -528,7 +528,7 @@ export function SettingsProjects() {
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h4 className="font-bold text-slate-900 text-base group-hover:text-indigo-600 transition-colors truncate">
+                  <h4 className="font-bold text-slate-900 text-base group-hover:text-slate-900 transition-colors truncate">
                     {project.title}
                   </h4>
                   <Badge variant="secondary" size="sm" isPill>

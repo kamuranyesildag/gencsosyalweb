@@ -22,10 +22,7 @@ export const users = pgTable('users', {
   twoFactorSecret: text('two_factor_secret'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (t) => ({
-  usernameIdx: index('users_username_idx').on(t.username),
-  emailIdx: index('users_email_idx').on(t.email),
-}));
+});
 
 export const profiles = pgTable('profiles', {
   id: serial('id').primaryKey(),
@@ -119,6 +116,7 @@ export const posts = pgTable('posts', {
 }, (t) => ({
   userIdIdx: index('posts_user_id_idx').on(t.userId),
   createdAtIdx: index('posts_created_at_idx').on(t.createdAt),
+  userCreatedAtIdx: index('posts_user_id_created_at_idx').on(t.userId, t.createdAt),
 }));
 
 
@@ -294,6 +292,7 @@ export const notifications = pgTable('notifications', {
   recipientIdx: index('notifications_recipient_idx').on(t.recipientId),
   isReadIdx: index('notifications_is_read_idx').on(t.isRead),
   recipientUnreadDateIdx: index('notifications_recipient_unread_date_idx').on(t.recipientId, t.isRead, t.createdAt),
+  recipientCreatedAtIdx: index('notifications_recipient_created_at_idx').on(t.recipientId, t.createdAt),
 }));
 
 // --- STORIES ---
@@ -342,6 +341,7 @@ export const messages = pgTable('messages', {
 }, (t) => ({
   conversationIdx: index('messages_conversation_idx').on(t.conversationId),
   createdAtIdx: index('messages_created_at_idx').on(t.createdAt),
+  conversationCreatedAtIdx: index('messages_conversation_created_at_idx').on(t.conversationId, t.createdAt),
 }));
 
 // --- COMMUNITIES ---
@@ -500,6 +500,8 @@ export const postCollaborators = pgTable('post_collaborators', {
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
+  weeklyLeaderboards: many(weeklyLeaderboards),
+  userBadges: many(userBadges),
   profile: one(profiles, {
     fields: [users.id],
     references: [profiles.userId],
@@ -640,26 +642,6 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
-export const communitiesRelations = relations(communities, ({ one, many }) => ({
-  posts: many(posts),
-  owner: one(users, {
-    fields: [communities.ownerId],
-    references: [users.id],
-  }),
-  members: many(communityMembers),
-}));
-
-export const communityMembersRelations = relations(communityMembers, ({ one }) => ({
-  community: one(communities, {
-    fields: [communityMembers.communityId],
-    references: [communities.id],
-  }),
-  user: one(users, {
-    fields: [communityMembers.userId],
-    references: [users.id],
-  }),
-}));
-
 export const followsRelations = relations(follows, ({ one }) => ({
   follower: one(users, {
     fields: [follows.followerId],
@@ -746,6 +728,26 @@ export const adminAuditLogsRelations = relations(adminAuditLogs, ({ one }) => ({
   }),
 }));
 
+export const communitiesRelations = relations(communities, ({ one, many }) => ({
+  posts: many(posts),
+  owner: one(users, {
+    fields: [communities.ownerId],
+    references: [users.id],
+  }),
+  members: many(communityMembers),
+}));
+
+export const communityMembersRelations = relations(communityMembers, ({ one }) => ({
+  community: one(communities, {
+    fields: [communityMembers.communityId],
+    references: [communities.id],
+  }),
+  user: one(users, {
+    fields: [communityMembers.userId],
+    references: [users.id],
+  }),
+}));
+
 
 export const projectCollaboratorsRelations = relations(projectCollaborators, ({ one }) => ({
   project: one(projects, {
@@ -818,4 +820,66 @@ export const moderationLogs = pgTable('moderation_logs', {
   entityIdx: index('mod_logs_entity_idx').on(t.entityType, t.entityId),
   userIdIdx: index('mod_logs_user_id_idx').on(t.userId),
   statusIdx: index('mod_logs_status_idx').on(t.status)
+}));
+
+// --- WEEKLY LEADERBOARDS & GAMIFICATION ---
+
+export const weeklyLeaderboards = pgTable('weekly_leaderboards', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  weekStart: timestamp('week_start').notNull(),
+  weekEnd: timestamp('week_end').notNull(),
+  rank: integer('rank').notNull(),
+  score: real('score').default(0).notNull(),
+  productionScore: real('production_score').default(0).notNull(),
+  communityScore: real('community_score').default(0).notNull(),
+  qualityScore: real('quality_score').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  unq_user_week: unique('weekly_leaderboards_user_week_unq').on(t.userId, t.weekStart),
+  weekStartIdx: index('weekly_leaderboards_week_start_idx').on(t.weekStart),
+  rankIdx: index('weekly_leaderboards_rank_idx').on(t.rank),
+  userIdIdx: index('weekly_leaderboards_user_id_idx').on(t.userId),
+}));
+
+export const badges = pgTable('badges', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 50 }).notNull().unique(), // e.g., 'WEEKLY_TOP_1'
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description').notNull(),
+  iconUrl: varchar('icon_url', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const userBadges = pgTable('user_badges', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  badgeId: integer('badge_id').notNull().references(() => badges.id, { onDelete: 'cascade' }),
+  metadata: jsonb('metadata').$type<Record<string, any>>().default({}), // e.g., { weekStart: '2023-10-01' }
+  awardedAt: timestamp('awarded_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdIdx: index('user_badges_user_id_idx').on(t.userId),
+  badgeIdIdx: index('user_badges_badge_id_idx').on(t.badgeId),
+}));
+
+export const weeklyLeaderboardsRelations = relations(weeklyLeaderboards, ({ one }) => ({
+  user: one(users, {
+    fields: [weeklyLeaderboards.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userBadgesRelations = relations(userBadges, ({ one }) => ({
+  user: one(users, {
+    fields: [userBadges.userId],
+    references: [users.id],
+  }),
+  badge: one(badges, {
+    fields: [userBadges.badgeId],
+    references: [badges.id],
+  }),
+}));
+
+export const badgesRelations = relations(badges, ({ many }) => ({
+  users: many(userBadges),
 }));

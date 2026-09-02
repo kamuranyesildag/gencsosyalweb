@@ -22,7 +22,7 @@ export const postsRouter = Router();
 postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const { optionId } = req.body;
     
     if (!optionId) {
@@ -101,7 +101,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
     const media = await db.select().from(postMedia).where(eq(postMedia.postId, postId));
     const repostRecords = await db.select().from(reposts).where(eq(reposts.postId, postId));
     const repostCount = repostRecords.length;
-    const isReposted = repostRecords.some(r => r.userId === currentUserId);
+    const isReposted = repostRecords.some((r: any) => r.userId === currentUserId);
     res.json({ success: true, data: { ...post, media, repostCount, isReposted }});
   } catch (error) {
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
@@ -111,7 +111,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
 // POST /posts
 postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = createPostSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -140,14 +140,38 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
        finalVisibility = p.length > 0 ? p[0].defaultPostVisibility as any : "PUBLIC";
     }
 
-    const result = await db.transaction(async (tx) => {
+    const modResult = await moderateContent(content || "");
+    const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
+
+    let returnedError: any = null;
+
+    const result = await db.transaction(async (tx: any) => {
       const [newPost] = await tx.insert(posts).values({
         userId: currentUserId,
         content: content || null,
         visibility: finalVisibility as any,
         postType: parsed.data.postType,
         contentWarning: parsed.data.contentWarning || null,
+        moderationStatus: modStatus
       }).returning();
+      
+      if (modStatus !== 'APPROVED') {
+        await tx.insert(moderationLogs).values({
+           entityType: 'POST',
+           entityId: newPost.id,
+           userId: currentUserId,
+           status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
+           actionTaken: modStatus === 'REJECTED' ? 'REJECTED' : null,
+           riskLevel: modResult.riskLevel,
+           category: modResult.category,
+           reason: modResult.reason || null
+        });
+      }
+
+      if (modStatus === 'REJECTED') {
+         returnedError = { code: "POLICY_VIOLATION", message: "İçeriğiniz topluluk kurallarına uygun olmadığı için yayınlanamadı." };
+         return null;
+      }
       
       if (parsed.data.postType === 'POLL' && parsed.data.pollOptions) {
          const optionsToInsert = parsed.data.pollOptions.map((text, i) => ({
@@ -195,7 +219,9 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
               }).onConflictDoNothing();
               
               // Send notification
-              await notify(currentUserId, mUser.id, 'mention', newPost.id);
+              if (modStatus === 'APPROVED') {
+                await notify(currentUserId, mUser.id, 'mention', newPost.id);
+              }
             }
           }
         }
@@ -230,7 +256,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
         );
       }
 
-      let pPollOptions = undefined;
+      let pPollOptions: any = undefined;
       if (parsed.data.postType === 'POLL' && parsed.data.pollOptions) {
         const optionsWithVotes = parsed.data.pollOptions.map((opt, i) => ({
            id: -i, // temp id for optimistic UI
@@ -249,7 +275,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
         ...newPost,
         pollData: pPollOptions,
         user: {
-           id: req.user!.userId,
+           id: (req.user?.userId || -1),
            username: req.user!.username
         },
         repostCount: 0,
@@ -263,8 +289,11 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
       
       return postWithRelations;
     });
-    
 
+    if (returnedError) {
+      return res.status(403).json({ success: false, error: returnedError });
+    }
+    
     // Official Account Notifications
     (async () => {
       try {
@@ -318,7 +347,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
 postsRouter.patch("/:id", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const { content: postContent } = req.body;
     
     if (typeof postContent !== 'string') {
@@ -328,11 +357,33 @@ postsRouter.patch("/:id", requireAuth, strictLimiter, async (req, res) => {
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
+
+    
     if (postRecord[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz işlem." }});
     
+    const modResult = await moderateContent(postContent);
+    const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
+
     await db.update(posts)
-      .set({ content: postContent, updatedAt: new Date() })
+      .set({ content: postContent, moderationStatus: modStatus, updatedAt: new Date() })
       .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+      
+    if (modStatus !== 'APPROVED') {
+      await db.insert(moderationLogs).values({
+         entityType: 'POST',
+         entityId: postId,
+         userId: currentUserId,
+         status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
+         actionTaken: modStatus === 'REJECTED' ? 'REJECTED' : null,
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+    }
+
+    if (modStatus === 'REJECTED') {
+      return res.status(403).json({ success: false, error: { code: "POLICY_VIOLATION", message: "İçeriğiniz topluluk kurallarına uygun olmadığı için güncellenemedi." }});
+    }
       
     res.json({ success: true, data: { message: "Gönderi güncellendi." }});
   } catch (error) {
@@ -343,7 +394,7 @@ postsRouter.patch("/:id", requireAuth, strictLimiter, async (req, res) => {
 postsRouter.delete("/:id", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
@@ -352,7 +403,7 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
     
     const postTags = await db.select().from(postHashtags).where(eq(postHashtags.postId, postId));
     if (postTags.length > 0) {
-      const tagIds = postTags.map(pt => pt.hashtagId);
+      const tagIds = postTags.map((pt: any) => pt.hashtagId);
       await db.update(hashtags)
         .set({ usageCount: sql`${hashtags.usageCount} - 1` })
         .where(inArray(hashtags.id, tagIds));
@@ -360,7 +411,7 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
     
     // Find media to delete files from disk
     const media = await db.select().from(postMedia).where(eq(postMedia.postId, postId));
-    media.forEach(m => {
+    media.forEach((m: any) => {
       try {
         const filePath = path.join(process.cwd(), m.mediaUrl);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -380,15 +431,19 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
 postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
+    if (postRecord[0].userId === currentUserId) {
+      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi gönderinize beğeni atamazsınız." }});
+    }
+    
     let wasLiked = false;
     try {
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         const existing = await tx.select().from(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId))).limit(1);
         if (existing.length === 0) {
           await tx.insert(likes).values({ postId, userId: currentUserId });
@@ -416,15 +471,18 @@ postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => 
 postsRouter.delete("/:id/like", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
-    await db.transaction(async (tx) => {
+    const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+    await db.transaction(async (tx: any) => {
       const existing = await tx.select().from(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId)));
-        await tx.update(posts)
-          .set({ baseScore: sql`GREATEST(${posts.baseScore} - 1, 0)` })
-          .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
+          await tx.update(posts)
+            .set({ baseScore: sql`GREATEST(${posts.baseScore} - 1, 0)` })
+            .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        }
       }
     });
     res.json({ success: true, data: { message: "Beğeni kaldırıldı." }});
@@ -437,7 +495,7 @@ postsRouter.delete("/:id/like", requireAuth, async (req, res) => {
 postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const parsed = createCommentSchema.safeParse(req.body);
     
@@ -448,12 +506,10 @@ postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) =
     
     const modResult = await moderateContent(parsed.data.content);
     const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
-    
-    if (modStatus === 'REJECTED') {
-      return res.status(403).json({ success: false, error: { code: "POLICY_VIOLATION", message: "Bu içerik topluluk kurallarımızla uyumlu olmadığı için yayınlanamadı." }});
-    }
 
-    const comment = await db.transaction(async (tx) => {
+    let returnedError: any = null;
+
+    const comment = await db.transaction(async (tx: any) => {
       const [newComment] = await tx.insert(comments).values({
         postId,
         userId: currentUserId,
@@ -462,16 +518,23 @@ postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) =
         moderationStatus: modStatus
       }).returning();
       
-      await tx.insert(moderationLogs).values({
-         entityType: 'COMMENT',
-         entityId: newComment.id,
-         userId: currentUserId,
-         status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
-         actionTaken: modStatus === 'APPROVED' ? 'APPROVED' : null,
-         riskLevel: modResult.riskLevel,
-         category: modResult.category,
-         reason: modResult.reason || null
-      });
+      if (modStatus !== 'APPROVED') {
+        await tx.insert(moderationLogs).values({
+           entityType: 'COMMENT',
+           entityId: newComment.id,
+           userId: currentUserId,
+           status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
+           actionTaken: modStatus === 'REJECTED' ? 'REJECTED' : null,
+           riskLevel: modResult.riskLevel,
+           category: modResult.category,
+           reason: modResult.reason || null
+        });
+      }
+
+      if (modStatus === 'REJECTED') {
+         returnedError = { code: "POLICY_VIOLATION", message: "Bu içerik topluluk kurallarımızla uyumlu olmadığı için yayınlanamadı." };
+         return null;
+      }
       
       
       const extractedMentions = extractMentions(parsed.data.content);
@@ -504,23 +567,33 @@ postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) =
                 actorUserId: currentUserId
               }).onConflictDoNothing();
               
-              await notify(currentUserId, mUser.id, 'mention', postId, newComment.id);
+              if (modStatus === 'APPROVED') {
+                await notify(currentUserId, mUser.id, 'mention', postId, newComment.id);
+              }
             }
           }
         }
       }
-await tx.update(posts)
-        .set({ baseScore: sql`GREATEST(${posts.baseScore} + 3, 0)` })
-        .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+if (postRecord[0].userId !== currentUserId) {
+        await tx.update(posts)
+          .set({ baseScore: sql`GREATEST(${posts.baseScore} + 3, 0)` })
+          .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+      }
         
       return newComment;
     });
+
+    if (returnedError) {
+       return res.status(403).json({ success: false, error: returnedError });
+    }
     
-    await notify(currentUserId, postRecord[0].userId, 'comment', postId, comment.id);
-    if (parsed.data.parentId) {
-      const parentRecord = await db.select().from(comments).where(eq(comments.id, parsed.data.parentId)).limit(1);
-      if (parentRecord.length > 0) {
-        await notify(currentUserId, parentRecord[0].userId, 'comment_reply', postId, comment.id);
+    if (modStatus === 'APPROVED') {
+      await notify(currentUserId, postRecord[0].userId, 'comment', postId, comment.id);
+      if (parsed.data.parentId) {
+        const parentRecord = await db.select().from(comments).where(eq(comments.id, parsed.data.parentId)).limit(1);
+        if (parentRecord.length > 0) {
+          await notify(currentUserId, parentRecord[0].userId, 'comment_reply', postId, comment.id);
+        }
       }
     }
     
@@ -536,7 +609,7 @@ await tx.update(posts)
 postsRouter.patch("/comments/:id", requireAuth, strictLimiter, async (req, res) => {
   try {
     const commentId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const { content: commentContent } = req.body;
     
     if (typeof commentContent !== 'string' || commentContent.trim().length === 0) {
@@ -547,9 +620,29 @@ postsRouter.patch("/comments/:id", requireAuth, strictLimiter, async (req, res) 
     if (c.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Yorum bulunamadı." }});
     if (c[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." }});
     
+    const modResult = await moderateContent(commentContent);
+    const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
+
     await db.update(comments)
-      .set({ content: commentContent, updatedAt: new Date() })
+      .set({ content: commentContent, moderationStatus: modStatus, updatedAt: new Date() })
       .where(eq(comments.id, commentId));
+      
+    if (modStatus !== 'APPROVED') {
+      await db.insert(moderationLogs).values({
+         entityType: 'COMMENT',
+         entityId: commentId,
+         userId: currentUserId,
+         status: modStatus === 'PENDING' ? 'PENDING' : 'RESOLVED',
+         actionTaken: modStatus === 'REJECTED' ? 'REJECTED' : null,
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+    }
+
+    if (modStatus === 'REJECTED') {
+      return res.status(403).json({ success: false, error: { code: "POLICY_VIOLATION", message: "İçeriğiniz topluluk kurallarına uygun olmadığı için güncellenemedi." }});
+    }
       
     res.json({ success: true, data: { message: "Yorum güncellendi." }});
   } catch (error) {
@@ -560,17 +653,20 @@ postsRouter.patch("/comments/:id", requireAuth, strictLimiter, async (req, res) 
 postsRouter.delete("/comments/:id", requireAuth, async (req, res) => {
   try {
     const commentId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     const c = await db.select().from(comments).where(eq(comments.id, commentId)).limit(1);
     if (c.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Yorum bulunamadı." }});
     if (c[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." }});
     
-    await db.transaction(async (tx) => {
+    const postRecord = await db.select().from(posts).where(eq(posts.id, c[0].postId)).limit(1);
+    await db.transaction(async (tx: any) => {
       await tx.delete(comments).where(eq(comments.id, commentId));
-      await tx.update(posts)
-        .set({ baseScore: sql`GREATEST(${posts.baseScore} - 3, 0)` })
-        .where(eq(posts.id, c[0].postId));
+      if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
+        await tx.update(posts)
+          .set({ baseScore: sql`GREATEST(${posts.baseScore} - 3, 0)` })
+          .where(eq(posts.id, c[0].postId));
+      }
     });
     
     res.json({ success: true, data: { message: "Yorum silindi." }});
@@ -580,23 +676,30 @@ postsRouter.delete("/comments/:id", requireAuth, async (req, res) => {
 });
 
 // POST /posts/:id/bookmark
-postsRouter.post("/:id/bookmark", requireAuth, async (req, res) => {
+postsRouter.post("/:id/bookmark", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
 
-    await db.transaction(async (tx) => {
-      const existing = await tx.select().from(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId))).limit(1);
-      if (existing.length === 0) {
-        await tx.insert(bookmarks).values({ postId, userId: currentUserId });
-        await tx.update(posts)
-          .set({ baseScore: sql`GREATEST(${posts.baseScore} + 4, 0)` })
-          .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
-      }
-    });
+    try {
+      await db.transaction(async (tx: any) => {
+        const existing = await tx.select().from(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId))).limit(1);
+        if (existing.length === 0) {
+          await tx.insert(bookmarks).values({ postId, userId: currentUserId });
+          
+          if (postRecord[0].userId !== currentUserId) {
+            await tx.update(posts)
+              .set({ baseScore: sql`GREATEST(${posts.baseScore} + 4, 0)` })
+              .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+          }
+        }
+      });
+    } catch (e: any) {
+      if (e.code !== '23505') throw e;
+    }
 
     res.json({ success: true, data: { message: "Kaydedildi." }});
   } catch (error) {
@@ -608,16 +711,19 @@ postsRouter.post("/:id/bookmark", requireAuth, async (req, res) => {
 postsRouter.delete("/:id/bookmark", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
-    await db.transaction(async (tx) => {
+    const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+    await db.transaction(async (tx: any) => {
       const existing = await tx.select().from(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId)));
-        await tx.update(posts)
-          .set({ baseScore: sql`GREATEST(${posts.baseScore} - 4, 0)` })
-          .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
+          await tx.update(posts)
+            .set({ baseScore: sql`GREATEST(${posts.baseScore} - 4, 0)` })
+            .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        }
       }
     });
 
@@ -631,15 +737,19 @@ postsRouter.delete("/:id/bookmark", requireAuth, async (req, res) => {
 postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
+    if (postRecord[0].userId === currentUserId) {
+      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi gönderinizi yeniden paylaşamazsınız." }});
+    }
+    
     let wasReposted = false;
     try {
-      await db.transaction(async (tx) => {
+      await db.transaction(async (tx: any) => {
         const existing = await tx.select().from(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId))).limit(1);
         if (existing.length === 0) {
           await tx.insert(reposts).values({ postId, userId: currentUserId });
@@ -667,16 +777,19 @@ postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) =
 postsRouter.delete("/:id/repost", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
-    await db.transaction(async (tx) => {
+    const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+    await db.transaction(async (tx: any) => {
       const existing = await tx.select().from(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId)));
-        await tx.update(posts)
-          .set({ baseScore: sql`GREATEST(${posts.baseScore} - 4, 0)` })
-          .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
+          await tx.update(posts)
+            .set({ baseScore: sql`GREATEST(${posts.baseScore} - 4, 0)` })
+            .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
+        }
       }
     });
     
@@ -698,7 +811,7 @@ postsRouter.post("/:id/collaborators", requireAuth, async (req, res) => {
       return;
     }
     
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     if (targetUserId === currentUserId) {
       res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi ortak üretici olarak ekleyemezsiniz." } });
@@ -765,7 +878,7 @@ postsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req, res) =
       return;
     }
     
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     
     const post = await db.select({ userId: posts.userId }).from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (post.length === 0) {

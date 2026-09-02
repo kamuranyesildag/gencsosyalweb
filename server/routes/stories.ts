@@ -15,7 +15,7 @@ const createStorySchema = z.object({
 
 storiesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = createStorySchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -40,15 +40,15 @@ storiesRouter.post("/", requireAuth, async (req, res) => {
 
 storiesRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const blockedIds = await getBlockedIds(currentUserId);
     
     const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId));
-    let targetIds = followingRecords.map(f => f.followingId);
+    let targetIds = followingRecords.map((f: any) => f.followingId);
     targetIds.push(currentUserId);
     
     // Filter out blocked
-    targetIds = targetIds.filter(id => !blockedIds.includes(id));
+    targetIds = targetIds.filter((id: any) => !blockedIds.includes(id));
     if (targetIds.length === 0) targetIds = [-1]; // empty array fallback for inArray
 
     const activeStories = await db.select({
@@ -83,7 +83,7 @@ storiesRouter.get("/", requireAuth, async (req, res) => {
 
 storiesRouter.post("/:id/view", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const storyId = parseInt(req.params.id as string);
     
     // insert into storyViews

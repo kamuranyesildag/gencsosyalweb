@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nginx:
     image: nginx:alpine
@@ -12,25 +10,6 @@ services:
       gencsosyal-app:
         condition: service_healthy
     restart: unless-stopped
-    networks:
-      - gencsosyal_net
-
-  gencsosyal-migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: gencsosyal-migrate
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gencsosyal-postgres:5432/${POSTGRES_DB}
-    depends_on:
-      gencsosyal-postgres:
-        condition: service_healthy
-    command: ["node", "dist/migrate.cjs"]
-    healthcheck:
-      disable: true
     networks:
       - gencsosyal_net
 
@@ -53,6 +32,11 @@ services:
     depends_on:
       gencsosyal-postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     networks:
       - gencsosyal_net

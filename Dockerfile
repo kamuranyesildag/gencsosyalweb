@@ -1,42 +1,40 @@
-# Build stage
+# Build Stage
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install all dependencies (including dev tools like vite, esbuild)
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Build frontend and backend
+# Run the build script defined in package.json
+# (vite build && esbuild server.ts ... && esbuild server/migrate.ts ...)
 RUN npm run build
 
-# Production stage
-FROM node:22-alpine AS runner
+# Runtime Stage
+FROM node:22-alpine
 
 WORKDIR /app
-ENV NODE_ENV=production
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Only install production dependencies
+# (Needed because esbuild uses --packages=external)
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Copy built assets and dependencies
-COPY --from=builder /app/package.json ./
+# Copy compiled outputs from the builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/migrations ./migrations
 
-# Create uploads directory
-RUN mkdir -p /app/uploads && chown node:node /app/uploads
+# Create the uploads directory for the volume mount and set permissions
+RUN mkdir -p /app/uploads && chown -R node:node /app
 
-EXPOSE 3000
-
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
-
+# Switch to the non-root 'node' user for security
 USER node
 
+# Expose the application port
+EXPOSE 3000
+
+# Start the application using the package.json start script
 CMD ["npm", "start"]

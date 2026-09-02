@@ -150,7 +150,7 @@ export function StoriesBar() {
               whileTap={{ scale: 0.96 }}
               className={`relative rounded-full p-[2.5px] cursor-pointer transition-all duration-200 ${
                 currentUserHasStory 
-                  ? 'bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 shadow-xs' 
+                  ? 'bg-gradient-to-tr from-amber-400 via-rose-500 to-slate-600 shadow-xs' 
                   : 'bg-transparent'
               }`}
               onClick={() => {
@@ -190,7 +190,7 @@ export function StoriesBar() {
               {!currentUserHasStory && (
                 <button 
                   type="button"
-                  className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center ring-2 ring-white shadow-md hover:scale-110 active:scale-95 transition-transform"
+                  className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full bg-gradient-to-tr from-slate-600 to-violet-600 text-white flex items-center justify-center ring-2 ring-white shadow-md hover:scale-110 active:scale-95 transition-transform"
                   onClick={(e) => { 
                     e.stopPropagation(); 
                     if (!isAuthenticated) return openModal(); 
@@ -238,7 +238,7 @@ export function StoriesBar() {
                   }
                 }}
               >
-                <div className="rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 group-hover:shadow-md group-hover:shadow-indigo-500/10 transition-all duration-200">
+                <div className="rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-slate-600 group-hover:shadow-md group-hover:shadow-slate-500/10 transition-all duration-200">
                   <div className="p-0.5 bg-white rounded-full">
                     <Avatar 
                       url={u.user.avatarUrl} 
@@ -258,7 +258,7 @@ export function StoriesBar() {
           {/* Empty state hint if only 0 stories */}
           {usersWithStories.length === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 text-slate-400 text-xs italic">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>İlk hikayeni paylaşarak gününü başlat!</span>
             </div>
           )}

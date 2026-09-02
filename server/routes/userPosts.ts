@@ -17,7 +17,7 @@ userPostsRouter.get("/:id/posts", requireAuth, async (req, res) => {
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
     const offset = (page - 1) * limit;
-    let cursorCondition = undefined;
+    let cursorCondition: any = undefined;
     if (cursor) {
       const decoded = decodeCursor(cursor);
       if (decoded) {
@@ -66,7 +66,7 @@ userPostsRouter.get("/:id/posts", requireAuth, async (req, res) => {
       return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Kullanıcıya erişiminiz yok." } });
     }
 
-    const visiblePosts = userPosts.filter(p => {
+    const visiblePosts = userPosts.filter((p: any) => {
         if (p.visibility === 'PUBLIC') return true;
         if (isSelf) return true;
         if (p.visibility === 'FOLLOWERS' && isFollowing) return true;
@@ -74,7 +74,7 @@ userPostsRouter.get("/:id/posts", requireAuth, async (req, res) => {
     });
 
     const formattedPosts = await populatePostStats(visiblePosts, currentUserId);
-    let nextCursor = undefined;
+    let nextCursor: string | undefined = undefined;
     if (visiblePosts.length === limit) {
       const last = visiblePosts[visiblePosts.length - 1];
       nextCursor = encodeCursor(last.createdAt, last.id);

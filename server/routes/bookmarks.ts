@@ -10,7 +10,7 @@ export const bookmarksRouter = Router();
 
 bookmarksRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;

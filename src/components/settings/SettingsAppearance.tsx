@@ -29,7 +29,7 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Palette className="w-5 h-5 text-indigo-600" />
+            <Palette className="w-5 h-5 text-slate-900" />
             Görünüm & Tema
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -50,7 +50,7 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
                 onClick={() => setTheme("light")}
                 className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all text-center group ${
                   theme === "light"
-                    ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-4 ring-indigo-500/10"
+                    ? "border-slate-900 bg-slate-100/50 shadow-xs ring-4 ring-slate-500/10"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
@@ -77,7 +77,7 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
                 onClick={() => setTheme("dark")}
                 className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all text-center group ${
                   theme === "dark"
-                    ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-4 ring-indigo-500/10"
+                    ? "border-slate-900 bg-slate-100/50 shadow-xs ring-4 ring-slate-500/10"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
@@ -104,15 +104,15 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
                 onClick={() => setTheme("system")}
                 className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all text-center group ${
                   theme === "system"
-                    ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-4 ring-indigo-500/10"
+                    ? "border-slate-900 bg-slate-100/50 shadow-xs ring-4 ring-slate-500/10"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
                 <div
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
                     theme === "system"
-                      ? "bg-indigo-100 text-indigo-600"
-                      : "bg-slate-100 text-slate-500 group-hover:text-indigo-600 group-hover:bg-indigo-50"
+                      ? "bg-slate-100 text-slate-900"
+                      : "bg-slate-100 text-slate-500 group-hover:text-slate-900 group-hover:bg-slate-100"
                   }`}
                 >
                   <Monitor className="w-6 h-6" />
@@ -144,7 +144,7 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
                 checked={animations}
                 onChange={(e) => setAnimations(e.target.checked)}
               />
-              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
             </label>
           </div>
         </div>

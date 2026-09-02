@@ -169,7 +169,7 @@ export function Projects() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 text-slate-900 flex items-center justify-center">
               <Rocket className="w-4 h-4" />
             </div>
             Projeler & Üretimler
@@ -187,7 +187,7 @@ export function Projects() {
             if (!isAuthenticated) openModal();
             else navigate("/settings?tab=projects");
           }}
-          className="rounded-full shadow-xs shadow-indigo-500/20 self-start sm:self-auto"
+          className="rounded-full shadow-xs shadow-slate-500/20 self-start sm:self-auto"
         >
           Proje Paylaş
         </Button>
@@ -205,7 +205,7 @@ export function Projects() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Proje adı, açıklama veya etiket ara..."
               aria-label="Projelerde ara"
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
             />
             {search && (
               <button
@@ -229,7 +229,7 @@ export function Projects() {
           >
             <span>Filtreler</span>
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-indigo-700 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="w-5 h-5 rounded-full bg-slate-700 text-white text-[10px] flex items-center justify-center font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -256,7 +256,7 @@ export function Projects() {
                   id="filter-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-indigo-600 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
                 >
                   <option value="">Tüm Kategoriler</option>
                   <option value="Yazılım">Yazılım</option>
@@ -282,7 +282,7 @@ export function Projects() {
                   id="filter-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-indigo-600 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
                 >
                   <option value="">Tüm Durumlar</option>
                   <option value="Fikir aşamasında">Fikir Aşamasında</option>
@@ -304,7 +304,7 @@ export function Projects() {
                   id="filter-sort"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-indigo-600 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
                 >
                   <option value="newest">En Yeniler</option>
                   <option value="oldest">En Eskiler</option>
@@ -318,26 +318,26 @@ export function Projects() {
         {(category || status || sort !== "newest" || search) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {category && (
-              <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 Kategori: {category}
                 <button
                   type="button"
                   onClick={() => setCategory("")}
                   aria-label="Kategori filtresini kaldır"
-                  className="hover:text-indigo-900"
+                  className="hover:text-slate-900"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {status && (
-              <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 Durum: {getStatusText(status)}
                 <button
                   type="button"
                   onClick={() => setStatus("")}
                   aria-label="Durum filtresini kaldır"
-                  className="hover:text-indigo-900"
+                  className="hover:text-slate-900"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -375,7 +375,7 @@ export function Projects() {
         </div>
       ) : projects.length === 0 ? (
         <EmptyState
-          icon={Rocket}
+          icon={<Rocket className="w-7 h-7" />}
           title={activeFilterCount > 0 || debouncedSearch ? "Sonuç Bulunamadı" : "Henüz Proje Yok"}
           description={
             activeFilterCount > 0 || debouncedSearch
@@ -383,23 +383,19 @@ export function Projects() {
               : "İlk projeyi siz paylaşarak toplulukla paylaşın ve geri bildirim toplayın."
           }
           action={
-            activeFilterCount > 0 || debouncedSearch ? (
-              <Button variant="secondary" size="md" onClick={handleClearFilters}>
-                Filtreleri Temizle
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="md"
-                leftIcon={<Plus className="w-4 h-4" />}
-                onClick={() => {
-                  if (!isAuthenticated) openModal();
-                  else navigate("/settings?tab=projects");
-                }}
-              >
-                Proje Paylaş
-              </Button>
-            )
+            activeFilterCount > 0 || debouncedSearch
+              ? {
+                  label: "Filtreleri Temizle",
+                  onClick: handleClearFilters
+                }
+              : {
+                  label: "Proje Paylaş",
+                  icon: <Plus className="w-4 h-4" />,
+                  onClick: () => {
+                    if (!isAuthenticated) openModal();
+                    else navigate("/settings?tab=projects");
+                  }
+                }
           }
         />
       ) : (
@@ -408,7 +404,7 @@ export function Projects() {
             <div
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white border border-slate-200/80 rounded-2xl hover:border-indigo-200 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
+              className="bg-white border border-slate-200/80 rounded-2xl hover:border-slate-200 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (
@@ -422,8 +418,8 @@ export function Projects() {
                   />
                 </div>
               ) : (
-                <div className="w-full h-32 bg-gradient-to-br from-indigo-50/60 to-slate-50 flex items-center justify-center border-b border-slate-100">
-                  <Rocket className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
+                <div className="w-full h-32 bg-gradient-to-br from-slate-50/60 to-slate-50 flex items-center justify-center border-b border-slate-100">
+                  <Rocket className="w-8 h-8 text-slate-400 group-hover:scale-110 transition-transform" />
                 </div>
               )}
 
@@ -431,7 +427,7 @@ export function Projects() {
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                       {project.category}
                     </span>
                     <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
@@ -439,7 +435,7 @@ export function Projects() {
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2 mb-1.5">
+                  <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-slate-900 transition-colors line-clamp-2 mb-1.5">
                     {project.title}
                   </h3>
 
@@ -452,7 +448,7 @@ export function Projects() {
                   <span className="font-medium truncate">@{project.username}</span>
                   <div className="flex items-center gap-2.5">
                     {project.githubUrl && <Github className="w-3.5 h-3.5 text-slate-500" />}
-                    {project.projectUrl && <LinkIcon className="w-3.5 h-3.5 text-indigo-600" />}
+                    {project.projectUrl && <LinkIcon className="w-3.5 h-3.5 text-slate-900" />}
                   </div>
                 </div>
               </div>

@@ -123,13 +123,14 @@ export function MessageDetail() {
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <IconButton
-            icon={<ArrowLeft className="w-5 h-5" />}
             aria-label="Geri Dön"
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
             className="rounded-full -ml-1 text-slate-700 hover:text-slate-900 shrink-0"
-          />
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </IconButton>
 
           {otherUser ? (
             <Link
@@ -140,15 +141,15 @@ export function MessageDetail() {
                 url={otherUser.avatarUrl}
                 name={otherUser.displayName || otherUser.username}
                 size="sm"
-                className="ring-1 ring-slate-200 group-hover:ring-indigo-300 transition-all shrink-0"
+                className="ring-1 ring-slate-200 group-hover:ring-slate-300 transition-all shrink-0"
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base truncate">
+                  <span className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors text-sm sm:text-base truncate">
                     {otherUser.displayName || otherUser.username}
                   </span>
                   {otherUser.isVerified && (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 fill-indigo-100 shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
                   )}
                 </div>
                 <p className="text-xs text-slate-400 font-medium truncate">
@@ -173,13 +174,13 @@ export function MessageDetail() {
       >
         {loading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
+            <Loader2 className="w-7 h-7 animate-spin text-slate-900" />
           </div>
         ) : messages.length > 0 ? (
           <>
             {loadingMore && (
               <div className="flex justify-center p-2">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-900" />
               </div>
             )}
 
@@ -194,7 +195,7 @@ export function MessageDetail() {
                   <div
                     className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm sm:text-[15px] shadow-xs leading-relaxed ${
                       isMe
-                        ? "bg-indigo-600 text-white rounded-br-xs"
+                        ? "bg-slate-900 text-white rounded-br-xs"
                         : "bg-white border border-slate-200/80 text-slate-900 rounded-bl-xs"
                     }`}
                   >
@@ -202,7 +203,7 @@ export function MessageDetail() {
 
                     <div
                       className={`flex items-center justify-end gap-1 text-[11px] font-medium mt-1 select-none ${
-                        isMe ? "text-indigo-200" : "text-slate-400"
+                        isMe ? "text-slate-200" : "text-slate-400"
                       }`}
                     >
                       <span>
@@ -214,9 +215,9 @@ export function MessageDetail() {
                       {isMe && (
                         <span>
                           {msg.isRead ? (
-                            <CheckCheck className="w-3.5 h-3.5 text-indigo-200" />
+                            <CheckCheck className="w-3.5 h-3.5 text-slate-200" />
                           ) : (
-                            <Check className="w-3.5 h-3.5 text-indigo-300" />
+                            <Check className="w-3.5 h-3.5 text-slate-300" />
                           )}
                         </span>
                       )}
@@ -240,7 +241,7 @@ export function MessageDetail() {
 
       {/* STICKY INPUT BAR */}
       <div className="p-3 sm:p-4 bg-white border-t border-slate-100">
-        <div className="flex gap-2 items-center bg-slate-50 hover:bg-slate-100/70 focus-within:bg-white rounded-2xl p-1.5 pl-4 border border-slate-200 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+        <div className="flex gap-2 items-center bg-slate-50 hover:bg-slate-100/70 focus-within:bg-white rounded-2xl p-1.5 pl-4 border border-slate-200 focus-within:border-slate-500 focus-within:ring-2 focus-within:ring-slate-900/10 transition-all">
           <input
             type="text"
             placeholder="Mesajınızı yazın..."
@@ -261,7 +262,7 @@ export function MessageDetail() {
             disabled={!content.trim() || isSending}
             onClick={handleSend}
             aria-label="Mesaj Gönder"
-            className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-xs shrink-0"
+            className="w-9 h-9 bg-slate-900 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-900 text-white rounded-xl flex items-center justify-center transition-colors shadow-xs shrink-0"
           >
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

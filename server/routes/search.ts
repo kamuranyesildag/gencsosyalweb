@@ -1,8 +1,8 @@
 
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, posts, hashtags, postHashtags } from "../../src/db/schema.js";
-import { eq, or, and, ilike, notInArray, isNull, desc, sql } from "drizzle-orm";
+import { users, profiles, posts, hashtags, postHashtags, follows } from "../../src/db/schema.js";
+import { eq, or, and, ilike, notInArray, isNull, desc, sql, inArray } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -55,13 +55,25 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
     } 
     else if (type === "posts") {
       
+      const visibilityCondition = or(
+        eq(posts.visibility, "PUBLIC"),
+        eq(posts.userId, currentUserId),
+        and(
+          eq(posts.visibility, "FOLLOWERS"),
+          currentUserId !== -1 
+            ? inArray(posts.userId, db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId)))
+            : sql`FALSE`
+        )
+      );
+
       const searchResults = await db.select({
         id: posts.id,
         userId: posts.userId,
         content: posts.content,
-      postType: posts.postType,
-      contentWarning: posts.contentWarning,
-                createdAt: posts.createdAt,
+        postType: posts.postType,
+        contentWarning: posts.contentWarning,
+        visibility: posts.visibility,
+        createdAt: posts.createdAt,
         user: {
           id: users.id,
           username: users.username,
@@ -75,7 +87,8 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
       .where(
         and(
           ilike(posts.content, `%${q}%`),
-          notInArray(posts.userId, ignoreIds)
+          notInArray(posts.userId, ignoreIds),
+          visibilityCondition
         )
       )
       .orderBy(desc(posts.createdAt))

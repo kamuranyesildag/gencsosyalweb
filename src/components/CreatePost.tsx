@@ -187,7 +187,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
           {isAuthenticated && user && (isFocused || content.length > 0 || mediaFiles.length > 0) && (
             <div className="flex items-center gap-1.5 mb-2 -mt-1">
               <span className="font-bold text-slate-900 text-[15px]">{user.displayName || user.username}</span>
-              {user.isVerified && <BadgeCheck className="w-4 h-4 text-indigo-500" />}
+              {user.isVerified && <BadgeCheck className="w-4 h-4 text-slate-500" />}
               <span className="text-slate-500 text-[14px]">@{user.username}</span>
             </div>
           )}
@@ -217,7 +217,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               }}
               className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${
                 postType === "POLL"
-                  ? "text-indigo-700 bg-indigo-50"
+                  ? "text-slate-900 bg-slate-100"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
               }`}
             >
@@ -233,7 +233,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               }}
               className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${
                 postType === "SENSITIVE"
-                  ? "text-rose-700 bg-rose-50"
+                  ? "text-red-700 bg-red-50"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
               }`}
             >
@@ -326,7 +326,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                         placeholder={`${idx + 1}. Seçenek`}
                         value={opt}
                         onChange={(e) => handlePollOptionChange(idx, e.target.value)}
-                        className="flex-1 bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-[14px] text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs"
+                        className="flex-1 bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-[14px] text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all shadow-xs"
                         maxLength={100}
                       />
                       {pollOptions.length > 2 && (
@@ -346,7 +346,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                   <button
                     type="button"
                     onClick={handleAddPollOption}
-                    className="flex items-center justify-center gap-2 text-[13px] font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50/50 py-2.5 px-3 rounded-[12px] transition-colors mt-1.5"
+                    className="flex items-center justify-center gap-2 text-[13px] font-bold text-slate-900 hover:text-slate-700 hover:bg-slate-100/50 py-2.5 px-3 rounded-[12px] transition-colors mt-1.5"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Seçenek Ekle</span>
@@ -392,7 +392,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                 }}
                 disabled={mediaFiles.length >= 4}
                 aria-label="Medya Ekle"
-                className="flex items-center justify-center w-9 h-9 rounded-full text-indigo-500 hover:bg-indigo-50 disabled:opacity-40 transition-colors"
+                className="flex items-center justify-center w-9 h-9 rounded-full text-blue-500 hover:bg-blue-50 disabled:opacity-40 transition-colors"
               >
                 <ImageIcon className="w-[18px] h-[18px] stroke-[2]" />
               </button>
@@ -412,7 +412,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               disabled={!isFormValid()}
               isLoading={loading}
               onClick={handleSubmit}
-              className="px-5 font-bold rounded-full text-[14px]"
+              className="px-5 py-2 font-bold rounded-full text-[15px] bg-blue-500 hover:bg-blue-600 border-0"
             >
               Paylaş
             </Button>

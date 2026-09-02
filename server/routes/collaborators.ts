@@ -22,7 +22,7 @@ collaboratorsRouter.use(actionLimiter);
 // GET /api/v1/collaborators/invites - Get pending invites for current user
 collaboratorsRouter.get("/invites", async (req: Request, res: Response): Promise<void> => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
 
     const projectInvites = await db.select({
       id: projectCollaborators.id,
@@ -65,8 +65,8 @@ collaboratorsRouter.get("/invites", async (req: Request, res: Response): Promise
     res.json({
       success: true,
       data: {
-        projects: projectInvites.map(i => ({...i, type: 'project'})),
-        posts: postInvites.map(i => ({...i, type: 'post'}))
+        projects: projectInvites.map((i: any) => ({...i, type: 'project'})),
+        posts: postInvites.map((i: any) => ({...i, type: 'post'}))
       }
     });
   } catch (error) {
@@ -78,7 +78,7 @@ collaboratorsRouter.get("/invites", async (req: Request, res: Response): Promise
 // PATCH /api/v1/collaborators/invites/:type/:id - Accept or reject invite
 collaboratorsRouter.patch("/invites/:type/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const currentUserId = req.user!.userId;
+    const currentUserId = req.user?.userId || -1;
     const { type, id } = req.params;
     const inviteId = parseInt(id as string, 10);
     const { status } = req.body; // 'accepted' or 'rejected'

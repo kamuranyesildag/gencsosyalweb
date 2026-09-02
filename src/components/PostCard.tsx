@@ -314,500 +314,311 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
     navigate(`/post/${post.id}`);
   };
 
+  
   return (
     <article
-      ref={articleRef}
-      onClick={handlePostClick}
-      className="border-b border-slate-200/50 p-4 sm:p-5 hover:bg-slate-50/50 transition-colors duration-200 cursor-pointer group select-none relative bg-white"
-      aria-label={`${post.user?.displayName || post.user?.username} adlı kullanıcının gönderisi`}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('button') && !target.closest('a')) {
+          navigate(`/post/${post.id}`);
+        }
+      }}
+      className={cn(
+        "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 border-b border-slate-100 bg-white hover:bg-slate-50/50 cursor-pointer transition-colors duration-150",
+        post.type === "SENSITIVE" && !isRevealed && "opacity-90"
+      )}
     >
-      <div className="flex gap-3 sm:gap-4 items-start">
-        {/* 1. Author Avatar */}
-        <Link
-          to={`/profile/${post.user?.username}`}
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-full mt-0.5"
-          aria-label={`${post.user?.displayName || post.user?.username} profili`}
-        >
-          <Avatar
-            url={post.user?.avatarUrl}
-            name={post.user?.displayName || post.user?.username}
+      {/* 1. LEFT COLUMN: Avatar */}
+      <div className="hidden sm:block shrink-0">
+        <Link to={`/profile/${post.user?.username}`} onClick={(e) => e.stopPropagation()}>
+          <Avatar 
+            url={post.user?.avatarUrl} 
+            name={post.user?.displayName || post.user?.username} 
             size="md"
-            className="ring-2 ring-white shadow-xs group-hover:shadow-md transition-all duration-300"
+            className="hover:opacity-90 transition-opacity"
           />
         </Link>
+      </div>
 
-        {/* 2. Main Content Column */}
-        <div className="flex-1 min-w-0">
-          {/* Header Row: Author Info & Timestamp & Dropdown Menu */}
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5 text-sm sm:text-[15px] min-w-0 pr-2">
-              <Link
-                to={`/profile/${post.user?.username}`}
-                onClick={(e) => e.stopPropagation()}
-                className="font-extrabold text-slate-900 hover:text-indigo-600 hover:underline truncate transition-colors tracking-tight text-[15px]"
-              >
-                {post.user?.displayName || post.user?.username}
+      {/* 2. RIGHT COLUMN: Content */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Header: Author info & Context */}
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-2 overflow-hidden flex-wrap sm:flex-nowrap">
+            {/* Mobile Avatar */}
+            <div className="sm:hidden shrink-0 mr-1">
+              <Link to={`/profile/${post.user?.username}`} onClick={(e) => e.stopPropagation()}>
+                <Avatar url={post.user?.avatarUrl} name={post.user?.displayName || post.user?.username} size="sm" />
               </Link>
-
-              {post.user?.isVerified && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowVerification(true);
-                  }}
-                  className="focus:outline-none cursor-pointer inline-flex items-center shrink-0"
-                  aria-label="Doğrulanmış Hesap"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 fill-indigo-100 shrink-0" />
-                </button>
-              )}
-
-              <Link
-                to={`/profile/${post.user?.username}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-slate-500 font-medium truncate text-xs sm:text-sm hover:text-slate-700"
-              >
-                @{post.user?.username}
-              </Link>
-
-              <span className="text-slate-300 shrink-0 select-none text-xs">·</span>
-
-              <span className="text-slate-400 shrink-0 text-xs sm:text-sm font-medium">
-                {formatTimeAgo(post.createdAt)}
-              </span>
             </div>
-
-            {/* Header More Dropdown Menu */}
-            <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Dropdown>
-                <DropdownTrigger>
-                  <div
-                    role="button"
-                    aria-label="Daha fazla seçenek"
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-                  >
-                    <MoreHorizontal className="w-4.5 h-4.5" />
-                  </div>
-                </DropdownTrigger>
-                <DropdownContent align="right" width="w-48">
-                  {isOwner ? (
-                    <>
-                      <DropdownItem
-                        icon={<Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />}
-                        onClick={() => setIsEditing(true)}
-                      >
-                        Düzenle
-                      </DropdownItem>
-                      <DropdownDivider />
-                      <DropdownItem
-                        icon={<Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600" />}
-                        isDanger
-                        disabled={isDeleting}
-                        onClick={handleDelete}
-                      >
-                        Sil
-                      </DropdownItem>
-                    </>
-                  ) : (
-                    <>
-                      <DropdownItem
-                        icon={<Link2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />}
-                        onClick={handleShare}
-                      >
-                        Bağlantıyı Kopyala
-                      </DropdownItem>
-                      <DropdownDivider />
-                      <DropdownItem
-                        icon={<AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600" />}
-                        isDanger
-                        onClick={() => setShowReportDialog(true)}
-                      >
-                        Gönderiyi Bildir
-                      </DropdownItem>
-                    </>
-                  )}
-                </DropdownContent>
-              </Dropdown>
+            
+            <Link 
+              to={`/profile/${post.user?.username}`} 
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 truncate group/author"
+            >
+              <span className="font-bold text-slate-900 text-[15px] group-hover/author:underline truncate">
+                {post.user?.displayName || post.user?.username}
+              </span>
+              {post.user?.isVerified && (
+                <CheckCircle2 className="w-4 h-4 text-slate-500 fill-slate-500/10 shrink-0" />
+              )}
+            </Link>
+            <div className="flex items-center gap-1.5 text-slate-500 text-[14px] shrink-0">
+              <span className="hidden sm:inline">@{post.user?.username}</span>
+              <span className="hidden sm:inline">&middot;</span>
+              <time dateTime={post.createdAt} className="hover:underline">
+                {formatTimeAgo(post.createdAt)}
+              </time>
             </div>
           </div>
+          {/* Post Options Menu */}
+          <div className="shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+            <Dropdown>
+              <DropdownTrigger>
+                <button
+                  type="button"
+                  aria-label="Gönderi seçenekleri"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
+              </DropdownTrigger>
+              <DropdownContent align="right" className="w-48">
+                <DropdownItem onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+                  toast.success("Bağlantı kopyalandı");
+                }}>
+                  <Link2 className="w-4 h-4 mr-2" /> Bağlantıyı Kopyala
+                </DropdownItem>
+                {currentUser?.id === post.user?.id ? (
+                  <>
+                    <DropdownItem onClick={() => setIsEditing(true)}>
+                      <Edit2 className="w-4 h-4 mr-2" /> Düzenle
+                    </DropdownItem>
+                    <DropdownDivider />
+                    <DropdownItem onClick={handleDelete} className="text-red-600 hover:bg-red-50 hover:text-red-700">
+                      <Trash2 className="w-4 h-4 mr-2" /> Sil
+                    </DropdownItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownItem onClick={() => setShowReportDialog(true)} className="text-red-600 hover:bg-red-50 hover:text-red-700">
+                      <AlertTriangle className="w-4 h-4 mr-2" /> Bildir
+                    </DropdownItem>
+                  </>
+                )}
+              </DropdownContent>
+            </Dropdown>
+          </div>
+        </div>
 
-          {/* SENSITIVE CONTENT WRAPPER */}
-          {post.postType === "SENSITIVE" && !isRevealed ? (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="my-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center shadow-xs"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2.5 shadow-xs">
-                <ShieldAlert className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <h4 className="font-bold text-slate-900 text-base mb-1">İçerik Uyarısı</h4>
-              <p className="text-xs sm:text-sm text-slate-600 mb-4 max-w-sm font-medium leading-relaxed">
-                {post.contentWarning || "Bu gönderi hassas veya tetikleyici unsurlar içerebilir."}
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                onClick={() => setIsRevealed(true)}
-                className="bg-white border-slate-200/90 text-slate-800 font-bold hover:bg-slate-50 shadow-xs"
-              >
-                İçeriği Göster
+        {/* Content Body */}
+        {isEditing ? (
+          <div className="mt-2 mb-3" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              autoFocus
+              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all resize-none min-h-[100px]"
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <Button size="sm" variant="ghost" onClick={() => { setIsEditing(false); setEditContent(currentContent); }}>
+                İptal
+              </Button>
+              <Button size="sm" variant="primary" onClick={handleEditSubmit}>
+                Kaydet
               </Button>
             </div>
-          ) : (
-            <motion.div
-              initial={post.postType === "SENSITIVE" ? { opacity: 0, filter: "blur(8px)" } : false}
-              animate={post.postType === "SENSITIVE" ? { opacity: 1, filter: "blur(0px)" } : false}
-              transition={{ duration: 0.25 }}
-            >
-              {/* Sensitive Header Re-hide Banner */}
-              {post.postType === "SENSITIVE" && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-between mb-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60 text-xs font-semibold text-amber-800"
-                >
-                  <span className="truncate">⚠️ {post.contentWarning || "Hassas İçerik"}</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsRevealed(false)}
-                    className="inline-flex items-center gap-1 text-amber-900 hover:text-amber-950 font-bold ml-2 underline underline-offset-2 shrink-0"
-                  >
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>Gizle</span>
-                  </button>
-                </div>
-              )}
-
-              {/* TEXT CONTENT OR EDITING FORM */}
-              {post.postType !== "POLL" && (
-                <div className="text-slate-900 whitespace-pre-wrap break-words mb-3 text-[15px] sm:text-base leading-relaxed">
-                  {isEditing ? (
-                    <div className="flex flex-col gap-2 my-2" onClick={(e) => e.stopPropagation()}>
-                      <textarea
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm sm:text-base text-slate-900 min-h-[100px] leading-relaxed"
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        autoFocus
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setIsEditing(false);
-                            setEditContent(currentContent);
-                          }}
-                        >
-                          İptal
-                        </Button>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={!editContent.trim()}
-                          isLoading={isSubmittingEdit}
-                          onClick={handleEditSubmit}
-                        >
-                          Kaydet
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <RichText text={currentContent} />
-                  )}
-                </div>
-              )}
-
-              {/* POLL UI */}
-              {post.postType === "POLL" && pollData && (
-                <div className="mt-1 mb-4 flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
-                  <h3 className="text-[15px] sm:text-base text-slate-900 font-bold mb-1 leading-relaxed whitespace-pre-wrap break-words">
-                    {currentContent}
-                  </h3>
-
-                  <div className="flex flex-col gap-2">
-                    {pollData.options?.map((opt: any, idx: number) => {
-                      const hasVoted = !!pollData.userVotedOptionId;
-                      const isSelected = pollData.userVotedOptionId === opt.id;
-                      const percentage =
-                        pollData.totalVotes > 0
-                          ? Math.round((opt.voteCount / pollData.totalVotes) * 100)
-                          : 0;
-
+          </div>
+        ) : (
+          <div className="mt-1 text-[15px] leading-[1.5] text-slate-900 whitespace-pre-wrap break-words">
+            {post.type === "SENSITIVE" && !isRevealed ? (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+                <ShieldAlert className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm font-medium text-slate-700 mb-3">Bu gönderi gizlenmiş olabilir.</p>
+                <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}>
+                  Yine de göster
+                </Button>
+              </div>
+            ) : (
+              <>
+                <RichText text={currentContent} />
+                
+                {/* Poll Data */}
+                {pollData && (
+                  <div className="mt-3 border border-slate-200 rounded-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    {pollData.options.map((opt: any, i: number) => {
+                      const totalVotes = pollData.options.reduce((acc: number, curr: any) => acc + curr.votes, 0);
+                      const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
+                      const isVotedByMe = pollData.userVotedIndex === i;
                       return (
-                        <motion.button
-                          key={opt.id}
+                        <button
+                          key={i}
                           type="button"
-                          disabled={hasVoted || isVoting}
-                          whileTap={hasVoted ? undefined : { scale: 0.98 }}
-                          onClick={(e) => handleVote(e, opt.id)}
+                          disabled={isVoting || pollData.userVotedIndex !== undefined}
+                          onClick={(e) => handleVote(e, i)}
                           className={cn(
-                            "relative overflow-hidden w-full text-left rounded-2xl border p-3.5 transition-all duration-200 min-h-[46px] flex items-center justify-between",
-                            hasVoted
-                              ? "border-slate-200/90 bg-slate-50/50 cursor-default"
-                              : "border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40 active:bg-indigo-50 cursor-pointer shadow-xs",
-                            isSelected && "border-indigo-600 bg-indigo-50/40 ring-1 ring-indigo-500/20"
+                            "relative w-full flex items-center justify-between p-3 border-b border-slate-100 last:border-0 transition-colors",
+                            pollData.userVotedIndex === undefined ? "hover:bg-slate-50" : "cursor-default"
                           )}
                         >
-                          {/* Animated Progress Bar */}
-                          {hasVoted && (
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${percentage}%` }}
-                              transition={{ duration: 0.6, ease: "easeOut" }}
-                              className={cn(
-                                "absolute inset-y-0 left-0 rounded-xl",
-                                isSelected ? "bg-indigo-500/15" : "bg-slate-200/60"
-                              )}
+                          <div
+                            className={cn(
+                              "absolute inset-y-0 left-0 bg-slate-100 transition-all duration-500 ease-out",
+                              isVotedByMe && "bg-slate-200"
+                            )}
+                            style={{ width: `${pollData.userVotedIndex !== undefined ? percent : 0}%` }}
+                          />
+                          <span className={cn("relative z-10 text-[14px] font-medium", isVotedByMe ? "text-slate-900 font-bold" : "text-slate-700")}>
+                            {opt.text}
+                          </span>
+                          <span className="relative z-10 text-[13px] font-semibold text-slate-500">
+                            {pollData.userVotedIndex !== undefined ? `%${percent}` : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    <div className="p-2.5 bg-slate-50 text-[12px] font-medium text-slate-500 border-t border-slate-100">
+                      Toplam {pollData.options.reduce((acc: number, curr: any) => acc + curr.votes, 0)} oy
+                    </div>
+                  </div>
+                )}
+
+                {/* Media Grid */}
+                {post.media && post.media.length > 0 && (
+                  <div 
+                    className={cn(
+                      "mt-3 grid gap-1 rounded-xl overflow-hidden border border-slate-200/50",
+                      post.media.length === 1 ? "grid-cols-1" : 
+                      post.media.length === 2 ? "grid-cols-2" : 
+                      post.media.length === 3 ? "grid-cols-2" : 
+                      "grid-cols-2 sm:grid-cols-3"
+                    )}
+                  >
+                    {post.media.map((mediaUrl: string, i: number) => {
+                      const isVideo = mediaUrl.match(/\.(mp4|webm|ogg)$/i) || mediaUrl.includes('video');
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            "relative bg-slate-100 overflow-hidden",
+                            post.media.length === 1
+                              ? "aspect-[16/9] sm:aspect-auto sm:max-h-[500px]"
+                              : post.media.length === 3 && i === 0
+                              ? "row-span-2 aspect-[4/5] sm:aspect-square"
+                              : "aspect-square"
+                          )}
+                        >
+                          {isVideo ? (
+                            <video
+                              src={mediaUrl}
+                              controls
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <img
+                              src={mediaUrl}
+                              alt="Gönderi Eki"
+                              loading="lazy"
+                              className="w-full h-full object-cover hover:opacity-95 transition-opacity"
                             />
                           )}
-
-                          {/* Left: Option text / radio */}
-                          <div className="relative z-10 flex items-center gap-2.5 min-w-0 pr-2">
-                            {!hasVoted && (
-                              <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">
-                                {idx + 1}
-                              </span>
-                            )}
-                            <span
-                              className={cn(
-                                "text-sm sm:text-[15px] truncate",
-                                isSelected
-                                  ? "font-bold text-indigo-950"
-                                  : "font-semibold text-slate-800"
-                              )}
-                            >
-                              {opt.text}
-                            </span>
-                          </div>
-
-                          {/* Right: Percentage and Checkmark */}
-                          {hasVoted && (
-                            <div className="relative z-10 flex items-center gap-2 shrink-0">
-                              {isSelected && (
-                                <CheckCircle2 className="w-4.5 h-4.5 text-indigo-600 fill-indigo-100 shrink-0" />
-                              )}
-                              <span
-                                className={cn(
-                                  "text-sm font-extrabold",
-                                  isSelected ? "text-indigo-600" : "text-slate-600"
-                                )}
-                              >
-                                {percentage}%
-                              </span>
-                            </div>
-                          )}
-                        </motion.button>
+                        </div>
                       );
                     })}
                   </div>
-
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-400 mt-1 px-1">
-                    <span>{pollData.totalVotes || 0} toplam oy</span>
-                    {pollData.userVotedOptionId && (
-                      <span className="text-indigo-600 font-semibold">Oyunuz kaydedildi</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* MEDIA GALLERY */}
-              {post.media && post.media.length > 0 && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className={cn(
-                    "grid gap-2 mb-3.5 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-100 shadow-xs",
-                    post.media.length === 1
-                      ? "grid-cols-1"
-                      : post.media.length === 2
-                      ? "grid-cols-2"
-                      : "grid-cols-2 grid-rows-2"
-                  )}
-                >
-                  {post.media.map((m: any, i: number) => {
-                    const isVideo = m.type === "video" || m.mediaType === "video";
-                    const mediaUrl = m.url || m.mediaUrl;
-
-                    return (
-                      <div
-                        key={i}
-                        className={cn(
-                          "relative bg-slate-900 overflow-hidden",
-                          post.media.length === 1
-                            ? "aspect-video max-h-[420px]"
-                            : post.media.length === 3 && i === 0
-                            ? "row-span-2 aspect-square"
-                            : "aspect-video sm:aspect-[4/3]"
-                        )}
-                      >
-                        {isVideo ? (
-                          <video
-                            src={mediaUrl}
-                            controls
-                            playsInline
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <img
-                            src={mediaUrl}
-                            alt="Gönderi Medyası"
-                            loading="lazy"
-                            className="w-full h-full object-cover hover:scale-102 transition-transform duration-300"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* 3. INTERACTION ACTION BAR */}
-          <div className="flex items-center justify-between text-slate-500 max-w-md pt-1 mt-1 select-none">
-            {/* Comment Button */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/post/${post.id}`);
-              }}
-              aria-label={`Yorumlar (${post.commentCount || 0})`}
-              className="flex items-center gap-1.5 py-1.5 px-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/80 active:bg-indigo-100 transition-colors group/btn min-h-[36px]"
-            >
-              <MessageCircle className="w-4.5 h-4.5 stroke-[1.8] group-hover/btn:scale-110 transition-transform" />
-              <span className="text-xs sm:text-sm font-semibold">{post.commentCount || 0}</span>
-            </motion.button>
-
-            {/* Repost Button */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleRepost}
-              aria-label={`Yeniden Paylaş (${repostCount})`}
-              className={cn(
-                "flex items-center gap-1.5 py-1.5 px-2 rounded-xl transition-colors group/btn min-h-[36px]",
-                reposted
-                  ? "text-emerald-600 bg-emerald-50/80 font-bold"
-                  : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50/80 active:bg-emerald-100"
-              )}
-            >
-              <Repeat2
-                className={cn(
-                  "w-4.5 h-4.5 group-hover/btn:scale-110 transition-transform",
-                  reposted ? "stroke-[2.5]" : "stroke-[1.8]"
                 )}
-              />
-              <span className="text-xs sm:text-sm font-semibold">{repostCount}</span>
-            </motion.button>
+              </>
+            )}
+          </div>
+        )}
 
-            {/* Like Button */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleLike}
-              aria-label={`Beğen (${likeCount})`}
-              className={cn(
-                "flex items-center gap-1.5 py-1.5 px-2 rounded-xl transition-colors group/btn min-h-[36px]",
-                liked
-                  ? "text-rose-600 bg-rose-50/80 font-bold"
-                  : "text-slate-500 hover:text-rose-600 hover:bg-rose-50/80 active:bg-rose-100"
-              )}
-            >
-              <Heart
-                className={cn(
-                  "w-4.5 h-4.5 group-hover/btn:scale-110 transition-transform",
-                  liked ? "fill-rose-600 stroke-rose-600" : "stroke-[1.8]"
-                )}
-              />
-              <span className="text-xs sm:text-sm font-semibold">{likeCount}</span>
-            </motion.button>
-
-            {/* Bookmark Button */}
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleBookmark}
-              aria-label={saved ? "Kaydedilenlerden Çıkar" : "Kaydet"}
-              className={cn(
-                "flex items-center justify-center p-2 rounded-xl transition-colors min-h-[36px] min-w-[36px]",
-                saved
-                  ? "text-indigo-600 bg-indigo-50/80"
-                  : "text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/80 active:bg-indigo-100"
-              )}
-            >
-              <Bookmark
-                className={cn(
-                  "w-4.5 h-4.5 transition-transform",
-                  saved ? "fill-indigo-600 stroke-indigo-600" : "stroke-[1.8]"
-                )}
-              />
-            </motion.button>
-
-            {/* Share / Reactions Menu */}
-            <div className="relative flex items-center" onClick={(e) => e.stopPropagation()}>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.92 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowReactions(!showReactions);
-                }}
-                aria-label="Tepkiler ve Paylaş"
-                className="flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-amber-600 hover:bg-amber-50/80 active:bg-amber-100 transition-colors min-h-[36px] min-w-[36px]"
-              >
-                <Smile className="w-4.5 h-4.5 stroke-[1.8]" />
-              </motion.button>
-
-              <AnimatePresence>
-                {showReactions && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.92 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.92 }}
-                    transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                    className="absolute bottom-full right-0 mb-2.5 bg-white border border-slate-200/90 rounded-full shadow-xl shadow-slate-900/10 p-1.5 flex items-center gap-1 z-30"
-                  >
-                    {[
-                      { emoji: "❤️", type: "love", label: "Sevgi" },
-                      { emoji: "🔥", type: "fire", label: "Ateş" },
-                      { emoji: "😂", type: "haha", label: "Gülme" },
-                      { emoji: "🚀", type: "rocket", label: "Roket" },
-                      { emoji: "👏", type: "clap", label: "Alkış" },
-                      { emoji: "😢", type: "sad", label: "Üzücü" },
-                    ].map((r) => (
-                      <button
-                        key={r.type}
-                        type="button"
-                        onClick={(e) => handleReaction(r.type, e)}
-                        aria-label={r.label}
-                        className="text-lg hover:scale-130 active:scale-100 transition-transform p-1.5 rounded-full hover:bg-slate-100"
-                      >
-                        {r.emoji}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        {/* 3. INTERACTION ACTION BAR */}
+        <div className="flex items-center justify-between text-slate-500 max-w-md pt-2 mt-2 select-none">
+          {/* Comment */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.id}`); }}
+            aria-label="Yorum yap"
+            className="group/btn flex items-center gap-1.5 text-slate-500 hover:text-blue-600 transition-colors"
+          >
+            <div className="p-2 -m-2 rounded-full group-hover/btn:bg-blue-50 transition-colors">
+              <MessageCircle className="w-[18px] h-[18px] stroke-[1.8]" />
             </div>
+            <span className="text-[13px] font-medium min-w-[20px]">{post.commentCount || 0}</span>
+          </motion.button>
+
+          {/* Repost */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRepost}
+            aria-label="Yeniden Paylaş"
+            className={cn(
+              "group/btn flex items-center gap-1.5 transition-colors",
+              reposted ? "text-emerald-600" : "text-slate-500 hover:text-emerald-600"
+            )}
+          >
+            <div className={cn("p-2 -m-2 rounded-full transition-colors", reposted ? "bg-emerald-50/50" : "group-hover/btn:bg-emerald-50")}>
+              <Repeat2 className={cn("w-[18px] h-[18px]", reposted ? "stroke-[2.5]" : "stroke-[1.8]")} />
+            </div>
+            <span className="text-[13px] font-medium min-w-[20px]">{repostCount}</span>
+          </motion.button>
+
+          {/* Like */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLike}
+            aria-label="Beğen"
+            className={cn(
+              "group/btn flex items-center gap-1.5 transition-colors",
+              liked ? "text-rose-600" : "text-slate-500 hover:text-rose-600"
+            )}
+          >
+            <div className={cn("p-2 -m-2 rounded-full transition-colors", liked ? "bg-rose-50/50" : "group-hover/btn:bg-rose-50")}>
+              <Heart className={cn("w-[18px] h-[18px]", liked ? "fill-rose-600 stroke-rose-600" : "stroke-[1.8]")} />
+            </div>
+            <span className="text-[13px] font-medium min-w-[20px]">{likeCount}</span>
+          </motion.button>
+
+          {/* Bookmark & Share (Grouped) */}
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={handleBookmark}
+              aria-label="Kaydet"
+              className={cn(
+                "group/btn p-2 -m-2 rounded-full transition-colors",
+                saved ? "text-blue-600" : "text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+              )}
+            >
+              <Bookmark className={cn("w-[18px] h-[18px]", saved ? "fill-blue-600 stroke-blue-600" : "stroke-[1.8]")} />
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+                toast.success("Bağlantı kopyalandı");
+              }}
+              aria-label="Paylaş"
+              className="group/btn p-2 -m-2 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-4"
+            >
+              <Share2 className="w-[18px] h-[18px] stroke-[1.8]" />
+            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* Verification & Report Modals */}
-      <VerificationBottomSheet
-        isOpen={showVerification}
-        onClose={() => setShowVerification(false)}
-      />
-      <ReportDialog
-        isOpen={showReportDialog}
-        onClose={() => setShowReportDialog(false)}
-        targetType="post"
-        targetId={post.id}
-      />
+      <VerificationBottomSheet isOpen={showVerification} onClose={() => setShowVerification(false)} />
+      <ReportDialog isOpen={showReportDialog} onClose={() => setShowReportDialog(false)} targetType="post" targetId={post.id} />
     </article>
   );
+
 }

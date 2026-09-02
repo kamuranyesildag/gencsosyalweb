@@ -25,11 +25,11 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, { bg: string; dot: string }> = {
   default: {
-    bg: 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
-    dot: 'bg-indigo-600',
+    bg: 'bg-slate-100 text-slate-700 border-slate-200/80',
+    dot: 'bg-slate-900',
   },
   primary: {
-    bg: 'bg-indigo-600 text-white border-transparent',
+    bg: 'bg-slate-900 text-white border-transparent',
     dot: 'bg-white',
   },
   secondary: {
@@ -53,8 +53,8 @@ const variantStyles: Record<BadgeVariant, { bg: string; dot: string }> = {
     dot: 'bg-sky-500',
   },
   verified: {
-    bg: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 font-bold',
-    dot: 'bg-indigo-600',
+    bg: 'bg-slate-100 text-slate-700 border-slate-200/80 font-bold',
+    dot: 'bg-slate-900',
   },
   outline: {
     bg: 'bg-transparent text-slate-700 border-slate-300',
@@ -97,7 +97,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         {...props}
       >
         {variant === 'verified' && !icon && (
-          <span className="inline-flex shrink-0 items-center justify-center w-3.5 h-3.5 rounded-full bg-indigo-600 text-white mr-0.5">
+          <span className="inline-flex shrink-0 items-center justify-center w-3.5 h-3.5 rounded-full bg-slate-900 text-white mr-0.5">
             <Check className="w-2.5 h-2.5 stroke-[3]" />
           </span>
         )}

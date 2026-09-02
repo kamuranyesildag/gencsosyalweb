@@ -69,7 +69,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 ? 'border-rose-400 bg-rose-50/30 text-rose-900 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                 : isSuccess
                 ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
-                : 'border-slate-200/90 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20',
+                : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
               disabled && 'bg-slate-100/70 border-slate-200 text-slate-400 cursor-not-allowed select-none',
               className
             )}

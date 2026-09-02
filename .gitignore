@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+.archive/legacy-scripts/
+database/
+database_bak/
+uploads/
+database*/

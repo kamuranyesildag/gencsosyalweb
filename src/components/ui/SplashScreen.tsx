@@ -62,7 +62,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.25, duration: 0.4 }}
-              className="text-indigo-400"
+              className="text-slate-400"
               style={{ willChange: 'opacity, transform' }}
             >
               Sosyal

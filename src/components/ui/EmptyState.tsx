@@ -34,7 +34,7 @@ export function EmptyState({
         className
       )}
     >
-      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-xs">
+      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-slate-100 border border-slate-100 flex items-center justify-center text-slate-900 mb-4 shadow-xs">
         {icon || <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />}
       </div>
 

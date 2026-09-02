@@ -5,6 +5,7 @@ import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { LoadingState } from "../components/ui/LoadingState";
+import { SkeletonList } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
 import { usePagination } from "../hooks/usePagination";
@@ -15,6 +16,7 @@ import { Avatar } from "../components/ui/Avatar";
 import { StarterQuestsCard } from "../components/StarterQuestsCard";
 import { OnboardingModal } from "../components/OnboardingModal";
 import { motion } from "motion/react";
+import { cn } from "../lib/utils";
 
 export type FeedTab = "for_you" | "following";
 
@@ -52,66 +54,53 @@ export function Feed() {
     <div className="flex flex-col h-full w-full min-h-screen bg-white">
       {/* 1. Feed Header & Segmented Tabs */}
       <OnboardingModal />
-      <header className="sticky top-16 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 pt-3.5 pb-2.5">
+      <header className="sticky top-14 md:top-[60px] z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-2 sm:px-4">
         <div className="flex items-center justify-between gap-4">
           {/* Modern Segmented Control */}
-          <div 
-            className="flex items-center p-1 bg-slate-100/80 rounded-2xl w-full sm:w-auto"
-            role="tablist"
-            aria-label="Akış Sekmeleri"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "for_you"}
-              aria-controls="feed-panel"
-              id="tab-for-you"
-              onClick={() => handleTabChange("for_you")}
-              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[13px] md:text-sm font-bold transition-all duration-200 select-none min-h-[36px] md:min-h-[38px] ${
-                activeTab === "for_you"
-                  ? "text-indigo-600 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              {activeTab === "for_you" && (
-                <motion.div
-                  layoutId="feedActiveSegment"
-                  className="absolute inset-0 bg-white rounded-xl shadow-xs"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4" />
-                <span>Sizin İçin</span>
-              </span>
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "following"}
-              aria-controls="feed-panel"
-              id="tab-following"
-              onClick={() => handleTabChange("following")}
-              className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 py-1.5 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[13px] md:text-sm font-bold transition-all duration-200 select-none min-h-[36px] md:min-h-[38px] ${
-                activeTab === "following"
-                  ? "text-indigo-600 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              {activeTab === "following" && (
-                <motion.div
-                  layoutId="feedActiveSegment"
-                  className="absolute inset-0 bg-white rounded-xl shadow-xs"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
-                <span>Takip Edilenler</span>
-              </span>
-            </button>
-          </div>
+          <div className="flex w-full" role="tablist" aria-label="Akış Sekmeleri">
+  <button
+    type="button"
+    role="tab"
+    aria-selected={activeTab === "for_you"}
+    aria-controls="feed-panel"
+    id="tab-for-you"
+    onClick={() => handleTabChange("for_you")}
+    className={cn(
+      "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 transition-colors outline-none",
+      activeTab === "for_you" ? "text-slate-900 font-bold" : "text-slate-500 font-medium"
+    )}
+  >
+    <span>Sizin İçin</span>
+    {activeTab === "for_you" && (
+      <motion.div
+        layoutId="feedActiveSegment"
+        className="absolute bottom-0 h-1 w-12 bg-slate-900 rounded-t-full"
+        transition={{ type: "spring", stiffness: 450, damping: 35 }}
+      />
+    )}
+  </button>
+  <button
+    type="button"
+    role="tab"
+    aria-selected={activeTab === "following"}
+    aria-controls="feed-panel"
+    id="tab-following"
+    onClick={() => handleTabChange("following")}
+    className={cn(
+      "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 transition-colors outline-none",
+      activeTab === "following" ? "text-slate-900 font-bold" : "text-slate-500 font-medium"
+    )}
+  >
+    <span>Takip Edilenler</span>
+    {activeTab === "following" && (
+      <motion.div
+        layoutId="feedActiveSegment"
+        className="absolute bottom-0 h-1 w-12 bg-slate-900 rounded-t-full"
+        transition={{ type: "spring", stiffness: 450, damping: 35 }}
+      />
+    )}
+  </button>
+</div>
 
           {/* Quick Refresh Button */}
           <button
@@ -119,9 +108,9 @@ export function Feed() {
             onClick={loadInitial}
             disabled={loading}
             aria-label="Akışı Yenile"
-            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 active:scale-95 transition-all disabled:opacity-40"
+            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100/80 active:scale-95 transition-all disabled:opacity-40"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-900" : ""}`} />
           </button>
         </div>
       </header>
@@ -131,19 +120,25 @@ export function Feed() {
 
       {/* 3. Create Post Trigger */}
       {isAuthenticated && (
-        <div className="px-4 sm:px-6 py-4 mb-4 border-b border-slate-100 bg-white">
-          <div 
-            onClick={() => navigate("/create")}
-            className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60"
-            role="button"
-            tabIndex={0}
-          >
-            <Avatar url={useAuthStore.getState().user?.avatarUrl} name={useAuthStore.getState().user?.displayName || useAuthStore.getState().user?.username || "?"} size="sm" />
-            <span className="text-slate-500 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
+        <div className="border-b border-slate-100 bg-white">
+          {/* Mobile Trigger */}
+          <div className="md:hidden px-4 py-4">
+            <div 
+              onClick={() => navigate("/create")}
+              className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60"
+              role="button"
+              tabIndex={0}
+            >
+              <Avatar url={useAuthStore.getState().user?.avatarUrl} name={useAuthStore.getState().user?.displayName || useAuthStore.getState().user?.username || "?"} size="sm" />
+              <span className="text-slate-500 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
+            </div>
+          </div>
+          {/* Desktop Inline Create */}
+          <div className="hidden md:block px-6 pt-4 pb-0">
+            <CreatePost onPostCreated={() => { loadInitial(); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
           </div>
         </div>
       )}
-
       {/* 4. Feed Stream */}
       <div 
         id="feed-panel" 
@@ -153,7 +148,7 @@ export function Feed() {
       >
         {loading ? (
           <div className="py-16">
-            <LoadingState size="md" text="Gönderiler yükleniyor..." />
+            <SkeletonList count={5} className="p-4" />
           </div>
         ) : error ? (
           <div className="px-4 py-8 max-w-lg mx-auto">
@@ -166,11 +161,13 @@ export function Feed() {
           </div>
         ) : posts && posts.length > 0 ? (
           <div className="flex flex-col pb-20">
-            <InfiniteScroll hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore}>
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </InfiniteScroll>
+            <InfiniteScroll 
+              items={posts}
+              renderItem={(post) => <PostCard key={post.id} post={post} />}
+              hasMore={hasMore} 
+              isLoading={loadingMore} 
+              onLoadMore={loadMore} 
+            />
           </div>
         ) : (
           <div className="px-4 py-10 max-w-md mx-auto">
@@ -192,7 +189,7 @@ export function Feed() {
                   if (activeTab === "for_you") {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   } else {
-                    window.location.href = "/explore";
+                    navigate("/explore");
                   }
                 },
               }}
