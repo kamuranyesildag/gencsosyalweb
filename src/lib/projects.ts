@@ -153,7 +153,7 @@ export async function getProjectComments(id: number): Promise<ProjectComment[]> 
   return result.data.comments;
 }
 
-export async function addProjectComment(id: number, content: string): Promise<ProjectComment> {
+export async function addProjectComment(id: number, content: string): Promise<{comment: ProjectComment, pending?: boolean}> {
   const response = await fetchApi(`/projects/${id}/comments`, {
     method: "POST",
     data: { content },
@@ -163,7 +163,7 @@ export async function addProjectComment(id: number, content: string): Promise<Pr
     throw new Error(err.error?.message || "Yorum eklenemedi.");
   }
   const result = await response.json();
-  return result.data.comment;
+  return { comment: result.data.comment, pending: result.data.pending };
 }
 
 export async function deleteProjectComment(projectId: number, commentId: number): Promise<void> {

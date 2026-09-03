@@ -39,6 +39,7 @@ export const profiles = pgTable('profiles', {
   mentionPreference: varchar('mention_preference', { length: 20 }).default('ANYONE').notNull(),
   defaultPostVisibility: varchar('default_post_visibility', { length: 20 }).default('PUBLIC').notNull(),
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+  interests: jsonb('interests').default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

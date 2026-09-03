@@ -13,6 +13,45 @@ services:
     networks:
       - gencsosyal_net
 
+  gencsosyal-postgres:
+    image: postgres:15-alpine
+    container_name: gencsosyal-postgres
+    expose:
+      - "5432"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gencsosyal_net
+
+  gencsosyal-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gencsosyal-migrate
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gencsosyal-postgres:5432/${POSTGRES_DB}
+    command: ["node", "dist-server/migrate.cjs"]
+    depends_on:
+      gencsosyal-postgres:
+        condition: service_healthy
+    networks:
+      - gencsosyal_net
+
   gencsosyal-app:
     build:
       context: .
@@ -30,36 +69,14 @@ services:
     volumes:
       - uploads_data:/app/uploads
     depends_on:
-      gencsosyal-postgres:
-        condition: service_healthy
+      gencsosyal-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    networks:
-      - gencsosyal_net
-
-  gencsosyal-postgres:
-    image: postgres:15-alpine
-    container_name: gencsosyal-postgres
-    expose:
-      - "5432"
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - gencsosyal_net
 

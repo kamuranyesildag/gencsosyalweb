@@ -150,12 +150,16 @@ export function ProjectDetail() {
 
     setCommentLoading(true);
     try {
-      const newComment = await addProjectComment(project.id, commentText.trim());
-      setComments((prev) => [...prev, newComment]);
+      const res = await addProjectComment(project.id, commentText.trim());
+      if (res.pending) {
+        toast.success("Yorumun inceleniyor.");
+      } else {
+        setComments((prev) => [...prev, res.comment]);
+        toast.success("Yorumunuz eklendi.");
+      }
       setCommentText("");
-      toast.success("Yorumunuz eklendi.");
-    } catch (e) {
-      toast.error("Yorum eklenirken hata oluştu.");
+    } catch (e: any) {
+      toast.error(e.message || "Yorum eklenirken hata oluştu.");
     } finally {
       setCommentLoading(false);
     }

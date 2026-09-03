@@ -2,14 +2,14 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { blocks, users, profiles } from "../../src/db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 
 export const blocksRouter = Router();
 
 blocksRouter.post("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (targetUserId === currentUserId) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz işlem." }});
     
     await db.insert(blocks).values({ blockerId: currentUserId, blockedId: targetUserId }).onConflictDoNothing();
@@ -22,7 +22,7 @@ blocksRouter.post("/:id/block", requireAuth, async (req, res) => {
 blocksRouter.delete("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     await db.delete(blocks).where(and(eq(blocks.blockerId, currentUserId), eq(blocks.blockedId, targetUserId)));
     res.json({ success: true, data: { message: "Engel kaldırıldı." }});
@@ -33,7 +33,7 @@ blocksRouter.delete("/:id/block", requireAuth, async (req, res) => {
 
 blocksRouter.get("/me/blocked", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const list = await db.select({
       id: users.id,
       username: users.username,

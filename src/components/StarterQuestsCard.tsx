@@ -78,7 +78,7 @@ export function StarterQuestsCard() {
       title: "İlk projeni oluştur",
       completed: progress.hasProject,
       onClick: () => {
-        navigate("/projects/new");
+        navigate("/settings?tab=projects");
       }
     }
   ];

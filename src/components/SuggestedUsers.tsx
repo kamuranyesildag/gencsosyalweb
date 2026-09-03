@@ -43,6 +43,7 @@ export function SuggestedUsers({ onFollowChange }: { onFollowChange?: () => void
     } catch (e) {
       // Revert on error
       setFollowingMap((prev) => ({ ...prev, [userId]: isFollowing }));
+      toast.error("İşlem başarısız oldu. Lütfen tekrar deneyin.");
     }
   };
 

@@ -135,6 +135,11 @@ export function Profile() {
     } catch (e) {
       console.error(e);
       setFollowing(!nextState);
+      setProfile((prev: any) => ({
+        ...prev,
+        followersCount: Math.max(0, (prev.followersCount || 0) + (nextState ? -1 : 1)),
+      }));
+      toast.error("İşlem gerçekleştirilemedi.");
     } finally {
       setIsFollowLoading(false);
     }

@@ -5,7 +5,7 @@ export const registerSchema = z.object({
     .string()
     .min(3, "Kullanıcı adı en az 3 karakter olmalıdır.")
     .max(30, "Kullanıcı adı en fazla 30 karakter olabilir.")
-    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.")
+    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adında Türkçe karakter (ç,ğ,ı,ö,ş,ü) ve boşluk kullanılamaz.")
     .toLowerCase(),
   email: z.string().email("Geçerli bir e-posta adresi giriniz.").toLowerCase(),
   password: z.string()
@@ -30,7 +30,7 @@ export const sendOtpSchema = z.object({
     .string()
     .min(3, "Kullanıcı adı en az 3 karakter olmalıdır.")
     .max(30, "Kullanıcı adı en fazla 30 karakter olabilir.")
-    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.")
+    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adında Türkçe karakter (ç,ğ,ı,ö,ş,ü) ve boşluk kullanılamaz.")
     .toLowerCase(),
   email: z.string().email("Geçerli bir e-posta adresi giriniz.").toLowerCase(),
   password: z.string()
@@ -46,7 +46,7 @@ export const verifyRegisterOtpSchema = z.object({
     .string()
     .min(3, "Kullanıcı adı en az 3 karakter olmalıdır.")
     .max(30, "Kullanıcı adı en fazla 30 karakter olabilir.")
-    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir.")
+    .regex(/^[a-zA-Z0-9_]+$/, "Kullanıcı adında Türkçe karakter (ç,ğ,ı,ö,ş,ü) ve boşluk kullanılamaz.")
     .toLowerCase(),
   email: z.string().email("Geçerli bir e-posta adresi giriniz.").toLowerCase(),
   password: z.string()
@@ -60,6 +60,7 @@ export const verifyRegisterOtpSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token gereklidir."),
+  userId: z.number({ message: "Kullanıcı ID gereklidir." }),
   newPassword: z.string()
     .min(8, "Şifre en az 8 karakter olmalıdır.")
     .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir.")

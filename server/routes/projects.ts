@@ -2,19 +2,27 @@ import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import { projects, users, profiles, projectLikes, projectComments, notifications, projectCollaborators, moderationLogs } from "../../src/db/schema.js";
 import { eq, desc, and, ilike, or, asc, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter, strictLimiter } from "../middleware/rateLimiter.js";
 import { notify } from "../utils/notifications.js";
+import { DbTransaction } from "../../src/db/index.js";
 import { projectSchema } from "../validators/project.js";
 import { moderateContent } from "../services/moderation/index.js";
+import { getBlockedIds } from "../utils/blocks.js";
+import { notInArray } from "drizzle-orm";
 
 export const projectsRouter = Router();
 
 // GET /api/v1/projects
 // Get all public projects with filtering/search
-projectsRouter.get("/", async (req: Request, res: Response): Promise<void> => {
+projectsRouter.get("/", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { q, category, status, sort, page = "1", limit = "20" } = req.query;
+    
+    let currentUserId = optionalAuthContext(req);
+    const blockedIds = await getBlockedIds(currentUserId);
+    const ignoreIds = blockedIds.length > 0 ? blockedIds : [-1];
+
     
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10) || 20));
@@ -41,6 +49,8 @@ projectsRouter.get("/", async (req: Request, res: Response): Promise<void> => {
         )
       );
     }
+    
+    conditions.push(notInArray(projects.userId, ignoreIds));
     
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     
@@ -173,7 +183,7 @@ projectsRouter.post("/", requireAuth, async (req: Request, res: Response): Promi
   try {
     const parsed = projectSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: { message: (parsed.error as any).errors[0].message } });
+      res.status(400).json({ error: { message: parsed.error.issues[0].message } });
       return;
     }
 
@@ -200,23 +210,20 @@ projectsRouter.post("/", requireAuth, async (req: Request, res: Response): Promi
       (data.tags || []).map(t => t.trim()).filter(t => t.length > 0 && t.length <= 30)
     )).slice(0, 10);
 
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const contentToModerate = `${data.title} ${data.description} ${data.detailedDescription || ""}`;
     const modResult = await moderateContent(contentToModerate);
     
-    if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {
-      await db.insert(moderationLogs).values({
-         entityType: 'PROJECT',
-         entityId: currentUserId, // We don't have project id yet, fallback to user id
-         userId: currentUserId,
-         status: 'RESOLVED',
-         actionTaken: 'REJECTED',
-         riskLevel: modResult.riskLevel,
-         category: modResult.category,
-         reason: modResult.reason || null
-      });
-      res.status(403).json({ error: { message: "Projeniz topluluk kurallarına aykırı içerik barındırdığı için oluşturulamadı." } });
-      return;
+    let isRejected = false;
+    let isPending = false;
+    let finalStatus = data.status;
+
+    if (modResult.riskLevel === 'HIGH_RISK') {
+      isRejected = true;
+      finalStatus = 'REJECTED';
+    } else if (modResult.riskLevel === 'MEDIUM_RISK') {
+      isPending = true;
+      finalStatus = 'PENDING';
     }
 
     const newProject = await db.insert(projects).values({
@@ -225,12 +232,30 @@ projectsRouter.post("/", requireAuth, async (req: Request, res: Response): Promi
       description: data.description,
       detailedDescription: data.detailedDescription || null,
       category: data.category,
-      status: data.status,
+      status: finalStatus,
       projectUrl: data.projectUrl || null,
       githubUrl: data.githubUrl || null,
       imageUrl: data.imageUrl || null,
       tags: cleanedTags,
     }).returning();
+
+    if (isRejected || isPending) {
+      await db.insert(moderationLogs).values({
+         entityType: 'PROJECT',
+         entityId: newProject[0].id,
+         userId: currentUserId,
+         status: isRejected ? 'RESOLVED' : 'PENDING_REVIEW',
+         actionTaken: isRejected ? 'REJECTED' : 'PENDING',
+         riskLevel: modResult.riskLevel,
+         category: modResult.category,
+         reason: modResult.reason || null
+      });
+      
+      if (isRejected) {
+        res.status(403).json({ error: { message: "Projeniz topluluk kurallarına aykırı içerik barındırdığı için otomatik olarak engellendi. İtirazınız varsa lütfen iletişime geçin." } });
+        return;
+      }
+    }
 
     res.status(201).json({ success: true, data: { project: newProject[0] } });
   } catch (error) {
@@ -251,7 +276,7 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
 
     const parsed = projectSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: { message: (parsed.error as any).errors[0].message } });
+      res.status(400).json({ error: { message: parsed.error.issues[0].message } });
       return;
     }
 
@@ -264,7 +289,7 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
       return;
     }
     
-    if (existing[0].userId !== (req.user?.userId || -1)) {
+    if (existing[0].userId !== requireAuthContext(req)) {
       res.status(403).json({ error: { message: "Bu projeyi düzenleme yetkiniz yok." } });
       return;
     }
@@ -290,7 +315,7 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
       (data.tags || []).map(t => t.trim()).filter(t => t.length > 0 && t.length <= 30)
     )).slice(0, 10);
 
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const contentToModerate = `${data.title} ${data.description} ${data.detailedDescription || ""}`;
     const modResult = await moderateContent(contentToModerate);
     
@@ -348,7 +373,7 @@ projectsRouter.delete("/:id", requireAuth, async (req: Request, res: Response): 
       return;
     }
     
-    if (existing[0].userId !== (req.user?.userId || -1)) {
+    if (existing[0].userId !== requireAuthContext(req)) {
       res.status(403).json({ error: { message: "Bu projeyi silme yetkiniz yok." } });
       return;
     }
@@ -368,7 +393,7 @@ projectsRouter.delete("/:id", requireAuth, async (req: Request, res: Response): 
 
 // GET /api/v1/projects/:id/like
 // Check if user liked a project and get total likes
-projectsRouter.get("/:id/like", async (req: Request, res: Response): Promise<void> => {
+projectsRouter.get("/:id/like", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const projectId = parseInt(req.params.id as string, 10);
     if (isNaN(projectId)) {
@@ -379,29 +404,12 @@ projectsRouter.get("/:id/like", async (req: Request, res: Response): Promise<voi
     const likesCountResult = await db.select({ count: sql<number>`cast(count(*) as integer)` })
       .from(projectLikes)
       .where(eq(projectLikes.projectId, projectId));
-    const totalLikes = likesCountResult[0].count;
+    const totalLikes = likesCountResult[0].count || 0;
 
-    let hasLiked = false;
+    let viewerHasLiked = false;
+    // req.user might be defined by optionalAuth
     
-    // Attempt to get user from auth middleware (might need optional auth here, but assuming required or checking token)
-    // Actually we don't have optional auth middleware easily accessible, so we rely on token in header if present
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      // Very basic check, proper way is to use a middleware, but let's just use requireAuth on POST instead
-      // If we want to check hasLiked, we can extract it from the DB if we know user ID
-      // Let's decode token manually or just assume frontend will fetch hasLiked securely or we use requireAuth
-      // Since it's a GET, maybe we just return totalLikes for now, frontend handles auth?
-      // No, we need userId. Let's just import jsonwebtoken and verify if we can, or just return total likes.
-    }
-    
-    // We'll return just totalLikes for the public endpoint, frontend can determine hasLiked if we return the list of likes, 
-    // or we just make a dedicated authenticated endpoint.
-    // Let's return all likes' userIds, it's a small app.
-    const likesList = await db.select({ userId: projectLikes.userId })
-      .from(projectLikes)
-      .where(eq(projectLikes.projectId, projectId));
-    
-    res.json({ success: true, data: { totalLikes, likes: likesList } });
+    res.json({ success: true, data: { totalLikes, viewerHasLiked } });
   } catch (error) {
     console.error("Error fetching project likes:", error);
     res.status(500).json({ error: { message: "Beğeniler yüklenirken bir hata oluştu." } });
@@ -418,7 +426,7 @@ projectsRouter.post("/:id/like", requireAuth, standardLimiter, async (req: Reque
       return;
     }
     
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
 
     // Check if project exists
     const project = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
@@ -439,9 +447,9 @@ projectsRouter.post("/:id/like", requireAuth, standardLimiter, async (req: Reque
     if (existing.length === 0) {
       try {
         await db.insert(projectLikes).values({ projectId, userId });
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Ignore unique constraint violation if they double-clicked
-        if (err.code !== '23505') throw err;
+        if ((err as { code?: string }).code !== '23505') throw err;
       }
       
       // Create notification
@@ -472,7 +480,7 @@ projectsRouter.delete("/:id/like", requireAuth, async (req: Request, res: Respon
       return;
     }
     
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     
     await db.delete(projectLikes)
       .where(and(eq(projectLikes.projectId, projectId), eq(projectLikes.userId, userId)));
@@ -539,7 +547,7 @@ projectsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req: Req
       return;
     }
     
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
 
     // Check if project exists
     const project = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
@@ -604,7 +612,7 @@ projectsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req: Req
       fullName: user[0].fullName
     };
 
-    res.status(201).json({ success: true, data: { comment: commentData } });
+    res.status(201).json({ success: true, data: { comment: commentData, pending: modStatus === 'PENDING' } });
   } catch (error) {
     console.error("Error adding project comment:", error);
     res.status(500).json({ error: { message: "Yorum eklenirken bir hata oluştu." } });
@@ -623,7 +631,7 @@ projectsRouter.delete("/:id/comments/:commentId", requireAuth, async (req: Reque
       return;
     }
     
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     
     // Check if comment exists and belongs to user
     const comment = await db.select().from(projectComments)
@@ -662,7 +670,7 @@ projectsRouter.post("/:id/collaborators", requireAuth, async (req: Request, res:
       return;
     }
     
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     if (targetUserId === currentUserId) {
       res.status(400).json({ error: { message: "Kendinizi ortak üretici olarak ekleyemezsiniz." } });
@@ -733,7 +741,7 @@ projectsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req: Req
       return;
     }
     
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const proj = await db.select({ userId: projects.userId }).from(projects).where(eq(projects.id, projectId)).limit(1);
     if (proj.length === 0) {

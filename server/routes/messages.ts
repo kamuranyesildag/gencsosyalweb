@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { conversations, conversationMembers, messages, users, profiles, follows } from "../../src/db/schema.js";
 import { eq, and, desc, inArray, not, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { paginationSchema } from "../validators/api.js";
@@ -13,7 +13,7 @@ export const messagesRouter = Router();
 // GET /conversations
 messagesRouter.get("/conversations", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;
@@ -59,17 +59,24 @@ messagesRouter.get("/conversations", requireAuth, async (req, res) => {
     ))
     .groupBy(messages.conversationId);
 
-    // Fetch last messages concurrently
-    const lastMessagesList = await Promise.all(
-      fetchedConvIds.map((cid: any) => 
-        db.select().from(messages).where(eq(messages.conversationId, cid)).orderBy(desc(messages.createdAt)).limit(1)
-      )
-    );
+    // Fetch last messages efficiently
+    const convIdsSql = sql.join(fetchedConvIds.map((id: any) => sql`${id}`), sql`, `);
+    const lastMessagesResult = await db.execute(sql`
+      SELECT DISTINCT ON (conversation_id)
+        id, conversation_id as "conversationId", sender_id as "senderId", content, media_url as "mediaUrl", is_read as "isRead", created_at as "createdAt"
+      FROM messages
+      WHERE conversation_id IN (${convIdsSql})
+      ORDER BY conversation_id, created_at DESC
+    `);
+    const lastMessagesMap = lastMessagesResult.rows.reduce((acc: any, msg: any) => {
+      acc[msg.conversationId] = msg;
+      return acc;
+    }, {});
 
     const formattedConvs = convs.map((c: any, index: any) => {
       const otherUser = allOtherMembers.find((m: any) => m.conversationId === c.id);
       const unreadCount = unreadCounts.find((u: any) => u.conversationId === c.id)?.count || 0;
-      const lastMessage = lastMessagesList[index].length > 0 ? lastMessagesList[index][0] : null;
+      const lastMessage = lastMessagesMap[c.id] || null;
 
       return {
         ...c,
@@ -93,7 +100,7 @@ messagesRouter.get("/conversations", requireAuth, async (req, res) => {
 // POST /conversations (create 1v1)
 messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const targetUserId = req.body.targetUserId;
 
     if (!targetUserId || targetUserId === currentUserId) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz." }});
@@ -147,7 +154,7 @@ messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, 
 // GET /conversations/:id/messages
 messagesRouter.get("/conversations/:id/messages", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const conversationId = parseInt(req.params.id as string);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
@@ -191,7 +198,7 @@ const createMessageSchema = z.object({
 // POST /conversations/:id/messages
 messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const conversationId = parseInt(req.params.id as string);
     const parsed = createMessageSchema.safeParse(req.body);
 
@@ -220,7 +227,7 @@ messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter,
 // PATCH /conversations/:id/read
 messagesRouter.patch("/conversations/:id/read", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const conversationId = parseInt(req.params.id as string);
     
     // Verify membership

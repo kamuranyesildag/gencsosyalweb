@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { posts, postMedia, likes, comments, bookmarks, users, profiles, reposts, postCollaborators, communityMembers, communities, pollOptions, pollVotes } from "../../src/db/schema.js";
+import type { DbTransaction } from "../../src/db/index.js";
+import { posts, postMedia, likes, comments, bookmarks, users, profiles, reposts, postCollaborators, communityMembers, communities, pollOptions, pollVotes, notifications } from "../../src/db/schema.js";
 import { eq, and, sql, or, inArray } from "drizzle-orm";
 import { extractHashtags, normalizeHashtag } from "../utils/hashtags.js";
 import { extractMentions } from "../utils/mentions.js";
 import { hashtags, postHashtags, postMentions, commentMentions, follows } from "../../src/db/schema.js";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { populatePostStats } from "../utils/postStats.js";
 import { createPostSchema, createCommentSchema } from "../validators/api.js";
 import { moderateContent } from "../services/moderation/index.js";
@@ -22,7 +23,7 @@ export const postsRouter = Router();
 postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { optionId } = req.body;
     
     if (!optionId) {
@@ -48,8 +49,8 @@ postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) 
         userId: currentUserId
       });
       return res.json({ success: true, data: { message: "Oy kullanıldı." } });
-    } catch (dbError: any) {
-      if (dbError.code === '23505') { // Unique violation
+    } catch (dbError: unknown) {
+      if ((dbError as { code?: string }).code === '23505') { // Unique violation
         return res.status(400).json({ success: false, error: { code: "ALREADY_VOTED", message: "Bu ankette zaten oy kullandınız." } });
       }
       throw dbError;
@@ -64,7 +65,7 @@ postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) 
 postsRouter.get("/:id", optionalAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = optionalAuthContext(req);
     const blockedIds = await getBlockedIds(currentUserId);
     
     const postRecord = await db.select({
@@ -98,11 +99,36 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
       return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     }
 
+    let pollData = undefined;
+    if (post.postType === 'POLL') {
+      const options = await db.select().from(pollOptions).where(eq(pollOptions.postId, postId)).orderBy(pollOptions.orderIndex);
+      const votes = await db.select().from(pollVotes).where(eq(pollVotes.postId, postId));
+      const totalVotes = votes.length;
+      
+      const enrichedOptions = options.map(opt => {
+        const optionVotes = votes.filter(v => v.optionId === opt.id).length;
+        const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
+        return {
+          ...opt,
+          voteCount: optionVotes,
+          percentage: Math.round(percentage)
+        };
+      });
+
+      const userVote = currentUserId > 0 ? votes.find(v => v.userId === currentUserId)?.optionId : null;
+
+      pollData = {
+        options: enrichedOptions,
+        totalVotes,
+        userVotedOptionId: userVote
+      };
+    }
+    
     const media = await db.select().from(postMedia).where(eq(postMedia.postId, postId));
     const repostRecords = await db.select().from(reposts).where(eq(reposts.postId, postId));
     const repostCount = repostRecords.length;
     const isReposted = repostRecords.some((r: any) => r.userId === currentUserId);
-    res.json({ success: true, data: { ...post, media, repostCount, isReposted }});
+    res.json({ success: true, data: { ...post, media, repostCount, isReposted, pollData }});
   } catch (error) {
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }
@@ -111,7 +137,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
 // POST /posts
 postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = createPostSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -145,7 +171,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
 
     let returnedError: any = null;
 
-    const result = await db.transaction(async (tx: any) => {
+    const result = await db.transaction(async (tx: DbTransaction) => {
       const [newPost] = await tx.insert(posts).values({
         userId: currentUserId,
         content: content || null,
@@ -275,7 +301,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
         ...newPost,
         pollData: pPollOptions,
         user: {
-           id: (req.user?.userId || -1),
+           id: requireAuthContext(req),
            username: req.user!.username
         },
         repostCount: 0,
@@ -347,7 +373,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
 postsRouter.patch("/:id", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { content: postContent } = req.body;
     
     if (typeof postContent !== 'string') {
@@ -394,7 +420,7 @@ postsRouter.patch("/:id", requireAuth, strictLimiter, async (req, res) => {
 postsRouter.delete("/:id", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
@@ -413,6 +439,9 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
     const media = await db.select().from(postMedia).where(eq(postMedia.postId, postId));
     media.forEach((m: any) => {
       try {
+        if (!m.mediaUrl || !m.mediaUrl.startsWith('/uploads/') || m.mediaUrl.includes('..')) {
+          return;
+        }
         const filePath = path.join(process.cwd(), m.mediaUrl);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       } catch (e) {
@@ -431,7 +460,7 @@ postsRouter.delete("/:id", requireAuth, async (req, res) => {
 postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
@@ -443,7 +472,7 @@ postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => 
     
     let wasLiked = false;
     try {
-      await db.transaction(async (tx: any) => {
+      await db.transaction(async (tx: DbTransaction) => {
         const existing = await tx.select().from(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId))).limit(1);
         if (existing.length === 0) {
           await tx.insert(likes).values({ postId, userId: currentUserId });
@@ -453,8 +482,8 @@ postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => 
           wasLiked = true;
         }
       });
-    } catch (e: any) {
-      if (e.code !== '23505') throw e;
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== '23505') throw e;
     }
     
     if (wasLiked) {
@@ -471,10 +500,10 @@ postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => 
 postsRouter.delete("/:id/like", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       const existing = await tx.select().from(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(likes).where(and(eq(likes.postId, postId), eq(likes.userId, currentUserId)));
@@ -495,7 +524,7 @@ postsRouter.delete("/:id/like", requireAuth, async (req, res) => {
 postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const parsed = createCommentSchema.safeParse(req.body);
     
@@ -509,7 +538,7 @@ postsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req, res) =
 
     let returnedError: any = null;
 
-    const comment = await db.transaction(async (tx: any) => {
+    const comment = await db.transaction(async (tx: DbTransaction) => {
       const [newComment] = await tx.insert(comments).values({
         postId,
         userId: currentUserId,
@@ -609,7 +638,7 @@ if (postRecord[0].userId !== currentUserId) {
 postsRouter.patch("/comments/:id", requireAuth, strictLimiter, async (req, res) => {
   try {
     const commentId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { content: commentContent } = req.body;
     
     if (typeof commentContent !== 'string' || commentContent.trim().length === 0) {
@@ -653,14 +682,14 @@ postsRouter.patch("/comments/:id", requireAuth, strictLimiter, async (req, res) 
 postsRouter.delete("/comments/:id", requireAuth, async (req, res) => {
   try {
     const commentId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const c = await db.select().from(comments).where(eq(comments.id, commentId)).limit(1);
     if (c.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Yorum bulunamadı." }});
     if (c[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." }});
     
     const postRecord = await db.select().from(posts).where(eq(posts.id, c[0].postId)).limit(1);
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.delete(comments).where(eq(comments.id, commentId));
       if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
         await tx.update(posts)
@@ -679,13 +708,13 @@ postsRouter.delete("/comments/:id", requireAuth, async (req, res) => {
 postsRouter.post("/:id/bookmark", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
 
     try {
-      await db.transaction(async (tx: any) => {
+      await db.transaction(async (tx: DbTransaction) => {
         const existing = await tx.select().from(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId))).limit(1);
         if (existing.length === 0) {
           await tx.insert(bookmarks).values({ postId, userId: currentUserId });
@@ -697,8 +726,8 @@ postsRouter.post("/:id/bookmark", requireAuth, standardLimiter, async (req, res)
           }
         }
       });
-    } catch (e: any) {
-      if (e.code !== '23505') throw e;
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== '23505') throw e;
     }
 
     res.json({ success: true, data: { message: "Kaydedildi." }});
@@ -711,11 +740,11 @@ postsRouter.post("/:id/bookmark", requireAuth, standardLimiter, async (req, res)
 postsRouter.delete("/:id/bookmark", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       const existing = await tx.select().from(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(bookmarks).where(and(eq(bookmarks.postId, postId), eq(bookmarks.userId, currentUserId)));
@@ -737,7 +766,7 @@ postsRouter.delete("/:id/bookmark", requireAuth, async (req, res) => {
 postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
@@ -749,7 +778,7 @@ postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) =
     
     let wasReposted = false;
     try {
-      await db.transaction(async (tx: any) => {
+      await db.transaction(async (tx: DbTransaction) => {
         const existing = await tx.select().from(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId))).limit(1);
         if (existing.length === 0) {
           await tx.insert(reposts).values({ postId, userId: currentUserId });
@@ -759,8 +788,8 @@ postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) =
           wasReposted = true;
         }
       });
-    } catch (e: any) {
-      if (e.code !== '23505') throw e;
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== '23505') throw e;
     }
     
     if (wasReposted && postRecord[0].userId !== currentUserId) {
@@ -777,11 +806,11 @@ postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) =
 postsRouter.delete("/:id/repost", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       const existing = await tx.select().from(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(reposts).where(and(eq(reposts.postId, postId), eq(reposts.userId, currentUserId)));
@@ -811,7 +840,7 @@ postsRouter.post("/:id/collaborators", requireAuth, async (req, res) => {
       return;
     }
     
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     if (targetUserId === currentUserId) {
       res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi ortak üretici olarak ekleyemezsiniz." } });
@@ -878,7 +907,7 @@ postsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req, res) =
       return;
     }
     
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const post = await db.select({ userId: posts.userId }).from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (post.length === 0) {

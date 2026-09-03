@@ -3,7 +3,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { users, profiles, posts, hashtags, postHashtags, follows } from "../../src/db/schema.js";
 import { eq, or, and, ilike, notInArray, isNull, desc, sql, inArray } from "drizzle-orm";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { paginationSchema } from "../validators/api.js";
@@ -26,7 +26,7 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;
 
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const blockedIds = await getBlockedIds(currentUserId);
     const ignoreIds = blockedIds.length > 0 ? blockedIds : [-1];
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { communities, communityMembers, posts, users, profiles } from "../../src/db/schema.js";
 import { eq, and, desc } from "drizzle-orm";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { paginationSchema } from "../validators/api.js";
 import { populatePostStats } from "../utils/postStats.js";
 export const communitiesRouter = Router();
@@ -18,7 +18,7 @@ communitiesRouter.get("/", optionalAuth, async (req, res) => {
 
 communitiesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { name, description, slug } = req.body;
     
     const [community] = await db.insert(communities).values({
@@ -44,7 +44,7 @@ communitiesRouter.get("/:slug", optionalAuth, async (req, res) => {
     
     if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamadı." }});
     
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const memberRecord = await db.select().from(communityMembers).where(and(eq(communityMembers.communityId, community.id), eq(communityMembers.userId, currentUserId))).limit(1);
     const isMember = memberRecord.length > 0 || community.ownerId === currentUserId;
     const isModerator = community.ownerId === currentUserId || (memberRecord.length > 0 && ['admin', 'OWNER', 'MODERATOR'].includes(memberRecord[0].role));
@@ -58,7 +58,7 @@ communitiesRouter.get("/:slug", optionalAuth, async (req, res) => {
 communitiesRouter.post("/:id/join", requireAuth, async (req, res) => {
   try {
     const communityId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const [community] = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
     if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamadı." }});
@@ -74,7 +74,7 @@ communitiesRouter.post("/:id/join", requireAuth, async (req, res) => {
 communitiesRouter.delete("/:id/leave", requireAuth, async (req, res) => {
   try {
     const communityId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const [community] = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
     if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamadı." }});
@@ -129,7 +129,7 @@ communitiesRouter.delete("/:id/members/:targetUserId", requireAuth, async (req, 
   try {
     const communityId = parseInt(req.params.id as string);
     const targetUserId = parseInt(req.params.targetUserId as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
 
     if (isNaN(communityId) || isNaN(targetUserId)) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz parametre." }});
@@ -172,7 +172,7 @@ communitiesRouter.delete("/:id/members/:targetUserId", requireAuth, async (req, 
 communitiesRouter.get("/:id/posts", optionalAuth, async (req, res) => {
   try {
     const communityId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     const [community] = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
     if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamadı." }});

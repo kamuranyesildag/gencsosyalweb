@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { reports } from "../../src/db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { z } from "zod";
 
@@ -16,7 +16,7 @@ const reportSchema = z.object({
 
 reportsRouter.post("/", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = reportSchema.safeParse(req.body);
     
     if (!parsed.success) {

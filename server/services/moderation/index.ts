@@ -29,6 +29,15 @@ const KEYWORDS: Record<ModerationCategory, string[]> = {
 };
 
 // Map Turkish chars to ascii for robust matching
+
+function cleanZalgoAndEvasion(text: string): string {
+  // 1. Zalgo text (Combining Diacritical Marks)
+  let cleaned = text.replace(/[\u0300-\u036f\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
+  // 2. Zero-width and invisible characters
+  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '');
+  return cleaned;
+}
+
 function normalizeTurkish(text: string) {
   return text
     .toLocaleLowerCase('tr-TR')
@@ -44,7 +53,8 @@ export async function moderateContent(text: string): Promise<ModerationResult> {
   if (!text || text.trim() === '') return { riskLevel: 'SAFE', category: 'SAFE', score: 0 };
   
   // Anti-bypass normalizations
-  let normalizedText = normalizeTurkish(text)
+  let cleanedText = cleanZalgoAndEvasion(text);
+  let normalizedText = normalizeTurkish(cleanedText)
     .replace(/[1!]/g, 'i')
     .replace(/@/g, 'a')
     .replace(/0/g, 'o')
@@ -117,6 +127,6 @@ export async function moderateContent(text: string): Promise<ModerationResult> {
     riskLevel,
     category: topCategory,
     score: maxScore,
-    reason: riskLevel !== 'SAFE' ? `Otomatik sistem tarafından '${topCategory}' kategorisinde değerlendirildi.` : undefined
+    reason: riskLevel !== 'SAFE' ? `Heuristic anahtar kelime motoru tarafından '${topCategory}' kategorisinde değerlendirildi. Not: Bu sistem basit metin eşleşmesi kullanır, yanlış pozitifler (false-positive) üretebilir ve kesin bir ihlal tespiti (enforcement) değildir, inceleme (review) amaçlıdır.` : undefined
   };
 }

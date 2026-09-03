@@ -10,6 +10,25 @@ import { populatePostStats } from "../utils/postStats.js";
 
 export const hashtagsRouter = Router();
 
+hashtagsRouter.get("/trending/top", optionalAuth, async (req, res) => {
+  try {
+    const trending = await db.select({
+      name: hashtags.name,
+      normalizedName: hashtags.normalizedName,
+      count: hashtags.usageCount
+    })
+    .from(hashtags)
+    .orderBy(desc(hashtags.usageCount))
+    .limit(5);
+
+    res.json({ success: true, data: trending });
+  } catch (error) {
+    console.error("Trending hashtags error:", error);
+    res.status(500).json({ success: false, error: { message: "Error fetching trending hashtags" }});
+  }
+});
+
+
 hashtagsRouter.get("/:name", optionalAuth, async (req, res) => {
   try {
     const rawName = req.params.name as string;

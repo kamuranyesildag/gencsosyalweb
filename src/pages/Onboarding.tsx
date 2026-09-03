@@ -16,7 +16,7 @@ const STEPS = [
   { id: 1, title: 'Profil Fotoğrafı', text: 'Seni daha iyi tanımamız için bir profil fotoğrafı yükle.' },
   { id: 2, title: 'Görünen Ad', text: 'Toplulukta nasıl anılmak istersin?' },
   { id: 3, title: 'Biyografi', text: 'Kendinden, ilgi alanlarından ve hedeflerinden kısaca bahset.' },
-  { id: 4, title: 'İlgi Alanları', text: 'Sana özel içerikleri önermemiz için seç.' },
+  { id: 4, title: 'İlgi Alanları', text: 'Profilini renklendirmek için ilgi alanlarını seç.' },
   { id: 5, title: 'Harika, Hazırsın!', text: 'Profilin oluşturuldu. Keşfetmeye başlayabilirsin.' },
 ];
 
@@ -113,6 +113,9 @@ export function Onboarding() {
       if (formData.displayName.trim().length >= 2) {
         payload.displayName = formData.displayName.trim();
       }
+      if (formData.interests.length > 0) {
+        payload.interests = formData.interests;
+      }
 
       const res = await fetch('/api/v1/users/me', {
         method: 'PATCH',
@@ -126,6 +129,17 @@ export function Onboarding() {
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message || 'Profil güncellenemedi.');
+      }
+      
+      // Complete onboarding
+      const completeRes = await fetch('/api/v1/onboarding/complete', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+        }
+      });
+      if (completeRes.ok) {
+        const completeJson = await completeRes.json();
       }
 
       if (user) {

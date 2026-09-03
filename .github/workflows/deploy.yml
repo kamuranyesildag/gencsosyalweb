@@ -18,17 +18,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # Proje klasörüne git (Kendi VDS'indeki yola göre burayı değiştirmelisin, genelde /var/www/proje_adi şeklindedir)
             cd /var/www/gencsosyalweb
-            
-            # Github'daki en yeni kodları çek
             git pull origin main
-            
-            # Yeni eklenen paketler varsa kur
-            npm install
-            
-            # Projeyi derle (Build)
-            npm run build
-            
-            # PM2 ile arka planda çalışan uygulamayı yeniden başlat
-            pm2 restart ecosystem.config.cjs --update-env
+            docker compose pull
+            docker compose up -d --build

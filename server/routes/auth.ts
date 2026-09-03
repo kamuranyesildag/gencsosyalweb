@@ -1,9 +1,11 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
+import * as jwt from "jsonwebtoken";
 import argon2 from "argon2";
 import crypto from "crypto";
 import { db } from "../../src/db/index.js";
+import type { DbTransaction } from "../../src/db/index.js";
 import { users, profiles, refreshTokens, otpVerifications } from "../../src/db/schema.js";
-import { eq, or, and, sql, desc } from "drizzle-orm";
+import { eq, or, and, sql, desc, isNull } from "drizzle-orm";
 import { 
   registerSchema, 
   sendOtpSchema, 
@@ -16,12 +18,12 @@ import {
   enableTwoFactorSchema,
   disableTwoFactorSchema
 } from "../validators/auth.js";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken } from "../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, getEmailTokenSecret } from "../utils/jwt.js";
 import { encryptString, decryptString } from "../utils/encryption.js";
 import { authenticator } from "otplib";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail } from "../utils/mailer.js";
 import { authRateLimiter, loginRateLimiter, registerRateLimiter, otpSendRateLimiter, otpVerifyRateLimiter } from "../middleware/rateLimiter.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 
 export const authRouter = Router();
 
@@ -206,9 +208,11 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     if (existingOtpRecords.length > 0) {
+      if (existingOtpRecords[0].attempts >= existingOtpRecords[0].maxAttempts) {
+        return res.status(400).json({ success: false, error: { code: "MAX_ATTEMPTS_EXCEEDED", message: "Çok fazla hatalı kod denemesi yapıldı. Güvenliğiniz için yeni kayıt işlemi başlatmalısınız." } });
+      }
       await db.update(otpVerifications).set({
         otpHash,
-        attempts: 0,
         expiresAt,
         lastSentAt: new Date(),
         verifiedAt: null,
@@ -253,7 +257,7 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
 });
 
 // Helper to verify OTP and complete registration
-async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any) {
+async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedData: any) {
   const { username, email, password, displayName, otp } = parsedData;
 
   // 1. Find the active OTP verification record
@@ -286,8 +290,15 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
     return;
   }
 
-  // 3. Check brute force / max attempts
-  if (otpRecord.attempts >= otpRecord.maxAttempts) {
+  // 3. Increment attempts first and check max attempts to prevent race condition
+  const updateResult = await db.update(otpVerifications)
+    .set({ attempts: sql`${otpVerifications.attempts} + 1` })
+    .where(eq(otpVerifications.id, otpRecord.id))
+    .returning({ newAttempts: otpVerifications.attempts });
+
+  const currentAttempts = updateResult[0]?.newAttempts || otpRecord.attempts + 1;
+
+  if (currentAttempts > otpRecord.maxAttempts) {
     res.status(400).json({
       success: false,
       error: { 
@@ -301,9 +312,7 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
   // 4. Verify OTP with argon2
   const isValid = await argon2.verify(otpRecord.otpHash, otp);
   if (!isValid) {
-    const updatedAttempts = otpRecord.attempts + 1;
-    await db.update(otpVerifications).set({ attempts: updatedAttempts }).where(eq(otpVerifications.id, otpRecord.id));
-    const remaining = Math.max(0, otpRecord.maxAttempts - updatedAttempts);
+    const remaining = Math.max(0, otpRecord.maxAttempts - currentAttempts);
     
     res.status(400).json({
       success: false,
@@ -323,7 +332,7 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
 
   let newUser: any;
   try {
-    newUser = await db.transaction(async (tx: any) => {
+    newUser = await db.transaction(async (tx: DbTransaction) => {
       // Check collision one more time in transaction
       const existingUser = await tx.select().from(users).where(
         or(eq(users.username, username), eq(users.email, email))
@@ -372,10 +381,25 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
         console.error("Auto-follow error on register:", e);
       }
 
-      return createdUser;
+      const accessToken = generateAccessToken(createdUser.id, createdUser.role);
+      const refreshToken = generateRefreshToken(createdUser.id, createdUser.role);
+      const tokenHash = await argon2.hash(refreshToken);
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await tx.insert(refreshTokens).values({
+        userId: createdUser.id,
+        tokenHash,
+        expiresAt,
+        ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
+        deviceInfo: (req.headers["user-agent"] as string) || null,
+      });
+
+      return { createdUser, accessToken, refreshToken };
     });
-  } catch (error: any) {
-    if (error?.message === "USER_ALREADY_EXISTS") {
+  } catch (error: unknown) {
+    if ((error as Error)?.message === "USER_ALREADY_EXISTS") {
       res.status(409).json({
         success: false,
         error: { code: "CONFLICT", message: "Kullanıcı adı veya e-posta zaten kullanımda." }
@@ -385,25 +409,12 @@ async function handleVerifyOtpAndCreateUser(req: any, res: any, parsedData: any)
     throw error;
   }
 
-  // 6. Generate authenticated session
-  const accessToken = generateAccessToken(newUser.id, newUser.role);
-  const refreshToken = generateRefreshToken(newUser.id, newUser.role);
-  const tokenHash = await argon2.hash(refreshToken);
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await db.insert(refreshTokens).values({
-    userId: newUser.id,
-    tokenHash,
-    expiresAt,
-    ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
-    deviceInfo: (req.headers["user-agent"] as string) || null,
-  });
+  const { accessToken, refreshToken } = newUser;
+  newUser = newUser.createdUser;
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.APP_URL?.startsWith("https") ?? false,
     sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
@@ -604,7 +615,7 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
     // Send refresh token as HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.APP_URL?.startsWith("https") ?? false,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
@@ -705,25 +716,45 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
       }
     }
 
-    // Mark recovery code as used if used
-    if (usedRecoveryCodeId) {
-      await db.update(recoveryCodes).set({ used: true, usedAt: new Date() }).where(eq(recoveryCodes.id, usedRecoveryCodeId));
-      
-      // Audit Log
-      await db.insert(securityAuditLogs).values({
-        userId: user.id,
-        action: "2fa_recovery_used",
-                metadata: {
-          details: "Kullanıcı hesabına kurtarma kodu ile giriş yaptı.",
-          ipAddress: (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim().substring(0, 45)
-        }
-      }).catch(console.error);
-    }
+    let accessToken = "";
+    let refreshToken = "";
+    let tokenHash = "";
 
-    // Normal session issuance
-    const accessToken = generateAccessToken(user.id, user.role);
-    const refreshToken = generateRefreshToken(user.id, user.role);
-    const tokenHash = await argon2.hash(refreshToken);
+    const txResult = await db.transaction(async (tx: DbTransaction) => {
+      // Mark recovery code as used if used (Race condition protected)
+      if (usedRecoveryCodeId) {
+        const updateResult = await tx.update(recoveryCodes)
+          .set({ used: true, usedAt: new Date() })
+          .where(and(eq(recoveryCodes.id, usedRecoveryCodeId), eq(recoveryCodes.used, false)))
+          .returning();
+           
+        if (updateResult.length === 0) {
+          return { error: 'invalid_code' };
+        }
+         
+        // Audit Log
+        await tx.insert(securityAuditLogs).values({
+          userId: user.id,
+          action: "2fa_recovery_used",
+          metadata: {
+            details: "Kullanıcı hesabına kurtarma kodu ile giriş yaptı."
+          }
+        });
+      }
+      
+      accessToken = generateAccessToken(user.id, user.role);
+      refreshToken = generateRefreshToken(user.id, user.role);
+      tokenHash = await argon2.hash(refreshToken);
+      return { success: true };
+    });
+
+    if (txResult.error === 'invalid_code') {
+      res.status(400).json({
+        success: false,
+        error: { code: "INVALID_CODE", message: "Kurtarma kodu geçersiz veya daha önce kullanılmış." }
+      });
+      return;
+    }
 
     const ua = req.headers['user-agent'] || '';
     let browser = "Bilinmeyen Tarayıcı";
@@ -757,7 +788,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.APP_URL?.startsWith("https") ?? false,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
@@ -782,7 +813,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
 
 authRouter.post("/2fa/setup", requireAuth, async (req, res) => {
   try {
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].isActive) {
@@ -826,7 +857,7 @@ authRouter.post("/2fa/enable", requireAuth, async (req, res) => {
       return;
     }
 
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].twoFactorSecret || userRecord[0].twoFactorEnabled) {
@@ -860,7 +891,7 @@ authRouter.post("/2fa/enable", requireAuth, async (req, res) => {
       newCodes.push({ userId, codeHash: hash });
     }
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, userId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId)); // clear any old codes
       await tx.insert(recoveryCodes).values(newCodes);
@@ -896,7 +927,7 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
       return;
     }
 
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (userRecord.length === 0 || !userRecord[0].twoFactorEnabled) {
@@ -926,7 +957,7 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
 
     const { securityAuditLogs, recoveryCodes } = await import("../../src/db/schema.js");
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, userId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId));
       
@@ -1024,12 +1055,52 @@ authRouter.post("/refresh", async (req, res) => {
       return;
     }
 
-    // Revoke old token
-    await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, matchedTokenId));
+    // Revoke old token atomically and issue new ones in a transaction
+    const txResult = await db.transaction(async (tx: DbTransaction) => {
+      const updateResult = await tx.update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(and(
+          eq(refreshTokens.id, matchedTokenId),
+          isNull(refreshTokens.revokedAt)
+        ))
+        .returning();
 
-    // Generate new tokens
-    const user = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
-    if (user.length === 0 || !user[0].isActive) {
+      if (updateResult.length === 0) {
+        return { error: 'race_condition' };
+      }
+
+      const user = await tx.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+      if (user.length === 0 || !user[0].isActive) {
+        return { error: 'inactive' };
+      }
+
+      const newAccessToken = generateAccessToken(user[0].id, user[0].role);
+      const newRefreshToken = generateRefreshToken(user[0].id, user[0].role);
+      const tokenHash = await argon2.hash(newRefreshToken);
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await tx.insert(refreshTokens).values({
+        userId: user[0].id,
+        tokenHash,
+        expiresAt,
+        ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
+        deviceInfo: (req.headers["user-agent"] as string) || null,
+      });
+
+      return { newAccessToken, newRefreshToken };
+    });
+
+    if (txResult.error === 'race_condition') {
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Eşzamanlı oturum yenileme algılandı. Lütfen tekrar deneyin." }
+      });
+      return;
+    }
+
+    if (txResult.error === 'inactive') {
       res.clearCookie("refreshToken");
       res.status(401).json({
         success: false,
@@ -1038,22 +1109,11 @@ authRouter.post("/refresh", async (req, res) => {
       return;
     }
 
-    const newAccessToken = generateAccessToken(user[0].id, user[0].role);
-    const newRefreshToken = generateRefreshToken(user[0].id, user[0].role);
-    const tokenHash = await argon2.hash(newRefreshToken);
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    await db.insert(refreshTokens).values({
-      userId: user[0].id,
-      tokenHash,
-      expiresAt,
-    });
+    const { newAccessToken, newRefreshToken } = txResult;
 
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.APP_URL?.startsWith("https") ?? false,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
@@ -1109,7 +1169,7 @@ authRouter.post("/logout", async (req, res) => {
 
 authRouter.get("/me", requireAuth, async (req, res) => {
   try {
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const userRecord = await db.select({
       id: users.id,
       username: users.username,
@@ -1194,12 +1254,10 @@ authRouter.post("/forgot-password", authRateLimiter, async (req, res) => {
     if (userRecord.length > 0) {
       const user = userRecord[0];
       // Generate a single-use token by appending passwordHash to the secret
-      const jwt = require("jsonwebtoken");
-      const { getEmailTokenSecret } = await import("../utils/jwt.js");
-      const secret = getEmailTokenSecret() + user.passwordHash;
+                  const secret = getEmailTokenSecret() + user.passwordHash;
       const resetToken = jwt.sign({ userId: user.id, purpose: "reset_password" }, secret, { expiresIn: "15m" });
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      sendPasswordResetEmail(email, user.displayName || user.username, `${frontendUrl}/reset-password?token=${resetToken}&id=${user.id}`).catch(console.error);
+      await sendPasswordResetEmail(email, user.displayName || user.username, `${frontendUrl}/reset-password?token=${resetToken}&id=${user.id}`);
     }
 
     // Always return success to prevent email enumeration
@@ -1217,34 +1275,31 @@ authRouter.post("/reset-password", authRateLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } });
     }
 
-    const { token, newPassword } = parsed.data;
-    const jwt = require("jsonwebtoken");
-    const decoded = jwt.decode(token) as any;
-    
-    if (!decoded || !decoded.userId || decoded.purpose !== "reset_password") {
-      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz token türü." } });
-    }
-
+    const { token, newPassword, userId } = parsed.data;
+  
     const userRecord = await db.select({ id: users.id, passwordHash: users.passwordHash })
       .from(users)
-      .where(eq(users.id, decoded.userId))
+      .where(eq(users.id, userId))
       .limit(1);
 
     if (userRecord.length === 0) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz kullanıcı." } });
     }
 
-    const { getEmailTokenSecret } = await import("../utils/jwt.js");
     const secret = getEmailTokenSecret() + userRecord[0].passwordHash;
-    
+  
+    let decoded;
     try {
-      jwt.verify(token, secret);
+      decoded = jwt.verify(token, secret) as any;
+      if (!decoded || decoded.purpose !== "reset_password" || decoded.userId !== userId) {
+        throw new Error("Invalid token claims");
+      }
     } catch (e) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz veya kullanılmış token." } });
     }
 
     const passwordHash = await argon2.hash(newPassword);
-    await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, decoded.userId));
+    await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
 
     // Optional: Revoke all existing refresh tokens
     await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.userId, decoded.userId));
@@ -1262,7 +1317,7 @@ authRouter.get("/sessions", requireAuth, async (req, res) => {
   try {
     const activeTokens = await db.select().from(refreshTokens).where(
       and(
-        eq(refreshTokens.userId, (req.user?.userId || -1)),
+        eq(refreshTokens.userId, requireAuthContext(req)),
         sql`${refreshTokens.revokedAt} IS NULL`,
         sql`${refreshTokens.expiresAt} > NOW()`
       )
@@ -1315,7 +1370,7 @@ authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
     if (currentToken) {
       const activeTokens = await db.select().from(refreshTokens).where(
         and(
-          eq(refreshTokens.userId, (req.user?.userId || -1)),
+          eq(refreshTokens.userId, requireAuthContext(req)),
           sql`${refreshTokens.revokedAt} IS NULL`,
           sql`${refreshTokens.expiresAt} > NOW()`
         )
@@ -1336,7 +1391,7 @@ authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
         .set({ revokedAt: new Date() })
         .where(
           and(
-            eq(refreshTokens.userId, (req.user?.userId || -1)),
+            eq(refreshTokens.userId, requireAuthContext(req)),
             sql`${refreshTokens.id} != ${currentId}`
           )
         );
@@ -1344,7 +1399,7 @@ authRouter.delete("/sessions/others", requireAuth, async (req, res) => {
       // if current session not identified, revoke all
       await db.update(refreshTokens)
         .set({ revokedAt: new Date() })
-        .where(eq(refreshTokens.userId, (req.user?.userId || -1)));
+        .where(eq(refreshTokens.userId, requireAuthContext(req)));
     }
 
     res.json({ success: true, message: "Diğer oturumlar başarıyla kapatıldı." });
@@ -1359,13 +1414,13 @@ authRouter.delete("/sessions/:id", requireAuth, async (req, res) => {
     const sessionId = parseInt(req.params.id as string);
     if (isNaN(sessionId)) return res.status(400).json({ success: false, error: { message: "Geçersiz ID" } });
 
-    // IDOR protection: only update if it belongs to (req.user?.userId || -1)
+    // IDOR protection: only update if it belongs to requireAuthContext(req)
     const result = await db.update(refreshTokens)
       .set({ revokedAt: new Date() })
       .where(
         and(
           eq(refreshTokens.id, sessionId),
-          eq(refreshTokens.userId, (req.user?.userId || -1))
+          eq(refreshTokens.userId, requireAuthContext(req))
         )
       );
 

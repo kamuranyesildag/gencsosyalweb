@@ -3,11 +3,13 @@ import { refreshTokens } from "../../src/db/schema.js";
 import { changePasswordSchema, changeEmailSchema, deleteAccountSchema } from "../validators/api.js";
 import { sendSecurityAlertEmail, sendVerificationEmail } from "../utils/mailer.js";
 import { generateEmailToken } from "../utils/jwt.js";
+import fs from "fs";
+import path from "path";
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, follows, blocks } from "../../src/db/schema.js";
+import { users, profiles, follows, blocks, postMedia, posts } from "../../src/db/schema.js";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { updateProfileSchema } from "../validators/api.js";
@@ -21,7 +23,7 @@ export const usersRouter = Router();
 usersRouter.get("/:username", optionalAuth, async (req, res) => {
   try {
     const { username } = req.params;
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
 
     const userRecords = await db.select({
       id: users.id,
@@ -130,7 +132,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
 
 usersRouter.patch("/me", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = updateProfileSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -171,7 +173,7 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
 // Endpoint: PUT /users/me/password
 usersRouter.put("/me/password", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = changePasswordSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -203,7 +205,7 @@ usersRouter.put("/me/password", requireAuth, authRateLimiter, async (req, res) =
 // Endpoint: PUT /users/me/email
 usersRouter.put("/me/email", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = changeEmailSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -237,7 +239,7 @@ usersRouter.put("/me/email", requireAuth, authRateLimiter, async (req, res) => {
 // Endpoint: POST /users/me/delete
 usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = deleteAccountSchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -266,6 +268,32 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
       }
     }
 
+    // Media cleanup
+    const userProfile = await db.select({ avatarUrl: profiles.avatarUrl, coverUrl: profiles.coverUrl }).from(profiles).where(eq(profiles.userId, currentUserId)).limit(1);
+    const userPosts = await db.select({ id: posts.id }).from(posts).where(eq(posts.userId, currentUserId));
+    const postIds = userPosts.map(p => p.id);
+    
+    let allMediaUrls: string[] = [];
+    if (userProfile.length > 0) {
+      if (userProfile[0].avatarUrl) allMediaUrls.push(userProfile[0].avatarUrl);
+      if (userProfile[0].coverUrl) allMediaUrls.push(userProfile[0].coverUrl);
+    }
+    
+    if (postIds.length > 0) {
+      const pm = await db.select({ mediaUrl: postMedia.mediaUrl }).from(postMedia).where(inArray(postMedia.postId, postIds));
+      allMediaUrls.push(...pm.map(m => m.mediaUrl));
+    }
+    
+    allMediaUrls.forEach(url => {
+      try {
+        if (!url || !url.startsWith('/uploads/') || url.includes('..')) return;
+        const filePath = path.join(process.cwd(), url);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (e) {
+        console.error("File deletion failed:", e);
+      }
+    });
+
     await db.delete(users).where(eq(users.id, currentUserId));
     
     res.clearCookie("refreshToken");
@@ -280,7 +308,7 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
 usersRouter.post("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     if (isNaN(targetUserId) || targetUserId === currentUserId) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz kullanıcı." }});
@@ -310,7 +338,7 @@ usersRouter.post("/:id/block", requireAuth, async (req, res) => {
 usersRouter.delete("/:id/block", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     if (isNaN(targetUserId)) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz kullanıcı." }});
@@ -330,7 +358,7 @@ usersRouter.delete("/:id/block", requireAuth, async (req, res) => {
 usersRouter.put("/:id/follow-preference", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { preference } = req.body;
     
     if (isNaN(targetUserId) || !['none', 'standard', 'all'].includes(preference)) {

@@ -1,9 +1,18 @@
 import { useAuthStore } from "../context/useAuth";
 
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code?: string;
+    message: string;
+  };
+}
+
 const API_BASE = "/api/v1";
 
 interface FetchOptions extends RequestInit {
-  data?: any;
+  data?: unknown;
 }
 
 let refreshPromise: Promise<string | null> | null = null;
@@ -82,7 +91,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
 
 
 export const api = {
-  get: async (url: string) => {
+  get: async <T = any>(url: string): Promise<{ data: ApiResponse<T> }> => {
     const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
     const res = await fetchApi(endpoint);
     if (!res.ok) {
@@ -91,7 +100,7 @@ export const api = {
     }
     return { data: await res.json() };
   },
-  post: async (url: string, data?: any) => {
+  post: async <T = any>(url: string, data?: unknown): Promise<{ data: ApiResponse<T> }> => {
     const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
     const res = await fetchApi(endpoint, { method: 'POST', data });
     if (!res.ok) {
@@ -100,7 +109,7 @@ export const api = {
     }
     return { data: await res.json() };
   },
-  patch: async (url: string, data?: any) => {
+  patch: async <T = any>(url: string, data?: unknown): Promise<{ data: ApiResponse<T> }> => {
     const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
     const res = await fetchApi(endpoint, { method: 'PATCH', data });
     if (!res.ok) {
@@ -109,7 +118,7 @@ export const api = {
     }
     return { data: await res.json() };
   },
-  delete: async (url: string) => {
+  delete: async <T = any>(url: string): Promise<{ data: ApiResponse<T> }> => {
     const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
     const res = await fetchApi(endpoint, { method: 'DELETE' });
     if (!res.ok) {

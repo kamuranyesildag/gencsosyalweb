@@ -3,7 +3,7 @@ import { posts, follows } from "../../src/db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { getBlockedIds } from "./blocks.js";
 
-export async function verifyPostAccess(postId: number, currentUserId: number): Promise<boolean> {
+export async function verifyPostAccess(postId: number, currentUserId: number | null | undefined): Promise<boolean> {
   const postRecord = await db.select({
     userId: posts.userId,
     visibility: posts.visibility
@@ -15,13 +15,13 @@ export async function verifyPostAccess(postId: number, currentUserId: number): P
   
   if (post.userId === currentUserId) return true;
 
-  const blockedIds = await getBlockedIds(currentUserId);
+  const blockedIds = currentUserId ? await getBlockedIds(currentUserId) : [];
   if (blockedIds.includes(post.userId)) return false;
 
   if (post.visibility === 'PRIVATE') return false;
 
   if (post.visibility === 'FOLLOWERS') {
-    const follow = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, post.userId))).limit(1);
+    const follow = currentUserId ? await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, post.userId))).limit(1) : [];
     if (follow.length === 0) return false;
   }
 

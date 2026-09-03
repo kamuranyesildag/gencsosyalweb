@@ -3,7 +3,7 @@ import { db } from "../../src/db/index.js";
 import { posts, postMedia, users, profiles, follows, reposts } from "../../src/db/schema.js";
 import { eq, desc, isNull, inArray, and, or, lt } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { populatePostStats } from "../utils/postStats.js";
 import { paginationSchema } from "../validators/api.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -13,7 +13,7 @@ export const userPostsRouter = Router();
 userPostsRouter.get("/:id/posts", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
     const offset = (page - 1) * limit;

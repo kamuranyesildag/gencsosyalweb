@@ -63,7 +63,7 @@ export function ProfileCompletionCard() {
       </div>
       
       <h2 className="text-[15px] font-extrabold mb-1 text-slate-900 tracking-tight mt-1">Profilini Tamamla</h2>
-      <p className="text-slate-500 text-xs font-medium mb-4">Profilin %{completion} tamamlandı. Güven kazanmak için eksikleri doldur.</p>
+      <p className="text-slate-500 text-xs font-medium mb-4">Profilin %{completion} tamamlandı. Deneyimini geliştirmek için eksikleri doldurabilirsin.</p>
       
       <div className="space-y-2.5 mb-4">
         {missingItems.slice(0, 2).map((item, idx) => (

@@ -3,7 +3,7 @@ import { db } from "../../src/db/index.js";
 import { comments, users, profiles } from "../../src/db/schema.js";
 import { eq, desc, lt, or, and } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { paginationSchema } from "../validators/api.js";
 import { verifyPostAccess } from "../utils/visibility.js";
 
@@ -13,11 +13,11 @@ export const commentsRouter = Router();
 commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
-    const offset = (page - 1) * limit;
+
     let cursorCondition: any = undefined;
     if (cursor) {
       const decoded = decodeCursor(cursor);
@@ -44,7 +44,7 @@ commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
     .where(and(eq(comments.postId, postId), eq(comments.moderationStatus, 'APPROVED'), cursorCondition ? cursorCondition : undefined))
     .orderBy(desc(comments.createdAt), desc(comments.id))
     .limit(limit)
-    .offset(offset);
+;
 
     let nextCursor: string | undefined = undefined;
     if (list.length === limit) {

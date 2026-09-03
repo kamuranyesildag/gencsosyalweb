@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { bookmarks, posts, postMedia, users, profiles, reposts } from "../../src/db/schema.js";
 import { eq, desc, inArray } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { populatePostStats } from "../utils/postStats.js";
 import { paginationSchema } from "../validators/api.js";
 
@@ -10,7 +10,7 @@ export const bookmarksRouter = Router();
 
 bookmarksRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;

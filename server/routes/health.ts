@@ -16,7 +16,7 @@ healthRouter.get("/", async (req, res) => {
     } else {
       await db.execute(sql`SELECT 1`);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     dbStatus = "error";
     statusCode = 503;
     error = e;

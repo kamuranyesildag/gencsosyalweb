@@ -2,7 +2,8 @@ import { db } from "../../src/db/index.js";
 import { blocks } from "../../src/db/schema.js";
 import { eq, or } from "drizzle-orm";
 
-export async function getBlockedIds(userId: number): Promise<number[]> {
+export async function getBlockedIds(userId: number | null | undefined): Promise<number[]> {
+  if (!userId) return [];
   const records = await db.select().from(blocks).where(or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId)));
   const ids = new Set<number>();
   records.forEach((r: any) => {

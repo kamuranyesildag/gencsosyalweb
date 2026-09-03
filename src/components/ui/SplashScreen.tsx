@@ -6,6 +6,18 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    // Check setup mode
+    if (window.location.pathname !== '/setup') {
+      fetch('/api/health')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.data?.database === 'setup_mode') {
+            window.location.href = '/setup';
+          }
+        })
+        .catch(() => {});
+    }
+
     if (shouldReduceMotion) {
       setIsVisible(false);
       onComplete();

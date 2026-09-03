@@ -33,12 +33,26 @@ export function RightSidebar() {
     };
   }, []);
 
-  const trendingTags = [
-    { name: "yazilim", count: "128 gönderi" },
-    { name: "yapayzeka", count: "94 gönderi" },
-    { name: "tasarim", count: "67 gönderi" },
-    { name: "gencsosyal", count: "210 gönderi" },
-  ];
+  const [trendingTags, setTrendingTags] = useState<{name: string, normalizedName: string, count: number}[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadTrending = async () => {
+      try {
+        const res = await fetchApi("/hashtags/trending/top");
+        const json = await res.json();
+        if (json.success && isMounted) {
+          setTrendingTags(json.data || []);
+        }
+      } catch (e) {
+        // silent fallback
+      }
+    };
+    loadTrending();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-5 pb-8">

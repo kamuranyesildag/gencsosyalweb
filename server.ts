@@ -1,3 +1,5 @@
+import { ensureUploadDir, getUploadDir } from "./server/utils/uploadConfig.js";
+import { onboardingRouter } from "./server/routes/onboarding.js";
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -16,6 +18,8 @@ async function startServer() {
   const app = express();
 
   // Trust reverse proxy (Nginx/Cloudflare) for rate limiting and IP logging
+  // Trust reverse proxies (Nginx / Cloudflare) to get real IPs
+  // We set it to trust the loopback / internal docker network IPs, or just 'loopback, linklocal, uniquelocal'
   app.set("trust proxy", 1);
   const PORT = 3000;
 
@@ -32,26 +36,39 @@ async function startServer() {
         objectSrc: ["'none'"],
         mediaSrc: ["'self'", "https:"],
         frameSrc: ["'none'"],
-        upgradeInsecureRequests: [],
+        
       },
     } : false,
     crossOriginEmbedderPolicy: false,
   }));
-  let corsOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
-  app.use(cors({ origin: corsOrigin || true, credentials: true }));
+  const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:3000").split(',');
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
   // Ensure upload directory exists
-  const uploadDir = process.env.UPLOAD_DIR || "uploads";
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  ensureUploadDir();
   // Serve uploads statically
-  app.use("/uploads", express.static(uploadDir));
+  app.use("/uploads", express.static(getUploadDir()));
 
+  
   // --- API Routes Start ---
+  const { setupRouter } = await import("./server/routes/setup.js");
+  app.use("/api/setup", setupRouter);
+
   const { healthRouter } = await import("./server/routes/health.js");
   app.use("/api/v1/health", healthRouter);
   app.use("/api/health", healthRouter);
@@ -116,6 +133,7 @@ async function startServer() {
     app.use("/api/v1/verification", verificationRouter);
     app.use("/api/v1/hashtags", hashtagsRouter);
     app.use("/api/v1/collaborators", collaboratorsRouter);
+    app.use("/api/v1/onboarding", onboardingRouter);
 
     const { seoMiddleware } = await import("./server/middleware/seo.js");
     app.use(seoMiddleware);

@@ -10,13 +10,14 @@ const TAG_LENGTH = 16;
  */
 function getKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY;
-  
   if (!secret) {
-    console.warn("WARNING: ENCRYPTION_KEY ayarlı değil, JWT_SECRET türetilmiş anahtar kullanılıyor - production için önerilmez.");
-    const fallbackSecret = process.env.JWT_SECRET || "dev_fallback_secret_do_not_use_in_prod!";
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: ENCRYPTION_KEY is required in production environment.");
+    }
+    console.warn("WARNING: ENCRYPTION_KEY ayarlı değil, izole bir fallback anahtar kullanılıyor - production için önerilmez.");
+    const fallbackSecret = "isolated_dev_fallback_secret_only_for_local_development";
     return crypto.scryptSync(fallbackSecret, "salt", 32);
   }
-  
   return crypto.scryptSync(secret, "salt", 32);
 }
 

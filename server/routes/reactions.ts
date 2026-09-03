@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
+import type { DbTransaction } from "../../src/db/index.js";
 import { reactions, posts } from "../../src/db/schema.js";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { notify } from "../utils/notifications.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { verifyPostAccess } from "../utils/visibility.js";
@@ -18,7 +19,7 @@ const reactionSchema = z.object({
 reactionsRouter.post("/:id/reaction", requireAuth, standardLimiter, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     const parsed = reactionSchema.safeParse(req.body);
     
@@ -37,7 +38,7 @@ reactionsRouter.post("/:id/reaction", requireAuth, standardLimiter, async (req, 
     let isNew = false;
     // UPSERT reaction
     try {
-      await db.transaction(async (tx: any) => {
+      await db.transaction(async (tx: DbTransaction) => {
         const existing = await tx.select().from(reactions).where(and(eq(reactions.postId, postId), eq(reactions.userId, currentUserId))).limit(1);
         if (existing.length > 0) {
           await tx.update(reactions).set({ type: parsed.data.type }).where(eq(reactions.id, existing[0].id));
@@ -49,8 +50,8 @@ reactionsRouter.post("/:id/reaction", requireAuth, standardLimiter, async (req, 
           isNew = true;
         }
       });
-    } catch (e: any) {
-      if (e.code !== '23505') throw e; // ignore unique constraint violation on race condition
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code !== '23505') throw e; // ignore unique constraint violation on race condition
     }
 
     if (isNew) {
@@ -67,13 +68,13 @@ reactionsRouter.post("/:id/reaction", requireAuth, standardLimiter, async (req, 
 reactionsRouter.delete("/:id/reaction", requireAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     if (!(await verifyPostAccess(postId, currentUserId))) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu gönderiye erişiminiz yok." }});
     
     const postRecord = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       const existing = await tx.select().from(reactions).where(and(eq(reactions.postId, postId), eq(reactions.userId, currentUserId))).limit(1);
       if (existing.length > 0) {
         await tx.delete(reactions).where(and(eq(reactions.postId, postId), eq(reactions.userId, currentUserId)));

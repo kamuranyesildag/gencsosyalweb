@@ -18,6 +18,7 @@ export const updateProfileSchema = z.object({
   messagePreference: z.enum(["ANYONE", "FOLLOWERS", "NONE"]).optional(),
   mentionPreference: z.enum(["ANYONE", "FOLLOWERS", "NONE"]).optional(),
   defaultPostVisibility: z.enum(["PUBLIC", "FOLLOWERS", "PRIVATE"]).optional(),
+  interests: z.array(z.string()).optional(),
 });
 
 export const createPostSchema = z.object({

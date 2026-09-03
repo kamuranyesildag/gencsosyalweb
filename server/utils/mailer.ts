@@ -17,13 +17,12 @@ export const getSmtpConfig = async () => {
     try {
       pass = decryptString(config['smtp_pass']);
     } catch (e) {
-      // In case it's an old plaintext password, fallback to it
-      pass = config['smtp_pass'];
+      throw new Error("SMTP şifresi çözülemedi. Lütfen ayarları kontrol edin.");
     }
   }
 
   return {
-    host: config['smtp_host'] || process.env.SMTP_HOST || "smtp.ethereal.email",
+    host: config['smtp_host'] || process.env.SMTP_HOST || (process.env.NODE_ENV === "production" ? undefined : "smtp.ethereal.email"),
     port: parseInt(config['smtp_port'] || process.env.SMTP_PORT || "587"),
     secure: (config['smtp_secure'] || process.env.SMTP_SECURE) === "true",
     user: config['smtp_user'] || process.env.SMTP_USER,
@@ -137,7 +136,6 @@ export const sendOtpVerificationEmail = async (to: string, displayName: string, 
 
   const text = `Genç Sosyal\n\nE-posta Doğrulama Kodunuz: ${otpCode}\n\nBu kod 10 dakika boyunca geçerlidir.\nGüvenliğiniz için bu kodu kimseyle paylaşmayın.`;
 
-  try {
     await transporter.sendMail({
       from: config.from,
       to,
@@ -145,9 +143,7 @@ export const sendOtpVerificationEmail = async (to: string, displayName: string, 
       html,
       text,
     });
-  } catch (error) {
-    console.error("OTP Email sending failed:", error);
-  }
+
 };
 
 export const sendVerificationEmail = async (to: string, displayName: string, verifyLink: string) => {
@@ -175,7 +171,6 @@ ${verifyLink}
 
 Bu isteği siz başlatmadıysanız bu e-postayı dikkate almayabilirsiniz.`;
 
-  try {
     await transporter.sendMail({
       from: config.from,
       to,
@@ -183,9 +178,7 @@ Bu isteği siz başlatmadıysanız bu e-postayı dikkate almayabilirsiniz.`;
       html,
       text,
     });
-  } catch (error) {
-    console.error("Email sending failed:", error);
-  }
+
 };
 
 export const sendPasswordResetEmail = async (to: string, displayName: string, resetLink: string) => {
@@ -213,7 +206,6 @@ ${resetLink}
 
 Bu bağlantı 15 dakika geçerlidir. Bu isteği siz başlatmadıysanız bu e-postayı dikkate almayabilirsiniz.`;
 
-  try {
     await transporter.sendMail({
       from: config.from,
       to,
@@ -221,9 +213,7 @@ Bu bağlantı 15 dakika geçerlidir. Bu isteği siz başlatmadıysanız bu e-pos
       html,
       text,
     });
-  } catch (error) {
-    console.error("Email sending failed:", error);
-  }
+
 };
 
 export const sendSecurityAlertEmail = async (to: string, displayName: string, action: string, date: string, device?: string, os?: string, browser?: string, ipAddress?: string) => {
@@ -268,7 +258,6 @@ Tarih: ${date}
 
 Eğer bu işlemi siz yapmadıysanız lütfen şifrenizi değiştirin.`;
 
-  try {
     await transporter.sendMail({
       from: config.from,
       to,
@@ -276,9 +265,7 @@ Eğer bu işlemi siz yapmadıysanız lütfen şifrenizi değiştirin.`;
       html,
       text,
     });
-  } catch (error) {
-    console.error("Email sending failed:", error);
-  }
+
 };
 
 export const sendVerificationStatusEmail = async (to: string, displayName: string, status: "approved" | "rejected") => {
@@ -308,7 +295,6 @@ ${title}
 Merhaba ${displayName},
 ${bodyText}`;
 
-  try {
     await transporter.sendMail({
       from: config.from,
       to,
@@ -316,9 +302,7 @@ ${bodyText}`;
       html,
       text,
     });
-  } catch (error) {
-    console.error("Email sending failed:", error);
-  }
+
 };
 
 export const sendSmtpTestEmail = async (to: string) => {
@@ -333,7 +317,7 @@ export const sendSmtpTestEmail = async (to: string) => {
       <p class="text">Merhaba,</p>
       <p class="text">Eğer bu e-postayı görüyorsanız, Admin Panel üzerinden yapılan SMTP e-posta gönderim yapılandırması başarıyla çalışıyor demektir.</p>
       <div class="info-box">
-        <div class="info-row"><span class="info-label">Sunucu:</span> ${escapeHtml(config.host)}</div>
+        <div class="info-row"><span class="info-label">Sunucu:</span> ${escapeHtml(config.host || "")}</div>
         <div class="info-row"><span class="info-label">Port:</span> ${config.port}</div>
         <div class="info-row"><span class="info-label">Güvenlik (SSL/TLS):</span> ${config.secure ? "Evet" : "Hayır"}</div>
       </div>

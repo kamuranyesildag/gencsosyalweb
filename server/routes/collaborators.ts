@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import { projectCollaborators, postCollaborators, projects, posts, users, profiles } from "../../src/db/schema.js";
 import { eq, and, desc, or, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { notify } from "../utils/notifications.js";
 import rateLimit from "express-rate-limit";
 
@@ -22,7 +22,7 @@ collaboratorsRouter.use(actionLimiter);
 // GET /api/v1/collaborators/invites - Get pending invites for current user
 collaboratorsRouter.get("/invites", async (req: Request, res: Response): Promise<void> => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
 
     const projectInvites = await db.select({
       id: projectCollaborators.id,
@@ -78,7 +78,7 @@ collaboratorsRouter.get("/invites", async (req: Request, res: Response): Promise
 // PATCH /api/v1/collaborators/invites/:type/:id - Accept or reject invite
 collaboratorsRouter.patch("/invites/:type/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const { type, id } = req.params;
     const inviteId = parseInt(id as string, 10);
     const { status } = req.body; // 'accepted' or 'rejected'

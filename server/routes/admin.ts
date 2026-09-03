@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects } from "../../src/db/schema.js";
+import type { DbTransaction } from "../../src/db/index.js";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities } from "../../src/db/schema.js";
 import { eq, ilike, or, desc, sql, and } from "drizzle-orm";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
 import { sendVerificationStatusEmail } from "../utils/mailer.js";
 
 export const adminRouter = Router();
@@ -119,7 +120,7 @@ adminRouter.patch("/verifications/:id", async (req: Request, res: Response): Pro
     const requestId = parseInt(req.params.id as string);
     if (isNaN(requestId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
     const { status, adminNote, rejectionReason } = req.body;
-    const adminId = (req.user?.userId || -1);
+    const adminId = requireAuthContext(req);
 
     if (!['pending', 'under_review', 'approved', 'rejected'].includes(status)) {
       res.status(400).json({ success: false, error: { message: "Geçersiz durum." } });
@@ -183,7 +184,7 @@ adminRouter.patch("/users/:id/verify", async (req: Request, res: Response): Prom
     const targetUserId = parseInt(req.params.id as string);
     if (isNaN(targetUserId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
     const { isVerified } = req.body;
-    const adminId = (req.user?.userId || -1);
+    const adminId = requireAuthContext(req);
     
     if (typeof isVerified !== 'boolean') {
       res.status(400).json({ success: false, error: { message: "Geçersiz veri." } });
@@ -219,7 +220,7 @@ adminRouter.post("/users/:id/reset-2fa", async (req: Request, res: Response): Pr
   try {
     const targetUserId = parseInt(req.params.id as string);
     if (isNaN(targetUserId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
-    const adminId = (req.user?.userId || -1);
+    const adminId = requireAuthContext(req);
     
     const userRecord = await db.select().from(users).where(eq(users.id, targetUserId)).limit(1);
     
@@ -230,7 +231,7 @@ adminRouter.post("/users/:id/reset-2fa", async (req: Request, res: Response): Pr
 
     const { recoveryCodes } = await import("../../src/db/schema.js");
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, targetUserId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, targetUserId));
       
@@ -258,19 +259,19 @@ adminRouter.get("/reports", async (req: Request, res: Response): Promise<void> =
     
     // We need to import reports from schema, let's just use it directly
     const list = await db.select({
-      id: require("../../src/db/schema.js").reports.id,
-      reporterId: require("../../src/db/schema.js").reports.reporterId,
-      targetType: require("../../src/db/schema.js").reports.targetType,
-      targetId: require("../../src/db/schema.js").reports.targetId,
-      reason: require("../../src/db/schema.js").reports.reason,
-      status: require("../../src/db/schema.js").reports.status,
-      createdAt: require("../../src/db/schema.js").reports.createdAt,
+      id: reports.id,
+      reporterId: reports.reporterId,
+      targetType: reports.targetType,
+      targetId: reports.targetId,
+      reason: reports.reason,
+      status: reports.status,
+      createdAt: reports.createdAt,
       reporterUsername: users.username,
     })
-    .from(require("../../src/db/schema.js").reports)
-    .leftJoin(users, eq(require("../../src/db/schema.js").reports.reporterId, users.id))
-    .where(eq(require("../../src/db/schema.js").reports.status, status))
-    .orderBy(desc(require("../../src/db/schema.js").reports.createdAt))
+    .from(reports)
+    .leftJoin(users, eq(reports.reporterId, users.id))
+    .where(eq(reports.status, status))
+    .orderBy(desc(reports.createdAt))
     .limit(limit).offset(offset);
 
     res.json({ success: true, data: list });
@@ -285,11 +286,7 @@ adminRouter.patch("/reports/:id", async (req: Request, res: Response): Promise<v
   try {
     const reportId = parseInt(req.params.id as string);
     const { status, action } = req.body;
-    const adminId = (req.user?.userId || -1);
-    const reports = require("../../src/db/schema.js").reports;
-    const posts = require("../../src/db/schema.js").posts;
-    const comments = require("../../src/db/schema.js").comments;
-    const communities = require("../../src/db/schema.js").communities;
+    const adminId = requireAuthContext(req);
 
     const r = await db.select().from(reports).where(eq(reports.id, reportId)).limit(1);
     if (r.length === 0) {
@@ -403,18 +400,18 @@ adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => 
       updates.push({ key: "smtp_pass", value: encryptString(pass) });
     }
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       for (const update of updates) {
         await tx.insert(systemSettings)
-          .values({ key: update.key, value: update.value, updatedBy: (req.user?.userId || -1) })
+          .values({ key: update.key, value: update.value, updatedBy: requireAuthContext(req) })
           .onConflictDoUpdate({
             target: systemSettings.key,
-            set: { value: update.value, updatedBy: (req.user?.userId || -1), updatedAt: new Date() }
+            set: { value: update.value, updatedBy: requireAuthContext(req), updatedAt: new Date() }
           });
       }
 
       await tx.insert(adminAuditLogs).values({
-        adminUserId: (req.user?.userId || -1),
+        adminUserId: requireAuthContext(req),
         action: "update_smtp_settings",
         targetId: '0',
         targetType: "system",
@@ -528,10 +525,10 @@ adminRouter.put("/auto-follow", async (req, res) => {
     }
     
     await db.insert(systemSettings)
-      .values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: (req.user?.userId || -1) })
+      .values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: requireAuthContext(req) })
       .onConflictDoUpdate({
         target: systemSettings.key,
-        set: { value: JSON.stringify(userIds), updatedBy: (req.user?.userId || -1), updatedAt: new Date() }
+        set: { value: JSON.stringify(userIds), updatedBy: requireAuthContext(req), updatedAt: new Date() }
       });
       
     res.json({ success: true, message: "Otomatik takip listesi güncellendi." });
@@ -637,7 +634,7 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
   try {
     const logId = parseInt(req.params.id);
     const { action } = req.body; // 'APPROVE' or 'REJECT'
-    const adminId = (req.user?.userId || -1);
+    const adminId = requireAuthContext(req);
 
     if (action !== 'APPROVE' && action !== 'REJECT') {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz aksiyon." }});
@@ -650,7 +647,7 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
 
     const log = logRecord[0];
 
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.update(moderationLogs)
         .set({ status: 'RESOLVED', actionTaken: action === 'APPROVE' ? 'APPROVED' : 'REJECTED', adminId, updatedAt: new Date() })
         .where(eq(moderationLogs.id, logId));

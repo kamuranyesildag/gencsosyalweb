@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import { verificationRequests } from "../../src/db/schema.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { eq, desc } from "drizzle-orm";
 
 export const verificationRouter = Router();
@@ -11,7 +11,7 @@ verificationRouter.use(requireAuth);
 // GET /api/v1/verification/me - Get current user's verification requests
 verificationRouter.get("/me", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const requests = await db
       .select()
       .from(verificationRequests)
@@ -29,7 +29,7 @@ verificationRouter.get("/me", async (req: Request, res: Response): Promise<void>
 // POST /api/v1/verification - Create a new verification request
 verificationRouter.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req.user?.userId || -1);
+    const userId = requireAuthContext(req);
     const { reason } = req.body;
     
     if (!reason || typeof reason !== "string" || reason.trim().length === 0) {

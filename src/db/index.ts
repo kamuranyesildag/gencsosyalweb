@@ -12,9 +12,22 @@ declare global {
   var _dbInstance: any;
 }
 
+import type { ExtractTablesWithRelations } from 'drizzle-orm';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+
+export type DbTransaction = PgTransaction<
+  NodePgQueryResultHKT,
+  typeof schema,
+  ExtractTablesWithRelations<typeof schema>
+>;
+
 export const createPool = () => {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL is missing");
+    }
     return null;
   }
   
@@ -62,6 +75,9 @@ export const getDb = () => {
   if (pool) {
     global._dbInstance = drizzlePg(pool, { schema });
   } else {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL is missing");
+    }
     const client = createPglite();
     global._dbInstance = drizzlePglite(client, { schema });
   }

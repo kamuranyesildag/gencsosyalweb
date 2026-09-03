@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
+import type { DbTransaction } from "../../src/db/index.js";
 import { posts, postMedia, follows, users, profiles, postViews, reposts } from "../../src/db/schema.js";
 import { eq, inArray, desc, or, and, not, sql, isNull } from "drizzle-orm";
-import { requireAuth, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { populatePostStats } from "../utils/postStats.js";
 import { paginationSchema } from "../validators/api.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -26,7 +27,7 @@ const viewSchema = z.object({
 
 feedRouter.post("/view", requireAuth, viewLimiter, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = viewSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz postId." } });
@@ -56,7 +57,7 @@ feedRouter.post("/view", requireAuth, viewLimiter, async (req, res) => {
     }
 
     // 3. Database transaction
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx: DbTransaction) => {
       await tx.insert(postViews).values({
         userId: currentUserId,
         postId: postId
@@ -186,7 +187,7 @@ feedRouter.get("/", optionalAuth, async (req, res) => {
 
 feedRouter.get("/following", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;

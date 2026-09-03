@@ -2,9 +2,10 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { follows, blocks, users, profiles } from "../../src/db/schema.js";
 import { eq, and, or } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
-import { notify } from "../utils/notifications.js";
+import { notifications } from "../../src/db/schema.js";
+import { DbTransaction } from "../../src/db/index.js";
 import { paginationSchema } from "../validators/api.js";
 
 export const followsRouter = Router();
@@ -13,7 +14,7 @@ export const followsRouter = Router();
 followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     if (targetUserId === currentUserId) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi takip edemezsiniz." }});
@@ -31,12 +32,12 @@ followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res)
       return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu işlemi gerçekleştiremezsiniz." }});
     }
 
-    const result = await db.insert(follows).values({ followerId: currentUserId, followingId: targetUserId }).onConflictDoNothing();
-    
-    // Check if it was actually inserted
-    if (result.rowCount && result.rowCount > 0) { 
-      await notify(currentUserId, targetUserId, 'follow');
-    }
+    await db.transaction(async (tx: DbTransaction) => {
+      const result = await tx.insert(follows).values({ followerId: currentUserId, followingId: targetUserId }).onConflictDoNothing();
+      if (result.rowCount && result.rowCount > 0) { 
+         await tx.insert(notifications).values({ actorId: currentUserId, recipientId: targetUserId, type: 'follow' });
+      }
+    });
     
     res.json({ success: true, data: { message: "Takip ediliyor." }});
   } catch (error) {
@@ -48,7 +49,7 @@ followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res)
 followsRouter.delete("/:id/follow", requireAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     await db.delete(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId)));
     res.json({ success: true, data: { message: "Takipten çıkıldı." }});
   } catch (error) {

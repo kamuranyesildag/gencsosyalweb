@@ -3,14 +3,14 @@ import { db } from "../../src/db/index.js";
 import { notifications, users, profiles } from "../../src/db/schema.js";
 import { eq, desc, and, lt, or } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { paginationSchema } from "../validators/api.js";
 
 export const notificationsRouter = Router();
 
 notificationsRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit, cursor } = parsed.success ? parsed.data : { page: 1, limit: 20, cursor: undefined };
     const offset = (page - 1) * limit;
@@ -58,7 +58,7 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
 
 notificationsRouter.put("/read", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     await db.update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.recipientId, currentUserId));
@@ -72,7 +72,7 @@ notificationsRouter.put("/read", requireAuth, async (req, res) => {
 notificationsRouter.post("/:id/read", requireAuth, async (req, res) => {
   try {
     const notifId = parseInt(req.params.id as string);
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     
     await db.update(notifications)
       .set({ isRead: true })

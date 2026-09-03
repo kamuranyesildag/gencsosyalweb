@@ -55,7 +55,14 @@ export const verifyRefreshToken = (token: string) => {
 };
 
 export const getEmailTokenSecret = () => {
-  return process.env.JWT_EMAIL_SECRET || (getAccessTokenSecret() + "_email");
+  const secret = process.env.JWT_EMAIL_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: JWT_EMAIL_SECRET is missing in production!");
+    }
+    return getAccessTokenSecret() + "_email";
+  }
+  return secret;
 };
 
 export const generateEmailToken = (userId: number, purpose: string) => {
@@ -75,7 +82,14 @@ export const verifyEmailToken = (token: string) => {
 };
 
 export const getTwoFactorTokenSecret = () => {
-  return process.env.JWT_2FA_SECRET || (getAccessTokenSecret() + "_2fa");
+  const secret = process.env.JWT_2FA_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FATAL: JWT_2FA_SECRET is missing in production!");
+    }
+    return getAccessTokenSecret() + "_2fa";
+  }
+  return secret;
 };
 
 export const generateTwoFactorToken = (userId: number, role: string) => {

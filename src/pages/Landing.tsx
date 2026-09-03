@@ -134,9 +134,9 @@ export function Landing() {
             <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-100 transition-colors">
               <MessageSquare className="w-6 h-6 text-slate-900" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">Gerçek Zamanlı Sohbet</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">Hızlı Mesajlaşma</h3>
             <p className="text-slate-500 font-medium text-sm leading-relaxed">
-              Kulüp üyeleriyle veya proje arkadaşlarınla anında iletişim kur, fikirleri tartış.
+              Kulüp üyeleriyle veya proje arkadaşlarınla iletişim kur, fikirleri tartış.
             </p>
           </motion.div>
 
@@ -158,7 +158,7 @@ export function Landing() {
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">Temiz ve Güvenli</h3>
             <p className="text-slate-500 font-medium text-sm leading-relaxed">
-              Gelişmiş raporlama ve doğrulama sistemiyle toksik kitlelerden tamamen arındırılmış ortam.
+              Topluluk kuralları ve raporlama sistemiyle saygılı bir iletişim ortamı hedefliyoruz.
             </p>
           </motion.div>
 
@@ -172,7 +172,7 @@ export function Landing() {
             {[
               { value: "Modüler", label: "Profil Yapısı" },
               { value: "%100", label: "Açık Ekosistem" },
-              { value: "Sıfır", label: "Gereksiz Algoritma" },
+              { value: "Şeffaf", label: "Akış Yapısı" },
               { value: "Odaklı", label: "Üretkenlik" },
             ].map((stat, idx) => (
               <div key={idx} className="flex flex-col items-center">

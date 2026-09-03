@@ -27,6 +27,13 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
   try {
     const decoded = verifyAccessToken(token);
+    if (!decoded || !decoded.userId) {
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Geçersiz kullanıcı context'i." }
+      });
+      return;
+    }
     req.user = decoded;
     next();
   } catch (error) {
@@ -36,6 +43,14 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     });
   }
 };
+
+export const getUserId = (req: Request): number => {
+  if (!req.user || !req.user.userId) {
+    throw new Error("UNAUTHORIZED_ACCESS");
+  }
+  return req.user.userId;
+};
+
 
 export const requireRole = (role: string) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -47,7 +62,7 @@ export const requireRole = (role: string) => {
       return;
     }
 
-    if (req.user.role !== role && req.user.role !== "ADMIN") {
+    if (req.user.role.toUpperCase() !== role.toUpperCase() && req.user.role.toUpperCase() !== "ADMIN") {
       res.status(403).json({
         success: false,
         error: { code: "FORBIDDEN", message: "Bu işlem için yetkiniz yok." }
@@ -73,3 +88,26 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
   }
   next();
 };
+
+
+
+export const optionalAuthContext = (req: Request): number | null => {
+  return req.user?.userId || null;
+};
+
+export class AuthContextError extends Error {
+  status: number;
+  constructor(message: string) {
+    super(message);
+    this.status = 401;
+    this.name = "AuthContextError";
+  }
+}
+
+export const requireAuthContext = (req: Request): number => {
+  if (!req.user || !req.user.userId) {
+    throw new AuthContextError("UNAUTHORIZED_CONTEXT");
+  }
+  return req.user.userId;
+};
+

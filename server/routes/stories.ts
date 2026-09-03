@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { stories, storyViews, follows, users, profiles } from "../../src/db/schema.js";
 import { eq, inArray, gt, desc, and } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ const createStorySchema = z.object({
 
 storiesRouter.post("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const parsed = createStorySchema.safeParse(req.body);
     
     if (!parsed.success) {
@@ -40,7 +40,7 @@ storiesRouter.post("/", requireAuth, async (req, res) => {
 
 storiesRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const blockedIds = await getBlockedIds(currentUserId);
     
     const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId));
@@ -83,7 +83,7 @@ storiesRouter.get("/", requireAuth, async (req, res) => {
 
 storiesRouter.post("/:id/view", requireAuth, async (req, res) => {
   try {
-    const currentUserId = req.user?.userId || -1;
+    const currentUserId = requireAuthContext(req);
     const storyId = parseInt(req.params.id as string);
     
     // insert into storyViews

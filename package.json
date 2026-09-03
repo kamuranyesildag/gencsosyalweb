@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "tsx idor_test.ts",
+    "test": "echo 'No test specified'",
     "dev": "tsx server/migrate.ts && tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/migrate.cjs",
-    "start": "node dist/migrate.cjs && node dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist-server/server.cjs && esbuild server/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist-server/migrate.cjs",
+    "start": "node dist-server/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
@@ -45,7 +45,6 @@
     "sharp": "^0.35.3",
     "tailwind-merge": "^3.6.0",
     "uuid": "^14.0.1",
-    "vite": "^6.2.3",
     "ws": "^8.21.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"

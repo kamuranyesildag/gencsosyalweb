@@ -18,6 +18,7 @@ import { ProjectDetail } from "./pages/ProjectDetail";
 import { Projects } from "./pages/Projects";
 import { HashtagDetail } from "./pages/HashtagDetail";
 import { Settings } from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 import { Admin } from "./pages/Admin";
 import { Onboarding } from "./pages/Onboarding";
 import { Login } from "./pages/Login";
@@ -26,6 +27,7 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Landing } from "./pages/Landing";
+import { Setup } from "./pages/setup/Setup";
 import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { AuthWrapper } from "./components/AuthWrapper";
@@ -34,6 +36,13 @@ import { BaseLayout } from "./layouts/BaseLayout";
 import { ToastContainer } from "./components/ui/Toast";
 import { ConfirmDialogContainer } from "./components/ui/ConfirmDialog"; // for logged out
 import { SplashScreen } from "./components/ui/SplashScreen";
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore(state => state.user);
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/home" replace />;
+  return <>{children}</>;
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -65,6 +74,7 @@ export default function App() {
                 <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/setup" element={<Setup />} />
               </Route>
 
               {/* Logged In Routes using AppLayout (Sidebars) */}
@@ -84,9 +94,10 @@ export default function App() {
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/hashtags/:name" element={<HashtagDetail />} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
               </Route>
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthWrapper>
         </ErrorBoundary>

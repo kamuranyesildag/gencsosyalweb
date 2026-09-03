@@ -9,6 +9,7 @@ import { Card } from '../components/ui/Card';
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const userIdStr = searchParams.get('id');
   const navigate = useNavigate();
 
   const [password, setPassword] = useState('');
@@ -72,7 +73,7 @@ export function ResetPassword() {
     try {
       const res = await fetchApi('/auth/reset-password', {
         method: 'POST',
-        data: { token, newPassword: password },
+        data: { token, newPassword: password, userId: userIdStr ? parseInt(userIdStr, 10) : undefined },
       });
       const json = await res.json();
 
