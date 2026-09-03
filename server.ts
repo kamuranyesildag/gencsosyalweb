@@ -68,6 +68,7 @@ async function startServer() {
   // --- API Routes Start ---
   const { setupRouter } = await import("./server/routes/setup.js");
   app.use("/api/setup", setupRouter);
+  app.use("/api/v1/setup", setupRouter);
 
   const { healthRouter } = await import("./server/routes/health.js");
   app.use("/api/v1/health", healthRouter);

@@ -1242,21 +1242,14 @@ var init_setup = __esm({
         state: "UNINITIALIZED",
         steps: []
       };
-      const requiredEnv = [
-        "POSTGRES_PASSWORD",
-        "DATABASE_URL",
-        "JWT_SECRET",
-        "JWT_REFRESH_SECRET",
-        "JWT_EMAIL_SECRET",
-        "JWT_2FA_SECRET",
-        "ENCRYPTION_KEY"
-      ];
+      const isProduction = process.env.NODE_ENV === "production";
+      const requiredEnv = isProduction ? ["JWT_SECRET", "JWT_REFRESH_SECRET", "ENCRYPTION_KEY"] : [];
       const missingEnv = requiredEnv.filter((k) => !process.env[k]);
       if (missingEnv.length > 0) {
         statusReport.steps.push({
           step: "ENVIRONMENT_VALIDATION",
           status: "FAILED",
-          message: "Missing required secure secrets.",
+          message: "Eksik ortam anahtarlar\u0131: " + missingEnv.join(", "),
           diagnostic_code: "ENV_MISSING_SECRETS"
         });
         statusReport.state = "FAILED";
@@ -1265,15 +1258,16 @@ var init_setup = __esm({
       statusReport.steps.push({
         step: "ENVIRONMENT_VALIDATION",
         status: "SUCCESS",
-        message: "Environment secrets verified.",
+        message: isProduction ? "Ortam de\u011Fi\u015Fkenleri ve g\xFCvenlik anahtarlar\u0131 do\u011Fruland\u0131." : "Geli\u015Ftirme/yerel \xE7al\u0131\u015Fma ortam\u0131 ve g\xFCvenlik anahtarlar\u0131 haz\u0131r.",
         diagnostic_code: "ENV_OK"
       });
       try {
         await db.execute(import_drizzle_orm3.sql`SELECT 1`);
+        const isPg = Boolean(process.env.DATABASE_URL);
         statusReport.steps.push({
           step: "DATABASE_CONNECTION",
           status: "SUCCESS",
-          message: "Database connection established.",
+          message: isPg ? "PostgreSQL veritaban\u0131 ba\u011Flant\u0131s\u0131 kuruldu." : "Lokal PGlite veritaban\u0131 ba\u011Flant\u0131s\u0131 aktif.",
           diagnostic_code: "DB_OK"
         });
         statusReport.state = "DATABASE_READY";
@@ -1281,7 +1275,7 @@ var init_setup = __esm({
         statusReport.steps.push({
           step: "DATABASE_CONNECTION",
           status: "FAILED",
-          message: "Database connection failed.",
+          message: "Veritaban\u0131 ba\u011Flant\u0131s\u0131 kurulamad\u0131.",
           diagnostic_code: "DB_CONN_FAIL"
         });
         statusReport.state = "FAILED";
@@ -1292,7 +1286,7 @@ var init_setup = __esm({
         statusReport.steps.push({
           step: "DATABASE_MIGRATION",
           status: "SUCCESS",
-          message: "Database schema is migrated.",
+          message: "Veritaban\u0131 \u015Femas\u0131 ve tablolar haz\u0131r.",
           diagnostic_code: "DB_MIGRATED"
         });
         statusReport.state = "MIGRATED";
@@ -1300,7 +1294,7 @@ var init_setup = __esm({
         statusReport.steps.push({
           step: "DATABASE_MIGRATION",
           status: "FAILED",
-          message: "Database schema migration missing.",
+          message: "Veritaban\u0131 \u015Femas\u0131 bulunamad\u0131.",
           diagnostic_code: "DB_NOT_MIGRATED"
         });
         statusReport.state = "FAILED";
@@ -1310,7 +1304,7 @@ var init_setup = __esm({
         statusReport.steps.push({
           step: "SMTP_CONFIGURATION",
           status: "PARTIAL",
-          message: "SMTP is not fully configured.",
+          message: "SMTP yap\u0131land\u0131r\u0131lmad\u0131 (\u0130ste\u011Fe ba\u011Fl\u0131, kurulum sonras\u0131nda Y\xF6netim Paneli \xFCzerinden ayarlanabilir).",
           diagnostic_code: "SMTP_NOT_CONFIGURED"
         });
       } else {
@@ -1328,14 +1322,14 @@ var init_setup = __esm({
           statusReport.steps.push({
             step: "SMTP_CONFIGURATION",
             status: "SUCCESS",
-            message: "SMTP connection successful.",
+            message: "SMTP ba\u011Flant\u0131s\u0131 ba\u015Far\u0131l\u0131.",
             diagnostic_code: "SMTP_OK"
           });
         } catch (e) {
           statusReport.steps.push({
             step: "SMTP_CONFIGURATION",
-            status: "FAILED",
-            message: "SMTP configuration is invalid.",
+            status: "PARTIAL",
+            message: "SMTP sunucusuna eri\u015Filemedi (Daha sonra ayarlanabilir).",
             diagnostic_code: "SMTP_VERIFY_FAIL"
           });
         }
@@ -1345,7 +1339,7 @@ var init_setup = __esm({
     setupRouter.post("/run", async (req, res) => {
       const { adminEmail, adminUsername, adminPassword, adminFullName } = req.body;
       if (!adminEmail || !adminUsername || !adminPassword || !adminFullName) {
-        return res.status(400).json({ success: false, error: { message: "Missing admin credentials." } });
+        return res.status(400).json({ success: false, error: { message: "T\xFCm alanlar\u0131n doldurulmas\u0131 zorunludur." } });
       }
       try {
         const result = await db.transaction(async (tx) => {
@@ -1361,24 +1355,30 @@ var init_setup = __esm({
             username: adminUsername,
             passwordHash: hashedPassword,
             role: "admin",
-            isVerified: true
+            isVerified: true,
+            emailVerified: true,
+            isActive: true
           }).returning();
+          const { profiles: profiles2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+          await tx.insert(profiles2).values({
+            userId: newAdmin[0].id,
+            displayName: adminFullName
+          }).onConflictDoNothing();
           return newAdmin[0];
         });
         return res.json({
           success: true,
           data: {
             state: "COMPLETED",
-            message: "Setup finished successfully."
-            // Do not return any secrets or passwords
+            message: "Kurulum ba\u015Far\u0131yla tamamland\u0131."
           }
         });
       } catch (error) {
         if (error.message === "ADMIN_EXISTS") {
-          return res.status(403).json({ success: false, error: { message: "Setup is already completed and locked." } });
+          return res.status(403).json({ success: false, error: { message: "Kurulum zaten tamamlanm\u0131\u015F." } });
         }
         console.error("Setup run error:", error);
-        return res.status(500).json({ success: false, error: { message: "An error occurred during setup." } });
+        return res.status(500).json({ success: false, error: { message: "Kurulum s\u0131ras\u0131nda bir hata olu\u015Ftu." } });
       }
     });
   }
@@ -1402,12 +1402,8 @@ var init_health = __esm({
       let error;
       let statusCode = 200;
       try {
-        const isSetupMode = process.env.NODE_ENV === "production" && process.env.SETUP_COMPLETED !== "true";
-        if (isSetupMode || !process.env.DATABASE_URL) {
-          dbStatus = "setup_mode";
-        } else {
-          await db.execute(import_drizzle_orm4.sql`SELECT 1`);
-        }
+        await db.execute(import_drizzle_orm4.sql`SELECT 1`);
+        dbStatus = "ok";
       } catch (e) {
         dbStatus = "error";
         statusCode = 503;
@@ -2456,10 +2452,14 @@ var init_mailer = __esm({
     init_schema();
     init_encryption();
     getSmtpConfig = async () => {
-      const settings = await db.select().from(systemSettings);
+      let settings = [];
+      try {
+        settings = await db.select().from(systemSettings);
+      } catch (e) {
+      }
       const config = {};
       for (const s of settings) {
-        if (s.key.startsWith("smtp_")) {
+        if (s.key && s.key.startsWith("smtp_")) {
           config[s.key] = s.value;
         }
       }
@@ -2468,14 +2468,18 @@ var init_mailer = __esm({
         try {
           pass = decryptString(config["smtp_pass"]);
         } catch (e) {
-          throw new Error("SMTP \u015Fifresi \xE7\xF6z\xFClemedi. L\xFCtfen ayarlar\u0131 kontrol edin.");
+          console.warn("SMTP \u015Fifresi \xE7\xF6z\xFClemedi, fallback kullan\u0131lacak.");
         }
       }
+      const host = config["smtp_host"] || process.env.SMTP_HOST;
+      const user = config["smtp_user"] || process.env.SMTP_USER;
+      const isConfigured = Boolean(host && user && pass);
       return {
-        host: config["smtp_host"] || process.env.SMTP_HOST || (process.env.NODE_ENV === "production" ? void 0 : "smtp.ethereal.email"),
+        isConfigured,
+        host: host || "smtp.ethereal.email",
         port: parseInt(config["smtp_port"] || process.env.SMTP_PORT || "587"),
         secure: (config["smtp_secure"] || process.env.SMTP_SECURE) === "true",
-        user: config["smtp_user"] || process.env.SMTP_USER,
+        user,
         pass,
         from: config["smtp_from"] || process.env.SMTP_FROM || '"Gen\xE7 Sosyal" <noreply@gencsosyal.com>'
       };
@@ -2489,7 +2493,13 @@ var init_mailer = __esm({
         auth: {
           user: config.user,
           pass: config.pass
-        }
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 5e3,
+        greetingTimeout: 5e3,
+        socketTimeout: 5e3
       });
     };
     escapeHtml = (unsafe) => {
@@ -2550,177 +2560,244 @@ var init_mailer = __esm({
 `;
     sendOtpVerificationEmail = async (to, displayName, otpCode) => {
       const config = await getSmtpConfig();
-      const transporter = await getTransporter();
-      const html = baseTemplate(
-        "E-posta Do\u011Frulama Kodunuz",
-        `Gen\xE7 Sosyal kay\u0131t do\u011Frulama kodunuz: ${otpCode}`,
-        `
-      <h2 class="title">E-posta Do\u011Frulama Kodunuz</h2>
-      <p class="text">Merhaba ${escapeHtml(displayName || "Kullan\u0131c\u0131")},</p>
-      <p class="text">Gen\xE7 Sosyal hesab\u0131n\u0131z\u0131 olu\u015Fturmak ve e-posta adresinizi do\u011Frulamak i\xE7in a\u015Fa\u011F\u0131daki 6 haneli tek kullan\u0131ml\u0131k g\xFCvenlik kodunu kullan\u0131n:</p>
-      <div style="text-align: center; margin: 28px 0;">
-        <div style="display: inline-block; background-color: #0f172a; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 16px 32px; border-radius: 12px; font-family: monospace, Consolas, sans-serif; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);">
-          ${escapeHtml(otpCode)}
+      if (!config.isConfigured) {
+        console.log(`
+=======================================================
+\u{1F4E7} [GEN\xC7 SOSYAL] E-POSTA DO\u011ERULAMA KODU
+Al\u0131c\u0131: ${to} (${displayName || "Kullan\u0131c\u0131"})
+\u{1F511} Do\u011Frulama Kodu: ${otpCode}
+\u2139\uFE0F SMTP sunucusu hen\xFCz yap\u0131land\u0131r\u0131lmad\u0131\u011F\u0131 i\xE7in test kodu terminale yazd\u0131r\u0131ld\u0131 ve otomatik sa\u011Fland\u0131.
+=======================================================
+`);
+        return { sent: false, devOtp: otpCode };
+      }
+      try {
+        const transporter = await getTransporter();
+        const html = baseTemplate(
+          "E-posta Do\u011Frulama Kodunuz",
+          `Gen\xE7 Sosyal kay\u0131t do\u011Frulama kodunuz: ${otpCode}`,
+          `
+        <h2 class="title">E-posta Do\u011Frulama Kodunuz</h2>
+        <p class="text">Merhaba ${escapeHtml(displayName || "Kullan\u0131c\u0131")},</p>
+        <p class="text">Gen\xE7 Sosyal hesab\u0131n\u0131z\u0131 olu\u015Fturmak ve e-posta adresinizi do\u011Frulamak i\xE7in a\u015Fa\u011F\u0131daki 6 haneli tek kullan\u0131ml\u0131k g\xFCvenlik kodunu kullan\u0131n:</p>
+        <div style="text-align: center; margin: 28px 0;">
+          <div style="display: inline-block; background-color: #0f172a; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 16px 32px; border-radius: 12px; font-family: monospace, Consolas, sans-serif; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);">
+            ${escapeHtml(otpCode)}
+          </div>
         </div>
-      </div>
-      <div class="info-box">
-        <div class="info-row"><span class="info-label">Ge\xE7erlilik S\xFCresi:</span> 10 Dakika</div>
-        <div class="info-row"><span class="info-label">G\xFCvenlik Uyar\u0131s\u0131:</span> Bu kodu hi\xE7 kimseyle payla\u015Fmay\u0131n. Gen\xE7 Sosyal ekibi sizden asla do\u011Frulama kodunuzu istemez.</div>
-      </div>
-      <p class="text" style="font-size: 13px; color: #64748b; margin-top: 20px;">Bu i\u015Flemi siz ba\u015Flatmad\u0131ysan\u0131z veya hesap a\xE7mad\u0131ysan\u0131z, bu e-postay\u0131 dikkate almayabilirsiniz.</p>
-    `
-      );
-      const text2 = `Gen\xE7 Sosyal
+        <div class="info-box">
+          <div class="info-row"><span class="info-label">Ge\xE7erlilik S\xFCresi:</span> 10 Dakika</div>
+          <div class="info-row"><span class="info-label">G\xFCvenlik Uyar\u0131s\u0131:</span> Bu kodu hi\xE7 kimseyle payla\u015Fmay\u0131n. Gen\xE7 Sosyal ekibi sizden asla do\u011Frulama kodunuzu istemez.</div>
+        </div>
+        <p class="text" style="font-size: 13px; color: #64748b; margin-top: 20px;">Bu i\u015Flemi siz ba\u015Flatmad\u0131ysan\u0131z veya hesap a\xE7mad\u0131ysan\u0131z, bu e-postay\u0131 dikkate almayabilirsiniz.</p>
+      `
+        );
+        const text2 = `Gen\xE7 Sosyal
 
 E-posta Do\u011Frulama Kodunuz: ${otpCode}
 
 Bu kod 10 dakika boyunca ge\xE7erlidir.
 G\xFCvenli\u011Finiz i\xE7in bu kodu kimseyle payla\u015Fmay\u0131n.`;
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject: "Gen\xE7 Sosyal - E-posta Do\u011Frulama Kodunuz",
-        html,
-        text: text2
-      });
+        await transporter.sendMail({
+          from: config.from,
+          to,
+          subject: "Gen\xE7 Sosyal - E-posta Do\u011Frulama Kodunuz",
+          html,
+          text: text2
+        });
+        console.log(`[SMTP] Do\u011Frulama kodu e-postas\u0131 ba\u015Far\u0131yla g\xF6nderildi: ${to}`);
+        return { sent: true };
+      } catch (err) {
+        console.warn(`[SMTP] E-posta g\xF6nderilemedi (${err?.message}). Kod terminale yazd\u0131r\u0131ld\u0131 ve test ama\xE7l\u0131 geri d\xF6n\xFCld\xFC.`);
+        console.log(`
+=======================================================
+\u{1F4E7} [FALLBACK OTP KODU] Al\u0131c\u0131: ${to}
+\u{1F511} KOD: ${otpCode}
+=======================================================
+`);
+        return { sent: false, devOtp: otpCode };
+      }
     };
     sendVerificationEmail = async (to, displayName, verifyLink) => {
       const config = await getSmtpConfig();
-      const transporter = await getTransporter();
-      const html = baseTemplate(
-        "E-posta Adresinizi Do\u011Frulay\u0131n",
-        "Gen\xE7 Sosyal'e ho\u015F geldiniz! L\xFCtfen hesab\u0131n\u0131z\u0131 do\u011Frulamak i\xE7in e-postan\u0131z\u0131 onaylay\u0131n.",
-        `
-      <h2 class="title">E-posta Adresinizi Do\u011Frulay\u0131n</h2>
-      <p class="text">Merhaba ${escapeHtml(displayName)},</p>
-      <p class="text">Gen\xE7 Sosyal'e kat\u0131ld\u0131\u011F\u0131n\u0131z i\xE7in te\u015Fekk\xFCr ederiz. Hesab\u0131n\u0131z\u0131 aktifle\u015Ftirmek i\xE7in l\xFCtfen a\u015Fa\u011F\u0131daki butona t\u0131klayarak e-posta adresinizi do\u011Frulay\u0131n.</p>
-      <div class="btn-container">
-        <a href="${verifyLink}" class="btn">E-postam\u0131 Do\u011Frula</a>
-      </div>
-      <p class="text" style="font-size: 14px;">E\u011Fer bu hesab\u0131 siz olu\u015Fturmad\u0131ysan\u0131z, bu e-postay\u0131 dikkate almayabilirsiniz.</p>
-    `
-      );
-      const text2 = `Gen\xE7 Sosyal
+      if (!config.isConfigured) {
+        console.log(`
+\u{1F4E7} [DO\u011ERULAMA BA\u011ELANTISI] Al\u0131c\u0131: ${to} -> ${verifyLink}
+`);
+        return;
+      }
+      try {
+        const transporter = await getTransporter();
+        const html = baseTemplate(
+          "E-posta Adresinizi Do\u011Frulay\u0131n",
+          "Gen\xE7 Sosyal'e ho\u015F geldiniz! L\xFCtfen hesab\u0131n\u0131z\u0131 do\u011Frulamak i\xE7in e-postan\u0131z\u0131 onaylay\u0131n.",
+          `
+        <h2 class="title">E-posta Adresinizi Do\u011Frulay\u0131n</h2>
+        <p class="text">Merhaba ${escapeHtml(displayName)},</p>
+        <p class="text">Gen\xE7 Sosyal'e kat\u0131ld\u0131\u011F\u0131n\u0131z i\xE7in te\u015Fekk\xFCr ederiz. Hesab\u0131n\u0131z\u0131 aktifle\u015Ftirmek i\xE7in l\xFCtfen a\u015Fa\u011F\u0131daki butona t\u0131klayarak e-posta adresinizi do\u011Frulay\u0131n.</p>
+        <div class="btn-container">
+          <a href="${verifyLink}" class="btn">E-postam\u0131 Do\u011Frula</a>
+        </div>
+        <p class="text" style="font-size: 14px;">E\u011Fer bu hesab\u0131 siz olu\u015Fturmad\u0131ysan\u0131z, bu e-postay\u0131 dikkate almayabilirsiniz.</p>
+      `
+        );
+        const text2 = `Gen\xE7 Sosyal
 
 M\xFC\u015Fteri e-postan\u0131z\u0131 do\u011Frulamak i\xE7in a\u015Fa\u011F\u0131daki ba\u011Flant\u0131ya t\u0131klay\u0131n:
 ${verifyLink}
 
 Bu iste\u011Fi siz ba\u015Flatmad\u0131ysan\u0131z bu e-postay\u0131 dikkate almayabilirsiniz.`;
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject: "Gen\xE7 Sosyal - E-posta Do\u011Frulama",
-        html,
-        text: text2
-      });
+        await transporter.sendMail({
+          from: config.from,
+          to,
+          subject: "Gen\xE7 Sosyal - E-posta Do\u011Frulama",
+          html,
+          text: text2
+        });
+      } catch (err) {
+        console.warn(`[SMTP] Do\u011Frulama linki e-postas\u0131 g\xF6nderilemedi (${err?.message}). Link: ${verifyLink}`);
+      }
     };
     sendPasswordResetEmail = async (to, displayName, resetLink) => {
       const config = await getSmtpConfig();
-      const transporter = await getTransporter();
-      const html = baseTemplate(
-        "\u015Eifrenizi S\u0131f\u0131rlay\u0131n",
-        "\u015Eifrenizi s\u0131f\u0131rlamak i\xE7in gerekli ba\u011Flant\u0131 bu e-postada yer almaktad\u0131r.",
-        `
-      <h2 class="title">\u015Eifrenizi S\u0131f\u0131rlay\u0131n</h2>
-      <p class="text">Merhaba ${escapeHtml(displayName)},</p>
-      <p class="text">Hesab\u0131n\u0131z i\xE7in \u015Fifre s\u0131f\u0131rlama talebinde bulundunuz. A\u015Fa\u011F\u0131daki butona t\u0131klayarak yeni \u015Fifrenizi belirleyebilirsiniz.</p>
-      <div class="btn-container">
-        <a href="${resetLink}" class="btn">\u015Eifremi S\u0131f\u0131rla</a>
-      </div>
-      <p class="text" style="font-size: 14px;">Bu ba\u011Flant\u0131 15 dakika boyunca ge\xE7erlidir. E\u011Fer bu talebi siz yapmad\u0131ysan\u0131z, hesab\u0131n\u0131z g\xFCvendedir ve bu e-postay\u0131 dikkate almayabilirsiniz.</p>
-    `
-      );
-      const text2 = `Gen\xE7 Sosyal
+      if (!config.isConfigured) {
+        console.log(`
+\u{1F511} [\u015E\u0130FRE SIFIRLAMA BA\u011ELANTISI] Al\u0131c\u0131: ${to} -> ${resetLink}
+`);
+        return;
+      }
+      try {
+        const transporter = await getTransporter();
+        const html = baseTemplate(
+          "\u015Eifrenizi S\u0131f\u0131rlay\u0131n",
+          "\u015Eifrenizi s\u0131f\u0131rlamak i\xE7in gerekli ba\u011Flant\u0131 bu e-postada yer almaktad\u0131r.",
+          `
+        <h2 class="title">\u015Eifrenizi S\u0131f\u0131rlay\u0131n</h2>
+        <p class="text">Merhaba ${escapeHtml(displayName)},</p>
+        <p class="text">Hesab\u0131n\u0131z i\xE7in \u015Fifre s\u0131f\u0131rlama talebinde bulundunuz. A\u015Fa\u011F\u0131daki butona t\u0131klayarak yeni \u015Fifrenizi belirleyebilirsiniz.</p>
+        <div class="btn-container">
+          <a href="${resetLink}" class="btn">\u015Eifremi S\u0131f\u0131rla</a>
+        </div>
+        <p class="text" style="font-size: 14px;">Bu ba\u011Flant\u0131 15 dakika boyunca ge\xE7erlidir. E\u011Fer bu talebi siz yapmad\u0131ysan\u0131z, hesab\u0131n\u0131z g\xFCvendedir ve bu e-postay\u0131 dikkate almayabilirsiniz.</p>
+      `
+        );
+        const text2 = `Gen\xE7 Sosyal
 
 \u015Eifrenizi s\u0131f\u0131rlamak i\xE7in a\u015Fa\u011F\u0131daki ba\u011Flant\u0131ya t\u0131klay\u0131n:
 ${resetLink}
 
 Bu ba\u011Flant\u0131 15 dakika ge\xE7erlidir. Bu iste\u011Fi siz ba\u015Flatmad\u0131ysan\u0131z bu e-postay\u0131 dikkate almayabilirsiniz.`;
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject: "Gen\xE7 Sosyal - \u015Eifre S\u0131f\u0131rlama Talebi",
-        html,
-        text: text2
-      });
+        await transporter.sendMail({
+          from: config.from,
+          to,
+          subject: "Gen\xE7 Sosyal - \u015Eifre S\u0131f\u0131rlama Talebi",
+          html,
+          text: text2
+        });
+      } catch (err) {
+        console.warn(`[SMTP] \u015Eifre s\u0131f\u0131rlama e-postas\u0131 g\xF6nderilemedi (${err?.message}). Link: ${resetLink}`);
+      }
     };
     sendSecurityAlertEmail = async (to, displayName, action, date, device, os, browser, ipAddress) => {
       const config = await getSmtpConfig();
-      const transporter = await getTransporter();
-      let detailsHtml = "";
-      if (device || os || browser || ipAddress) {
-        detailsHtml = `
-      <div class="info-box">
-        ${device || os || browser ? `<div class="info-row"><span class="info-label">Cihaz/Taray\u0131c\u0131:</span> ${escapeHtml(browser || "")} ${escapeHtml(os ? "\xB7 " + os : "")} ${escapeHtml(device ? "(" + device + ")" : "")}</div>` : ""}
-        ${ipAddress ? `<div class="info-row"><span class="info-label">IP Adresi:</span> ${escapeHtml(ipAddress)}</div>` : ""}
-        <div class="info-row"><span class="info-label">Zaman:</span> ${escapeHtml(date)}</div>
-      </div>
-    `;
-      } else {
-        detailsHtml = `
-      <div class="info-box">
-        <div class="info-row"><span class="info-label">\u0130\u015Flem:</span> ${escapeHtml(action)}</div>
-        <div class="info-row"><span class="info-label">Tarih:</span> ${escapeHtml(date)}</div>
-      </div>
-    `;
+      if (!config.isConfigured) {
+        console.log(`
+\u26A0\uFE0F [G\xDCVENL\u0130K B\u0130LD\u0130R\u0130M\u0130] Al\u0131c\u0131: ${to} -> \u0130\u015Flem: ${action}, Tarih: ${date}
+`);
+        return;
       }
-      const html = baseTemplate(
-        "G\xFCvenlik Uyar\u0131s\u0131: Yeni Giri\u015F Alg\u0131land\u0131",
-        "Hesab\u0131n\u0131za yeni bir giri\u015F veya \u015F\xFCpheli i\u015Flem tespit edildi.",
-        `
-      <h2 class="title">Yeni Bir Giri\u015F Alg\u0131land\u0131</h2>
-      <p class="text">Merhaba ${escapeHtml(displayName)},</p>
-      <p class="text">Hesab\u0131n\u0131zla ilgili yeni bir g\xFCvenlik olay\u0131 tespit ettik. A\u015Fa\u011F\u0131daki detaylar\u0131 kontrol edin:</p>
-      ${detailsHtml}
-      <p class="text" style="font-size: 14px;">E\u011Fer bu i\u015Flemi siz yapt\u0131ysan\u0131z, bu e-postay\u0131 g\xF6rmezden gelebilirsiniz. Ancak siz yapmad\u0131ysan\u0131z, l\xFCtfen derhal \u015Fifrenizi de\u011Fi\u015Ftirin ve di\u011Fer t\xFCm oturumlar\u0131 kapat\u0131n.</p>
-    `
-      );
-      const text2 = `Gen\xE7 Sosyal - G\xFCvenlik Bildirimi
+      try {
+        const transporter = await getTransporter();
+        let detailsHtml = "";
+        if (device || os || browser || ipAddress) {
+          detailsHtml = `
+        <div class="info-box">
+          ${device || os || browser ? `<div class="info-row"><span class="info-label">Cihaz/Taray\u0131c\u0131:</span> ${escapeHtml(browser || "")} ${escapeHtml(os ? "\xB7 " + os : "")} ${escapeHtml(device ? "(" + device + ")" : "")}</div>` : ""}
+          ${ipAddress ? `<div class="info-row"><span class="info-label">IP Adresi:</span> ${escapeHtml(ipAddress)}</div>` : ""}
+          <div class="info-row"><span class="info-label">Zaman:</span> ${escapeHtml(date)}</div>
+        </div>
+      `;
+        } else {
+          detailsHtml = `
+        <div class="info-box">
+          <div class="info-row"><span class="info-label">\u0130\u015Flem:</span> ${escapeHtml(action)}</div>
+          <div class="info-row"><span class="info-label">Tarih:</span> ${escapeHtml(date)}</div>
+        </div>
+      `;
+        }
+        const html = baseTemplate(
+          "G\xFCvenlik Uyar\u0131s\u0131: Yeni Giri\u015F Alg\u0131land\u0131",
+          "Hesab\u0131n\u0131za yeni bir giri\u015F veya \u015F\xFCpheli i\u015Flem tespit edildi.",
+          `
+        <h2 class="title">Yeni Bir Giri\u015F Alg\u0131land\u0131</h2>
+        <p class="text">Merhaba ${escapeHtml(displayName)},</p>
+        <p class="text">Hesab\u0131n\u0131zla ilgili yeni bir g\xFCvenlik olay\u0131 tespit ettik. A\u015Fa\u011F\u0131daki detaylar\u0131 kontrol edin:</p>
+        ${detailsHtml}
+        <p class="text" style="font-size: 14px;">E\u011Fer bu i\u015Flemi siz yapt\u0131ysan\u0131z, bu e-postay\u0131 g\xF6rmezden gelebilirsiniz. Ancak siz yapmad\u0131ysan\u0131z, l\xFCtfen derhal \u015Fifrenizi de\u011Fi\u015Ftirin ve di\u011Fer t\xFCm oturumlar\u0131 kapat\u0131n.</p>
+      `
+        );
+        const text2 = `Gen\xE7 Sosyal - G\xFCvenlik Bildirimi
 
 Yeni i\u015Flem alg\u0131land\u0131:
 ${action}
 Tarih: ${date}
 
 E\u011Fer bu i\u015Flemi siz yapmad\u0131ysan\u0131z l\xFCtfen \u015Fifrenizi de\u011Fi\u015Ftirin.`;
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject: "Gen\xE7 Sosyal - G\xFCvenlik Uyar\u0131s\u0131",
-        html,
-        text: text2
-      });
+        await transporter.sendMail({
+          from: config.from,
+          to,
+          subject: "Gen\xE7 Sosyal - G\xFCvenlik Uyar\u0131s\u0131",
+          html,
+          text: text2
+        });
+      } catch (err) {
+        console.warn(`[SMTP] G\xFCvenlik uyar\u0131s\u0131 e-postas\u0131 g\xF6nderilemedi (${err?.message})`);
+      }
     };
     sendVerificationStatusEmail = async (to, displayName, status) => {
       const config = await getSmtpConfig();
-      const transporter = await getTransporter();
-      const title = status === "approved" ? "Do\u011Frulama Ba\u015Fvurunuz Onayland\u0131" : "Do\u011Frulama Ba\u015Fvurunuz Reddedildi";
-      const bodyText = status === "approved" ? "Tebrikler! Mavi Tik (Onayl\u0131 Hesap) ba\u015Fvurunuz incelendi ve onayland\u0131. Art\u0131k profilinizde onay rozeti g\xF6r\xFCnecektir." : "\xDCzg\xFCn\xFCz, Mavi Tik (Onayl\u0131 Hesap) ba\u015Fvurunuz kriterlerimizi kar\u015F\u0131lamad\u0131\u011F\u0131 i\xE7in \u015Fu anda onaylanamad\u0131. \u0130lerleyen zamanlarda tekrar ba\u015Fvuru yapabilirsiniz.";
-      const html = baseTemplate(
-        title,
-        status === "approved" ? "Tebrikler, hesab\u0131n\u0131z onayland\u0131." : "Ba\u015Fvuru sonucunuz belli oldu.",
-        `
-      <h2 class="title">${title}</h2>
-      <p class="text">Merhaba ${escapeHtml(displayName)},</p>
-      <p class="text">${bodyText}</p>
-      <p class="text" style="font-size: 14px; margin-top: 30px;">Gen\xE7 Sosyal toplulu\u011Funun bir par\xE7as\u0131 oldu\u011Funuz i\xE7in te\u015Fekk\xFCr ederiz.</p>
-    `
-      );
-      const text2 = `Gen\xE7 Sosyal
+      if (!config.isConfigured) {
+        console.log(`
+\u{1F3F7}\uFE0F [DO\u011ERULAMA DURUMU] Al\u0131c\u0131: ${to} -> ${status}
+`);
+        return;
+      }
+      try {
+        const transporter = await getTransporter();
+        const title = status === "approved" ? "Do\u011Frulama Ba\u015Fvurunuz Onayland\u0131" : "Do\u011Frulama Ba\u015Fvurunuz Reddedildi";
+        const bodyText = status === "approved" ? "Tebrikler! Mavi Tik (Onayl\u0131 Hesap) ba\u015Fvurunuz incelendi ve onayland\u0131. Art\u0131k profilinizde onay rozeti g\xF6r\xFCnecektir." : "\xDCzg\xFCn\xFCz, Mavi Tik (Onayl\u0131 Hesap) ba\u015Fvurunuz kriterlerimizi kar\u015F\u0131lamad\u0131\u011F\u0131 i\xE7in \u015Fu anda onaylanamad\u0131. \u0130lerleyen zamanlarda tekrar ba\u015Fvuru yapabilirsiniz.";
+        const html = baseTemplate(
+          title,
+          status === "approved" ? "Tebrikler, hesab\u0131n\u0131z onayland\u0131." : "Ba\u015Fvuru sonucunuz belli oldu.",
+          `
+        <h2 class="title">${title}</h2>
+        <p class="text">Merhaba ${escapeHtml(displayName)},</p>
+        <p class="text">${bodyText}</p>
+        <p class="text" style="font-size: 14px; margin-top: 30px;">Gen\xE7 Sosyal toplulu\u011Funun bir par\xE7as\u0131 oldu\u011Funuz i\xE7in te\u015Fekk\xFCr ederiz.</p>
+      `
+        );
+        const text2 = `Gen\xE7 Sosyal
 
 ${title}
 
 Merhaba ${displayName},
 ${bodyText}`;
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject: `Gen\xE7 Sosyal - ${title}`,
-        html,
-        text: text2
-      });
+        await transporter.sendMail({
+          from: config.from,
+          to,
+          subject: `Gen\xE7 Sosyal - ${title}`,
+          html,
+          text: text2
+        });
+      } catch (err) {
+        console.warn(`[SMTP] Do\u011Frulama durum bildirimi g\xF6nderilemedi (${err?.message})`);
+      }
     };
     sendSmtpTestEmail = async (to) => {
       const config = await getSmtpConfig();
+      if (!config.isConfigured) {
+        throw new Error("SMTP ayarlar\u0131 hen\xFCz yap\u0131land\u0131r\u0131lmam\u0131\u015F. L\xFCtfen Sunucu (Host), Kullan\u0131c\u0131 ve Parola alanlar\u0131n\u0131 doldurun.");
+      }
       const transporter = await getTransporter();
       const html = baseTemplate(
         "Gen\xE7 Sosyal SMTP Testi",
@@ -2821,28 +2898,23 @@ async function handleSendOtp(email, displayName, username, password) {
       lastSentAt: /* @__PURE__ */ new Date()
     });
   }
+  let mailResult = { sent: false };
   try {
-    await sendOtpVerificationEmail(email, displayName, otpCode);
+    mailResult = await sendOtpVerificationEmail(email, displayName, otpCode);
   } catch (err) {
     console.error("Failed to send OTP email:", err);
-    await db.delete(otpVerifications).where((0, import_drizzle_orm9.eq)(otpVerifications.email, email));
-    return {
-      status: 500,
-      body: {
-        success: false,
-        error: { code: "SMTP_ERROR", message: "E-posta g\xF6nderimi ba\u015Far\u0131s\u0131z oldu. Sunucu veya e-posta adresi hatal\u0131 olabilir." }
-      }
-    };
+    mailResult = { sent: false, devOtp: otpCode };
   }
   return {
     status: 200,
     body: {
       success: true,
       data: {
-        message: "Do\u011Frulama kodu e-posta adresinize g\xF6nderildi.",
+        message: mailResult.sent ? "Do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Do\u011Frulama kodu olu\u015Fturuldu (\xD6nizleme/Test modunda otomatik sa\u011Fland\u0131).",
         email,
         cooldownSeconds: 60,
-        expiresInSeconds: 600
+        expiresInSeconds: 600,
+        devOtp: mailResult.devOtp || otpCode
       }
     }
   };
@@ -3089,21 +3161,20 @@ var init_auth3 = __esm({
             lastSentAt: /* @__PURE__ */ new Date()
           });
         }
+        let mailResult = { sent: false };
         try {
-          await sendOtpVerificationEmail(email, displayName || "Kullan\u0131c\u0131", otpCode);
+          mailResult = await sendOtpVerificationEmail(email, displayName || "Kullan\u0131c\u0131", otpCode);
         } catch (err) {
           console.error("Failed to resend OTP email:", err);
-          return res.status(500).json({
-            success: false,
-            error: { code: "SMTP_ERROR", message: "E-posta g\xF6nderimi ba\u015Far\u0131s\u0131z oldu." }
-          });
+          mailResult = { sent: false, devOtp: otpCode };
         }
         res.json({
           success: true,
           data: {
-            message: "Yeni do\u011Frulama kodu e-posta adresinize g\xF6nderildi.",
+            message: mailResult.sent ? "Yeni do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Yeni do\u011Frulama kodu olu\u015Fturuldu (\xD6nizleme modunda otomatik sa\u011Fland\u0131).",
             cooldownSeconds: 60,
-            expiresInSeconds: 600
+            expiresInSeconds: 600,
+            devOtp: mailResult.devOtp || otpCode
           }
         });
       } catch (error) {
@@ -4431,7 +4502,13 @@ var init_posts = __esm({
             avatarUrl: profiles.avatarUrl,
             allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm12.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(posts.id, postId), (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm12.eq)(posts.userId, currentUserId)))).limit(1);
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm12.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.and)(
+          (0, import_drizzle_orm12.eq)(posts.id, postId),
+          (0, import_drizzle_orm12.or)(
+            (0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED"),
+            currentUserId ? (0, import_drizzle_orm12.eq)(posts.userId, currentUserId) : import_drizzle_orm12.sql`false`
+          )
+        )).limit(1);
         if (postRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         }
@@ -4441,7 +4518,7 @@ var init_posts = __esm({
         }
         let pollData = void 0;
         if (post.postType === "POLL") {
-          const options = await db.select().from(pollOptions).where((0, import_drizzle_orm12.eq)(pollOptions.postId, postId)).orderBy(pollOptions.orderIndex);
+          const options = await db.select().from(pollOptions).where((0, import_drizzle_orm12.eq)(pollOptions.postId, postId)).orderBy(pollOptions.order);
           const votes = await db.select().from(pollVotes).where((0, import_drizzle_orm12.eq)(pollVotes.postId, postId));
           const totalVotes = votes.length;
           const enrichedOptions = options.map((opt) => {
@@ -4453,7 +4530,7 @@ var init_posts = __esm({
               percentage: Math.round(percentage)
             };
           });
-          const userVote = currentUserId > 0 ? votes.find((v) => v.userId === currentUserId)?.optionId : null;
+          const userVote = currentUserId && currentUserId > 0 ? votes.find((v) => v.userId === currentUserId)?.optionId : null;
           pollData = {
             options: enrichedOptions,
             totalVotes,

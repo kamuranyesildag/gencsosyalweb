@@ -33,7 +33,10 @@ export function Setup() {
       if (initial) setLoading(true);
       setChecking(true);
       setFetchError(null);
-      const res = await fetch("/api/setup/status");
+      let res = await fetch("/api/setup/status");
+      if (res.status === 404) {
+        res = await fetch("/api/v1/setup/status");
+      }
       if (res.status === 403) {
         window.location.href = "/";
         return;
@@ -97,11 +100,18 @@ export function Setup() {
   const runInstall = async () => {
     try {
       setInstalling(true);
-      const res = await fetch("/api/setup/run", {
+      let res = await fetch("/api/setup/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(adminData)
       });
+      if (res.status === 404) {
+        res = await fetch("/api/v1/setup/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(adminData)
+        });
+      }
       const data = await res.json();
       setInstallResult(data);
       if (data.success) {
