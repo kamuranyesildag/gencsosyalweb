@@ -494,9 +494,11 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                       "grid-cols-2 sm:grid-cols-3"
                     )}
                   >
-                    {post.media.map((mediaUrl: string, i: number) => {
-                      const isVideo = mediaUrl.match(/\.(mp4|webm|ogg)$/i) || mediaUrl.includes('video');
-                      return (
+                    {post.media.map((mediaItem: any, i: number) => {
+                      const mUrl = typeof mediaItem === 'string' ? mediaItem : (mediaItem.url || mediaItem.mediaUrl || '');
+                      const mType = typeof mediaItem === 'string' ? '' : (mediaItem.type || mediaItem.mediaType || '');
+                      const isVideo = mType.includes('video') || mUrl.match(/\.(mp4|webm|ogg)$/i) || mUrl.includes('video');
+                                            return (
                         <div
                           key={i}
                           className={cn(
@@ -509,15 +511,13 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                           )}
                         >
                           {isVideo ? (
-                            <video
-                              src={mediaUrl}
+                            <video src={mUrl}
                               controls
                               playsInline
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <img
-                              src={mediaUrl}
+                            <img src={mUrl}
                               alt="Gönderi Eki"
                               loading="lazy"
                               className="w-full h-full object-cover hover:opacity-95 transition-opacity"
