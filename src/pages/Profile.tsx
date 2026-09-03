@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { fetchApi } from "../lib/api";
 import { PostCard } from "../components/PostCard";
-import { VerificationBottomSheet } from "../components/VerificationBottomSheet";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { ProfileShareSheet } from "../components/ProfileShareSheet";
 import { ReportDialog } from "../components/ReportDialog";
 import { ProfileProjects } from "../components/ProfileProjects";
@@ -264,16 +264,7 @@ export function Profile() {
               <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 truncate tracking-tight">
                 {profile.displayName || profile.username}
               </h1>
-              {profile.isVerified && (
-                <button
-                  type="button"
-                  onClick={() => setShowVerification(true)}
-                  aria-label="Doğrulanmış Rozet"
-                  className="shrink-0 inline-flex items-center"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
-                </button>
-              )}
+              {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" />}
             </div>
             <p className="text-xs text-slate-400 font-medium truncate">
               {profile.postsCount !== undefined ? `${profile.postsCount} gönderi` : `@${profile.username}`}
@@ -397,16 +388,7 @@ export function Profile() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {profile.displayName || profile.username}
             </h2>
-            {profile.isVerified && (
-              <button
-                type="button"
-                onClick={() => setShowVerification(true)}
-                aria-label="Doğrulanmış Hesap"
-                className="inline-flex items-center focus:outline-none"
-              >
-                <CheckCircle2 className="w-5 h-5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
-              </button>
-            )}
+            {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" />}
           </div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">@{profile.username}</p>
         </div>
@@ -672,9 +654,7 @@ export function Profile() {
                         <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate text-sm sm:text-base">
                           {user.displayName || user.username}
                         </span>
-                        {user.isVerified && (
-                          <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
-                        )}
+                        {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
                       </div>
                       <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">@{user.username}</p>
                       {user.bio && (
@@ -707,10 +687,6 @@ export function Profile() {
         isOpen={showShare}
         onClose={() => setShowShare(false)}
         profile={profile}
-      />
-      <VerificationBottomSheet
-        isOpen={showVerification}
-        onClose={() => setShowVerification(false)}
       />
       <ReportDialog
         isOpen={showReportDialog}

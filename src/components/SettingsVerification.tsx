@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "./VerifiedBadge";
 import React, { useState, useEffect } from "react";
 import { fetchApi } from "../lib/api";
 import { 
@@ -109,7 +110,7 @@ export function SettingsVerification() {
       {user?.isVerified ? (
         <div className="p-6 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-3">
           <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
-            <CheckCircle2 className="w-8 h-8 fill-slate-600/10" />
+            <VerifiedBadge iconClassName="w-8 h-8" withModal={false} />
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Hesabınız Doğrulandı</h3>
           <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mx-auto leading-relaxed">

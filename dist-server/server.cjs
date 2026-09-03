@@ -2387,11 +2387,6 @@ var init_auth2 = __esm({
 });
 
 // server/utils/encryption.ts
-var encryption_exports = {};
-__export(encryption_exports, {
-  decryptString: () => decryptString,
-  encryptString: () => encryptString
-});
 function getKey() {
   const secret = process.env.ENCRYPTION_KEY;
   if (!secret) {
@@ -2439,17 +2434,6 @@ var init_encryption = __esm({
 });
 
 // server/utils/mailer.ts
-var mailer_exports = {};
-__export(mailer_exports, {
-  getSmtpConfig: () => getSmtpConfig,
-  getTransporter: () => getTransporter,
-  sendOtpVerificationEmail: () => sendOtpVerificationEmail,
-  sendPasswordResetEmail: () => sendPasswordResetEmail,
-  sendSecurityAlertEmail: () => sendSecurityAlertEmail,
-  sendSmtpTestEmail: () => sendSmtpTestEmail,
-  sendVerificationEmail: () => sendVerificationEmail,
-  sendVerificationStatusEmail: () => sendVerificationStatusEmail
-});
 var import_nodemailer2, getSmtpConfig, getTransporter, escapeHtml, baseTemplate, sendOtpVerificationEmail, sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendVerificationStatusEmail, sendSmtpTestEmail;
 var init_mailer = __esm({
   "server/utils/mailer.ts"() {
@@ -6782,6 +6766,7 @@ var import_express23, import_drizzle_orm27, adminRouter, getPagination;
 var init_admin = __esm({
   "server/routes/admin.ts"() {
     "use strict";
+    init_encryption();
     import_express23 = require("express");
     init_db();
     init_schema();
@@ -6966,10 +6951,9 @@ var init_admin = __esm({
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        const { recoveryCodes: recoveryCodes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
         await db.transaction(async (tx) => {
           await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm27.eq)(users.id, targetUserId));
-          await tx.delete(recoveryCodes2).where((0, import_drizzle_orm27.eq)(recoveryCodes2.userId, targetUserId));
+          await tx.delete(recoveryCodes).where((0, import_drizzle_orm27.eq)(recoveryCodes.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_2fa_reset",
@@ -7055,8 +7039,7 @@ var init_admin = __esm({
     });
     adminRouter.get("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => {
       try {
-        const { systemSettings: systemSettings2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-        const settings = await db.select().from(systemSettings2);
+        const settings = await db.select().from(systemSettings);
         const config = {
           smtp_host: process.env.SMTP_HOST || "",
           smtp_port: process.env.SMTP_PORT || "587",
@@ -7090,7 +7073,6 @@ var init_admin = __esm({
     });
     adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => {
       try {
-        const { systemSettings: systemSettings2, adminAuditLogs: adminAuditLogs2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
         const { host, port, secure, user, pass, from } = req.body;
         const updates = [
           { key: "smtp_host", value: host || "" },
@@ -7100,17 +7082,16 @@ var init_admin = __esm({
           { key: "smtp_from", value: from || "" }
         ];
         if (pass) {
-          const { encryptString: encryptString2 } = await Promise.resolve().then(() => (init_encryption(), encryption_exports));
-          updates.push({ key: "smtp_pass", value: encryptString2(pass) });
+          updates.push({ key: "smtp_pass", value: encryptString(pass) });
         }
         await db.transaction(async (tx) => {
           for (const update of updates) {
-            await tx.insert(systemSettings2).values({ key: update.key, value: update.value, updatedBy: requireAuthContext(req) }).onConflictDoUpdate({
-              target: systemSettings2.key,
+            await tx.insert(systemSettings).values({ key: update.key, value: update.value, updatedBy: requireAuthContext(req) }).onConflictDoUpdate({
+              target: systemSettings.key,
               set: { value: update.value, updatedBy: requireAuthContext(req), updatedAt: /* @__PURE__ */ new Date() }
             });
           }
-          await tx.insert(adminAuditLogs2).values({
+          await tx.insert(adminAuditLogs).values({
             adminUserId: requireAuthContext(req),
             action: "update_smtp_settings",
             targetId: "0",
@@ -7130,8 +7111,7 @@ var init_admin = __esm({
         if (!email) {
           return res.status(400).json({ success: false, error: { message: "Test e-postas\u0131 adresi gereklidir." } });
         }
-        const { sendSmtpTestEmail: sendSmtpTestEmail2 } = await Promise.resolve().then(() => (init_mailer(), mailer_exports));
-        await sendSmtpTestEmail2(email);
+        await sendSmtpTestEmail(email);
         res.json({ success: true, message: "Test e-postas\u0131 ba\u015Far\u0131yla g\xF6nderildi." });
       } catch (error) {
         console.error("Test email error:", error);
@@ -7170,8 +7150,7 @@ var init_admin = __esm({
     });
     adminRouter.get("/auto-follow", async (req, res) => {
       try {
-        const { systemSettings: systemSettings2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-        const setting = await db.select().from(systemSettings2).where((0, import_drizzle_orm27.eq)(systemSettings2.key, "auto_follow_users")).limit(1);
+        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm27.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         let userIds = [];
         if (setting.length > 0 && setting[0].value) {
           try {
@@ -7185,7 +7164,7 @@ var init_admin = __esm({
             id: users.id,
             username: users.username,
             email: users.email
-          }).from(users).where(import_drizzle_orm27.sql`${users.id} = ANY(${userIds})`);
+          }).from(users).where((0, import_drizzle_orm27.inArray)(users.id, userIds));
         }
         res.json({ success: true, data: autoFollowUsers });
       } catch (error) {
@@ -7194,13 +7173,12 @@ var init_admin = __esm({
     });
     adminRouter.put("/auto-follow", async (req, res) => {
       try {
-        const { systemSettings: systemSettings2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
         const { userIds } = req.body;
         if (!Array.isArray(userIds)) {
           return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz veri format\u0131." } });
         }
-        await db.insert(systemSettings2).values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: requireAuthContext(req) }).onConflictDoUpdate({
-          target: systemSettings2.key,
+        await db.insert(systemSettings).values({ key: "auto_follow_users", value: JSON.stringify(userIds), updatedBy: requireAuthContext(req) }).onConflictDoUpdate({
+          target: systemSettings.key,
           set: { value: JSON.stringify(userIds), updatedBy: requireAuthContext(req), updatedAt: /* @__PURE__ */ new Date() }
         });
         res.json({ success: true, message: "Otomatik takip listesi g\xFCncellendi." });

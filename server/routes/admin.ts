@@ -1,10 +1,11 @@
+import { encryptString } from "../utils/encryption.js";
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities } from "../../src/db/schema.js";
-import { eq, ilike, or, desc, sql, and } from "drizzle-orm";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes } from "../../src/db/schema.js";
+import { eq, ilike, or, desc, sql, and, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
-import { sendVerificationStatusEmail } from "../utils/mailer.js";
+import { sendVerificationStatusEmail, sendSmtpTestEmail } from "../utils/mailer.js";
 
 export const adminRouter = Router();
 
@@ -229,8 +230,7 @@ adminRouter.post("/users/:id/reset-2fa", async (req: Request, res: Response): Pr
       return;
     }
 
-    const { recoveryCodes } = await import("../../src/db/schema.js");
-
+    
     await db.transaction(async (tx: DbTransaction) => {
       await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where(eq(users.id, targetUserId));
       await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, targetUserId));
@@ -344,8 +344,7 @@ adminRouter.patch("/reports/:id", async (req: Request, res: Response): Promise<v
 
 adminRouter.get("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => {
   try {
-    const { systemSettings } = await import("../../src/db/schema.js");
-    const settings = await db.select().from(systemSettings);
+        const settings = await db.select().from(systemSettings);
     
     const config: Record<string, string> = {
       smtp_host: process.env.SMTP_HOST || "",
@@ -384,8 +383,7 @@ adminRouter.get("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => 
 
 adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => {
   try {
-    const { systemSettings, adminAuditLogs } = await import("../../src/db/schema.js");
-    const { host, port, secure, user, pass, from } = req.body;
+        const { host, port, secure, user, pass, from } = req.body;
     
     const updates = [
       { key: "smtp_host", value: host || "" },
@@ -396,8 +394,7 @@ adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => 
     ];
     
     if (pass) {
-      const { encryptString } = await import("../utils/encryption.js");
-      updates.push({ key: "smtp_pass", value: encryptString(pass) });
+            updates.push({ key: "smtp_pass", value: encryptString(pass) });
     }
 
     await db.transaction(async (tx: DbTransaction) => {
@@ -433,8 +430,7 @@ adminRouter.post("/smtp/test", requireAuth, requireRole("ADMIN"), async (req, re
       return res.status(400).json({ success: false, error: { message: "Test e-postası adresi gereklidir." } });
     }
 
-    const { sendSmtpTestEmail } = await import("../utils/mailer.js");
-    await sendSmtpTestEmail(email);
+        await sendSmtpTestEmail(email);
 
     res.json({ success: true, message: "Test e-postası başarıyla gönderildi." });
   } catch (error) {
@@ -490,8 +486,7 @@ adminRouter.put("/official-accounts/:id", async (req, res) => {
 
 adminRouter.get("/auto-follow", async (req, res) => {
   try {
-    const { systemSettings } = await import("../../src/db/schema.js");
-    const setting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'auto_follow_users')).limit(1);
+        const setting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'auto_follow_users')).limit(1);
     
     let userIds: number[] = [];
     if (setting.length > 0 && setting[0].value) {
@@ -506,7 +501,7 @@ adminRouter.get("/auto-follow", async (req, res) => {
             id: users.id,
             username: users.username,
             email: users.email
-        }).from(users).where(sql`${users.id} = ANY(${userIds})`);
+        }).from(users).where(inArray(users.id, userIds));
     }
     
     res.json({ success: true, data: autoFollowUsers });
@@ -517,8 +512,7 @@ adminRouter.get("/auto-follow", async (req, res) => {
 
 adminRouter.put("/auto-follow", async (req, res) => {
   try {
-    const { systemSettings } = await import("../../src/db/schema.js");
-    const { userIds } = req.body; // array of numbers
+        const { userIds } = req.body; // array of numbers
     
     if (!Array.isArray(userIds)) {
       return res.status(400).json({ success: false, error: { message: "Geçersiz veri formatı." } });

@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "../VerifiedBadge";
 import React, { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
@@ -107,9 +108,7 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
                     <h3 id="more-sheet-title" className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
                       {user?.displayName || user?.username}
                     </h3>
-                    {user?.isVerified && (
-                      <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
-                    )}
+                    {user?.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">@{user?.username}</p>
                 </div>

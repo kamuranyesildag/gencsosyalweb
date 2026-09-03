@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "./VerifiedBadge";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Search, Loader2, CheckCircle2, UserPlus, Users } from "lucide-react";
@@ -182,9 +183,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
                           <span className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate">
                             {user.displayName || user.username}
                           </span>
-                          {user.isVerified && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
-                          )}
+                          {user.isVerified && <VerifiedBadge iconClassName="w-3.5 h-3.5" withModal={false} />}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                           @{user.username}

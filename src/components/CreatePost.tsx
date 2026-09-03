@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "./VerifiedBadge";
 import React, { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
@@ -187,7 +188,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
           {isAuthenticated && user && (isFocused || content.length > 0 || mediaFiles.length > 0) && (
             <div className="flex items-center gap-1.5 mb-2 -mt-1">
               <span className="font-bold text-slate-900 dark:text-slate-100 text-[15px]">{user.displayName || user.username}</span>
-              {user.isVerified && <BadgeCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
+              {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
               <span className="text-slate-500 dark:text-slate-400 text-[14px]">@{user.username}</span>
             </div>
           )}

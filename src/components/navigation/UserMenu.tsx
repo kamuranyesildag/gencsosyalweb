@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "../VerifiedBadge";
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
@@ -145,9 +146,7 @@ export function UserMenu() {
                     <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {user.displayName || user.username}
                     </p>
-                    {user.isVerified && (
-                      <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-indigo-400 fill-slate-100 dark:fill-slate-900 shrink-0" aria-label="Doğrulanmış Hesap" />
-                    )}
+                    {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">@{user.username}</p>
                 </div>

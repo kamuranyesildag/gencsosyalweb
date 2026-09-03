@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
+import { VerifiedBadge } from "./VerifiedBadge";
 import {
   ShieldAlert,
   Heart,
@@ -21,7 +22,6 @@ import {
 import { Avatar } from "./ui/Avatar";
 import { Button } from "./ui/Button";
 import { RichText } from "./RichText";
-import { VerificationBottomSheet } from "./VerificationBottomSheet";
 import { ReportDialog } from "./ReportDialog";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { formatTimeAgo, cn } from "../lib/utils";
@@ -360,9 +360,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
               <span className="font-bold text-slate-900 dark:text-white text-[15px] group-hover/author:underline truncate">
                 {post.user?.displayName || post.user?.username}
               </span>
-              {post.user?.isVerified && (
-                <CheckCircle2 className="w-4 h-4 text-slate-500 dark:text-indigo-400 fill-slate-500/10 shrink-0" />
-              )}
+              {post.user?.isVerified && <VerifiedBadge iconClassName="w-4 h-4" />}
             </Link>
             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[14px] shrink-0">
               <span className="hidden sm:inline">@{post.user?.username}</span>
@@ -615,8 +613,6 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
           </div>
         </div>
       </div>
-
-      <VerificationBottomSheet isOpen={showVerification} onClose={() => setShowVerification(false)} />
       <ReportDialog isOpen={showReportDialog} onClose={() => setShowReportDialog(false)} targetType="post" targetId={post.id} />
     </article>
   );
