@@ -10,12 +10,8 @@ healthRouter.get("/", async (req, res) => {
   let statusCode = 200;
 
   try {
-    const isSetupMode = process.env.NODE_ENV === "production" && process.env.SETUP_COMPLETED !== "true";
-    if (isSetupMode || !process.env.DATABASE_URL) {
-      dbStatus = "setup_mode";
-    } else {
-      await db.execute(sql`SELECT 1`);
-    }
+    await db.execute(sql`SELECT 1`);
+    dbStatus = "ok";
   } catch (e: unknown) {
     dbStatus = "error";
     statusCode = 503;

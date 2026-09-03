@@ -86,7 +86,13 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
     }).from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
       .leftJoin(profiles, eq(users.id, profiles.userId))
-      .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))))
+      .where(and(
+        eq(posts.id, postId),
+        or(
+          eq(posts.moderationStatus, 'APPROVED'),
+          currentUserId ? eq(posts.userId, currentUserId) : sql`false`
+        )
+      ))
       .limit(1);
     
     if (postRecord.length === 0) {
@@ -101,12 +107,12 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
 
     let pollData = undefined;
     if (post.postType === 'POLL') {
-      const options = await db.select().from(pollOptions).where(eq(pollOptions.postId, postId)).orderBy(pollOptions.orderIndex);
+      const options = await db.select().from(pollOptions).where(eq(pollOptions.postId, postId)).orderBy(pollOptions.order);
       const votes = await db.select().from(pollVotes).where(eq(pollVotes.postId, postId));
       const totalVotes = votes.length;
       
-      const enrichedOptions = options.map(opt => {
-        const optionVotes = votes.filter(v => v.optionId === opt.id).length;
+      const enrichedOptions = options.map((opt: any) => {
+        const optionVotes = votes.filter((v: any) => v.optionId === opt.id).length;
         const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
         return {
           ...opt,
@@ -115,7 +121,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
         };
       });
 
-      const userVote = currentUserId > 0 ? votes.find(v => v.userId === currentUserId)?.optionId : null;
+      const userVote = currentUserId && currentUserId > 0 ? votes.find((v: any) => v.userId === currentUserId)?.optionId : null;
 
       pollData = {
         options: enrichedOptions,

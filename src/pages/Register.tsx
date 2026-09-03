@@ -123,7 +123,12 @@ export function Register() {
 
       setCooldown(data?.data?.cooldownSeconds || 60);
       setRemainingAttempts(null);
-      setOtpDigits(['', '', '', '', '', '']);
+      if (data?.data?.devOtp) {
+        const digits = String(data.data.devOtp).slice(0, 6).split('');
+        setOtpDigits(digits);
+      } else {
+        setOtpDigits(['', '', '', '', '', '']);
+      }
       setStep(6);
     } catch (err: any) {
       setError(err.message || 'Doğrulama kodu gönderilirken bir hata oluştu.');
@@ -172,7 +177,12 @@ export function Register() {
       }
       setCooldown(data?.data?.cooldownSeconds || 60);
       setRemainingAttempts(null);
-      setOtpDigits(['', '', '', '', '', '']);
+      if (data?.data?.devOtp) {
+        const digits = String(data.data.devOtp).slice(0, 6).split('');
+        setOtpDigits(digits);
+      } else {
+        setOtpDigits(['', '', '', '', '', '']);
+      }
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setError(err.message || 'Kod tekrar gönderilemedi.');

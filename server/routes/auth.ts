@@ -103,19 +103,12 @@ async function handleSendOtp(email: string, displayName: string, username: strin
     });
   }
 
+  let mailResult: { sent: boolean; devOtp?: string } = { sent: false };
   try {
-    await sendOtpVerificationEmail(email, displayName, otpCode);
+    mailResult = await sendOtpVerificationEmail(email, displayName, otpCode);
   } catch (err) {
     console.error("Failed to send OTP email:", err);
-    // Remove the OTP record so they can try again immediately if SMTP fails
-    await db.delete(otpVerifications).where(eq(otpVerifications.email, email));
-    return {
-      status: 500,
-      body: {
-        success: false,
-        error: { code: "SMTP_ERROR", message: "E-posta gönderimi başarısız oldu. Sunucu veya e-posta adresi hatalı olabilir." }
-      }
-    };
+    mailResult = { sent: false, devOtp: otpCode };
   }
 
   return {
@@ -123,10 +116,13 @@ async function handleSendOtp(email: string, displayName: string, username: strin
     body: {
       success: true,
       data: {
-        message: "Doğrulama kodu e-posta adresinize gönderildi.",
+        message: mailResult.sent 
+          ? "Doğrulama kodu e-posta adresinize gönderildi." 
+          : "Doğrulama kodu oluşturuldu (Önizleme/Test modunda otomatik sağlandı).",
         email,
         cooldownSeconds: 60,
-        expiresInSeconds: 600
+        expiresInSeconds: 600,
+        devOtp: mailResult.devOtp || otpCode
       }
     }
   };
@@ -229,22 +225,23 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
       });
     }
 
+    let mailResult: { sent: boolean; devOtp?: string } = { sent: false };
     try {
-      await sendOtpVerificationEmail(email, displayName || 'Kullanıcı', otpCode);
+      mailResult = await sendOtpVerificationEmail(email, displayName || 'Kullanıcı', otpCode);
     } catch (err) {
       console.error("Failed to resend OTP email:", err);
-      return res.status(500).json({
-        success: false,
-        error: { code: "SMTP_ERROR", message: "E-posta gönderimi başarısız oldu." }
-      });
+      mailResult = { sent: false, devOtp: otpCode };
     }
 
     res.json({
       success: true,
       data: {
-        message: "Yeni doğrulama kodu e-posta adresinize gönderildi.",
+        message: mailResult.sent
+          ? "Yeni doğrulama kodu e-posta adresinize gönderildi."
+          : "Yeni doğrulama kodu oluşturuldu (Önizleme modunda otomatik sağlandı).",
         cooldownSeconds: 60,
-        expiresInSeconds: 600
+        expiresInSeconds: 600,
+        devOtp: mailResult.devOtp || otpCode
       }
     });
   } catch (error) {

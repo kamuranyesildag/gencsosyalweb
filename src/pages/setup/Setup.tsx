@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, ArrowRight, ShieldCheck, Server, Globe, UserPlus, Cog, Check, Info, Lock, Link } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, ArrowRight, ShieldCheck, Server, Globe, UserPlus, Cog, Check, Info, Lock, Link, RefreshCw } from "lucide-react";
 
 export function Setup() {
   const [currentStep, setCurrentStep] = useState(1);
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // App Config Info
   const [config, setConfig] = useState({
@@ -26,34 +28,46 @@ export function Setup() {
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (initial = false) => {
     try {
-      setLoading(true);
+      if (initial) setLoading(true);
+      setChecking(true);
+      setFetchError(null);
       const res = await fetch("/api/setup/status");
       if (res.status === 403) {
         window.location.href = "/";
         return;
       }
       const data = await res.json();
-      setStatus(data.data);
+      if (data.success && data.data) {
+        setStatus(data.data);
+      } else {
+        setFetchError(data.error?.message || "Sunucu durum bilgisi alınamadı.");
+      }
       
-      // Extract config from meta or window if we don't have an endpoint for it yet
-      // Or we can just use window.location.origin for Domain
       setConfig({
         appUrl: window.location.origin,
         frontendUrl: window.location.origin
       });
       
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setFetchError(err?.message || "Sunucuya bağlanılamadı.");
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
+      setChecking(false);
     }
   };
 
   useEffect(() => {
-    fetchStatus();
+    fetchStatus(true);
   }, []);
+
+  useEffect(() => {
+    if (currentStep === 4 || currentStep === 5) {
+      fetchStatus(false);
+    }
+  }, [currentStep]);
 
   if (loading) {
     return (
@@ -213,8 +227,31 @@ export function Setup() {
     
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>4. Veritabanı</h2>
-        <p className="text-slate-600">PostgreSQL bağlantısı ve şema bütünlüğü.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>4. Veritabanı</h2>
+            <p className="text-slate-600">PostgreSQL / Veritabanı bağlantısı ve şema bütünlüğü.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchStatus(false)}
+            disabled={checking}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            title="Veritabanı durumunu tekrar sorgula"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${checking ? "animate-spin text-blue-600" : ""}`} />
+            {checking ? "Kontrol ediliyor..." : "Yeniden Kontrol Et"}
+          </button>
+        </div>
+
+        {fetchError && (
+          <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200 flex items-center justify-between">
+            <span>{fetchError}</span>
+            <button onClick={() => fetchStatus(false)} className="text-xs font-semibold underline hover:text-red-800">
+              Tekrar Dene
+            </button>
+          </div>
+        )}
         
         <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
@@ -222,36 +259,56 @@ export function Setup() {
               <Server className="w-5 h-5 text-slate-500" />
               <div>
                 <p className="font-medium text-slate-900">Veritabanı Bağlantısı</p>
-                <p className="text-sm text-slate-500">{dbStatus?.message || "Kontrol ediliyor..."}</p>
+                <p className="text-sm text-slate-500">
+                  {checking ? "Bağlantı kontrol ediliyor..." : (dbStatus?.message || "Kontrol ediliyor...")}
+                </p>
               </div>
             </div>
-            <StatusBadge status={dbStatus?.status} />
+            {checking && !dbStatus ? (
+              <span className="text-slate-400 text-sm flex items-center gap-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Kontrol ediliyor...
+              </span>
+            ) : (
+              <StatusBadge status={dbStatus?.status} />
+            )}
           </div>
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
             <div className="flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-slate-500" />
               <div>
                 <p className="font-medium text-slate-900">Şema Migrasyonu</p>
-                <p className="text-sm text-slate-500">{migStatus?.message || "Kontrol ediliyor..."}</p>
+                <p className="text-sm text-slate-500">
+                  {checking ? "Şema tabloları kontrol ediliyor..." : (migStatus?.message || "Kontrol ediliyor...")}
+                </p>
               </div>
             </div>
-            <StatusBadge status={migStatus?.status} />
+            {checking && !migStatus ? (
+              <span className="text-slate-400 text-sm flex items-center gap-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Kontrol ediliyor...
+              </span>
+            ) : (
+              <StatusBadge status={migStatus?.status} />
+            )}
           </div>
         </div>
         <div className="pt-4 flex justify-between items-center">
           <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
           
-          {migStatus?.status !== "SUCCESS" && (
-            <button onClick={fetchStatus} className="text-blue-600 hover:text-blue-700 font-medium text-sm">Tekrar Dene</button>
-          )}
+          <div className="flex items-center gap-3">
+            {migStatus?.status !== "SUCCESS" && (
+              <button onClick={() => fetchStatus(false)} disabled={checking} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                Tekrar Dene
+              </button>
+            )}
 
-          <button 
-            onClick={handleNext} 
-            disabled={dbStatus?.status !== "SUCCESS"} 
-            className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
-          >
-            Devam Et
-          </button>
+            <button 
+              onClick={handleNext} 
+              disabled={dbStatus?.status !== "SUCCESS" || checking} 
+              className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              Devam Et
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -261,8 +318,21 @@ export function Setup() {
     const envStatus = getStepStatus("ENVIRONMENT_VALIDATION");
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>5. Güvenlik</h2>
-        <p className="text-slate-600">Kriptografik anahtarların ve gizli değişkenlerin doğrulanması.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>5. Güvenlik</h2>
+            <p className="text-slate-600">Kriptografik anahtarların ve gizli değişkenlerin doğrulanması.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchStatus(false)}
+            disabled={checking}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${checking ? "animate-spin text-blue-600" : ""}`} />
+            {checking ? "Kontrol ediliyor..." : "Yenile"}
+          </button>
+        </div>
         
         <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
           <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
@@ -270,7 +340,7 @@ export function Setup() {
               <ShieldCheck className="w-5 h-5 text-slate-500" />
               <div>
                 <p className="font-medium text-slate-900">Secret Validation</p>
-                <p className="text-sm text-slate-500">{envStatus?.message || "Kontrol ediliyor..."}</p>
+                <p className="text-sm text-slate-500">{checking ? "Kontrol ediliyor..." : (envStatus?.message || "Kontrol ediliyor...")}</p>
               </div>
             </div>
             <StatusBadge status={envStatus?.status} />
@@ -280,7 +350,7 @@ export function Setup() {
           <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
           <button 
             onClick={handleNext} 
-            disabled={envStatus?.status !== "SUCCESS"} 
+            disabled={envStatus?.status !== "SUCCESS" || checking} 
             className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             Devam Et

@@ -271,7 +271,7 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
     // Media cleanup
     const userProfile = await db.select({ avatarUrl: profiles.avatarUrl, coverUrl: profiles.coverUrl }).from(profiles).where(eq(profiles.userId, currentUserId)).limit(1);
     const userPosts = await db.select({ id: posts.id }).from(posts).where(eq(posts.userId, currentUserId));
-    const postIds = userPosts.map(p => p.id);
+    const postIds = userPosts.map((p: { id: number }) => p.id);
     
     let allMediaUrls: string[] = [];
     if (userProfile.length > 0) {
@@ -281,7 +281,7 @@ usersRouter.post("/me/delete", requireAuth, authRateLimiter, async (req, res) =>
     
     if (postIds.length > 0) {
       const pm = await db.select({ mediaUrl: postMedia.mediaUrl }).from(postMedia).where(inArray(postMedia.postId, postIds));
-      allMediaUrls.push(...pm.map(m => m.mediaUrl));
+      allMediaUrls.push(...pm.map((m: { mediaUrl: string }) => m.mediaUrl));
     }
     
     allMediaUrls.forEach(url => {

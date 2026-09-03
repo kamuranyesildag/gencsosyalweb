@@ -40,17 +40,17 @@ setupRouter.get("/status", async (req, res) => {
   };
 
   // Check Environment Validation
-  const requiredEnv = [
-    "POSTGRES_PASSWORD", "DATABASE_URL", "JWT_SECRET", "JWT_REFRESH_SECRET", 
-    "JWT_EMAIL_SECRET", "JWT_2FA_SECRET", "ENCRYPTION_KEY"
-  ];
+  const isProduction = process.env.NODE_ENV === "production";
+  const requiredEnv = isProduction 
+    ? ["JWT_SECRET", "JWT_REFRESH_SECRET", "ENCRYPTION_KEY"]
+    : [];
   const missingEnv = requiredEnv.filter(k => !process.env[k]);
 
   if (missingEnv.length > 0) {
     statusReport.steps.push({
       step: "ENVIRONMENT_VALIDATION",
       status: "FAILED",
-      message: "Missing required secure secrets.",
+      message: "Eksik ortam anahtarları: " + missingEnv.join(", "),
       diagnostic_code: "ENV_MISSING_SECRETS"
     });
     statusReport.state = "FAILED";
@@ -60,17 +60,20 @@ setupRouter.get("/status", async (req, res) => {
   statusReport.steps.push({
     step: "ENVIRONMENT_VALIDATION",
     status: "SUCCESS",
-    message: "Environment secrets verified.",
+    message: isProduction 
+      ? "Ortam değişkenleri ve güvenlik anahtarları doğrulandı."
+      : "Geliştirme/yerel çalışma ortamı ve güvenlik anahtarları hazır.",
     diagnostic_code: "ENV_OK"
   });
 
   // Check Database Connection
   try {
     await db.execute(sql`SELECT 1`);
+    const isPg = Boolean(process.env.DATABASE_URL);
     statusReport.steps.push({
       step: "DATABASE_CONNECTION",
       status: "SUCCESS",
-      message: "Database connection established.",
+      message: isPg ? "PostgreSQL veritabanı bağlantısı kuruldu." : "Lokal PGlite veritabanı bağlantısı aktif.",
       diagnostic_code: "DB_OK"
     });
     statusReport.state = "DATABASE_READY";
@@ -78,7 +81,7 @@ setupRouter.get("/status", async (req, res) => {
     statusReport.steps.push({
       step: "DATABASE_CONNECTION",
       status: "FAILED",
-      message: "Database connection failed.",
+      message: "Veritabanı bağlantısı kurulamadı.",
       diagnostic_code: "DB_CONN_FAIL"
     });
     statusReport.state = "FAILED";
@@ -91,7 +94,7 @@ setupRouter.get("/status", async (req, res) => {
     statusReport.steps.push({
       step: "DATABASE_MIGRATION",
       status: "SUCCESS",
-      message: "Database schema is migrated.",
+      message: "Veritabanı şeması ve tablolar hazır.",
       diagnostic_code: "DB_MIGRATED"
     });
     statusReport.state = "MIGRATED";
@@ -99,7 +102,7 @@ setupRouter.get("/status", async (req, res) => {
     statusReport.steps.push({
       step: "DATABASE_MIGRATION",
       status: "FAILED",
-      message: "Database schema migration missing.",
+      message: "Veritabanı şeması bulunamadı.",
       diagnostic_code: "DB_NOT_MIGRATED"
     });
     statusReport.state = "FAILED";
@@ -111,7 +114,7 @@ setupRouter.get("/status", async (req, res) => {
     statusReport.steps.push({
       step: "SMTP_CONFIGURATION",
       status: "PARTIAL",
-      message: "SMTP is not fully configured.",
+      message: "SMTP yapılandırılmadı (İsteğe bağlı, kurulum sonrasında Yönetim Paneli üzerinden ayarlanabilir).",
       diagnostic_code: "SMTP_NOT_CONFIGURED"
     });
   } else {
@@ -129,14 +132,14 @@ setupRouter.get("/status", async (req, res) => {
       statusReport.steps.push({
         step: "SMTP_CONFIGURATION",
         status: "SUCCESS",
-        message: "SMTP connection successful.",
+        message: "SMTP bağlantısı başarılı.",
         diagnostic_code: "SMTP_OK"
       });
     } catch (e: unknown) {
       statusReport.steps.push({
         step: "SMTP_CONFIGURATION",
-        status: "FAILED",
-        message: "SMTP configuration is invalid.",
+        status: "PARTIAL",
+        message: "SMTP sunucusuna erişilemedi (Daha sonra ayarlanabilir).",
         diagnostic_code: "SMTP_VERIFY_FAIL"
       });
     }
@@ -150,7 +153,7 @@ setupRouter.post("/run", async (req, res) => {
   const { adminEmail, adminUsername, adminPassword, adminFullName } = req.body;
 
   if (!adminEmail || !adminUsername || !adminPassword || !adminFullName) {
-    return res.status(400).json({ success: false, error: { message: "Missing admin credentials." } });
+    return res.status(400).json({ success: false, error: { message: "Tüm alanların doldurulması zorunludur." } });
   }
 
   try {
@@ -172,10 +175,18 @@ setupRouter.post("/run", async (req, res) => {
         email: adminEmail,
         username: adminUsername,
         passwordHash: hashedPassword,
-        
         role: "admin",
         isVerified: true,
+        emailVerified: true,
+        isActive: true,
       }).returning();
+
+      // Create Admin Profile
+      const { profiles } = await import("../../src/db/schema.js");
+      await tx.insert(profiles).values({
+        userId: newAdmin[0].id,
+        displayName: adminFullName,
+      }).onConflictDoNothing();
 
       return newAdmin[0];
     });
@@ -184,16 +195,15 @@ setupRouter.post("/run", async (req, res) => {
       success: true, 
       data: { 
         state: "COMPLETED",
-        message: "Setup finished successfully.",
-        // Do not return any secrets or passwords
+        message: "Kurulum başarıyla tamamlandı.",
       } 
     });
 
   } catch (error: unknown) {
     if ((error as Error).message === "ADMIN_EXISTS") {
-      return res.status(403).json({ success: false, error: { message: "Setup is already completed and locked." } });
+      return res.status(403).json({ success: false, error: { message: "Kurulum zaten tamamlanmış." } });
     }
     console.error("Setup run error:", error);
-    return res.status(500).json({ success: false, error: { message: "An error occurred during setup." } });
+    return res.status(500).json({ success: false, error: { message: "Kurulum sırasında bir hata oluştu." } });
   }
 });
