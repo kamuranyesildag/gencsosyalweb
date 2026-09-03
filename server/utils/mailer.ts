@@ -127,13 +127,13 @@ const baseTemplate = (title: string, preheader: string, content: string) => `
 </html>
 `;
 
-export const sendOtpVerificationEmail = async (to: string, displayName: string, otpCode: string): Promise<{ sent: boolean; devOtp?: string }> => {
+export const sendOtpVerificationEmail = async (to: string, displayName: string, otpCode: string): Promise<{ sent: boolean }> => {
   const config = await getSmtpConfig();
 
-  // If SMTP is not fully configured, log the OTP clearly and return devOtp
+  // If SMTP is not fully configured, log the OTP clearly to server console for admin
   if (!config.isConfigured) {
-    console.log(`\n=======================================================\n📧 [GENÇ SOSYAL] E-POSTA DOĞRULAMA KODU\nAlıcı: ${to} (${displayName || 'Kullanıcı'})\n🔑 Doğrulama Kodu: ${otpCode}\nℹ️ SMTP sunucusu henüz yapılandırılmadığı için test kodu terminale yazdırıldı ve otomatik sağlandı.\n=======================================================\n`);
-    return { sent: false, devOtp: otpCode };
+    console.log(`\n=======================================================\n📧 [GENÇ SOSYAL] E-POSTA DOĞRULAMA KODU\nAlıcı: ${to} (${displayName || 'Kullanıcı'})\n🔑 Doğrulama Kodu: ${otpCode}\nℹ️ SMTP sunucusu henüz yapılandırılmadığı için test kodu terminale yazdırıldı.\n=======================================================\n`);
+    return { sent: false };
   }
 
   try {
@@ -170,9 +170,9 @@ export const sendOtpVerificationEmail = async (to: string, displayName: string, 
     console.log(`[SMTP] Doğrulama kodu e-postası başarıyla gönderildi: ${to}`);
     return { sent: true };
   } catch (err: any) {
-    console.warn(`[SMTP] E-posta gönderilemedi (${err?.message}). Kod terminale yazdırıldı ve test amaçlı geri dönüldü.`);
+    console.warn(`[SMTP] E-posta gönderilemedi (${err?.message}). Kod terminale yazdırıldı.`);
     console.log(`\n=======================================================\n📧 [FALLBACK OTP KODU] Alıcı: ${to}\n🔑 KOD: ${otpCode}\n=======================================================\n`);
-    return { sent: false, devOtp: otpCode };
+    return { sent: false };
   }
 };
 

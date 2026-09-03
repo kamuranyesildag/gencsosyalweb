@@ -52,6 +52,12 @@ export const createPglite = () => {
     console.warn("Tüm verileriniz ./database klasörüne kaydedilecektir.");
     console.warn("=========================================================");
     const dbPath = path.join(process.cwd(), 'database');
+    const pidPath = path.join(dbPath, 'postmaster.pid');
+    if (fs.existsSync(pidPath)) {
+      try {
+        fs.unlinkSync(pidPath);
+      } catch (_) {}
+    }
     try {
       global._pgliteClient = new PGlite(dbPath);
     } catch (err) {

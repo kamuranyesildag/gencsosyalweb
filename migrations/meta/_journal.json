@@ -211,6 +211,13 @@
       "when": 1787558441967,
       "tag": "0029_far_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788454181710,
+      "tag": "0030_tearful_star_brand",
+      "breakpoints": true
     }
   ]
 }

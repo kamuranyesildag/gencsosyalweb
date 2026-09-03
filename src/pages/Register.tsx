@@ -123,13 +123,11 @@ export function Register() {
 
       setCooldown(data?.data?.cooldownSeconds || 60);
       setRemainingAttempts(null);
-      if (data?.data?.devOtp) {
-        const digits = String(data.data.devOtp).slice(0, 6).split('');
-        setOtpDigits(digits);
-      } else {
-        setOtpDigits(['', '', '', '', '', '']);
-      }
+      setOtpDigits(['', '', '', '', '', '']);
       setStep(6);
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
     } catch (err: any) {
       setError(err.message || 'Doğrulama kodu gönderilirken bir hata oluştu.');
     } finally {
@@ -177,12 +175,7 @@ export function Register() {
       }
       setCooldown(data?.data?.cooldownSeconds || 60);
       setRemainingAttempts(null);
-      if (data?.data?.devOtp) {
-        const digits = String(data.data.devOtp).slice(0, 6).split('');
-        setOtpDigits(digits);
-      } else {
-        setOtpDigits(['', '', '', '', '', '']);
-      }
+      setOtpDigits(['', '', '', '', '', '']);
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setError(err.message || 'Kod tekrar gönderilemedi.');
@@ -649,6 +642,7 @@ export function Register() {
                         <input
                           key={idx}
                           ref={(el) => { otpInputRefs.current[idx] = el; }}
+                          id={`register-otp-input-${idx}`}
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
@@ -661,7 +655,7 @@ export function Register() {
                               ? 'border-slate-900 bg-slate-100/40 text-slate-900 ring-2 ring-slate-900/10'
                               : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/10'
                           }`}
-                          autoComplete="one-time-code"
+                          autoComplete="off"
                         />
                       ))}
                     </div>

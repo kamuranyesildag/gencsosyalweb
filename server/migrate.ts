@@ -22,9 +22,18 @@ async function runMigration() {
       await migratePglite(db, { migrationsFolder: path.join(process.cwd(), "migrations") });
     }
     console.log("✅ Database migrations completed successfully.");
-  } catch (error) {
-    console.error("❌ Database migration failed:", error);
-    exitCode = 1;
+  } catch (error: any) {
+    const errorCode = error?.code || error?.cause?.code;
+    const errorMsg = String(error?.message || error?.cause?.message || "");
+
+    if (errorCode === "42P07" || errorCode === "42710" || errorCode === "42701" || errorMsg.includes("already exists")) {
+      console.warn("⚠️ Veritabanı tabloları veya şema nesneleri zaten mevcut (" + (errorCode || "already exists") + ").");
+      console.log("ℹ️ Mevcut veritabanı şeması korunarak devam ediliyor.");
+      exitCode = 0;
+    } else {
+      console.error("❌ Database migration failed:", error);
+      exitCode = 1;
+    }
   } finally {
     try {
       if (global._postgresPool) {

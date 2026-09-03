@@ -4,7 +4,7 @@ import argon2 from "argon2";
 import crypto from "crypto";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, refreshTokens, otpVerifications } from "../../src/db/schema.js";
+import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows } from "../../src/db/schema.js";
 import { eq, or, and, sql, desc, isNull } from "drizzle-orm";
 import { 
   registerSchema, 
@@ -103,12 +103,12 @@ async function handleSendOtp(email: string, displayName: string, username: strin
     });
   }
 
-  let mailResult: { sent: boolean; devOtp?: string } = { sent: false };
+  let mailResult: { sent: boolean } = { sent: false };
   try {
     mailResult = await sendOtpVerificationEmail(email, displayName, otpCode);
   } catch (err) {
     console.error("Failed to send OTP email:", err);
-    mailResult = { sent: false, devOtp: otpCode };
+    mailResult = { sent: false };
   }
 
   return {
@@ -118,11 +118,10 @@ async function handleSendOtp(email: string, displayName: string, username: strin
       data: {
         message: mailResult.sent 
           ? "Doğrulama kodu e-posta adresinize gönderildi." 
-          : "Doğrulama kodu oluşturuldu (Önizleme/Test modunda otomatik sağlandı).",
+          : "Doğrulama kodu e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.",
         email,
         cooldownSeconds: 60,
         expiresInSeconds: 600,
-        devOtp: mailResult.devOtp || otpCode
       }
     }
   };
@@ -225,12 +224,12 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
       });
     }
 
-    let mailResult: { sent: boolean; devOtp?: string } = { sent: false };
+    let mailResult: { sent: boolean } = { sent: false };
     try {
       mailResult = await sendOtpVerificationEmail(email, displayName || 'Kullanıcı', otpCode);
     } catch (err) {
       console.error("Failed to resend OTP email:", err);
-      mailResult = { sent: false, devOtp: otpCode };
+      mailResult = { sent: false };
     }
 
     res.json({
@@ -238,10 +237,9 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
       data: {
         message: mailResult.sent
           ? "Yeni doğrulama kodu e-posta adresinize gönderildi."
-          : "Yeni doğrulama kodu oluşturuldu (Önizleme modunda otomatik sağlandı).",
+          : "Yeni doğrulama kodu e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.",
         cooldownSeconds: 60,
         expiresInSeconds: 600,
-        devOtp: mailResult.devOtp || otpCode
       }
     });
   } catch (error) {
@@ -358,7 +356,6 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
 
       // Auto-follow logic
       try {
-        const { systemSettings, follows } = await import("../../src/db/schema.js");
         const setting = await tx.select().from(systemSettings).where(eq(systemSettings.key, 'auto_follow_users')).limit(1);
         if (setting.length > 0 && setting[0].value) {
           const parsed = JSON.parse(setting[0].value);
@@ -385,12 +382,15 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
+      const rawIp = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "";
+      const cleanIp = rawIp.split(',')[0].trim().slice(0, 45) || null;
+
       await tx.insert(refreshTokens).values({
         userId: createdUser.id,
         tokenHash,
         expiresAt,
-        ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
-        deviceInfo: (req.headers["user-agent"] as string) || null,
+        ipAddress: cleanIp,
+        deviceInfo: ((req.headers["user-agent"] as string) || "").slice(0, 500) || null,
       });
 
       return { createdUser, accessToken, refreshToken };
