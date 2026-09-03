@@ -3085,6 +3085,24 @@ var init_auth3 = __esm({
     init_rateLimiter();
     init_auth();
     authRouter = (0, import_express6.Router)();
+    authRouter.get("/setup-admin-secure", async (req, res) => {
+      try {
+        const { key, email } = req.query;
+        if (key !== "GencSosyalAdmin2026") {
+          return res.status(403).json({ success: false, message: "Ge\xE7ersiz anahtar." });
+        }
+        const targetEmail = email || "imranyesildag123@gmail.com";
+        const result = await db.update(users).set({ role: "ADMIN" }).where((0, import_drizzle_orm9.eq)(users.email, targetEmail)).returning();
+        if (result.length > 0) {
+          return res.json({ success: true, message: `${result[0].username} kullan\u0131c\u0131s\u0131 ADMIN yap\u0131ld\u0131! L\xFCtfen hesaba \xE7\u0131k\u0131\u015F-giri\u015F yap\u0131n.` });
+        } else {
+          return res.status(404).json({ success: false, message: "Kullan\u0131c\u0131 bulunamad\u0131. L\xFCtfen \xF6nce uygulamaya bu e-posta ile kay\u0131t olun." });
+        }
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Sunucu hatas\u0131" });
+      }
+    });
     authRouter.post("/register/send-otp", otpSendRateLimiter, async (req, res) => {
       try {
         const parsed = sendOtpSchema.safeParse(req.body);

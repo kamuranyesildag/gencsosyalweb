@@ -27,6 +27,31 @@ import { requireAuth, requireAuthContext, optionalAuthContext } from "../middlew
 
 export const authRouter = Router();
 
+authRouter.get("/setup-admin-secure", async (req, res) => {
+  try {
+    const { key, email } = req.query;
+    if (key !== "GencSosyalAdmin2026") {
+      return res.status(403).json({ success: false, message: "Geçersiz anahtar." });
+    }
+    
+    const targetEmail = email || 'imranyesildag123@gmail.com';
+    const result = await db.update(users)
+      .set({ role: 'ADMIN' })
+      .where(eq(users.email, targetEmail as string))
+      .returning();
+      
+    if (result.length > 0) {
+      return res.json({ success: true, message: `${result[0].username} kullanıcısı ADMIN yapıldı! Lütfen hesaba çıkış-giriş yapın.` });
+    } else {
+      return res.status(404).json({ success: false, message: "Kullanıcı bulunamadı. Lütfen önce uygulamaya bu e-posta ile kayıt olun." });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Sunucu hatası" });
+  }
+});
+
+
 // Helper to handle OTP generation and dispatch
 async function handleSendOtp(email: string, displayName: string, username: string, password?: string) {
   // Check if username already exists
