@@ -40,7 +40,7 @@ import { SplashScreen } from "./components/ui/SplashScreen";
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useAuthStore(state => state.user);
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/home" replace />;
+  if (user.role !== "admin" && user.role !== "superadmin" && user.role !== "ADMIN" && user.role !== "SUPERADMIN") return <Navigate to="/home" replace />;
   return <>{children}</>;
 };
 
