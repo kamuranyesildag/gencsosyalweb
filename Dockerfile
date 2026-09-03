@@ -25,9 +25,10 @@ RUN npm ci --omit=dev
 # Copy compiled outputs from the builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dist-server ./dist-server
+COPY --from=builder /app/migrations ./migrations
 
-# Create the uploads directory for the volume mount and set permissions
-RUN mkdir -p /app/uploads && chown -R node:node /app
+# Create the uploads and database directory for the volume mount and set permissions
+RUN mkdir -p /app/uploads /app/database && chown -R node:node /app
 
 # Switch to the non-root 'node' user for security
 USER node

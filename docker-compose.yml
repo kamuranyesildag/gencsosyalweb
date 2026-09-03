@@ -21,14 +21,14 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-gencsosyal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gencsosyal_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-genc_sosyal}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gencsosyal} -d ${POSTGRES_DB:-genc_sosyal}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -44,7 +44,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gencsosyal-postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}}
     command: ["node", "dist-server/migrate.cjs"]
     depends_on:
       gencsosyal-postgres:
@@ -64,7 +64,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gencsosyal-postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}}
       - UPLOAD_DIR=/app/uploads
     volumes:
       - uploads_data:/app/uploads

@@ -27,11 +27,12 @@ async function runMigration() {
     exitCode = 1;
   } finally {
     try {
-      const pool = createPool();
-      if (pool) await pool.end();
-      
-      const pglite = createPglite();
-      if (pglite) await pglite.close();
+      if (global._postgresPool) {
+        await global._postgresPool.end();
+      }
+      if (global._pgliteClient) {
+        await global._pgliteClient.close();
+      }
     } catch(e) {}
     process.exit(exitCode);
   }
