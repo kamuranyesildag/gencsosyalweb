@@ -77,6 +77,7 @@ const navGroups: NavGroup[] = [
 
 export function Settings() {
   const { user } = useAuthStore();
+  const authUser = useAuthStore((state) => state.user);
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") as SettingsTab;
@@ -88,20 +89,21 @@ export function Settings() {
   });
 
   const [profileLoading, setProfileLoading] = useState(true);
-  const [profileData, setProfileData] = useState<any>({
-    displayName: "",
-    bio: "",
-    location: "",
-    website: "",
-    avatarUrl: "",
-    coverUrl: "",
+  const [username, setUsername] = useState(() => authUser?.username || "");
+  const [email, setEmail] = useState(() => authUser?.email || "");
+  const [profileData, setProfileData] = useState<any>(() => ({
+    displayName: authUser?.displayName || "",
+    bio: authUser?.bio || "",
+    location: authUser?.location || "",
+    website: authUser?.website || "",
+    avatarUrl: authUser?.avatarUrl || "",
+    coverUrl: authUser?.coverUrl || "",
     isPrivate: false,
     allowSearchEngineIndexing: true,
     messagePreference: "ANYONE",
     mentionPreference: "ANYONE",
     defaultPostVisibility: "PUBLIC",
-  });
-  const [email, setEmail] = useState("");
+  }));
   const [msg, setMsg] = useState({ text: "", type: "success" as "success" | "error" });
 
   useEffect(() => {
@@ -117,25 +119,62 @@ export function Settings() {
     try {
       const res = await fetchApi("/auth/me");
       const json = await res.json();
-      if (json.success) {
-        setEmail(json.data.email || "");
+      if (json.success && json.data) {
+        const u = json.data;
+        setEmail(u.email || "");
+        setUsername(u.username || "");
 
-        const pRes = await fetchApi(`/users/${json.data.username}`);
-        const pJson = await pRes.json();
-        if (pJson.success && pJson.data.profile) {
-          const p = pJson.data.profile;
-          setProfileData({
-            displayName: p.displayName || "",
-            bio: p.bio || "",
-            location: p.location || "",
-            website: p.website || "",
-            avatarUrl: p.avatarUrl || "",
-            coverUrl: p.coverUrl || "",
-            isPrivate: p.isPrivate || false,
-            allowSearchEngineIndexing: p.allowSearchEngineIndexing ?? true,
-            messagePreference: p.messagePreference || "ANYONE",
-            mentionPreference: p.mentionPreference || "ANYONE",
-            defaultPostVisibility: p.defaultPostVisibility || "PUBLIC",
+        let currentProfile: any = {
+          displayName: u.displayName || "",
+          bio: u.bio || "",
+          location: u.location || "",
+          website: u.website || "",
+          avatarUrl: u.avatarUrl || "",
+          coverUrl: u.coverUrl || "",
+          isPrivate: u.isPrivate ?? false,
+          allowSearchEngineIndexing: u.allowSearchEngineIndexing ?? true,
+          messagePreference: u.messagePreference || "ANYONE",
+          mentionPreference: u.mentionPreference || "ANYONE",
+          defaultPostVisibility: u.defaultPostVisibility || "PUBLIC",
+        };
+
+        if (u.username) {
+          try {
+            const pRes = await fetchApi(`/users/${u.username}`);
+            const pJson = await pRes.json();
+            if (pJson.success && pJson.data) {
+              const p = pJson.data.profile || pJson.data;
+              currentProfile = {
+                displayName: (p.displayName !== undefined && p.displayName !== null) ? p.displayName : currentProfile.displayName,
+                bio: (p.bio !== undefined && p.bio !== null) ? p.bio : currentProfile.bio,
+                location: (p.location !== undefined && p.location !== null) ? p.location : currentProfile.location,
+                website: (p.website !== undefined && p.website !== null) ? p.website : currentProfile.website,
+                avatarUrl: (p.avatarUrl !== undefined && p.avatarUrl !== null) ? p.avatarUrl : currentProfile.avatarUrl,
+                coverUrl: (p.coverUrl !== undefined && p.coverUrl !== null) ? p.coverUrl : currentProfile.coverUrl,
+                isPrivate: (p.isPrivate !== undefined && p.isPrivate !== null) ? p.isPrivate : currentProfile.isPrivate,
+                allowSearchEngineIndexing: (p.allowSearchEngineIndexing !== undefined && p.allowSearchEngineIndexing !== null) ? p.allowSearchEngineIndexing : currentProfile.allowSearchEngineIndexing,
+                messagePreference: p.messagePreference || currentProfile.messagePreference,
+                mentionPreference: p.mentionPreference || currentProfile.mentionPreference,
+                defaultPostVisibility: p.defaultPostVisibility || currentProfile.defaultPostVisibility,
+              };
+            }
+          } catch (err) {
+            console.warn("User details fetch warning:", err);
+          }
+        }
+
+        setProfileData(currentProfile);
+
+        const currentAuthUser = useAuthStore.getState().user;
+        if (currentAuthUser) {
+          useAuthStore.getState().setUser({
+            ...currentAuthUser,
+            displayName: currentProfile.displayName || currentAuthUser.displayName,
+            avatarUrl: currentProfile.avatarUrl || currentAuthUser.avatarUrl,
+            bio: currentProfile.bio,
+            location: currentProfile.location,
+            website: currentProfile.website,
+            coverUrl: currentProfile.coverUrl,
           });
         }
       }
@@ -154,7 +193,7 @@ export function Settings() {
   if (profileLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900 dark:text-white" />
       </div>
     );
   }
@@ -163,20 +202,20 @@ export function Settings() {
   const currentItem = allItems.find((item) => item.id === activeTab) || allItems[0];
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pt-20 pb-24">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 pt-20 pb-24 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Page Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Ayarlar
           </h1>
-          <p className="text-slate-500 font-medium text-sm sm:text-base mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm sm:text-base mt-1">
             Hesabınızı özelleştirin, gizlilik tercihlerinizi ve portföyünüzü yönetin.
           </p>
         </div>
 
         {/* MOBILE HORIZONTAL TABS */}
-        <div className="md:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-slate-200/80 pb-3">
+        <div className="md:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-3">
           {allItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -187,8 +226,8 @@ export function Settings() {
                 onClick={() => handleTabChange(item.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                   isActive
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "bg-white text-slate-600 border border-slate-200/70 hover:bg-slate-50"
+                    ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-xs"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -201,11 +240,11 @@ export function Settings() {
         {/* MAIN SETTINGS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* DESKTOP SIDEBAR NAV */}
-          <aside className="hidden md:block md:col-span-4 bg-white border border-slate-200/80 rounded-3xl p-3.5 shadow-xs sticky top-24">
+          <aside className="hidden md:block md:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-3.5 shadow-xs sticky top-24 transition-colors">
             <nav className="space-y-4" aria-label="Ayarlar Gezintisi">
               {navGroups.map((group, gIdx) => (
-                <div key={group.title} className={gIdx > 0 ? "pt-2 border-t border-slate-100" : ""}>
-                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div key={group.title} className={gIdx > 0 ? "pt-2 border-t border-slate-100 dark:border-slate-800" : ""}>
+                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {group.title}
                   </div>
                   <div className="space-y-1 mt-1">
@@ -219,15 +258,15 @@ export function Settings() {
                           onClick={() => handleTabChange(item.id)}
                           className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl font-bold transition-all text-left group ${
                             isActive
-                              ? "bg-slate-900 text-white shadow-xs shadow-slate-500/20"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                              ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-xs shadow-slate-500/20"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
                           <div
                             className={`p-1.5 rounded-xl transition-colors ${
                               isActive
                                 ? "bg-white/20 text-white"
-                                : "bg-slate-100 text-slate-500 group-hover:text-slate-900 group-hover:bg-slate-100"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-slate-800"
                             }`}
                           >
                             <Icon className="w-4 h-4" />
@@ -237,7 +276,7 @@ export function Settings() {
                             className={`w-4 h-4 transition-transform ${
                               isActive
                                 ? "text-white/80 translate-x-0.5"
-                                : "text-slate-300 group-hover:text-slate-500"
+                                : "text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400"
                             }`}
                           />
                         </button>
@@ -260,14 +299,14 @@ export function Settings() {
                   exit={{ opacity: 0, y: -8, scale: 0.98 }}
                   className={`mb-6 p-4 rounded-2xl text-sm font-bold flex items-center gap-3 border shadow-xs ${
                     msg.type === "success"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-rose-50 text-rose-700 border-rose-200"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                      : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
                   }`}
                 >
                   {msg.type === "success" ? (
-                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
                   )}
                   <span>{msg.text}</span>
                 </motion.div>
@@ -289,6 +328,7 @@ export function Settings() {
                     setProfileData={setProfileData}
                     showMsg={showMsg}
                     loadProfile={loadProfile}
+                    username={username}
                   />
                 )}
                 {activeTab === "account" && (

@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import { 
   User, 
   Camera, 
-  Upload, 
   Loader2, 
   Save, 
   Globe, 
   MapPin, 
-  FileText,
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  AtSign
 } from "lucide-react";
 import { useAuthStore } from "../../context/useAuth";
 import { fetchApi } from "../../lib/api";
@@ -20,17 +19,27 @@ interface SettingsProfileProps {
   setProfileData: React.Dispatch<React.SetStateAction<any>>;
   showMsg: (text: string, type?: "success" | "error") => void;
   loadProfile: () => Promise<void>;
+  username?: string;
 }
 
 export function SettingsProfile({
   profileData,
   setProfileData,
   showMsg,
+  username,
 }: SettingsProfileProps) {
   const { user, setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Resolved values prioritizing loaded profileData then auth state fallback
+  const effectiveUsername = username || user?.username || "";
+  const currentDisplayName = profileData?.displayName !== undefined && profileData?.displayName !== null && profileData.displayName !== ""
+    ? profileData.displayName 
+    : (user?.displayName || "");
+  const currentAvatar = profileData?.avatarUrl || user?.avatarUrl || "";
+  const currentCover = profileData?.coverUrl || user?.coverUrl || "";
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -64,10 +73,11 @@ export function SettingsProfile({
         body: formData,
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success && json.data?.url) {
+        const uploadedUrl = json.data.url;
         setProfileData((prev: any) => ({
           ...prev,
-          [isAvatar ? "avatarUrl" : "coverUrl"]: json.data.url,
+          [isAvatar ? "avatarUrl" : "coverUrl"]: uploadedUrl,
         }));
 
         // Auto-save to user profile
@@ -78,13 +88,16 @@ export function SettingsProfile({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            [isAvatar ? "avatarUrl" : "coverUrl"]: json.data.url,
+            [isAvatar ? "avatarUrl" : "coverUrl"]: uploadedUrl,
           }),
         });
 
         if (updateRes.ok) {
-          if (isAvatar && user) {
-            setUser({ ...user, avatarUrl: json.data.url });
+          if (user) {
+            setUser({
+              ...user,
+              [isAvatar ? "avatarUrl" : "coverUrl"]: uploadedUrl,
+            });
           }
           showMsg(
             isAvatar
@@ -102,29 +115,39 @@ export function SettingsProfile({
     } finally {
       if (isAvatar) setUploadingAvatar(false);
       else setUploadingCover(false);
+      e.target.value = "";
     }
-    e.target.value = "";
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const payload = {
+        displayName: currentDisplayName,
+        bio: profileData?.bio ?? "",
+        location: profileData?.location ?? "",
+        website: profileData?.website ?? "",
+        avatarUrl: profileData?.avatarUrl || user?.avatarUrl || "",
+        coverUrl: profileData?.coverUrl || user?.coverUrl || "",
+      };
+
       const res = await fetchApi("/users/me", {
         method: "PATCH",
-        data: {
-          displayName: profileData.displayName,
-          bio: profileData.bio,
-          location: profileData.location,
-          website: profileData.website,
-          avatarUrl: profileData.avatarUrl,
-          coverUrl: profileData.coverUrl,
-        },
+        data: payload,
       });
       const json = await res.json();
       if (json.success) {
         if (user) {
-          setUser({ ...user, displayName: profileData.displayName });
+          setUser({
+            ...user,
+            displayName: payload.displayName,
+            avatarUrl: payload.avatarUrl || user.avatarUrl,
+            coverUrl: payload.coverUrl || user.coverUrl,
+            bio: payload.bio,
+            location: payload.location,
+            website: payload.website,
+          });
         }
         showMsg("Profil bilgileri başarıyla güncellendi.");
       } else {
@@ -140,33 +163,33 @@ export function SettingsProfile({
   return (
     <form onSubmit={handleUpdateProfile} className="space-y-6">
       {/* 1. Görseller Bölümü */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 transition-colors">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Görsel Kimlik
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Profilinizi ve kapak görselinizi özelleştirerek kendinizi tanıtın.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+            Profilinizi ve kapak görselinizi özelleştirerek kendinizi topluluğa tanıtın.
           </p>
         </div>
 
         <div className="space-y-6">
           {/* Cover Photo Box */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Kapak Fotoğrafı
             </label>
-            <div className="relative w-full h-36 sm:h-44 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200/80 group">
-              {profileData.coverUrl ? (
+            <div className="relative w-full h-36 sm:h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200/80 dark:border-slate-700/80 group">
+              {currentCover ? (
                 <img
-                  src={profileData.coverUrl}
+                  src={currentCover}
                   alt="Kapak Fotoğrafı"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-                  <ImageIcon className="w-8 h-8 opacity-40" />
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2">
+                  <ImageIcon className="w-8 h-8 opacity-50" />
                   <span className="text-xs font-semibold">Kapak fotoğrafı ekleyin</span>
                 </div>
               )}
@@ -192,15 +215,15 @@ export function SettingsProfile({
 
           {/* Avatar Box */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-2">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 overflow-hidden ring-4 ring-white shadow-md group shrink-0">
-              {profileData.avatarUrl ? (
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden ring-4 ring-white dark:ring-slate-900 shadow-md group shrink-0">
+              {currentAvatar ? (
                 <img
-                  src={profileData.avatarUrl}
+                  src={currentAvatar}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
                   <User className="w-10 h-10" />
                 </div>
               )}
@@ -224,8 +247,8 @@ export function SettingsProfile({
             </div>
 
             <div className="flex-1 space-y-1">
-              <h3 className="text-sm font-bold text-slate-900">Profil Fotoğrafı</h3>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Profil Fotoğrafı</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                 Kare veya dairesel, en fazla 10MB boyutunda PNG, JPG veya WEBP formatında görsel yükleyebilirsiniz.
               </p>
             </div>
@@ -234,88 +257,117 @@ export function SettingsProfile({
       </div>
 
       {/* 2. Temel Bilgiler Bölümü */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xs space-y-5 transition-colors">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <User className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Hakkında & Detaylar
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Topluluk profilinizde görüntülenecek temel bilgileri düzenleyin.
           </p>
         </div>
 
         <div className="space-y-4">
-          {/* Display Name */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-              Görünen Ad
-            </label>
-            <input
-              type="text"
-              required
-              value={profileData.displayName}
-              onChange={(e) =>
-                setProfileData({ ...profileData, displayName: e.target.value })
-              }
-              placeholder="Ad Soyad veya Takma Ad"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
-            />
+          {/* Display Name & Username Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Görünen Ad */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Görünen Ad <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={currentDisplayName}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, displayName: e.target.value })
+                }
+                placeholder="Ad Soyad veya Takma Ad"
+                className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+            </div>
+
+            {/* Kullanıcı Adı (Sabit Handle) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <AtSign className="w-3.5 h-3.5 text-slate-400" />
+                  Kullanıcı Adı
+                </label>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                  Sabit Kimlik
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-slate-400 dark:text-slate-500 font-bold text-sm select-none">
+                  @
+                </span>
+                <input
+                  type="text"
+                  disabled
+                  readOnly
+                  value={effectiveUsername}
+                  placeholder="kullaniciadi"
+                  className="w-full bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl pl-8 pr-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-semibold cursor-not-allowed select-all outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bio */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 Biyografi
               </label>
-              <span className="text-[11px] font-semibold text-slate-400">
-                {profileData.bio?.length || 0}/160
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                {(profileData?.bio || "").length}/160
               </span>
             </div>
             <textarea
               rows={3}
               maxLength={160}
-              value={profileData.bio}
+              value={profileData?.bio ?? ""}
               onChange={(e) =>
                 setProfileData({ ...profileData, bio: e.target.value })
               }
               placeholder="Kendiniz, ilgi alanlarınız veya projeleriniz hakkında kısa bir bilgi..."
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
+              className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
           {/* Location & Website Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
                 Konum
               </label>
               <input
                 type="text"
-                value={profileData.location}
+                value={profileData?.location ?? ""}
                 onChange={(e) =>
                   setProfileData({ ...profileData, location: e.target.value })
                 }
                 placeholder="Örn: İstanbul, Türkiye"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-slate-400" />
                 Web Sitesi
               </label>
               <input
                 type="url"
-                value={profileData.website}
+                value={profileData?.website ?? ""}
                 onChange={(e) =>
                   setProfileData({ ...profileData, website: e.target.value })
                 }
                 placeholder="https://example.com"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
           </div>

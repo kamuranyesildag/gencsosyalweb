@@ -26,8 +26,7 @@ export function DesktopSidebar() {
   const navigate = useNavigate();
 
   const navItems = [
-    { name: 'Ana Sayfa', path: '/home', icon: Home,
-  Plus, protected: false },
+    { name: 'Ana Sayfa', path: '/home', icon: Home, protected: false },
     { name: 'Keşfet', path: '/explore', icon: Search, protected: false },
     { name: 'Projeler', path: '/projects', icon: Rocket, protected: false },
     { name: 'Bildirimler', path: '/notifications', icon: Bell, protected: true },
@@ -43,7 +42,7 @@ export function DesktopSidebar() {
   const profilePath = isAuthenticated && user ? `/profile/${user.username}` : '#';
 
   return (
-    <nav className="flex flex-col h-full py-5 px-3 xl:px-4 justify-between select-none" aria-label="Ana Gezinme">
+    <nav className="flex flex-col h-full py-5 px-3 xl:px-4 justify-between select-none bg-white dark:bg-slate-950 transition-colors" aria-label="Ana Gezinme">
       <div className="flex flex-col gap-1.5 w-full">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -60,16 +59,16 @@ export function DesktopSidebar() {
                 }
               }}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${
+              className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 ${
                 isActive
-                  ? 'text-slate-900 font-semibold bg-slate-100 shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                  ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white font-medium'
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebarActiveIndicator"
-                  className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 rounded-r-full"
+                  className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 dark:bg-indigo-500 rounded-r-full"
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 />
               )}
@@ -77,7 +76,7 @@ export function DesktopSidebar() {
               <div className="flex items-center justify-center shrink-0 w-6 h-6">
                 <Icon
                   className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
-                    isActive ? 'text-slate-900 stroke-[2.3]' : 'text-slate-500 group-hover:text-slate-900 stroke-[1.8]'
+                    isActive ? 'text-slate-900 dark:text-white stroke-[2.3]' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white stroke-[1.8]'
                   }`}
                 />
               </div>
@@ -99,7 +98,7 @@ export function DesktopSidebar() {
           );
         })}
 
-                {/* Create Post Nav Item */}
+        {/* Create Post Nav Item */}
         <div className="w-full mt-2 mb-2">
           <div className="xl:hidden w-full flex justify-center">
             <button
@@ -107,7 +106,7 @@ export function DesktopSidebar() {
                 if (!isAuthenticated) openModal();
                 else navigate('/create');
               }}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white shadow-md shadow-slate-900/10 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20"
+              className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 dark:bg-indigo-600 text-white shadow-md shadow-slate-900/10 hover:bg-slate-800 dark:hover:bg-indigo-500 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20"
               aria-label="Gönderi Oluştur"
             >
               <Plus className="w-6 h-6 stroke-[2.5]" />
@@ -119,7 +118,7 @@ export function DesktopSidebar() {
                 if (!isAuthenticated) openModal();
                 else navigate('/create');
               }}
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-slate-900 text-white shadow-md shadow-slate-900/10 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20 text-[15px] font-bold tracking-wide"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-slate-900 dark:bg-indigo-600 text-white shadow-md shadow-slate-900/10 hover:bg-slate-800 dark:hover:bg-indigo-500 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/20 text-[15px] font-bold tracking-wide"
             >
               <Plus className="w-5 h-5 stroke-[2.5]" />
               Gönderi Oluştur
@@ -141,16 +140,16 @@ export function DesktopSidebar() {
                   }
                 }}
                 aria-current={isProfileActive ? 'page' : undefined}
-                className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${
+                className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 ${
                   isProfileActive
-                    ? 'text-slate-900 font-semibold bg-slate-100 shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                    ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white font-medium'
                 }`}
               >
                 {isProfileActive && (
                   <motion.div
                     layoutId="sidebarActiveIndicator"
-                    className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 rounded-r-full"
+                    className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 dark:bg-indigo-500 rounded-r-full"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
@@ -160,10 +159,10 @@ export function DesktopSidebar() {
                       url={user.avatarUrl}
                       name={user.displayName || user.username}
                       size="xs"
-                      className={`ring-1 ${isProfileActive ? 'ring-slate-900' : 'ring-slate-300'}`}
+                      className={`ring-1 ${isProfileActive ? 'ring-slate-900 dark:ring-white' : 'ring-slate-300 dark:ring-slate-700'}`}
                     />
                   ) : (
-                    <User className="w-5 h-5 text-slate-500 group-hover:text-slate-900 stroke-[1.8]" />
+                    <User className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white stroke-[1.8]" />
                   )}
                 </div>
                 <span className="hidden xl:inline text-sm tracking-tight truncate">Profilim</span>
@@ -199,23 +198,23 @@ export function DesktopSidebar() {
                   }
                 }}
                 aria-current={isSettingsActive ? 'page' : undefined}
-                className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 ${
+                className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 group w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 ${
                   isSettingsActive
-                    ? 'text-slate-900 font-semibold bg-slate-100 shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                    ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white font-medium'
                 }`}
               >
                 {isSettingsActive && (
                   <motion.div
                     layoutId="sidebarActiveIndicator"
-                    className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 rounded-r-full"
+                    className="absolute left-0 top-2 bottom-2 w-1 bg-slate-900 dark:bg-indigo-500 rounded-r-full"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
                 <div className="flex items-center justify-center shrink-0 w-6 h-6">
                   <Settings
                     className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
-                      isSettingsActive ? 'text-slate-900 stroke-[2.3]' : 'text-slate-500 group-hover:text-slate-900 stroke-[1.8]'
+                      isSettingsActive ? 'text-slate-900 dark:text-white stroke-[2.3]' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white stroke-[1.8]'
                     }`}
                   />
                 </div>

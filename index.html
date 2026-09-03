@@ -29,8 +29,25 @@
     <meta property="twitter:image" content="/icon-512.png" />
     
     <!-- Theme & App Branding -->
-    <meta name="theme-color" content="#4f46e5" />
-    <meta name="msapplication-TileColor" content="#4f46e5" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('gencsosyal_theme') || localStorage.getItem('theme');
+          var isDark = saved === 'dark' || (saved === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

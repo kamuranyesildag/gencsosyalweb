@@ -1175,8 +1175,18 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       isVerified: users.isVerified,
       createdAt: users.createdAt,
       displayName: profiles.displayName,
+      bio: profiles.bio,
       avatarUrl: profiles.avatarUrl,
+      coverUrl: profiles.coverUrl,
+      location: profiles.location,
+      website: profiles.website,
+      isPrivate: profiles.isPrivate,
+      allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+      messagePreference: profiles.messagePreference,
+      mentionPreference: profiles.mentionPreference,
+      defaultPostVisibility: profiles.defaultPostVisibility,
       onboardingCompleted: profiles.onboardingCompleted,
+      interests: profiles.interests,
     })
     .from(users)
     .leftJoin(profiles, eq(users.id, profiles.userId))

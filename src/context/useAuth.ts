@@ -6,6 +6,10 @@ interface User {
   email: string;
   displayName: string | null;
   avatarUrl: string | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  website?: string | null;
   role: string;
   isVerified: boolean;
   createdAt: string;

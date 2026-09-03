@@ -324,7 +324,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         }
       }}
       className={cn(
-        "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 border-b border-slate-100 bg-white hover:bg-slate-50/50 cursor-pointer transition-colors duration-150",
+        "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 hover:bg-slate-50/50 dark:hover:bg-slate-900/40 cursor-pointer transition-colors duration-150",
         post.type === "SENSITIVE" && !isRevealed && "opacity-90"
       )}
     >
@@ -357,14 +357,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1.5 truncate group/author"
             >
-              <span className="font-bold text-slate-900 text-[15px] group-hover/author:underline truncate">
+              <span className="font-bold text-slate-900 dark:text-white text-[15px] group-hover/author:underline truncate">
                 {post.user?.displayName || post.user?.username}
               </span>
               {post.user?.isVerified && (
-                <CheckCircle2 className="w-4 h-4 text-slate-500 fill-slate-500/10 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-slate-500 dark:text-indigo-400 fill-slate-500/10 shrink-0" />
               )}
             </Link>
-            <div className="flex items-center gap-1.5 text-slate-500 text-[14px] shrink-0">
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[14px] shrink-0">
               <span className="hidden sm:inline">@{post.user?.username}</span>
               <span className="hidden sm:inline">&middot;</span>
               <time dateTime={post.createdAt} className="hover:underline">

@@ -94,20 +94,20 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
   return (
     <div className="space-y-6">
       {/* 1. E-posta & İletişim Kartı */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 transition-colors">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Mail className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Mail className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             İletişim Bilgileri
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Giriş yapmak ve sistem bildirimleri almak için kullandığınız e-posta adresini yönetin.
           </p>
         </div>
 
         <form onSubmit={handleChangeEmail} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               E-posta Adresi
             </label>
             <input
@@ -116,12 +116,12 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ornek@gencsosyal.org"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Mevcut Şifreniz (Güvenlik Doğrulaması)
             </label>
             <input
@@ -129,7 +129,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
@@ -149,10 +149,10 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
       </div>
 
       {/* 2. Oturum Yönetimi Kartı */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Oturumu Sonlandır</h3>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Oturumu Sonlandır</h3>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
             Bu cihazdaki mevcut aktif oturumunuzdan güvenle çıkış yapın.
           </p>
         </div>
@@ -162,7 +162,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
           variant="secondary"
           size="md"
           onClick={handleLogout}
-          leftIcon={<LogOut className="w-4 h-4 text-slate-600" />}
+          leftIcon={<LogOut className="w-4 h-4 text-slate-600 dark:text-slate-300" />}
           className="rounded-2xl font-bold shrink-0 w-full sm:w-auto"
         >
           Çıkış Yap
@@ -170,21 +170,21 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
       </div>
 
       {/* 3. Tehlikeli Bölge - Hesap Silme Kartı */}
-      <div className="bg-rose-50/50 border border-rose-200/70 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-        <div className="flex items-center gap-2.5 text-rose-700">
-          <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
-            <Trash2 className="w-5 h-5 text-rose-600" />
+      <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/50 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4 transition-colors">
+        <div className="flex items-center gap-2.5 text-rose-700 dark:text-rose-400">
+          <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
+            <Trash2 className="w-5 h-5 text-rose-600 dark:text-rose-400" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-rose-950">Hesabı Kalıcı Olarak Sil</h3>
-            <p className="text-xs text-rose-800 font-medium mt-0.5">
+            <h3 className="text-base font-bold text-rose-950 dark:text-rose-200">Hesabı Kalıcı Olarak Sil</h3>
+            <p className="text-xs text-rose-800 dark:text-rose-400 font-medium mt-0.5">
               Bu işlem geri alınamaz ve tüm verileriniz kalıcı olarak silinir.
             </p>
           </div>
         </div>
 
         <div className="space-y-1.5 pt-2">
-          <label className="block text-xs font-bold uppercase tracking-wider text-rose-900">
+          <label className="block text-xs font-bold uppercase tracking-wider text-rose-900 dark:text-rose-300">
             Onaylamak İçin Şifrenizi Girin
           </label>
           <input
@@ -192,7 +192,7 @@ export function SettingsAccount({ showMsg, email: initialEmail }: SettingsAccoun
             value={deletePassword}
             onChange={(e) => setDeletePassword(e.target.value)}
             placeholder="Mevcut şifreniz"
-            className="w-full bg-white border border-rose-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all placeholder:text-slate-400"
+            className="w-full bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800/80 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
         </div>
 

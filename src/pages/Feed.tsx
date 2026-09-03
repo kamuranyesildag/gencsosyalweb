@@ -4,7 +4,6 @@ import { CreatePost } from "../components/CreatePost";
 import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
 import { InfiniteScroll } from "../components/InfiniteScroll";
-import { LoadingState } from "../components/ui/LoadingState";
 import { SkeletonList } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
@@ -13,8 +12,6 @@ import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { Sparkles, Users, RefreshCw } from "lucide-react";
 import { Avatar } from "../components/ui/Avatar";
-import { StarterQuestsCard } from "../components/StarterQuestsCard";
-import { OnboardingModal } from "../components/OnboardingModal";
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 
@@ -35,7 +32,6 @@ export function Feed() {
     error,
     loadInitial,
     loadMore,
-    addItem,
   } = usePagination(endpoint);
 
   useEffect(() => {
@@ -51,56 +47,59 @@ export function Feed() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full min-h-screen bg-white">
+    <div className="flex flex-col h-full w-full min-h-screen bg-white dark:bg-slate-950 transition-colors">
       {/* 1. Feed Header & Segmented Tabs */}
-      <OnboardingModal />
-      <header className="sticky top-14 md:top-[60px] z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-2 sm:px-4">
-        <div className="flex items-center justify-between gap-4">
+      <header className="sticky top-14 md:top-[60px] z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between px-2 sm:px-4 transition-colors">
+        <div className="flex items-center justify-between gap-4 w-full">
           {/* Modern Segmented Control */}
           <div className="flex w-full" role="tablist" aria-label="Akış Sekmeleri">
-  <button
-    type="button"
-    role="tab"
-    aria-selected={activeTab === "for_you"}
-    aria-controls="feed-panel"
-    id="tab-for-you"
-    onClick={() => handleTabChange("for_you")}
-    className={cn(
-      "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 transition-colors outline-none",
-      activeTab === "for_you" ? "text-slate-900 font-bold" : "text-slate-500 font-medium"
-    )}
-  >
-    <span>Sizin İçin</span>
-    {activeTab === "for_you" && (
-      <motion.div
-        layoutId="feedActiveSegment"
-        className="absolute bottom-0 h-1 w-12 bg-slate-900 rounded-t-full"
-        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-      />
-    )}
-  </button>
-  <button
-    type="button"
-    role="tab"
-    aria-selected={activeTab === "following"}
-    aria-controls="feed-panel"
-    id="tab-following"
-    onClick={() => handleTabChange("following")}
-    className={cn(
-      "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 transition-colors outline-none",
-      activeTab === "following" ? "text-slate-900 font-bold" : "text-slate-500 font-medium"
-    )}
-  >
-    <span>Takip Edilenler</span>
-    {activeTab === "following" && (
-      <motion.div
-        layoutId="feedActiveSegment"
-        className="absolute bottom-0 h-1 w-12 bg-slate-900 rounded-t-full"
-        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-      />
-    )}
-  </button>
-</div>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "for_you"}
+              aria-controls="feed-panel"
+              id="tab-for-you"
+              onClick={() => handleTabChange("for_you")}
+              className={cn(
+                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors outline-none",
+                activeTab === "for_you"
+                  ? "text-slate-900 dark:text-white font-bold"
+                  : "text-slate-500 dark:text-slate-400 font-medium"
+              )}
+            >
+              <span>Sizin İçin</span>
+              {activeTab === "for_you" && (
+                <motion.div
+                  layoutId="feedActiveSegment"
+                  className="absolute bottom-0 h-1 w-12 bg-slate-900 dark:bg-white rounded-t-full"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "following"}
+              aria-controls="feed-panel"
+              id="tab-following"
+              onClick={() => handleTabChange("following")}
+              className={cn(
+                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors outline-none",
+                activeTab === "following"
+                  ? "text-slate-900 dark:text-white font-bold"
+                  : "text-slate-500 dark:text-slate-400 font-medium"
+              )}
+            >
+              <span>Takip Edilenler</span>
+              {activeTab === "following" && (
+                <motion.div
+                  layoutId="feedActiveSegment"
+                  className="absolute bottom-0 h-1 w-12 bg-slate-900 dark:bg-white rounded-t-full"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+            </button>
+          </div>
 
           {/* Quick Refresh Button */}
           <button
@@ -108,9 +107,9 @@ export function Feed() {
             onClick={loadInitial}
             disabled={loading}
             aria-label="Akışı Yenile"
-            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100/80 active:scale-95 transition-all disabled:opacity-40"
+            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-900" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-900 dark:text-white" : ""}`} />
           </button>
         </div>
       </header>
@@ -120,17 +119,17 @@ export function Feed() {
 
       {/* 3. Create Post Trigger */}
       {isAuthenticated && (
-        <div className="border-b border-slate-100 bg-white">
+        <div className="border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 transition-colors">
           {/* Mobile Trigger */}
           <div className="md:hidden px-4 py-4">
             <div 
               onClick={() => navigate("/create")}
-              className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60"
+              className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60 dark:border-slate-800"
               role="button"
               tabIndex={0}
             >
               <Avatar url={useAuthStore.getState().user?.avatarUrl} name={useAuthStore.getState().user?.displayName || useAuthStore.getState().user?.username || "?"} size="sm" />
-              <span className="text-slate-500 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
+              <span className="text-slate-500 dark:text-slate-400 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
             </div>
           </div>
           {/* Desktop Inline Create */}
@@ -139,6 +138,7 @@ export function Feed() {
           </div>
         </div>
       )}
+
       {/* 4. Feed Stream */}
       <div 
         id="feed-panel" 
