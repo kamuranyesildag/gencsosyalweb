@@ -31,6 +31,9 @@ echo "✅ Build completed. Starting services..."
 # 2. migrate (and wait for successful completion)
 # 3. app (and wait for health)
 # 4. nginx
+# Clean up any leftover one-off migration container to avoid name conflicts
+docker rm -f gencsosyal-migrate 2>/dev/null || true
+
 docker compose up -d
 
 # 3. Migration Check & Health Verification
