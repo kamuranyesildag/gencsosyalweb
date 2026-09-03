@@ -338,6 +338,7 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
       }
 
       const [createdUser] = await tx.insert(users).values({
+
         username,
         email,
         passwordHash,
@@ -1441,4 +1442,3 @@ authRouter.delete("/sessions/:id", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: { message: "Oturum kapatılamadı." } });
   }
 });
-

@@ -38,7 +38,9 @@ export function Login() {
     const meData = await meRes.json();
 
     if (meRes.ok) {
+      
       useAuthStore.getState().setAuth(meData.data, token);
+
       if (isFromRegister) {
         navigate('/onboarding');
       } else {

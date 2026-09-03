@@ -25,10 +25,12 @@ export function useAuthInit() {
             
             if (meRes.ok) {
               const meData = await meRes.json();
+              
               if (meData.success && mounted) {
                 setAuth(meData.data, token);
                 return;
               }
+
             }
           }
         }
