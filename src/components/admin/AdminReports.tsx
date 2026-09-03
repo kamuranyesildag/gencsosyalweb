@@ -123,11 +123,11 @@ export function AdminReports() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
             <AlertTriangle className="w-6 h-6 text-rose-600" />
             <span>Moderasyon ve Şikayet Raporları</span>
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Kullanıcılar tarafından bildirilen uygunsuz gönderi, yorum, topluluk ve hesapları inceleyin.
           </p>
         </div>
@@ -143,13 +143,13 @@ export function AdminReports() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/60 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/60 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setReportStatus('PENDING')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'PENDING'
-              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-white dark:bg-slate-950 text-slate-950 shadow-xs border border-slate-200 dark:border-slate-800/70'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-100'
           }`}
         >
           Açık Raporlar
@@ -158,8 +158,8 @@ export function AdminReports() {
           onClick={() => setReportStatus('RESOLVED')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'RESOLVED'
-              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-white dark:bg-slate-950 text-slate-950 shadow-xs border border-slate-200 dark:border-slate-800/70'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-100'
           }`}
         >
           Çözülenler
@@ -168,8 +168,8 @@ export function AdminReports() {
           onClick={() => setReportStatus('DISMISSED')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
             reportStatus === 'DISMISSED'
-              ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-white dark:bg-slate-950 text-slate-950 shadow-xs border border-slate-200 dark:border-slate-800/70'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-100'
           }`}
         >
           Reddedilen / Kapatılanlar
@@ -226,10 +226,10 @@ export function AdminReports() {
                   >
                     <Card variant="default" padding="lg" className="space-y-4">
                       {/* Top Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-slate-500">Rapor Eden:</span>
-                          <span className="text-sm font-bold text-slate-900">@{r.reporterUsername || 'Bilinmeyen'}</span>
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Rapor Eden:</span>
+                          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">@{r.reporterUsername || 'Bilinmeyen'}</span>
                           <span className="text-slate-300">•</span>
                           <span className="text-xs text-slate-400 font-medium">
                             {new Date(r.createdAt).toLocaleString('tr-TR')}
@@ -271,18 +271,18 @@ export function AdminReports() {
                       </div>
 
                       {/* Reason Description */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 space-y-1.5">
+                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                           Şikayet Nedeni ve Açıklama:
                         </div>
-                        <p className="text-sm text-slate-800 font-medium leading-relaxed whitespace-pre-wrap">
+                        <p className="text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed whitespace-pre-wrap">
                           {r.reason}
                         </p>
                       </div>
 
                       {/* Actions for Pending Reports */}
                       {r.status === 'PENDING' && (
-                        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                        <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                           <Button
                             variant="secondary"
                             size="sm"

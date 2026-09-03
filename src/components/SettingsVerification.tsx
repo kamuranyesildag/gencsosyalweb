@@ -77,13 +77,13 @@ export function SettingsVerification() {
   );
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-slate-900" />
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+          <CheckCircle2 className="w-5 h-5 text-slate-900 dark:text-slate-100" />
           Hesap Doğrulama (Mavi Rozet)
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
           Özgün üreticileri, resmi toplulukları ve doğrulanmış yetenekleri öne çıkaran mavi rozet sistemi.
         </p>
       </div>
@@ -107,12 +107,12 @@ export function SettingsVerification() {
 
       {/* 1. Verified State */}
       {user?.isVerified ? (
-        <div className="p-6 bg-slate-100/60 border border-slate-100 rounded-2xl text-center space-y-3">
-          <div className="w-16 h-16 bg-slate-100/80 text-slate-900 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+        <div className="p-6 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-3">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
             <CheckCircle2 className="w-8 h-8 fill-slate-600/10" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Hesabınız Doğrulandı</h3>
-          <p className="text-slate-600 text-sm max-w-md mx-auto leading-relaxed">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Hesabınız Doğrulandı</h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
             Tebrikler! Profiliniz doğrulanmış hesap rozetine sahiptir ve aramalarda öncelikli olarak listelenir.
           </p>
         </div>
@@ -131,11 +131,11 @@ export function SettingsVerification() {
             </div>
           </div>
 
-          <div className="bg-white/80 p-4 rounded-xl border border-amber-100 text-xs">
+          <div className="bg-white dark:bg-slate-950/80 p-4 rounded-xl border border-amber-100 text-xs">
             <span className="font-bold text-amber-700 uppercase tracking-wider block mb-1">
               Başvuru Tarihi
             </span>
-            <span className="text-slate-900 font-semibold">
+            <span className="text-slate-900 dark:text-slate-100 font-semibold">
               {new Date(activeRequest.createdAt).toLocaleDateString("tr-TR", {
                 year: "numeric",
                 month: "long",
@@ -147,8 +147,8 @@ export function SettingsVerification() {
       ) : (
         /* 3. New Application Form */
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-2xl flex gap-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
-            <Info className="w-5 h-5 text-slate-900 shrink-0 mt-0.5" />
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 rounded-2xl flex gap-3 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            <Info className="w-5 h-5 text-slate-900 dark:text-slate-100 shrink-0 mt-0.5" />
             <p>
               Topluluğa değer katan, aktif proje üreten ve platform kurallarına uyan geliştiriciler ve tasarımcılar doğrulanmış rozet alabilir. Lütfen projelerinizi ve katkılarınızı özetleyin.
             </p>
@@ -156,7 +156,7 @@ export function SettingsVerification() {
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Neden doğrulanmak istiyorsunuz?
               </label>
               <span className="text-[11px] font-semibold text-slate-400">
@@ -170,7 +170,7 @@ export function SettingsVerification() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Geliştirdiğim açık kaynak projeler, topluluk etkinlikleri ve çalışmalarım..."
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
             />
           </div>
 
@@ -192,7 +192,7 @@ export function SettingsVerification() {
 
       {/* 4. History List */}
       {requests.length > 0 && (
-        <div className="pt-6 border-t border-slate-100 space-y-4">
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
             Geçmiş Başvurular
           </h3>
@@ -216,7 +216,7 @@ export function SettingsVerification() {
                 },
                 pending: {
                   label: "Bekliyor",
-                  bg: "bg-slate-100 border-slate-200",
+                  bg: "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800",
                   text: "text-slate-700",
                 },
               };
@@ -226,10 +226,10 @@ export function SettingsVerification() {
               return (
                 <div
                   key={req.id}
-                  className="p-4 border border-slate-200/70 rounded-2xl bg-slate-50/50 flex flex-col gap-2"
+                  className="p-4 border border-slate-200 dark:border-slate-800/70 rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500">
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                       {new Date(req.createdAt).toLocaleDateString("tr-TR", {
                         year: "numeric",
                         month: "long",

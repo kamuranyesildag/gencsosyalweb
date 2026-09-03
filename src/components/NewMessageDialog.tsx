@@ -107,7 +107,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: "100%", opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="relative w-full sm:max-w-md bg-white border border-slate-200/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col h-[520px] max-h-[90vh]"
+          className="relative w-full sm:max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col h-[520px] max-h-[90vh]"
         >
           {/* Mobile Drag Handle */}
           <div className="pt-3 pb-1 flex justify-center sm:hidden">
@@ -115,28 +115,28 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
           </div>
 
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Yeni Mesaj
             </h3>
             <button
               type="button"
               onClick={onClose}
               aria-label="Kapat"
-              className="w-8 h-8 -mr-1 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+              className="w-8 h-8 -mr-1 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 active:scale-95 transition-all"
             >
               <X className="w-4.5 h-4.5" />
             </button>
           </div>
 
           {/* Search Box */}
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
             <div className="relative group">
-              <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors pointer-events-none" />
+              <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 dark:text-slate-100 transition-colors pointer-events-none" />
               <input
                 type="text"
                 placeholder="Kullanıcı adı veya isim ara..."
-                className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400"
+                className="w-full bg-white dark:bg-slate-950 rounded-xl pl-10 pr-4 py-2.5 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoFocus
@@ -149,7 +149,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
             {loading ? (
               <div className="space-y-2 p-1">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-xl">
+                  <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-950 rounded-xl">
                     <SkeletonCircle size="md" />
                     <div className="space-y-1.5 flex-1">
                       <Skeleton className="h-4 w-32 rounded-md" />
@@ -169,7 +169,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
                       type="button"
                       onClick={() => startConversation(user.id)}
                       disabled={startingUserId !== null}
-                      className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-slate-50 active:bg-slate-100/50 transition-all text-left group border border-transparent hover:border-slate-200/70"
+                      className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-slate-50 dark:bg-slate-900 active:bg-slate-100 dark:bg-slate-900/50 transition-all text-left group border border-transparent hover:border-slate-200 dark:border-slate-800/70"
                     >
                       <Avatar
                         url={user.avatarUrl}
@@ -179,22 +179,22 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 text-sm group-hover:text-slate-900 transition-colors truncate">
+                          <span className="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate">
                             {user.displayName || user.username}
                           </span>
                           {user.isVerified && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 font-medium truncate">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                           @{user.username}
                         </p>
                       </div>
 
                       {isStarting ? (
-                        <Loader2 className="w-4.5 h-4.5 animate-spin text-slate-900 shrink-0" />
+                        <Loader2 className="w-4.5 h-4.5 animate-spin text-slate-900 dark:text-slate-100 shrink-0" />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-slate-100 group-hover:bg-slate-100 group-hover:text-slate-900 text-slate-400 flex items-center justify-center transition-colors shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-900 group-hover:bg-slate-100 dark:bg-slate-900 group-hover:text-slate-900 dark:text-slate-100 text-slate-400 flex items-center justify-center transition-colors shrink-0">
                           <UserPlus className="w-3.5 h-3.5" />
                         </div>
                       )}
@@ -211,7 +211,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
             ) : (
               <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
                 <Search className="w-8 h-8 text-slate-300 mb-2" />
-                <div className="font-semibold text-slate-600 text-sm">Sohbet Başlat</div>
+                <div className="font-semibold text-slate-600 dark:text-slate-400 text-sm">Sohbet Başlat</div>
                 <div className="text-slate-400 text-xs mt-1 max-w-xs">
                   Mesaj göndermek istediğiniz kişinin adını veya kullanıcı adını yazın.
                 </div>

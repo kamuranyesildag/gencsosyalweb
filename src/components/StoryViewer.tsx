@@ -131,7 +131,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
             onClick={(e) => { e.stopPropagation(); handlePrev(); }}
             disabled={currentUserIndex === 0 && currentStoryIndex === 0}
             aria-label="Önceki Hikaye"
-            className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all"
+            className="w-12 h-12 rounded-full bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 active:scale-95 disabled:opacity-20 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -139,7 +139,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
             type="button"
             onClick={(e) => { e.stopPropagation(); handleNext(); }}
             aria-label="Sonraki Hikaye"
-            className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all"
+            className="w-12 h-12 rounded-full bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 active:scale-95 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -159,9 +159,9 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
           {/* Progress Bars */}
           <div className="absolute top-0 inset-x-0 px-3.5 pt-3.5 z-30 flex gap-1.5">
             {currentUserStories.stories.map((story, idx) => (
-              <div key={story.id} className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden">
+              <div key={story.id} className="h-1 flex-1 bg-white dark:bg-slate-950/25 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-white transition-all duration-75 ease-linear rounded-full"
+                  className="h-full bg-white dark:bg-slate-950 transition-all duration-75 ease-linear rounded-full"
                   style={{ 
                     width: idx < currentStoryIndex ? '100%' : idx === currentStoryIndex ? `${progress}%` : '0%' 
                   }}

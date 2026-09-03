@@ -166,7 +166,7 @@ export function Login() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white overflow-hidden relative">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950 overflow-hidden relative">
           
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -180,10 +180,10 @@ export function Login() {
                   <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
                     <Hexagon className="w-7 h-7 fill-current" />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                     Tekrar Hoş Geldiniz
                   </h1>
-                  <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                     Genç Sosyal hesabınıza giriş yaparak devam edin.
                   </p>
                 </div>
@@ -200,19 +200,19 @@ export function Login() {
                     <label htmlFor="login-identifier" className="text-xs sm:text-sm font-semibold text-slate-700">Kullanıcı Adı veya E-posta</label>
                     <div className="relative flex items-center">
                       <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400"><User className="w-4 h-4" /></div>
-                      <input id="login-identifier" type="text" required autoFocus autoComplete="username" value={identifier} onChange={(e) => { setIdentifier(e.target.value); if (error) setError(''); }} className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none" placeholder="ornek@genc.org veya @kullanici" />
+                      <input id="login-identifier" type="text" required autoFocus autoComplete="username" value={identifier} onChange={(e) => { setIdentifier(e.target.value); if (error) setError(''); }} className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none" placeholder="ornek@genc.org veya @kullanici" />
                     </div>
                   </div>
 
                   <div className="space-y-1.5 text-left">
                     <div className="flex justify-between items-center">
                       <label htmlFor="login-password" className="text-xs sm:text-sm font-semibold text-slate-700">Şifre</label>
-                      <Link to="/forgot-password" className="text-xs font-semibold text-slate-900 hover:text-slate-700 hover:underline transition-colors">Şifremi Unuttum?</Link>
+                      <Link to="/forgot-password" className="text-xs font-semibold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors">Şifremi Unuttum?</Link>
                     </div>
                     <div className="relative flex items-center">
                       <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400"><Lock className="w-4 h-4" /></div>
-                      <input id="login-password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }} className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none" placeholder="••••••••" />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>
+                      <input id="login-password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }} className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none" placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 transition-colors" aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
@@ -223,9 +223,9 @@ export function Login() {
                   </div>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                  <p className="text-sm text-slate-500">
-                    Henüz bir hesabınız yok mu? <Link to="/register" className="font-bold text-slate-900 hover:text-slate-700 hover:underline transition-colors">Hemen Kaydolun</Link>
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Henüz bir hesabınız yok mu? <Link to="/register" className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors">Hemen Kaydolun</Link>
                   </p>
                 </div>
               </motion.div>
@@ -242,11 +242,11 @@ export function Login() {
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="flex flex-col items-center text-center mb-8">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-900 flex items-center justify-center mb-4 border border-slate-100">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex items-center justify-center mb-4 border border-slate-100 dark:border-slate-800">
                     <ShieldCheck className="w-7 h-7" />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">İki Faktörlü Doğrulama</h1>
-                  <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">İki Faktörlü Doğrulama</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                     Authenticator uygulamanızdaki 6 haneli kodu girin.
                   </p>
                 </div>
@@ -272,7 +272,7 @@ export function Login() {
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                         className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all outline-none ${
-                          digit ? 'border-slate-900 bg-slate-100/40 text-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/10'
+                          digit ? 'border-slate-900 bg-slate-100/40 text-slate-900 dark:text-slate-100 ring-2 ring-slate-900/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50 text-slate-900 dark:text-slate-100 focus:border-slate-900 focus:bg-white dark:bg-slate-950 focus:ring-2 focus:ring-slate-900/10'
                         }`}
                         autoComplete="one-time-code"
                       />
@@ -284,8 +284,8 @@ export function Login() {
                   </Button>
                 </form>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                  <button type="button" onClick={() => { setError(''); setStep(3); }} className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <button type="button" onClick={() => { setError(''); setStep(3); }} className="text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-slate-100 transition-colors">
                     Kurtarma kodu kullan
                   </button>
                 </div>
@@ -306,8 +306,8 @@ export function Login() {
                   <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-100">
                     <KeyRound className="w-7 h-7" />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Kurtarma Kodu</h1>
-                  <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Kurtarma Kodu</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                     Authenticator uygulamanıza erişemiyorsanız kurtarma kodlarınızdan birini girin.
                   </p>
                 </div>
@@ -327,7 +327,7 @@ export function Login() {
                       autoFocus
                       value={recoveryCode}
                       onChange={(e) => { setRecoveryCode(e.target.value.toUpperCase()); if (error) setError(''); }}
-                      className="w-full min-h-[50px] px-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-center text-lg tracking-widest font-mono text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none uppercase"
+                      className="w-full min-h-[50px] px-4 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-center text-lg tracking-widest font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-300 focus:bg-white dark:bg-slate-950 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none uppercase"
                       placeholder="XXXX-XXXX"
                     />
                   </div>

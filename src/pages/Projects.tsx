@@ -168,13 +168,13 @@ export function Projects() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 text-slate-900 flex items-center justify-center">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
               <Rocket className="w-4 h-4" />
             </div>
             Projeler & Üretimler
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Genç üreticilerin, geliştiricilerin ve tasarımcıların paylaştığı ilham verici projeler.
           </p>
         </div>
@@ -194,7 +194,7 @@ export function Projects() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -205,14 +205,14 @@ export function Projects() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Proje adı, açıklama veya etiket ara..."
               aria-label="Projelerde ara"
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
                 aria-label="Aramayı temizle"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200/50"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400 p-1 rounded-full hover:bg-slate-200 dark:bg-slate-800/50"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -243,7 +243,7 @@ export function Projects() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="pt-3.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3"
+              className="pt-3.5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3"
             >
               <div>
                 <label
@@ -256,7 +256,7 @@ export function Projects() {
                   id="filter-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:bg-slate-950 focus:border-slate-900 outline-none"
                 >
                   <option value="">Tüm Kategoriler</option>
                   <option value="Yazılım">Yazılım</option>
@@ -282,7 +282,7 @@ export function Projects() {
                   id="filter-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:bg-slate-950 focus:border-slate-900 outline-none"
                 >
                   <option value="">Tüm Durumlar</option>
                   <option value="Fikir aşamasında">Fikir Aşamasında</option>
@@ -304,7 +304,7 @@ export function Projects() {
                   id="filter-sort"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 font-medium focus:bg-white focus:border-slate-900 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:bg-slate-950 focus:border-slate-900 outline-none"
                 >
                   <option value="newest">En Yeniler</option>
                   <option value="oldest">En Eskiler</option>
@@ -318,26 +318,26 @@ export function Projects() {
         {(category || status || sort !== "newest" || search) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {category && (
-              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900 text-slate-700 border border-slate-100 dark:border-slate-800 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 Kategori: {category}
                 <button
                   type="button"
                   onClick={() => setCategory("")}
                   aria-label="Kategori filtresini kaldır"
-                  className="hover:text-slate-900"
+                  className="hover:text-slate-900 dark:text-slate-100"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {status && (
-              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 border border-slate-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900 text-slate-700 border border-slate-100 dark:border-slate-800 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 Durum: {getStatusText(status)}
                 <button
                   type="button"
                   onClick={() => setStatus("")}
                   aria-label="Durum filtresini kaldır"
-                  className="hover:text-slate-900"
+                  className="hover:text-slate-900 dark:text-slate-100"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -346,7 +346,7 @@ export function Projects() {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="text-xs text-slate-500 hover:text-rose-600 font-bold flex items-center gap-1 ml-auto p-1"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-600 font-bold flex items-center gap-1 ml-auto p-1"
             >
               <X className="w-3 h-3" /> Temizle
             </button>
@@ -404,11 +404,11 @@ export function Projects() {
             <div
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white border border-slate-200/80 rounded-2xl hover:border-slate-200 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl hover:border-slate-200 dark:border-slate-800 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (
-                <div className="w-full aspect-[16/9] bg-slate-100 overflow-hidden relative border-b border-slate-100">
+                <div className="w-full aspect-[16/9] bg-slate-100 dark:bg-slate-900 overflow-hidden relative border-b border-slate-200 dark:border-slate-800">
                   <img
                     src={project.imageUrl}
                     alt={project.title}
@@ -418,7 +418,7 @@ export function Projects() {
                   />
                 </div>
               ) : (
-                <div className="w-full h-32 bg-gradient-to-br from-slate-50/60 to-slate-50 flex items-center justify-center border-b border-slate-100">
+                <div className="w-full h-32 bg-gradient-to-br from-slate-50/60 to-slate-50 flex items-center justify-center border-b border-slate-200 dark:border-slate-800">
                   <Rocket className="w-8 h-8 text-slate-400 group-hover:scale-110 transition-transform" />
                 </div>
               )}
@@ -427,28 +427,28 @@ export function Projects() {
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] font-bold text-slate-700 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
                       {project.category}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
                       {getStatusText(project.status)}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-slate-900 transition-colors line-clamp-2 mb-1.5">
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-slate-900 dark:text-slate-100 transition-colors line-clamp-2 mb-1.5">
                     {project.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3">
                     {project.description}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
                   <span className="font-medium truncate">@{project.username}</span>
                   <div className="flex items-center gap-2.5">
-                    {project.githubUrl && <Github className="w-3.5 h-3.5 text-slate-500" />}
-                    {project.projectUrl && <LinkIcon className="w-3.5 h-3.5 text-slate-900" />}
+                    {project.githubUrl && <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+                    {project.projectUrl && <LinkIcon className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />}
                   </div>
                 </div>
               </div>

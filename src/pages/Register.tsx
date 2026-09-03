@@ -314,16 +314,16 @@ export function Register() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-lg"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white relative overflow-hidden">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950 relative overflow-hidden">
           {/* Header Brand */}
           <div className="flex flex-col items-center text-center mb-6">
             <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-500/25 mb-3">
               <Hexagon className="w-6 h-6 fill-current" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Genç Sosyal'e Katıl
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               Adım {step} / {STEPS.length} &bull; {currentStepData.shortTitle}
             </p>
           </div>
@@ -331,7 +331,7 @@ export function Register() {
           {/* Stepper Progress Bar */}
           <div className="mb-8">
             <div className="relative flex items-center justify-between px-1">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 rounded-full" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-slate-900 rounded-full" />
               <motion.div
                 className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-slate-900 rounded-full origin-left"
                 initial={{ scaleX: 0 }}
@@ -372,7 +372,7 @@ export function Register() {
                 className="w-full"
               >
                 <div className="text-center mb-6">
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1">
                     {currentStepData.title}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500">
@@ -417,7 +417,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="kullanici_adi"
                       />
                     </div>
@@ -452,7 +452,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="isim@ornek.com"
                       />
                     </div>
@@ -488,7 +488,7 @@ export function Register() {
                               handleNext();
                             }
                           }}
-                          className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                          className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                           placeholder="••••••••"
                         />
                         <button
@@ -556,7 +556,7 @@ export function Register() {
                             handleNext();
                           }
                         }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                         placeholder="Örn. Ahmet Yılmaz"
                       />
                     </div>
@@ -569,34 +569,34 @@ export function Register() {
                 {/* Step 5: Terms & Confirmation */}
                 {step === 5 && (
                   <div className="space-y-4 pt-1">
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2.5 text-left">
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 text-xs">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/80 space-y-2.5 text-left">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800/60 text-xs">
                         <span className="text-slate-500">Kullanıcı Adı:</span>
-                        <span className="font-bold text-slate-900">@{formData.username}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">@{formData.username}</span>
                       </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 text-xs">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800/60 text-xs">
                         <span className="text-slate-500">E-posta:</span>
-                        <span className="font-bold text-slate-900 truncate max-w-[200px]">{formData.email}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[200px]">{formData.email}</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500">Görünen Ad:</span>
-                        <span className="font-bold text-slate-900">{formData.displayName}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">{formData.displayName}</span>
                       </div>
                     </div>
 
-                    <label className="flex items-start gap-3.5 p-4 border border-slate-200/90 rounded-2xl cursor-pointer hover:bg-slate-50/80 transition-colors bg-white group">
+                    <label className="flex items-start gap-3.5 p-4 border border-slate-200 dark:border-slate-800/90 rounded-2xl cursor-pointer hover:bg-slate-50/80 transition-colors bg-white dark:bg-slate-950 group">
                       <input
                         type="checkbox"
                         name="termsAccepted"
                         checked={formData.termsAccepted}
                         onChange={handleChange}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20 accent-slate-600 shrink-0"
+                        className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 dark:text-slate-100 focus:ring-slate-900/20 accent-slate-600 shrink-0"
                       />
-                      <span className="text-xs sm:text-sm text-slate-600 leading-relaxed group-hover:text-slate-900 select-none">
+                      <span className="text-xs sm:text-sm text-slate-600 leading-relaxed group-hover:text-slate-900 dark:text-slate-100 select-none">
                         <Link
                           to="/terms"
                           target="_blank"
-                          className="text-slate-900 hover:underline font-bold"
+                          className="text-slate-900 dark:text-slate-100 hover:underline font-bold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Kullanım Koşulları
@@ -605,7 +605,7 @@ export function Register() {
                         <Link
                           to="/privacy"
                           target="_blank"
-                          className="text-slate-900 hover:underline font-bold"
+                          className="text-slate-900 dark:text-slate-100 hover:underline font-bold"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Gizlilik Politikası
@@ -620,7 +620,7 @@ export function Register() {
                 {step === 6 && (
                   <div className="space-y-5 text-center">
                     {/* Sent Email Pill */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold border border-slate-100 max-w-full">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-900 text-slate-700 rounded-full text-xs font-semibold border border-slate-100 dark:border-slate-800 max-w-full">
                       <Mail className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{formData.email}</span>
                       <button
@@ -629,7 +629,7 @@ export function Register() {
                           setError('');
                           setStep(2);
                         }}
-                        className="ml-1 text-slate-500 hover:text-slate-800 transition-colors"
+                        className="ml-1 text-slate-500 hover:text-slate-800 dark:text-slate-100 transition-colors"
                         title="E-postayı Değiştir"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -652,8 +652,8 @@ export function Register() {
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                           className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all outline-none ${
                             digit
-                              ? 'border-slate-900 bg-slate-100/40 text-slate-900 ring-2 ring-slate-900/10'
-                              : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/10'
+                              ? 'border-slate-900 bg-slate-100/40 text-slate-900 dark:text-slate-100 ring-2 ring-slate-900/10'
+                              : 'border-slate-200 dark:border-slate-800 bg-slate-50 text-slate-900 dark:text-slate-100 focus:border-slate-900 focus:bg-white dark:bg-slate-950 focus:ring-2 focus:ring-slate-900/10'
                           }`}
                           autoComplete="off"
                         />
@@ -684,7 +684,7 @@ export function Register() {
                           type="button"
                           onClick={handleResendOtp}
                           disabled={resending}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 hover:text-slate-700 hover:underline transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors disabled:opacity-50"
                         >
                           <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
                           {resending ? 'Kod Gönderiliyor...' : 'Kodu Tekrar Gönder'}
@@ -732,12 +732,12 @@ export function Register() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-            <p className="text-sm text-slate-500">
+          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Zaten hesabınız var mı?{' '}
               <Link
                 to="/login"
-                className="font-bold text-slate-900 hover:text-slate-700 hover:underline transition-colors"
+                className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors"
               >
                 Giriş Yapın
               </Link>

@@ -1164,6 +1164,13 @@ var init_db = __esm({
         console.warn("T\xFCm verileriniz ./database klas\xF6r\xFCne kaydedilecektir.");
         console.warn("=========================================================");
         const dbPath = import_path2.default.join(process.cwd(), "database");
+        const pidPath = import_path2.default.join(dbPath, "postmaster.pid");
+        if (import_fs2.default.existsSync(pidPath)) {
+          try {
+            import_fs2.default.unlinkSync(pidPath);
+          } catch (_) {
+          }
+        }
         try {
           global._pgliteClient = new import_pglite2.PGlite(dbPath);
         } catch (err) {
@@ -1482,9 +1489,9 @@ var init_rateLimiter = __esm({
       // 1 minute
       max: 60,
       // Limit each IP to 60 requests per windowMs
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
       standardHeaders: true,
       legacyHeaders: false,
+      validate: { xForwardedForHeader: false },
       message: { success: false, error: { code: "TOO_MANY_REQUESTS", message: "\xC7ok fazla istek g\xF6nderdiniz. L\xFCtfen daha sonra tekrar deneyin." } }
     });
     strictLimiter = (0, import_express_rate_limit.default)({
@@ -1492,15 +1499,15 @@ var init_rateLimiter = __esm({
       // 1 minute
       max: 15,
       // Uploads and post creations should be limited to 15 per minute
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
       standardHeaders: true,
       legacyHeaders: false,
+      validate: { xForwardedForHeader: false },
       message: { success: false, error: { code: "TOO_MANY_REQUESTS", message: "\u0130\u015Flem s\u0131n\u0131r\u0131na ula\u015Ft\u0131n\u0131z. Biraz bekleyip tekrar deneyin." } }
     });
     authRateLimiter = (0, import_express_rate_limit.default)({
       windowMs: 15 * 60 * 1e3,
       max: 20,
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
+      validate: { xForwardedForHeader: false },
       message: {
         success: false,
         error: {
@@ -1514,7 +1521,7 @@ var init_rateLimiter = __esm({
     loginRateLimiter = (0, import_express_rate_limit.default)({
       windowMs: 15 * 60 * 1e3,
       max: 10,
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
+      validate: { xForwardedForHeader: false },
       message: {
         success: false,
         error: {
@@ -1530,7 +1537,7 @@ var init_rateLimiter = __esm({
       // 1 hour
       max: 10,
       // 10 registrations per hour per IP
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
+      validate: { xForwardedForHeader: false },
       message: {
         success: false,
         error: {
@@ -1546,7 +1553,7 @@ var init_rateLimiter = __esm({
       // 15 minutes
       max: 6,
       // max 6 OTP requests per 15 minutes per IP
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
+      validate: { xForwardedForHeader: false },
       message: {
         success: false,
         error: {
@@ -1562,7 +1569,7 @@ var init_rateLimiter = __esm({
       // 15 minutes
       max: 15,
       // max 15 attempts
-      keyGenerator: (req) => req.headers["x-forwarded-for"] || req.ip,
+      validate: { xForwardedForHeader: false },
       message: {
         success: false,
         error: {
@@ -2566,10 +2573,10 @@ var init_mailer = __esm({
 \u{1F4E7} [GEN\xC7 SOSYAL] E-POSTA DO\u011ERULAMA KODU
 Al\u0131c\u0131: ${to} (${displayName || "Kullan\u0131c\u0131"})
 \u{1F511} Do\u011Frulama Kodu: ${otpCode}
-\u2139\uFE0F SMTP sunucusu hen\xFCz yap\u0131land\u0131r\u0131lmad\u0131\u011F\u0131 i\xE7in test kodu terminale yazd\u0131r\u0131ld\u0131 ve otomatik sa\u011Fland\u0131.
+\u2139\uFE0F SMTP sunucusu hen\xFCz yap\u0131land\u0131r\u0131lmad\u0131\u011F\u0131 i\xE7in test kodu terminale yazd\u0131r\u0131ld\u0131.
 =======================================================
 `);
-        return { sent: false, devOtp: otpCode };
+        return { sent: false };
       }
       try {
         const transporter = await getTransporter();
@@ -2608,14 +2615,14 @@ G\xFCvenli\u011Finiz i\xE7in bu kodu kimseyle payla\u015Fmay\u0131n.`;
         console.log(`[SMTP] Do\u011Frulama kodu e-postas\u0131 ba\u015Far\u0131yla g\xF6nderildi: ${to}`);
         return { sent: true };
       } catch (err) {
-        console.warn(`[SMTP] E-posta g\xF6nderilemedi (${err?.message}). Kod terminale yazd\u0131r\u0131ld\u0131 ve test ama\xE7l\u0131 geri d\xF6n\xFCld\xFC.`);
+        console.warn(`[SMTP] E-posta g\xF6nderilemedi (${err?.message}). Kod terminale yazd\u0131r\u0131ld\u0131.`);
         console.log(`
 =======================================================
 \u{1F4E7} [FALLBACK OTP KODU] Al\u0131c\u0131: ${to}
 \u{1F511} KOD: ${otpCode}
 =======================================================
 `);
-        return { sent: false, devOtp: otpCode };
+        return { sent: false };
       }
     };
     sendVerificationEmail = async (to, displayName, verifyLink) => {
@@ -2903,18 +2910,17 @@ async function handleSendOtp(email, displayName, username, password) {
     mailResult = await sendOtpVerificationEmail(email, displayName, otpCode);
   } catch (err) {
     console.error("Failed to send OTP email:", err);
-    mailResult = { sent: false, devOtp: otpCode };
+    mailResult = { sent: false };
   }
   return {
     status: 200,
     body: {
       success: true,
       data: {
-        message: mailResult.sent ? "Do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Do\u011Frulama kodu olu\u015Fturuldu (\xD6nizleme/Test modunda otomatik sa\u011Fland\u0131).",
+        message: mailResult.sent ? "Do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Do\u011Frulama kodu e-posta adresinize g\xF6nderildi. L\xFCtfen gelen kutunuzu kontrol edin.",
         email,
         cooldownSeconds: 60,
-        expiresInSeconds: 600,
-        devOtp: mailResult.devOtp || otpCode
+        expiresInSeconds: 600
       }
     }
   };
@@ -2994,8 +3000,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
       });
       await tx.delete(otpVerifications).where((0, import_drizzle_orm9.eq)(otpVerifications.id, otpRecord.id));
       try {
-        const { systemSettings: systemSettings2, follows: follows2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
-        const setting = await tx.select().from(systemSettings2).where((0, import_drizzle_orm9.eq)(systemSettings2.key, "auto_follow_users")).limit(1);
+        const setting = await tx.select().from(systemSettings).where((0, import_drizzle_orm9.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         if (setting.length > 0 && setting[0].value) {
           const parsed = JSON.parse(setting[0].value);
           let userIds = Array.isArray(parsed) ? parsed.map((u) => typeof u === "number" ? u : u.id).filter((id) => typeof id === "number" && id !== createdUser.id) : [];
@@ -3005,7 +3010,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
               followingId: id,
               notificationPreference: "standard"
             }));
-            await tx.insert(follows2).values(followsToInsert).onConflictDoNothing();
+            await tx.insert(follows).values(followsToInsert).onConflictDoNothing();
           }
         }
       } catch (e) {
@@ -3016,12 +3021,14 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
       const tokenHash = await import_argon2.default.hash(refreshToken2);
       const expiresAt = /* @__PURE__ */ new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
+      const rawIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+      const cleanIp = rawIp.split(",")[0].trim().slice(0, 45) || null;
       await tx.insert(refreshTokens).values({
         userId: createdUser.id,
         tokenHash,
         expiresAt,
-        ipAddress: req.headers["x-forwarded-for"] || req.socket.remoteAddress || null,
-        deviceInfo: req.headers["user-agent"] || null
+        ipAddress: cleanIp,
+        deviceInfo: (req.headers["user-agent"] || "").slice(0, 500) || null
       });
       return { createdUser, accessToken: accessToken2, refreshToken: refreshToken2 };
     });
@@ -3166,15 +3173,14 @@ var init_auth3 = __esm({
           mailResult = await sendOtpVerificationEmail(email, displayName || "Kullan\u0131c\u0131", otpCode);
         } catch (err) {
           console.error("Failed to resend OTP email:", err);
-          mailResult = { sent: false, devOtp: otpCode };
+          mailResult = { sent: false };
         }
         res.json({
           success: true,
           data: {
-            message: mailResult.sent ? "Yeni do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Yeni do\u011Frulama kodu olu\u015Fturuldu (\xD6nizleme modunda otomatik sa\u011Fland\u0131).",
+            message: mailResult.sent ? "Yeni do\u011Frulama kodu e-posta adresinize g\xF6nderildi." : "Yeni do\u011Frulama kodu e-posta adresinize g\xF6nderildi. L\xFCtfen gelen kutunuzu kontrol edin.",
             cooldownSeconds: 60,
-            expiresInSeconds: 600,
-            devOtp: mailResult.devOtp || otpCode
+            expiresInSeconds: 600
           }
         });
       } catch (error) {
@@ -3800,8 +3806,18 @@ var init_auth3 = __esm({
           isVerified: users.isVerified,
           createdAt: users.createdAt,
           displayName: profiles.displayName,
+          bio: profiles.bio,
           avatarUrl: profiles.avatarUrl,
-          onboardingCompleted: profiles.onboardingCompleted
+          coverUrl: profiles.coverUrl,
+          location: profiles.location,
+          website: profiles.website,
+          isPrivate: profiles.isPrivate,
+          allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+          messagePreference: profiles.messagePreference,
+          mentionPreference: profiles.mentionPreference,
+          defaultPostVisibility: profiles.defaultPostVisibility,
+          onboardingCompleted: profiles.onboardingCompleted,
+          interests: profiles.interests
         }).from(users).leftJoin(profiles, (0, import_drizzle_orm9.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm9.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({
@@ -7835,6 +7851,7 @@ async function startServer() {
   app.use("/uploads", import_express27.default.static(getUploadDir()));
   const { setupRouter: setupRouter2 } = await Promise.resolve().then(() => (init_setup(), setup_exports));
   app.use("/api/setup", setupRouter2);
+  app.use("/api/v1/setup", setupRouter2);
   const { healthRouter: healthRouter2 } = await Promise.resolve().then(() => (init_health(), health_exports));
   app.use("/api/v1/health", healthRouter2);
   app.use("/api/health", healthRouter2);

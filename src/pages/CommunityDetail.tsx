@@ -131,7 +131,7 @@ export function CommunityDetail() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full w-full max-w-3xl mx-auto border-x border-slate-200/80 min-h-screen bg-white p-6 space-y-4">
+      <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent p-6 space-y-4">
         <SkeletonCard />
         <SkeletonCard />
       </div>
@@ -140,7 +140,7 @@ export function CommunityDetail() {
 
   if (!community) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center min-h-[60vh] bg-white">
+      <div className="flex flex-col items-center justify-center p-12 text-center min-h-[60vh] bg-white dark:bg-slate-950">
         <EmptyState
           icon={<Users className="w-7 h-7" />}
           title="Topluluk Bulunamadı"
@@ -157,19 +157,19 @@ export function CommunityDetail() {
   const isOwner = user?.id === community.ownerId;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-3xl mx-auto border-x border-slate-200/80 min-h-screen bg-white">
+    <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Geri"
-            className="p-1.5 -ml-1.5 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+            className="p-1.5 -ml-1.5 rounded-full hover:bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
             {community.name}
           </h1>
         </div>
@@ -179,7 +179,7 @@ export function CommunityDetail() {
             <button
               type="button"
               aria-label="Diğer Seçenekler"
-              className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
             >
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -197,24 +197,24 @@ export function CommunityDetail() {
       </header>
 
       {/* Community Hero Header */}
-      <div className="p-6 sm:p-8 border-b border-slate-100 text-center flex flex-col items-center bg-gradient-to-b from-slate-50/70 to-white">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-3xl border-4 border-slate-100 shadow-md flex items-center justify-center mb-4 overflow-hidden">
+      <div className="p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 text-center flex flex-col items-center bg-gradient-to-b from-slate-50/70 to-white">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white dark:bg-slate-950 rounded-3xl border-4 border-slate-100 dark:border-slate-800 shadow-md flex items-center justify-center mb-4 overflow-hidden">
           {community.avatarUrl ? (
             <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
           ) : (
-            <Users className="w-12 h-12 text-slate-900 stroke-[1.8]" />
+            <Users className="w-12 h-12 text-slate-900 dark:text-slate-100 stroke-[1.8]" />
           )}
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1">
           {community.name}
         </h2>
-        <div className="text-xs sm:text-sm font-semibold text-slate-900 mb-3">
+        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">
           {community.memberCount || 0} Üye &bull; c/{community.slug}
         </div>
 
         {community.description && (
-          <p className="text-sm text-slate-600 max-w-lg leading-relaxed mb-6">
+          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg leading-relaxed mb-6">
             {community.description}
           </p>
         )}
@@ -245,14 +245,14 @@ export function CommunityDetail() {
       </div>
 
       {/* Segmented Tabs */}
-      <div className="flex border-b border-slate-200/80 px-4 sm:px-6 bg-white sticky top-28 z-10">
+      <div className="flex border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 bg-white dark:bg-slate-950 sticky top-28 z-10">
         <button
           type="button"
           onClick={() => setActiveTab("posts")}
           className={`flex items-center gap-2 py-3.5 px-4 text-sm font-bold border-b-2 transition-colors ${
             activeTab === "posts"
-              ? "border-slate-900 text-slate-900"
-              : "border-transparent text-slate-500 hover:text-slate-900"
+              ? "border-slate-900 text-slate-900 dark:text-slate-100"
+              : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -263,8 +263,8 @@ export function CommunityDetail() {
           onClick={() => setActiveTab("members")}
           className={`flex items-center gap-2 py-3.5 px-4 text-sm font-bold border-b-2 transition-colors ${
             activeTab === "members"
-              ? "border-slate-900 text-slate-900"
-              : "border-transparent text-slate-500 hover:text-slate-900"
+              ? "border-slate-900 text-slate-900 dark:text-slate-100"
+              : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <Users className="w-4 h-4" />
@@ -277,7 +277,7 @@ export function CommunityDetail() {
         {activeTab === "posts" ? (
           <div>
             {community.isMember && (
-              <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+              <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                 <CreatePost
                   communityId={community.id}
                   onPostCreated={(newPost) => addItem(newPost)}

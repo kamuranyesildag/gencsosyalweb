@@ -155,7 +155,7 @@ export function ConfirmDialog({
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-desc"
-            className="relative w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
+            className="relative w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
           >
             <div className="flex items-start gap-4 mb-4">
               <div
@@ -165,7 +165,7 @@ export function ConfirmDialog({
                     ? 'bg-rose-100/80 text-rose-600'
                     : variant === 'warning'
                     ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-slate-100/80 text-slate-900'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100'
                 )}
               >
                 {variant === 'danger' ? (
@@ -177,10 +177,10 @@ export function ConfirmDialog({
                 )}
               </div>
               <div className="flex-1">
-                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 tracking-tight">
+                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                   {title}
                 </h3>
-                <p id="confirm-desc" className="text-slate-600 text-sm leading-relaxed mt-1">
+                <p id="confirm-desc" className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-1">
                   {message}
                 </p>
               </div>
@@ -260,7 +260,7 @@ export function ConfirmDialogContainer() {
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-desc"
-            className="relative w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
+            className="relative w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
           >
             <div className="flex items-start gap-4 mb-4">
               <div
@@ -270,7 +270,7 @@ export function ConfirmDialogContainer() {
                     ? 'bg-rose-100/80 text-rose-600'
                     : variant === 'warning'
                     ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-slate-100/80 text-slate-900'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100'
                 )}
               >
                 {variant === 'danger' ? (
@@ -282,10 +282,10 @@ export function ConfirmDialogContainer() {
                 )}
               </div>
               <div className="flex-1">
-                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 tracking-tight">
+                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                   {title}
                 </h3>
-                <p id="confirm-desc" className="text-slate-600 text-sm leading-relaxed mt-1">
+                <p id="confirm-desc" className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-1">
                   {message}
                 </p>
               </div>

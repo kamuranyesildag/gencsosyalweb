@@ -100,7 +100,7 @@ export function StarterQuestsCard() {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6 relative group"
+      className="bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 relative group"
     >
       <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
         <motion.div
@@ -115,11 +115,11 @@ export function StarterQuestsCard() {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-slate-900" />
+              <Sparkles className="w-5 h-5 text-slate-900 dark:text-slate-100" />
             </div>
             <div>
-              <h2 className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Genç Sosyal'e Başla</h2>
-              <p className="text-xs sm:text-sm font-medium text-slate-500">
+              <h2 className="font-extrabold text-slate-900 dark:text-slate-100 text-base sm:text-lg tracking-tight">Genç Sosyal'e Başla</h2>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
                 {completedCount} / {tasks.length} tamamlandı
               </p>
             </div>
@@ -127,7 +127,7 @@ export function StarterQuestsCard() {
           <button
             type="button"
             onClick={() => setIsHidden(true)}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 rounded-full transition-colors opacity-0 group-hover:opacity-100"
             aria-label="Kapat"
           >
             <X className="w-4 h-4" />
@@ -139,7 +139,7 @@ export function StarterQuestsCard() {
             <motion.div
               key={task.id}
               className={`flex items-center justify-between p-3 rounded-xl border ${
-                task.completed ? "bg-emerald-50/50 border-emerald-100/60" : "bg-slate-50 border-slate-100 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-colors"
+                task.completed ? "bg-emerald-50/50 border-emerald-100/60" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-900 hover:border-slate-200 dark:border-slate-800 cursor-pointer transition-colors"
               }`}
               onClick={() => !task.completed && task.onClick()}
             >
@@ -149,7 +149,7 @@ export function StarterQuestsCard() {
                 ) : (
                   <Circle className="w-5 h-5 text-slate-300 shrink-0" />
                 )}
-                <span className={`text-sm sm:text-[15px] font-semibold ${task.completed ? "text-slate-500 line-through decoration-slate-300" : "text-slate-800"}`}>
+                <span className={`text-sm sm:text-[15px] font-semibold ${task.completed ? "text-slate-500 line-through decoration-slate-300" : "text-slate-800 dark:text-slate-100"}`}>
                   {task.title}
                 </span>
               </div>
@@ -165,7 +165,7 @@ export function StarterQuestsCard() {
               animate={{ opacity: 1, height: "auto", marginTop: 16 }}
               className="flex flex-col gap-3"
             >
-              <div className="p-3 bg-slate-100 text-slate-700 text-sm font-bold rounded-xl text-center border border-slate-100">
+              <div className="p-3 bg-slate-100 dark:bg-slate-900 text-slate-700 text-sm font-bold rounded-xl text-center border border-slate-100 dark:border-slate-800">
                 🎉 Harika! Tüm görevleri tamamladın.
               </div>
               <button

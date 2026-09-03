@@ -25,15 +25,15 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, { bg: string; dot: string }> = {
   default: {
-    bg: 'bg-slate-100 text-slate-700 border-slate-200/80',
+    bg: 'bg-slate-100 dark:bg-slate-900 text-slate-700 border-slate-200 dark:border-slate-800/80',
     dot: 'bg-slate-900',
   },
   primary: {
     bg: 'bg-slate-900 text-white border-transparent',
-    dot: 'bg-white',
+    dot: 'bg-white dark:bg-slate-950',
   },
   secondary: {
-    bg: 'bg-slate-100 text-slate-700 border-slate-200',
+    bg: 'bg-slate-100 dark:bg-slate-900 text-slate-700 border-slate-200 dark:border-slate-800',
     dot: 'bg-slate-500',
   },
   success: {
@@ -53,7 +53,7 @@ const variantStyles: Record<BadgeVariant, { bg: string; dot: string }> = {
     dot: 'bg-sky-500',
   },
   verified: {
-    bg: 'bg-slate-100 text-slate-700 border-slate-200/80 font-bold',
+    bg: 'bg-slate-100 dark:bg-slate-900 text-slate-700 border-slate-200 dark:border-slate-800/80 font-bold',
     dot: 'bg-slate-900',
   },
   outline: {

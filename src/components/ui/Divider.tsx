@@ -18,7 +18,7 @@ export function Divider({
       <div
         role="separator"
         aria-orientation="vertical"
-        className={cn('w-px self-stretch bg-slate-200/80 my-1', className)}
+        className={cn('w-px self-stretch bg-slate-200 dark:bg-slate-800/80 my-1', className)}
         {...props}
       />
     );
@@ -33,9 +33,9 @@ export function Divider({
         {...props}
       >
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200/80" />
+          <div className="w-full border-t border-slate-200 dark:border-slate-800/80" />
         </div>
-        <span className="relative px-3 bg-white text-xs font-semibold text-slate-400 uppercase tracking-wider select-none">
+        <span className="relative px-3 bg-white dark:bg-slate-950 text-xs font-semibold text-slate-400 uppercase tracking-wider select-none">
           {label}
         </span>
       </div>
@@ -46,7 +46,7 @@ export function Divider({
     <div
       role="separator"
       aria-orientation="horizontal"
-      className={cn('h-px w-full bg-slate-200/80 my-3', className)}
+      className={cn('h-px w-full bg-slate-200 dark:bg-slate-800/80 my-3', className)}
       {...props}
     />
   );

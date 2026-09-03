@@ -74,7 +74,7 @@ export function ReportDialog({ isOpen, onClose, targetType, targetId }: ReportDi
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col"
+            className="bg-white dark:bg-slate-950 rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -105,7 +105,7 @@ export function ReportDialog({ isOpen, onClose, targetType, targetId }: ReportDi
                           key={c}
                           type="button"
                           onClick={() => { setCategory(c); setError(""); }}
-                          className={`px-3 py-2 rounded-xl border text-sm font-medium transition-colors text-left ${category === c ? "bg-red-50 border-red-200 text-red-700" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                          className={`px-3 py-2 rounded-xl border text-sm font-medium transition-colors text-left ${category === c ? "bg-red-50 border-red-200 text-red-700" : "bg-white dark:bg-slate-950 border-gray-200 text-gray-700 hover:bg-gray-50"}`}
                         >
                           {c}
                         </button>

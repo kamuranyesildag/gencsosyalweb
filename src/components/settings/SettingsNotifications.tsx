@@ -46,9 +46,9 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
   }) => (
     <div className="flex items-center justify-between gap-4 py-3.5">
       <div className="min-w-0 flex-1">
-        <div className="font-bold text-slate-900 text-sm">{label}</div>
+        <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">{label}</div>
         {description && (
-          <div className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-relaxed">
             {description}
           </div>
         )}
@@ -60,20 +60,20 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+        <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-slate-950 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
       </label>
     </div>
   );
 
   return (
     <form onSubmit={handleUpdate} className="space-y-6">
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Bell className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Bell className="w-5 h-5 text-slate-900 dark:text-slate-100" />
             Bildirim Tercihleri
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Hangi durumlarda anlık veya e-posta ile bildirim almak istediğinizi özelleştirin.
           </p>
         </div>

@@ -111,11 +111,11 @@ export function AdminUsers() {
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-slate-900" />
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-slate-900 dark:text-slate-100" />
             <span>Kullanıcı Yönetimi</span>
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Kayıtlı tüm kullanıcıları listeleyin, arayın ve mavi tik doğrulama durumlarını düzenleyin.
           </p>
         </div>
@@ -184,11 +184,11 @@ export function AdminUsers() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 font-medium">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 font-medium">
           <span>Toplam {filteredUsers.length} kullanıcı gösteriliyor</span>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />
               {users.filter((u) => u.isVerified).length} Doğrulanmış
             </span>
             <span className="flex items-center gap-1">
@@ -258,7 +258,7 @@ export function AdminUsers() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800/80 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       <th className="py-3.5 px-6">Kullanıcı</th>
                       <th className="py-3.5 px-4">Rol</th>
                       <th className="py-3.5 px-4">Doğrulama</th>
@@ -272,7 +272,7 @@ export function AdminUsers() {
                       return (
                         <tr
                           key={u.id}
-                          className="hover:bg-slate-50/60 transition-colors group"
+                          className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors group"
                         >
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3.5">
@@ -281,15 +281,15 @@ export function AdminUsers() {
                                 <div className="flex items-center gap-1.5">
                                   <Link
                                     to={`/profile/${u.username}`}
-                                    className="font-bold text-slate-900 hover:text-slate-900 transition-colors truncate"
+                                    className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-900 dark:text-slate-100 transition-colors truncate"
                                   >
                                     {u.displayName || u.username}
                                   </Link>
                                   {u.isVerified && (
-                                    <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-600/10 shrink-0" />
+                                    <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-600/10 shrink-0" />
                                   )}
                                 </div>
-                                <div className="text-xs text-slate-500 font-medium truncate flex items-center gap-2 mt-0.5">
+                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate flex items-center gap-2 mt-0.5">
                                   <span>@{u.username}</span>
                                   <span>•</span>
                                   <span className="text-slate-400">{u.email}</span>
@@ -322,7 +322,7 @@ export function AdminUsers() {
                             )}
                           </td>
 
-                          <td className="py-4 px-4 text-xs text-slate-500 font-medium">
+                          <td className="py-4 px-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
                             {u.createdAt
                               ? new Date(u.createdAt).toLocaleDateString('tr-TR', {
                                   year: 'numeric',
@@ -336,7 +336,7 @@ export function AdminUsers() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 to={`/profile/${u.username}`}
-                                className="p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-900 dark:text-slate-100 rounded-xl hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                                 title="Profili Görüntüle"
                               >
                                 <ExternalLink className="w-4 h-4" />
@@ -372,15 +372,15 @@ export function AdminUsers() {
                             <div className="flex items-center gap-1.5">
                               <Link
                                 to={`/profile/${u.username}`}
-                                className="font-bold text-slate-900 hover:text-slate-900 truncate text-sm"
+                                className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-900 dark:text-slate-100 truncate text-sm"
                               >
                                 {u.displayName || u.username}
                               </Link>
                               {u.isVerified && (
-                                <CheckCircle2 className="w-4 h-4 text-slate-900 shrink-0" />
+                                <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" />
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 truncate">@{u.username}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">@{u.username}</div>
                             <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
                           </div>
                         </div>
@@ -403,10 +403,10 @@ export function AdminUsers() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
                         <Link
                           to={`/profile/${u.username}`}
-                          className="text-xs font-semibold text-slate-900 flex items-center gap-1"
+                          className="text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1"
                         >
                           <ExternalLink className="w-3.5 h-3.5" /> Profili Gör
                         </Link>

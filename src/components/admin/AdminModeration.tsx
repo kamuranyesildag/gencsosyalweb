@@ -81,14 +81,14 @@ export function AdminModeration() {
     return 'success';
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-500 font-medium">Yükleniyor...</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Yükleniyor...</div>;
 
   return (
     <motion.div variants={slideUpVariants} initial="hidden" animate="visible" className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Moderasyon Kuyruğu</h2>
-          <p className="text-sm text-slate-500 mt-1">Otomatik sistem tarafından işaretlenmiş şüpheli içerikleri inceleyin.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Moderasyon Kuyruğu</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Otomatik sistem tarafından işaretlenmiş şüpheli içerikleri inceleyin.</p>
         </div>
         <Badge variant="warning">{logs.length} Bekleyen</Badge>
       </div>
@@ -100,21 +100,21 @@ export function AdminModeration() {
               <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Kuyruk Temiz</h3>
-              <p className="text-slate-500 text-sm mt-1">İncelenmesi gereken içerik bulunmuyor.</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Kuyruk Temiz</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">İncelenmesi gereken içerik bulunmuyor.</p>
             </Card>
           ) : (
             logs.map(log => (
               <Card key={log.id} className="p-5 flex flex-col gap-4 border-l-4" style={{ borderLeftColor: log.riskLevel === 'HIGH_RISK' ? '#ef4444' : log.riskLevel === 'MEDIUM_RISK' ? '#f59e0b' : '#3b82f6' }}>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-900 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400">
                       {log.entityType === 'POST' || log.entityType === 'PROJECT' ? <FileText className="w-5 h-5" /> : log.entityType === 'COMMENT' || log.entityType === 'PROJECT_COMMENT' ? <MessageSquare className="w-5 h-5" /> : <User className="w-5 h-5" />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{log.user.displayName}</span>
-                        <span className="text-slate-500 text-sm">@{log.user.username}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">{log.user.displayName}</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">@{log.user.username}</span>
                         <Badge variant="secondary" size="sm">{log.entityType}</Badge>
                       </div>
                       <div className="text-xs text-slate-400 mt-0.5">{new Date(log.createdAt).toLocaleString('tr-TR')}</div>
@@ -123,11 +123,11 @@ export function AdminModeration() {
                   <Badge variant={getRiskColor(log.riskLevel)}>{log.category}</Badge>
                 </div>
                 
-                <div className="bg-slate-50 p-4 rounded-xl text-slate-800 text-sm border border-slate-100 relative">
+                <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl text-slate-800 dark:text-slate-100 text-sm border border-slate-100 dark:border-slate-800 relative">
                   {log.content}
                 </div>
                 
-                <div className="flex gap-3 justify-end mt-2 pt-4 border-t border-slate-100">
+                <div className="flex gap-3 justify-end mt-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <Button variant="danger" size="sm" onClick={() => handleAction(log.id, 'REJECT')} leftIcon={<XCircle className="w-4 h-4" />}>
                     İçeriği Engelle
                   </Button>
@@ -142,25 +142,25 @@ export function AdminModeration() {
         
         <div className="space-y-4">
           <Card className="p-5">
-            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-slate-500" />
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-slate-500 dark:text-slate-400" />
               Sistem Durumu
             </h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                <span className="text-slate-600">Otomatik Motor</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-slate-600 dark:text-slate-400">Otomatik Motor</span>
                 <Badge variant="success">AKTİF</Badge>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                <span className="text-slate-600">Algılama Hassasiyeti</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-slate-600 dark:text-slate-400">Algılama Hassasiyeti</span>
                 <span className="font-medium">Orta (Heuristic)</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-slate-600">Kalıcı Ban Politikası</span>
+                <span className="text-slate-600 dark:text-slate-400">Kalıcı Ban Politikası</span>
                 <span className="font-medium text-slate-400">Manuel İnceleme</span>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-4 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 leading-relaxed">
               Sistem içerikleri "SAFE", "LOW_RISK", "MEDIUM_RISK" ve "HIGH_RISK" olarak etiketler. 
               HIGH_RISK içerikler otomatik reddedilir (itiraza açıktır). MEDIUM_RISK içerikler yayınlanmaz ve bu kuyruğa düşer.
             </p>

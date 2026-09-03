@@ -87,22 +87,22 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={title ? 'modal-title' : undefined}
             className={cn(
-              'relative w-full bg-white rounded-3xl border border-slate-200/80 shadow-2xl shadow-slate-950/15 overflow-hidden flex flex-col z-10 my-auto max-h-[90vh]',
+              'relative w-full bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-2xl shadow-slate-950/15 overflow-hidden flex flex-col z-10 my-auto max-h-[90vh]',
               sizeStyles[size],
               className
             )}
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex flex-col space-y-1 pr-6">
                   {title && (
-                    <h3 id="modal-title" className="text-xl font-bold text-slate-900 tracking-tight">
+                    <h3 id="modal-title" className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                       {title}
                     </h3>
                   )}
                   {description && (
-                    <p className="text-sm text-slate-500 font-normal leading-relaxed">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
                       {description}
                     </p>
                   )}
@@ -113,7 +113,7 @@ export function Modal({
                     type="button"
                     onClick={onClose}
                     aria-label="Kapat"
-                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -128,7 +128,7 @@ export function Modal({
 
             {/* Footer */}
             {footer && (
-              <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/70 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
                 {footer}
               </div>
             )}

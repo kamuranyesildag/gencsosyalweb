@@ -60,7 +60,7 @@ export function SettingsAppearance({ showMsg }: SettingsAppearanceProps) {
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
                     theme === "light"
                       ? "bg-amber-100 text-amber-600"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:text-amber-600 group-hover:bg-amber-50"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-amber-600 group-hover:bg-amber-50"
                   }`}
                 >
                   <Sun className="w-6 h-6" />

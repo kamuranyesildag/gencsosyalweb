@@ -70,8 +70,8 @@ export function TabList({ children, className, fullWidth = false }: TabListProps
       role="tablist"
       className={cn(
         'flex items-center gap-1 overflow-x-auto no-scrollbar',
-        variant === 'pills' && 'bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60',
-        variant === 'underline' && 'border-b border-slate-200 gap-4',
+        variant === 'pills' && 'bg-slate-100 dark:bg-slate-900/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/60',
+        variant === 'underline' && 'border-b border-slate-200 dark:border-slate-800 gap-4',
         fullWidth && 'w-full',
         className
       )}
@@ -112,11 +112,11 @@ export function TabTrigger({
         'relative flex items-center justify-center gap-2 font-semibold text-sm transition-colors duration-200 select-none whitespace-nowrap min-h-[40px] px-4 py-2',
         variant === 'pills' && [
           'rounded-xl z-10 flex-1',
-          isActive ? 'text-slate-950 font-bold' : 'text-slate-600 hover:text-slate-900',
+          isActive ? 'text-slate-950 font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-100',
         ],
         variant === 'underline' && [
           'pb-3 font-medium',
-          isActive ? 'text-slate-900 font-bold' : 'text-slate-500 hover:text-slate-800',
+          isActive ? 'text-slate-900 dark:text-slate-100 font-bold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-100',
         ],
         disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
         className
@@ -131,7 +131,7 @@ export function TabTrigger({
         <motion.div
           layoutId={`${layoutIdPrefix}-pill-indicator`}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-          className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/70 -z-10"
+          className="absolute inset-0 bg-white dark:bg-slate-950 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800/70 -z-10"
         />
       )}
 

@@ -78,7 +78,7 @@ export function InfiniteScroll<T>({
       </div>
       {hasMore && (
         <div ref={observerRef} className="flex justify-center p-6 w-full">
-          {isLoading && <Loader2 className="w-8 h-8 animate-spin text-slate-900" />}
+          {isLoading && <Loader2 className="w-8 h-8 animate-spin text-slate-900 dark:text-slate-100" />}
         </div>
       )}
     </div>

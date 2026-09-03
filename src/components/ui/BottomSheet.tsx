@@ -71,27 +71,27 @@ export function BottomSheet({
             aria-modal="true"
             aria-labelledby={title ? 'bottom-sheet-title' : undefined}
             className={cn(
-              'relative w-full sm:max-w-lg bg-white rounded-t-[28px] sm:rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col z-10',
+              'relative w-full sm:max-w-lg bg-white dark:bg-slate-950 rounded-t-[28px] sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-2xl overflow-hidden flex flex-col z-10',
               maxHeight,
               className
             )}
           >
             {/* Grab Handle */}
             <div className="pt-3 pb-1 flex justify-center items-center sm:hidden">
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+              <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full" />
             </div>
 
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between px-5 pt-3 pb-3 border-b border-slate-100">
+              <div className="flex items-start justify-between px-5 pt-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex flex-col space-y-0.5 pr-4">
                   {title && (
-                    <h3 id="bottom-sheet-title" className="text-lg font-bold text-slate-900 tracking-tight">
+                    <h3 id="bottom-sheet-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                       {title}
                     </h3>
                   )}
                   {description && (
-                    <p className="text-xs sm:text-sm text-slate-500 font-normal">
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
                       {description}
                     </p>
                   )}
@@ -102,7 +102,7 @@ export function BottomSheet({
                     type="button"
                     onClick={onClose}
                     aria-label="Kapat"
-                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -117,7 +117,7 @@ export function BottomSheet({
 
             {/* Footer */}
             {footer && (
-              <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+              <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
                 {footer}
               </div>
             )}

@@ -239,20 +239,20 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
   return (
     <div className="space-y-6">
       {/* 1. Şifre Değiştirme Kartı */}
-      <form onSubmit={handleChangePassword} className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <form onSubmit={handleChangePassword} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-slate-900 dark:text-slate-100" />
             Şifre Değiştir
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Hesap güvenliğinizi korumak için güçlü ve benzersiz bir şifre kullanın.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Mevcut Şifre
             </label>
             <input
@@ -261,13 +261,13 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Yeni Şifre
               </label>
               <input
@@ -276,12 +276,12 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="En az 6 karakter"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Yeni Şifre (Tekrar)
               </label>
               <input
@@ -290,7 +290,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Şifreyi tekrar yazın"
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -311,14 +311,14 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
       </form>
 
       {/* 2. İki Faktörlü Doğrulama (2FA) */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
               <ShieldCheck className={`w-5 h-5 ${is2FAEnabled ? "text-emerald-500" : "text-slate-400"}`} />
               İki Faktörlü Doğrulama (2FA)
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
               Hesabınıza ek bir güvenlik katmanı ekleyin. Giriş yaparken bir doğrulama kodu istenir.
             </p>
           </div>
@@ -345,28 +345,28 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
 
         {/* 2FA Etkinleştirme Modal / Alanı */}
         {setupMode && !is2FAEnabled && (
-          <form onSubmit={handleEnable2FA} className="bg-slate-50/50 border border-slate-200/60 rounded-2xl p-5 space-y-6">
+          <form onSubmit={handleEnable2FA} className="bg-slate-50/50 border border-slate-200 dark:border-slate-800/60 rounded-2xl p-5 space-y-6">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">1</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 font-bold">1</div>
               <div>
-                <p className="text-sm font-bold text-slate-900">Authenticator Uygulamasını İndirin</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Authenticator Uygulamasını İndirin</p>
                 <p className="text-xs text-slate-500 mt-0.5">Google Authenticator, Microsoft Authenticator veya Authy kullanabilirsiniz.</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">2</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 font-bold">2</div>
               <div className="w-full">
-                <p className="text-sm font-bold text-slate-900 mb-3">QR Kodu Taratın</p>
-                <div className="flex flex-col sm:flex-row items-center gap-6 bg-white p-4 rounded-xl border border-slate-200/80">
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">QR Kodu Taratın</p>
+                <div className="flex flex-col sm:flex-row items-center gap-6 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80">
                   {setupQrUrl && (
-                    <div className="p-2 bg-white rounded-xl shadow-xs border border-slate-100 shrink-0">
+                    <div className="p-2 bg-white dark:bg-slate-950 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 shrink-0">
                       <QRCodeSVG value={setupQrUrl} size={140} level="M" />
                     </div>
                   )}
                   <div className="flex-1 space-y-2 w-full text-center sm:text-left">
                     <p className="text-xs text-slate-500 font-medium">QR kodu tarayamıyorsanız şu anahtarı manuel olarak girebilirsiniz:</p>
-                    <code className="block bg-slate-100 text-slate-800 text-sm font-mono p-2.5 rounded-lg break-all select-all font-medium border border-slate-200">
+                    <code className="block bg-slate-100 text-slate-800 dark:text-slate-100 text-sm font-mono p-2.5 rounded-lg break-all select-all font-medium border border-slate-200 dark:border-slate-800">
                       {setupSecret}
                     </code>
                   </div>
@@ -375,9 +375,9 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center shrink-0 font-bold">3</div>
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 font-bold">3</div>
               <div className="w-full">
-                <p className="text-sm font-bold text-slate-900 mb-3">Doğrulama Kodunu Girin</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3">Doğrulama Kodunu Girin</p>
                 <div className="flex gap-3">
                   <input
                     type="text"
@@ -386,7 +386,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                     value={setupCode}
                     onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="000000"
-                    className="w-32 bg-white border border-slate-200 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-300"
+                    className="w-32 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-300"
                   />
                   <Button type="submit" variant="primary" size="md" isLoading={loading} className="rounded-xl font-bold">
                     Doğrula & Etkinleştir
@@ -416,7 +416,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {recoveryCodes.map((code, idx) => (
-                <div key={idx} className="bg-white/80 border border-amber-200 text-amber-900 font-mono text-sm px-3 py-2 rounded-lg text-center tracking-widest font-bold">
+                <div key={idx} className="bg-white dark:bg-slate-950/80 border border-amber-200 text-amber-900 font-mono text-sm px-3 py-2 rounded-lg text-center tracking-widest font-bold">
                   {code}
                 </div>
               ))}
@@ -435,7 +435,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
 
         {/* 2FA Devre Dışı Bırakma */}
         {is2FAEnabled && !disableMode && recoveryCodes.length === 0 && (
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setDisableMode(true)}
@@ -459,7 +459,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                    required
                    value={disablePassword}
                    onChange={(e) => setDisablePassword(e.target.value)}
-                   className="w-full bg-white border border-rose-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                   className="w-full bg-white dark:bg-slate-950 border border-rose-200 rounded-xl px-4 py-2 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
                    placeholder="••••••••"
                  />
                </div>
@@ -471,14 +471,14 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                    maxLength={6}
                    value={disableCode}
                    onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
-                   className="w-full bg-white border border-rose-200 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
+                   className="w-full bg-white dark:bg-slate-950 border border-rose-200 rounded-xl px-4 py-2 text-center text-lg tracking-widest font-mono text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
                    placeholder="000000"
                  />
                </div>
              </div>
 
              <div className="flex gap-3 justify-end pt-2">
-               <Button type="button" variant="ghost" size="sm" onClick={() => setDisableMode(false)} className="rounded-xl font-bold text-slate-500 hover:text-slate-700">
+               <Button type="button" variant="ghost" size="sm" onClick={() => setDisableMode(false)} className="rounded-xl font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700">
                  İptal
                </Button>
                <Button type="submit" variant="danger" size="sm" isLoading={loading} className="rounded-xl font-bold">
@@ -490,14 +490,14 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
       </div>
 
       {/* 3. Giriş Yapılan Cihazlar & Oturumlar */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Shield className="w-5 h-5 text-slate-900" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <Shield className="w-5 h-5 text-slate-900 dark:text-slate-100" />
               Aktif Oturumlar
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
               Hesabınıza şu anda bağlı olan cihazları görüntüleyin ve yönetin.
             </p>
           </div>
@@ -529,7 +529,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
               ))}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="py-8 text-center text-slate-500 text-sm font-medium">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400 text-sm font-medium">
               Aktif oturum bilgisi bulunamadı.
             </div>
           ) : (
@@ -539,7 +539,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                 className="py-4 flex items-center justify-between gap-4 group"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200/60 text-slate-600 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 text-slate-600 dark:text-slate-400 flex items-center justify-center shrink-0">
                     {s.os === "Android" || s.os === "iOS" ? (
                       <Smartphone className="w-5 h-5" />
                     ) : (
@@ -547,7 +547,7 @@ export function SettingsSecurity({ showMsg }: SettingsSecurityProps) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-bold text-slate-900 text-sm flex items-center gap-2 flex-wrap">
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2 flex-wrap">
                       <span>
                         {s.browser || "Tarayıcı"} • {s.os || "İşletim Sistemi"}
                       </span>

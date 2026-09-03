@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { CreatePost } from "../components/CreatePost";
 import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
+import { FeedSuggestedUsers } from "../components/FeedSuggestedUsers";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { SkeletonList } from "../components/ui/Skeleton";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -47,9 +48,9 @@ export function Feed() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full min-h-screen bg-white dark:bg-slate-950 transition-colors">
+    <div className="flex flex-col h-full w-full min-h-screen bg-[#f8fafc] dark:bg-[#030712] transition-colors">
       {/* 1. Feed Header & Segmented Tabs */}
-      <header className="sticky top-14 md:top-[60px] z-30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between px-2 sm:px-4 transition-colors">
+      <header className="sticky top-14 md:top-[60px] z-30 bg-[#f8fafc]/90 dark:bg-[#030712]/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-2 sm:px-4 transition-colors">
         <div className="flex items-center justify-between gap-4 w-full">
           {/* Modern Segmented Control */}
           <div className="flex w-full" role="tablist" aria-label="Akış Sekmeleri">
@@ -61,7 +62,7 @@ export function Feed() {
               id="tab-for-you"
               onClick={() => handleTabChange("for_you")}
               className={cn(
-                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors outline-none",
+                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-900/60 transition-colors outline-none",
                 activeTab === "for_you"
                   ? "text-slate-900 dark:text-white font-bold"
                   : "text-slate-500 dark:text-slate-400 font-medium"
@@ -84,7 +85,7 @@ export function Feed() {
               id="tab-following"
               onClick={() => handleTabChange("following")}
               className={cn(
-                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors outline-none",
+                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-900/60 transition-colors outline-none",
                 activeTab === "following"
                   ? "text-slate-900 dark:text-white font-bold"
                   : "text-slate-500 dark:text-slate-400 font-medium"
@@ -107,7 +108,7 @@ export function Feed() {
             onClick={loadInitial}
             disabled={loading}
             aria-label="Akışı Yenile"
-            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40"
+            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 dark:text-slate-100 dark:hover:text-white hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-900 dark:text-white" : ""}`} />
           </button>
@@ -119,9 +120,9 @@ export function Feed() {
 
       {/* 3. Create Post Trigger */}
       {isAuthenticated && (
-        <div className="border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 transition-colors">
+        <div className="mb-2 sm:mb-4 transition-colors">
           {/* Mobile Trigger */}
-          <div className="md:hidden px-4 py-4">
+          <div className="md:hidden py-4 mx-2">
             <div 
               onClick={() => navigate("/create")}
               className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60 dark:border-slate-800"
@@ -163,7 +164,12 @@ export function Feed() {
           <div className="flex flex-col pb-20">
             <InfiniteScroll 
               items={posts}
-              renderItem={(post) => <PostCard key={post.id} post={post} />}
+              renderItem={(post, index) => (
+                <React.Fragment key={post.id}>
+                  {index === 2 && isAuthenticated && activeTab === "for_you" && <FeedSuggestedUsers />}
+                  <PostCard post={post} />
+                </React.Fragment>
+              )}
               hasMore={hasMore} 
               isLoading={loadingMore} 
               onLoadMore={loadMore} 

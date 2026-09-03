@@ -16,13 +16,13 @@ export function Bookmarks() {
   }, [loadInitial]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 min-h-screen bg-white">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent">
       {/* Sticky Header */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center gap-2.5 shadow-xs">
-        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 text-slate-900 flex items-center justify-center">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center gap-2.5 shadow-xs">
+        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
           <Bookmark className="w-4 h-4" />
         </div>
-        <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
           Kaydedilenler
         </h1>
       </header>

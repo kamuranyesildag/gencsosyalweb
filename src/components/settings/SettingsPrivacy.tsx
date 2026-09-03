@@ -79,13 +79,13 @@ export function SettingsPrivacy({
   return (
     <div className="space-y-6">
       {/* 1. Gizlilik Tercihleri */}
-      <form onSubmit={handleUpdatePrivacy} className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+      <form onSubmit={handleUpdatePrivacy} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <EyeOff className="w-5 h-5 text-slate-900" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <EyeOff className="w-5 h-5 text-slate-900 dark:text-slate-100" />
             Gizlilik ve Görünürlük
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Hesabınızın görünürlüğünü ve diğer kullanıcılarla etkileşim sınırlarınızı belirleyin.
           </p>
         </div>
@@ -94,10 +94,10 @@ export function SettingsPrivacy({
           {/* Gizli Hesap Toggle */}
           <div className="flex items-center justify-between gap-4 pt-2">
             <div>
-              <div className="font-bold text-slate-900 text-sm sm:text-base">
+              <div className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                 Gizli Hesap
               </div>
-              <div className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 leading-relaxed">
+              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-relaxed">
                 Sadece onayladığınız takipçileriniz gönderilerinizi ve profil detaylarınızı görebilir.
               </div>
             </div>
@@ -110,17 +110,17 @@ export function SettingsPrivacy({
                   setProfileData({ ...profileData, isPrivate: e.target.checked })
                 }
               />
-              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-slate-950 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
             </label>
           </div>
 
           {/* Arama Motoru İndeksleme Toggle */}
           <div className="flex items-center justify-between gap-4 pt-4">
             <div>
-              <div className="font-bold text-slate-900 text-sm sm:text-base">
+              <div className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                 Arama Motorlarında Görünürlük
               </div>
-              <div className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 leading-relaxed">
+              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-relaxed">
                 Profilinizin Google ve diğer arama motorlarında dizine eklenmesine izin verin.
               </div>
             </div>
@@ -136,13 +136,13 @@ export function SettingsPrivacy({
                   })
                 }
               />
-              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-slate-950 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
             </label>
           </div>
 
           {/* Varsayılan Gönderi Görünürlüğü */}
           <div className="space-y-1.5 pt-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Varsayılan Gönderi Görünürlüğü
             </label>
             <select
@@ -153,7 +153,7 @@ export function SettingsPrivacy({
                   defaultPostVisibility: e.target.value,
                 })
               }
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
             >
               <option value="PUBLIC">Herkese Açık (Tüm Kullanıcılar)</option>
               <option value="FOLLOWERS">Sadece Takipçiler</option>
@@ -163,7 +163,7 @@ export function SettingsPrivacy({
 
           {/* Mesaj Alma Tercihi */}
           <div className="space-y-1.5 pt-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Direkt Mesaj İzinleri
             </label>
             <select
@@ -174,7 +174,7 @@ export function SettingsPrivacy({
                   messagePreference: e.target.value,
                 })
               }
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
             >
               <option value="ANYONE">Herkesten Mesaj Al</option>
               <option value="FOLLOWERS">Sadece Takip Ettiğim Kişiler</option>
@@ -184,7 +184,7 @@ export function SettingsPrivacy({
 
           {/* Bahsedilme (Mention) Tercihi */}
           <div className="space-y-1.5 pt-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
               Etiketlenme / Bahsedilme İzinleri
             </label>
             <select
@@ -195,7 +195,7 @@ export function SettingsPrivacy({
                   mentionPreference: e.target.value,
                 })
               }
-              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
             >
               <option value="ANYONE">Herkes Benden Bahsedebilir (@kullaniciadi)</option>
               <option value="FOLLOWERS">Sadece Takip Ettiğim Kişiler</option>
@@ -219,19 +219,19 @@ export function SettingsPrivacy({
       </form>
 
       {/* 2. Engellenen Kullanıcılar Listesi */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
             <UserX className="w-5 h-5 text-rose-600" />
             Engellenen Hesaplar
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Engellediğiniz hesaplar sizinle iletişim kuramaz ve gönderilerinizi göremez.
           </p>
         </div>
 
         {blockedUsers.length === 0 ? (
-          <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 text-center text-slate-500 text-sm font-medium">
+          <div className="p-8 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 text-center text-slate-500 dark:text-slate-400 text-sm font-medium">
             Engellediğiniz herhangi bir kullanıcı bulunmuyor.
           </div>
         ) : (
@@ -248,10 +248,10 @@ export function SettingsPrivacy({
                     size="md"
                   />
                   <div className="min-w-0">
-                    <div className="font-bold text-slate-900 text-sm truncate">
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
                       {u.displayName || u.username}
                     </div>
-                    <div className="text-xs text-slate-500 truncate">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       @{u.username}
                     </div>
                   </div>

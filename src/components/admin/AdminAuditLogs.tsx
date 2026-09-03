@@ -126,11 +126,11 @@ export function AdminAuditLogs() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <History className="w-6 h-6 text-slate-900" />
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <History className="w-6 h-6 text-slate-900 dark:text-slate-100" />
             <span>Yönetici Denetim Kayıtları (Audit Logs)</span>
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Yöneticiler tarafından gerçekleştirilen tüm onay, doğrulama, silme ve yapılandırma eylemlerinin güvenlik geçmişi.
           </p>
         </div>
@@ -146,7 +146,7 @@ export function AdminAuditLogs() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/60 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/60 overflow-x-auto no-scrollbar">
         {[
           { id: '', label: 'Tüm Eylemler' },
           { id: 'verification', label: 'Doğrulamalar' },
@@ -161,8 +161,8 @@ export function AdminAuditLogs() {
               onClick={() => setActionFilter(tab.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-950 text-slate-950 shadow-xs border border-slate-200 dark:border-slate-800/70'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-100'
               }`}
             >
               {tab.label}
@@ -213,7 +213,7 @@ export function AdminAuditLogs() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800/80 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       <th className="py-3.5 px-6">Yönetici</th>
                       <th className="py-3.5 px-4">Eylem Türü</th>
                       <th className="py-3.5 px-4">Hedef (Target)</th>
@@ -223,15 +223,15 @@ export function AdminAuditLogs() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+                      <tr key={log.id} className="hover:bg-slate-50 dark:bg-slate-900/60 transition-colors">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <Avatar url={log.adminAvatarUrl} size="sm" />
                             <div className="min-w-0">
-                              <div className="font-bold text-slate-900 truncate text-sm">
+                              <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm">
                                 {log.adminDisplayName || log.adminUsername || `Admin #${log.adminUserId}`}
                               </div>
-                              <div className="text-xs text-slate-500 font-medium truncate">
+                              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                                 @{log.adminUsername || `user_${log.adminUserId}`}
                               </div>
                             </div>
@@ -247,13 +247,13 @@ export function AdminAuditLogs() {
                             <span className="uppercase text-slate-400 font-bold mr-1.5">
                               {log.targetType}:
                             </span>
-                            <span className="bg-slate-100 px-2 py-0.5 rounded-md font-mono text-[11px]">
+                            <span className="bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md font-mono text-[11px]">
                               {log.targetId || '-'}
                             </span>
                           </div>
                         </td>
 
-                        <td className="py-4 px-4 text-xs text-slate-500 font-medium">
+                        <td className="py-4 px-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
                           {log.createdAt
                             ? new Date(log.createdAt).toLocaleString('tr-TR', {
                                 year: 'numeric',
@@ -289,7 +289,7 @@ export function AdminAuditLogs() {
                       <div className="flex items-center gap-2.5">
                         <Avatar url={log.adminAvatarUrl} size="sm" />
                         <div>
-                          <div className="font-bold text-slate-900 text-sm">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                             {log.adminDisplayName || log.adminUsername || `Admin #${log.adminUserId}`}
                           </div>
                           <div className="text-xs text-slate-400">
@@ -304,7 +304,7 @@ export function AdminAuditLogs() {
 
                     <div className="flex items-center justify-between gap-2">
                       {getActionBadge(log.action)}
-                      <span className="text-xs text-slate-500 font-mono">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                         {log.targetType} #{log.targetId}
                       </span>
                     </div>
@@ -345,23 +345,23 @@ export function AdminAuditLogs() {
       >
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-0.5">
-              <span className="font-bold text-slate-500">Yönetici</span>
-              <p className="font-semibold text-slate-900">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 space-y-0.5">
+              <span className="font-bold text-slate-500 dark:text-slate-400">Yönetici</span>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
                 @{selectedLogMetadata?.adminUsername} (ID: {selectedLogMetadata?.adminUserId})
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-0.5">
-              <span className="font-bold text-slate-500">Hedef Varlık</span>
-              <p className="font-semibold text-slate-900 font-mono">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 space-y-0.5">
+              <span className="font-bold text-slate-500 dark:text-slate-400">Hedef Varlık</span>
+              <p className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
                 {selectedLogMetadata?.targetType} #{selectedLogMetadata?.targetId}
               </p>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Code className="w-3.5 h-3.5 text-slate-900" />
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Code className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />
               <span>Ham Eylem Verisi (Metadata Payload)</span>
             </label>
             <pre className="p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">

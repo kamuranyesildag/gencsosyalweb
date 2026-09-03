@@ -20,11 +20,11 @@ const variantStyles: Record<ButtonVariant, string> = {
   primary:
     'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-sm shadow-slate-900/10 border border-transparent',
   secondary:
-    'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 border border-slate-200/80 shadow-xs',
+    'bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 active:bg-slate-300 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-800/80 shadow-xs',
   outline:
-    'bg-transparent border border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 active:bg-slate-100 text-slate-700 shadow-xs',
+    'bg-transparent border border-slate-200 dark:border-slate-800 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900/80 active:bg-slate-100 dark:bg-slate-900 text-slate-700 shadow-xs',
   ghost:
-    'bg-transparent hover:bg-slate-100 active:bg-slate-200 text-slate-700 border border-transparent',
+    'bg-transparent hover:bg-slate-100 dark:bg-slate-900 active:bg-slate-200 text-slate-700 border border-transparent',
   danger:
     'bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-sm shadow-rose-500/20 border border-transparent',
   success:

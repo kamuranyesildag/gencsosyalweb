@@ -52,7 +52,7 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
               <button
                 onClick={onClose}
                 aria-label="Kapat"
-                className="p-2 -mr-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-2 -mr-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>

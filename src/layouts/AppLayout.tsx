@@ -19,22 +19,22 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-slate-100 dark:selection:bg-slate-800 selection:text-slate-900 dark:selection:text-white flex flex-col transition-colors">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans selection:bg-slate-100 dark:selection:bg-slate-800 selection:text-slate-900 dark:selection:text-white flex flex-col transition-colors">
       <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
       <MobileSidebarDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="w-full max-w-7xl mx-auto flex flex-1 relative">
         {/* Left Sidebar */}
-        <aside className="hidden md:flex flex-col w-20 xl:w-68 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] border-r border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 z-20 shrink-0 transition-colors">
+        <aside className="hidden md:flex flex-col w-20 xl:w-68 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] border-r border-slate-200/50 dark:border-slate-800/50 bg-[#f8fafc] dark:bg-[#030712] z-20 shrink-0 transition-colors">
           <DesktopSidebar />
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800/80 pb-[calc(72px+env(safe-area-inset-bottom,0px))] md:pb-8 min-h-[calc(100vh-4rem)] transition-colors">
+        <main className="flex-1 min-w-0 bg-[#f8fafc] dark:bg-[#030712] border-r border-slate-200/50 dark:border-slate-800/50 pb-[calc(72px+env(safe-area-inset-bottom,0px))] md:pb-8 min-h-[calc(100vh-4rem)] transition-colors">
           <PageTransition><Outlet /></PageTransition>
         </main>
 
         {/* Right Sidebar */}
-        <aside className="hidden lg:block w-80 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] p-5 shrink-0 bg-white dark:bg-slate-950 overflow-y-auto scrollbar-thin transition-colors">
+        <aside className="hidden lg:block w-80 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] p-5 shrink-0 bg-[#f8fafc] dark:bg-[#030712] overflow-y-auto scrollbar-thin transition-colors">
           <RightSidebar />
         </aside>
 

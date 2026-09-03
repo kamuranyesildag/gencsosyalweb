@@ -47,14 +47,14 @@ export function Notifications() {
         };
       case "comment":
         return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 fill-slate-600" />,
-          bg: "bg-slate-100 border-slate-100 text-slate-900",
+          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 dark:text-slate-100 fill-slate-600" />,
+          bg: "bg-slate-100 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100",
           text: "gönderine yorum yaptı.",
         };
       case "project_comment":
         return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 fill-slate-600" />,
-          bg: "bg-slate-100 border-slate-100 text-slate-900",
+          icon: <MessageCircle className="w-4.5 h-4.5 text-slate-900 dark:text-slate-100 fill-slate-600" />,
+          bg: "bg-slate-100 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100",
           text: "projene yorum yaptı.",
         };
       case "follow":
@@ -71,8 +71,8 @@ export function Notifications() {
         };
       case "post":
         return {
-          icon: <Megaphone className="w-4.5 h-4.5 text-slate-900" />,
-          bg: "bg-slate-100 border-slate-100 text-slate-900",
+          icon: <Megaphone className="w-4.5 h-4.5 text-slate-900 dark:text-slate-100" />,
+          bg: "bg-slate-100 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100",
           text: "yeni bir duyuru/gönderi paylaştı.",
         };
       case "verification":
@@ -91,8 +91,8 @@ export function Notifications() {
         };
       default:
         return {
-          icon: <Bell className="w-4.5 h-4.5 text-slate-600" />,
-          bg: "bg-slate-100 border-slate-200 text-slate-600",
+          icon: <Bell className="w-4.5 h-4.5 text-slate-600 dark:text-slate-400" />,
+          bg: "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400",
           text: "yeni bir bildirim gönderdi.",
         };
     }
@@ -115,11 +115,11 @@ export function Notifications() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-100 min-h-screen bg-white select-none">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-100 dark:border-slate-800 min-h-screen bg-white dark:bg-slate-950 select-none">
       {/* STICKY HEADER */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100/90 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Bildirimler
           </h1>
           {unreadCount > 0 && (
@@ -160,7 +160,7 @@ export function Notifications() {
                     className={`flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 transition-colors cursor-pointer group relative ${
                       isUnread
                         ? "bg-slate-100/40 hover:bg-slate-100/70"
-                        : "hover:bg-slate-50/80 bg-white"
+                        : "hover:bg-slate-50/80 bg-white dark:bg-slate-950"
                     }`}
                   >
                     {/* Unread Left Border Highlight Indicator */}
@@ -198,12 +198,12 @@ export function Notifications() {
                           <Link
                             to={notif.actor ? `/profile/${notif.actor.username}` : "#"}
                             onClick={(e) => e.stopPropagation()}
-                            className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-sm sm:text-[15px]"
+                            className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-900 dark:text-slate-100 transition-colors text-sm sm:text-[15px]"
                           >
                             {notif.actor?.displayName || notif.actor?.username || "Genç Sosyal"}
                           </Link>
                           {notif.actor?.isVerified && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
                           )}
                         </div>
 
@@ -220,7 +220,7 @@ export function Notifications() {
 
                       {/* Post / Content Snippet if available */}
                       {notif.post?.content && (
-                        <div className="mt-2 p-2.5 bg-white/80 rounded-xl border border-slate-200/70 text-xs text-slate-500 line-clamp-2">
+                        <div className="mt-2 p-2.5 bg-white dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800/70 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                           "{notif.post.content}"
                         </div>
                       )}

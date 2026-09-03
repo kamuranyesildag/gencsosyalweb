@@ -169,7 +169,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
   };
 
   return (
-    <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 overflow-hidden mb-6 transition-all duration-300 hover:shadow-md hover:border-slate-300/60">
+    <div className="bg-white dark:bg-[#111827] rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800/60 overflow-hidden mb-4 mx-2 sm:mx-4 transition-all duration-300 hover:shadow-md hover:border-slate-300/60">
       <div className="p-4 sm:p-5 flex gap-3 sm:gap-4">
         {/* Avatar Area */}
         <div className="shrink-0 pt-1">
@@ -186,9 +186,9 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
           {/* User Info (Only visible when focused or standalone) */}
           {isAuthenticated && user && (isFocused || content.length > 0 || mediaFiles.length > 0) && (
             <div className="flex items-center gap-1.5 mb-2 -mt-1">
-              <span className="font-bold text-slate-900 text-[15px]">{user.displayName || user.username}</span>
-              {user.isVerified && <BadgeCheck className="w-4 h-4 text-slate-500" />}
-              <span className="text-slate-500 text-[14px]">@{user.username}</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-[15px]">{user.displayName || user.username}</span>
+              {user.isVerified && <BadgeCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
+              <span className="text-slate-500 dark:text-slate-400 text-[14px]">@{user.username}</span>
             </div>
           )}
           {/* Post Type Selector - Modernized Segmented Control */}
@@ -201,8 +201,8 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               }}
               className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${
                 postType === "NORMAL"
-                  ? "text-slate-800 bg-slate-100"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  ? "text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-900"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:bg-slate-900"
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -217,8 +217,8 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               }}
               className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${
                 postType === "POLL"
-                  ? "text-slate-900 bg-slate-100"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  ? "text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-900"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:bg-slate-900"
               }`}
             >
               <ListOrdered className="w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 ${
                 postType === "SENSITIVE"
                   ? "text-red-700 bg-red-50"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:bg-slate-900"
               }`}
             >
               <ShieldAlert className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                 className="mb-3 overflow-hidden"
               >
                 <div className="bg-rose-50/50 border border-rose-100 rounded-[16px] p-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center shrink-0 shadow-sm border border-rose-100">
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-950 text-rose-500 flex items-center justify-center shrink-0 shadow-sm border border-rose-100">
                     <ShieldAlert className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -291,7 +291,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                   ? "Gizlenecek içeriği buraya yaz..."
                   : "Neler oluyor? Paylaş..."
               }
-              className="w-full bg-transparent resize-none outline-none text-[15px] sm:text-[17px] min-h-[56px] text-slate-800 placeholder:text-slate-400 py-1 transition-all leading-relaxed"
+              className="w-full bg-transparent resize-none outline-none text-[15px] sm:text-[17px] min-h-[56px] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 py-1 transition-all leading-relaxed"
               value={content}
               onChange={(e) => {
                 setContent(e.target.value);
@@ -310,7 +310,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mb-4 flex flex-col gap-2 bg-slate-50 p-4 rounded-[20px] border border-slate-100 overflow-hidden"
+                className="mb-4 flex flex-col gap-2 bg-slate-50 dark:bg-slate-900 p-4 rounded-[20px] border border-slate-100 dark:border-slate-800 overflow-hidden"
               >
                 <div className="flex flex-col gap-2.5">
                   {pollOptions.map((opt, idx) => (
@@ -326,7 +326,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                         placeholder={`${idx + 1}. Seçenek`}
                         value={opt}
                         onChange={(e) => handlePollOptionChange(idx, e.target.value)}
-                        className="flex-1 bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-[14px] text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all shadow-xs"
+                        className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[12px] px-3.5 py-2.5 text-[14px] text-slate-800 dark:text-slate-100 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 transition-all shadow-xs"
                         maxLength={100}
                       />
                       {pollOptions.length > 2 && (
@@ -346,7 +346,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
                   <button
                     type="button"
                     onClick={handleAddPollOption}
-                    className="flex items-center justify-center gap-2 text-[13px] font-bold text-slate-900 hover:text-slate-700 hover:bg-slate-100/50 py-2.5 px-3 rounded-[12px] transition-colors mt-1.5"
+                    className="flex items-center justify-center gap-2 text-[13px] font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900/50 py-2.5 px-3 rounded-[12px] transition-colors mt-1.5"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Seçenek Ekle</span>
@@ -362,7 +362,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
               {mediaFiles.map((f, i) => (
                 <div
                   key={i}
-                  className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-[16px] overflow-hidden shrink-0 bg-slate-100 border border-slate-200 snap-center shadow-sm group"
+                  className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-[16px] overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 snap-center shadow-sm group"
                 >
                   <img
                     src={URL.createObjectURL(f)}
@@ -382,7 +382,7 @@ export function CreatePost({ onPostCreated, communityId }: CreatePostProps) {
           )}
 
           {/* Bottom Bar: Action Icons & Submit Button */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-1.5 ml-[-8px]">
               <button
                 type="button"

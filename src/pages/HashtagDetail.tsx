@@ -33,24 +33,24 @@ export function HashtagDetail() {
   }, [name, loadInitial]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 min-h-screen bg-white">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center gap-3.5 shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center gap-3.5 shadow-xs">
         <button
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Geri"
-          className="p-1.5 -ml-1.5 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+          className="p-1.5 -ml-1.5 rounded-full hover:bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-            <span className="text-slate-900">#</span>
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
+            <span className="text-slate-900 dark:text-slate-100">#</span>
             {name}
           </h1>
           {hashtagInfo && (
-            <p className="text-xs font-semibold text-slate-500">{hashtagInfo.usageCount} gönderi</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{hashtagInfo.usageCount} gönderi</p>
           )}
         </div>
       </header>

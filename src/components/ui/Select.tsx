@@ -64,13 +64,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               error ? errorId : isSuccess && successMessage ? successId : helperText ? helperId : undefined
             }
             className={cn(
-              'w-full min-h-[44px] appearance-none pl-3.5 pr-10 py-2.5 bg-slate-50/80 border rounded-xl text-sm text-slate-900 font-medium cursor-pointer transition-all duration-150 ease-out',
+              'w-full min-h-[44px] appearance-none pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900/80 border rounded-xl text-sm text-slate-900 dark:text-slate-100 font-medium cursor-pointer transition-all duration-150 ease-out',
               error
                 ? 'border-rose-400 bg-rose-50/30 text-rose-900 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                 : isSuccess
-                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
-                : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
-              disabled && 'bg-slate-100/70 border-slate-200 text-slate-400 cursor-not-allowed select-none',
+                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
+                : 'border-slate-200 dark:border-slate-800/90 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
+              disabled && 'bg-slate-100 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed select-none',
               className
             )}
             {...props}
@@ -98,7 +98,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {successMessage}
           </p>
         ) : helperText ? (
-          <p id={helperId} className="text-xs text-slate-500 font-normal leading-tight">
+          <p id={helperId} className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-tight">
             {helperText}
           </p>
         ) : null}

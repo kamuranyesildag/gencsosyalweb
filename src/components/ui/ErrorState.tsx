@@ -71,11 +71,11 @@ export function ErrorState({
         <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
       </div>
 
-      <h4 className="text-base sm:text-lg font-bold text-slate-900 mb-1.5">
+      <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 mb-1.5">
         {displayTitle}
       </h4>
 
-      <p className="text-sm text-slate-600 leading-relaxed mb-6">
+      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
         {displayMessage}
       </p>
 

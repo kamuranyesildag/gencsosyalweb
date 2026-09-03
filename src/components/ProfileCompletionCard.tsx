@@ -54,20 +54,20 @@ export function ProfileCompletionCard() {
   if (!isAuthenticated || completion === 100 || missingItems.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100">
+    <div className="bg-white dark:bg-slate-950 rounded-2xl p-5 border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-100 dark:bg-slate-900">
         <div 
           className="h-full bg-slate-900 transition-all duration-1000 ease-out" 
           style={{ width: `${completion}%` }}
         />
       </div>
       
-      <h2 className="text-[15px] font-extrabold mb-1 text-slate-900 tracking-tight mt-1">Profilini Tamamla</h2>
-      <p className="text-slate-500 text-xs font-medium mb-4">Profilin %{completion} tamamlandı. Deneyimini geliştirmek için eksikleri doldurabilirsin.</p>
+      <h2 className="text-[15px] font-extrabold mb-1 text-slate-900 dark:text-slate-100 tracking-tight mt-1">Profilini Tamamla</h2>
+      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-4">Profilin %{completion} tamamlandı. Deneyimini geliştirmek için eksikleri doldurabilirsin.</p>
       
       <div className="space-y-2.5 mb-4">
         {missingItems.slice(0, 2).map((item, idx) => (
-          <div key={idx} className="flex items-center gap-2.5 text-sm text-slate-600 font-medium">
+          <div key={idx} className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-400 font-medium">
             <item.icon className="w-4 h-4 text-slate-400" />
             <span>{item.label} ekle</span>
           </div>

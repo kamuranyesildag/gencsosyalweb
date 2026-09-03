@@ -44,16 +44,16 @@ export function ForgotPassword() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950">
           {/* Header Brand */}
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
               <Hexagon className="w-7 h-7 fill-current" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Şifremi Unuttum
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Şifrenizi sıfırlamak için kayıtlı e-posta adresinizi girin.
             </p>
           </div>
@@ -67,8 +67,8 @@ export function ForgotPassword() {
               <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600">
                 <MailCheck className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">E-posta Gönderildi</h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">E-posta Gönderildi</h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 Eğer bu e-posta adresi sistemimizde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Lütfen gelen kutunuzu ve spam klasörünüzü kontrol edin.
               </p>
               <div className="pt-4">
@@ -112,7 +112,7 @@ export function ForgotPassword() {
                       setEmail(e.target.value);
                       if (error) setError('');
                     }}
-                    className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                    className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                     placeholder="ornek@genc.org"
                   />
                 </div>
@@ -135,7 +135,7 @@ export function ForgotPassword() {
               <div className="mt-6 flex justify-center">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-100 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Giriş sayfasına dön

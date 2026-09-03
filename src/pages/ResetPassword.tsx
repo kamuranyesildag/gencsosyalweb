@@ -22,12 +22,12 @@ export function ResetPassword() {
   if (!token) {
     return (
       <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-8 px-4 sm:px-6">
-        <Card className="w-full max-w-md p-8 text-center bg-white rounded-3xl border-slate-200/80 shadow-xl">
+        <Card className="w-full max-w-md p-8 text-center bg-white dark:bg-slate-950 rounded-3xl border-slate-200 dark:border-slate-800/80 shadow-xl">
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 border border-rose-100">
             <Lock className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Geçersiz Bağlantı</h2>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Geçersiz Bağlantı</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
             Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeniden talepte bulunun.
           </p>
           <Link to="/forgot-password">
@@ -101,16 +101,16 @@ export function ResetPassword() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950">
           {/* Header Brand */}
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
               <Hexagon className="w-7 h-7 fill-current" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Yeni Şifre Belirle
             </h1>
-            <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Hesabınız için güçlü ve güvenli yeni bir şifre girin.
             </p>
           </div>
@@ -124,8 +124,8 @@ export function ResetPassword() {
               <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Şifreniz Değiştirildi</h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Şifreniz Değiştirildi</h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {message} Giriş sayfasına yönlendiriliyorsunuz...
               </p>
             </motion.div>
@@ -158,13 +158,13 @@ export function ResetPassword() {
                     autoFocus
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                    className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                    className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                     aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -186,7 +186,7 @@ export function ResetPassword() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                    className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
                     placeholder="••••••••"
                   />
                 </div>

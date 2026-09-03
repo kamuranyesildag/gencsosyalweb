@@ -102,7 +102,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
             damping: 28, 
             stiffness: 320 
           }}
-          className="relative w-full sm:max-w-md bg-white border border-slate-200/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+          className="relative w-full sm:max-w-md bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
         >
           {/* Mobile Drag Indicator */}
           <div className="pt-3 pb-1 flex justify-center sm:hidden">
@@ -110,19 +110,19 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               {showQR && (
                 <button
                   type="button"
                   onClick={() => setShowQR(false)}
                   aria-label="Geri"
-                  className="w-8 h-8 -ml-1 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-95 transition-all"
+                  className="w-8 h-8 -ml-1 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 active:scale-95 transition-all"
                 >
                   <ArrowLeft className="w-4.5 h-4.5" />
                 </button>
               )}
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 {showQR ? "Profil QR Kodu" : "Profili Paylaş"}
               </h2>
             </div>
@@ -130,7 +130,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
               type="button"
               onClick={onClose}
               aria-label="Kapat"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 active:scale-95 transition-all"
             >
               <X className="w-4.5 h-4.5" />
             </button>
@@ -152,13 +152,13 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
+                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       {copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-slate-900 text-sm">
+                      <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                         {copied ? "Bağlantı Kopyalandı!" : "Bağlantıyı Kopyala"}
                       </div>
                       <div className="text-xs text-slate-400 truncate mt-0.5">
@@ -171,13 +171,13 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                   <button
                     type="button"
                     onClick={() => setShowQR(true)}
-                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
+                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <QrCode className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-slate-900 text-sm">QR Kod ile Paylaş</div>
+                      <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">QR Kod ile Paylaş</div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         Kamera ile okutulabilir QR kodu görüntüleyin
                       </div>
@@ -188,13 +188,13 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                   <button
                     type="button"
                     onClick={handleWebShare}
-                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 border border-slate-200/80 active:scale-[0.99] transition-all text-left group"
+                    className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl hover:bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 active:scale-[0.99] transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-100/60 text-slate-900 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <Share2 className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-slate-900 text-sm">Sistem Paylaşımı</div>
+                      <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">Sistem Paylaşımı</div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         Cihazınızın paylaşım menüsünü açın
                       </div>
@@ -210,7 +210,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                   transition={{ duration: 0.2 }}
                   className="flex flex-col items-center text-center"
                 >
-                  <div className="bg-white p-4.5 rounded-3xl border border-slate-200/80 shadow-md mb-4 inline-block">
+                  <div className="bg-white dark:bg-slate-950 p-4.5 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-md mb-4 inline-block">
                     <QRCodeSVG
                       value={profileUrl}
                       size={200}
@@ -220,9 +220,9 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
                     />
                   </div>
 
-                  <p className="text-slate-600 font-medium text-xs sm:text-sm mb-6 max-w-xs leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm mb-6 max-w-xs leading-relaxed">
                     Kamera veya QR okuyucu ile taratarak{" "}
-                    <span className="font-bold text-slate-900">@{profile.username}</span> profiline
+                    <span className="font-bold text-slate-900 dark:text-slate-100">@{profile.username}</span> profiline
                     ulaşabilirsiniz.
                   </p>
 

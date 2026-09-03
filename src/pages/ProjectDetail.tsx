@@ -267,9 +267,9 @@ export function ProjectDetail() {
       </div>
 
       {/* Main Project Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm overflow-hidden">
         {project.imageUrl && (
-          <div className="w-full h-64 sm:h-80 md:h-96 bg-slate-100 border-b border-slate-200/80 overflow-hidden">
+          <div className="w-full h-64 sm:h-80 md:h-96 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 overflow-hidden">
             <img
               src={project.imageUrl}
               alt={project.title}
@@ -282,10 +282,10 @@ export function ProjectDetail() {
         <div className="p-6 sm:p-8 md:p-10 space-y-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-3 py-1 rounded-full">
                 {project.category}
               </span>
-              <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-full">
                 {getStatusText(project.status)}
               </span>
             </div>
@@ -297,7 +297,7 @@ export function ProjectDetail() {
               >
                 <Avatar name={project.username} size="sm" />
                 <div>
-                  <div className="text-sm font-bold text-slate-900 group-hover:text-slate-900 transition-colors">
+                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100 transition-colors">
                     @{project.username}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold">Proje Sahibi</div>
@@ -305,16 +305,16 @@ export function ProjectDetail() {
               </div>
             )}
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
               {project.title}
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-medium">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
               {project.description}
             </p>
           </div>
 
           {/* Social Stats & External Links */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-5 border-y border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-5 border-y border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -323,14 +323,14 @@ export function ProjectDetail() {
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-sm transition-colors ${
                   hasLiked
                     ? "bg-rose-50 text-rose-600 border border-rose-100"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60"
+                    : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/60"
                 }`}
               >
                 <Heart className={`w-4 h-4 ${hasLiked ? "fill-rose-600 text-rose-600" : ""}`} />
                 <span>{likesCount}</span>
               </button>
 
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 text-slate-600 font-bold text-sm border border-slate-200/60">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 font-bold text-sm border border-slate-200 dark:border-slate-800/60">
                 <MessageSquare className="w-4 h-4" />
                 <span>{comments.length}</span>
               </div>
@@ -372,8 +372,8 @@ export function ProjectDetail() {
           {/* Detailed Description */}
           {project.detailedDescription && (
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">Proje Detayları</h3>
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed whitespace-pre-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">Proje Detayları</h3>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
                 {project.detailedDescription}
               </p>
             </div>
@@ -382,12 +382,12 @@ export function ProjectDetail() {
           {/* Tags */}
           {project.tags && project.tags.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-bold text-slate-900">Kullanılan Teknolojiler</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Kullanılan Teknolojiler</h3>
               <div className="flex flex-wrap gap-2">
                 {project.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg"
+                    className="text-xs font-semibold text-slate-700 bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-lg"
                   >
                     {tag}
                   </span>
@@ -399,9 +399,9 @@ export function ProjectDetail() {
       </div>
 
       {/* Comments Section */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
-        <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-5 flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-slate-900" />
+      <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm p-6 sm:p-8">
+        <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 mb-5 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-slate-900 dark:text-slate-100" />
           Yorumlar ({comments.length})
         </h3>
 
@@ -416,7 +416,7 @@ export function ProjectDetail() {
               onClick={() => {
                 if (!isAuthenticated) openModal();
               }}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all resize-none"
+              className="w-full p-4 bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all resize-none"
             />
             <div className="flex justify-end">
               <Button
@@ -440,17 +440,17 @@ export function ProjectDetail() {
               <SkeletonCard />
             </div>
           ) : comments.length === 0 ? (
-            <div className="text-center py-8 px-4 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs sm:text-sm font-medium">
+            <div className="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 text-xs sm:text-sm font-medium">
               Henüz yorum yapılmamış. İlk yorumu siz yazın!
             </div>
           ) : (
             comments.map((c) => (
-              <div key={c.id} className="p-4 bg-slate-50/70 border border-slate-100 rounded-2xl flex gap-3 relative group">
+              <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl flex gap-3 relative group">
                 <Avatar name={c.username} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm">
-                      <span className="font-bold text-slate-900 truncate">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
                         {c.fullName || c.username}
                       </span>
                       <span className="text-slate-400 font-medium">@{c.username}</span>

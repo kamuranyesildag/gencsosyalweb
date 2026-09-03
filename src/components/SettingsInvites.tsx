@@ -77,13 +77,13 @@ export function SettingsInvites() {
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
+    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-slate-900" />
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+          <UserCheck className="w-5 h-5 text-slate-900 dark:text-slate-100" />
           Ortak Üretici & Katkı Davetleri
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
           Diğer geliştiricilerin sizi ortak yazar veya ekip üyesi olarak eklediği davetleri yönetin.
         </p>
       </div>
@@ -97,7 +97,7 @@ export function SettingsInvites() {
 
       {loading ? (
         <div className="flex justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+          <Loader2 className="w-8 h-8 animate-spin text-slate-900 dark:text-slate-100" />
         </div>
       ) : invites.length === 0 ? (
         <div className="py-8">
@@ -122,7 +122,7 @@ export function SettingsInvites() {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-900 text-sm">
+                    <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                       {invite.inviterDisplayName || invite.inviterUsername}
                     </span>
                     <Badge variant="secondary" size="sm" isPill>
@@ -130,7 +130,7 @@ export function SettingsInvites() {
                     </Badge>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5 line-clamp-1">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
                     {invite.type === "project" ? invite.title : invite.content}
                   </p>
 

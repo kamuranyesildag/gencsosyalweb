@@ -128,7 +128,7 @@ export function DropdownContent({
           exit="exit"
           role="menu"
           className={cn(
-            'absolute top-full mt-2 z-50 bg-white border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-900/10 py-1.5 overflow-hidden',
+            'absolute top-full mt-2 z-50 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/90 rounded-2xl shadow-xl shadow-slate-900/10 py-1.5 overflow-hidden',
             width,
             alignStyles[align],
             className
@@ -177,7 +177,7 @@ export function DropdownItem({
         'w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-left transition-colors duration-150',
         isDanger
           ? 'text-rose-600 hover:bg-rose-50 active:bg-rose-100'
-          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100',
+          : 'text-slate-700 hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-900 dark:text-slate-100 active:bg-slate-100 dark:bg-slate-900',
         disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
         className
       )}
@@ -204,5 +204,5 @@ export function DropdownHeader({
 }
 
 export function DropdownDivider({ className }: { className?: string }) {
-  return <div className={cn('h-px my-1.5 bg-slate-100', className)} role="separator" />;
+  return <div className={cn('h-px my-1.5 bg-slate-100 dark:bg-slate-900', className)} role="separator" />;
 }

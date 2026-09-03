@@ -175,7 +175,7 @@ export function ToastContainer() {
               exit="exit"
               role="status"
               className={cn(
-                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-xl shadow-slate-900/10 border text-slate-800 bg-white select-none',
+                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-xl shadow-slate-900/10 border text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-950 select-none',
                 config.border
               )}
             >
@@ -184,8 +184,8 @@ export function ToastContainer() {
               </div>
 
               <div className="flex-1 text-sm leading-snug break-words pt-0.5">
-                {title && <p className="font-bold text-slate-900 mb-0.5 text-sm">{title}</p>}
-                <p className={cn('text-slate-600', !title && 'font-medium text-slate-800')}>{t.message}</p>
+                {title && <p className="font-bold text-slate-900 dark:text-slate-100 mb-0.5 text-sm">{title}</p>}
+                <p className={cn('text-slate-600 dark:text-slate-400', !title && 'font-medium text-slate-800 dark:text-slate-100')}>{t.message}</p>
               </div>
 
               {t.action && (
@@ -195,7 +195,7 @@ export function ToastContainer() {
                     t.action?.onClick();
                     removeToast(t.id);
                   }}
-                  className="shrink-0 text-xs font-bold text-slate-900 hover:text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="shrink-0 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 bg-slate-100 dark:bg-slate-900 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   {t.action.label}
                 </button>
@@ -205,7 +205,7 @@ export function ToastContainer() {
                 type="button"
                 onClick={() => removeToast(t.id)}
                 aria-label="Bildirimi kapat"
-                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 dark:bg-slate-900 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

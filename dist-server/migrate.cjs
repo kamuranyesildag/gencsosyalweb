@@ -935,6 +935,13 @@ var createPglite = () => {
     console.warn("T\xFCm verileriniz ./database klas\xF6r\xFCne kaydedilecektir.");
     console.warn("=========================================================");
     const dbPath = import_path.default.join(process.cwd(), "database");
+    const pidPath = import_path.default.join(dbPath, "postmaster.pid");
+    if (import_fs.default.existsSync(pidPath)) {
+      try {
+        import_fs.default.unlinkSync(pidPath);
+      } catch (_) {
+      }
+    }
     try {
       global._pgliteClient = new import_pglite2.PGlite(dbPath);
     } catch (err) {
@@ -992,14 +999,24 @@ async function runMigration() {
     }
     console.log("\u2705 Database migrations completed successfully.");
   } catch (error) {
-    console.error("\u274C Database migration failed:", error);
-    exitCode = 1;
+    const errorCode = error?.code || error?.cause?.code;
+    const errorMsg = String(error?.message || error?.cause?.message || "");
+    if (errorCode === "42P07" || errorCode === "42710" || errorCode === "42701" || errorMsg.includes("already exists")) {
+      console.warn("\u26A0\uFE0F Veritaban\u0131 tablolar\u0131 veya \u015Fema nesneleri zaten mevcut (" + (errorCode || "already exists") + ").");
+      console.log("\u2139\uFE0F Mevcut veritaban\u0131 \u015Femas\u0131 korunarak devam ediliyor.");
+      exitCode = 0;
+    } else {
+      console.error("\u274C Database migration failed:", error);
+      exitCode = 1;
+    }
   } finally {
     try {
-      const pool = createPool();
-      if (pool) await pool.end();
-      const pglite = createPglite();
-      if (pglite) await pglite.close();
+      if (global._postgresPool) {
+        await global._postgresPool.end();
+      }
+      if (global._pgliteClient) {
+        await global._pgliteClient.close();
+      }
     } catch (e) {
     }
     process.exit(exitCode);

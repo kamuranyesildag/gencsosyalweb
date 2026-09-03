@@ -29,11 +29,11 @@ export function Messages() {
   const totalUnread = conversations.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-100 min-h-screen bg-white select-none">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-100 dark:border-slate-800 min-h-screen bg-white dark:bg-slate-950 select-none">
       {/* STICKY HEADER */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100/90 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Mesajlar
           </h1>
           {totalUnread > 0 && (
@@ -84,7 +84,7 @@ export function Messages() {
                       className={`flex items-center gap-3.5 sm:gap-4 p-4 sm:p-5 transition-all group relative ${
                         hasUnread
                           ? "bg-slate-100/30 hover:bg-slate-100/60"
-                          : "hover:bg-slate-50/80 bg-white"
+                          : "hover:bg-slate-50/80 bg-white dark:bg-slate-950"
                       }`}
                     >
                       {/* Unread Left Border Highlight */}
@@ -107,14 +107,14 @@ export function Messages() {
                             <span
                               className={`font-bold truncate text-sm sm:text-base transition-colors ${
                                 hasUnread
-                                  ? "text-slate-900 group-hover:text-slate-900"
-                                  : "text-slate-900 group-hover:text-slate-900"
+                                  ? "text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100"
+                                  : "text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100"
                               }`}
                             >
                               {otherUser?.displayName || otherUser?.username || "Kullanıcı"}
                             </span>
                             {otherUser?.isVerified && (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 fill-slate-100 shrink-0" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
                             )}
                             <span className="text-xs text-slate-400 font-medium truncate hidden sm:inline">
                               @{otherUser?.username}
@@ -123,7 +123,7 @@ export function Messages() {
 
                           <span
                             className={`text-xs shrink-0 font-medium ${
-                              hasUnread ? "text-slate-900 font-bold" : "text-slate-400"
+                              hasUnread ? "text-slate-900 dark:text-slate-100 font-bold" : "text-slate-400"
                             }`}
                           >
                             {formatTimeAgo(conv.updatedAt)}
@@ -134,7 +134,7 @@ export function Messages() {
                           <p
                             className={`truncate text-xs sm:text-sm leading-relaxed ${
                               hasUnread
-                                ? "font-semibold text-slate-800"
+                                ? "font-semibold text-slate-800 dark:text-slate-100"
                                 : "text-slate-500 font-normal"
                             }`}
                           >

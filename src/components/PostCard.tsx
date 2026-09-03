@@ -324,7 +324,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         }
       }}
       className={cn(
-        "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 hover:bg-slate-50/50 dark:hover:bg-slate-900/40 cursor-pointer transition-colors duration-150",
+        "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 mb-3 mx-2 sm:mx-4 bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800/60 rounded-2xl sm:rounded-[24px] shadow-sm hover:shadow-md dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)] cursor-pointer transition-all duration-300",
         post.type === "SENSITIVE" && !isRevealed && "opacity-90"
       )}
     >
@@ -379,7 +379,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                 <button
                   type="button"
                   aria-label="Gönderi seçenekleri"
-                  className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                 >
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
@@ -418,7 +418,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
           <div className="mt-2 mb-3" onClick={(e) => e.stopPropagation()}>
             <textarea
               autoFocus
-              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all resize-none min-h-[100px]"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-[15px] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all resize-none min-h-[100px]"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
             />
@@ -432,9 +432,9 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
             </div>
           </div>
         ) : (
-          <div className="mt-1 text-[15px] leading-[1.5] text-slate-900 whitespace-pre-wrap break-words">
+          <div className="mt-1 text-[15px] leading-[1.5] text-slate-900 dark:text-slate-100 whitespace-pre-wrap break-words">
             {post.type === "SENSITIVE" && !isRevealed ? (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
                 <ShieldAlert className="w-6 h-6 text-slate-400 mx-auto mb-2" />
                 <p className="text-sm font-medium text-slate-700 mb-3">Bu gönderi gizlenmiş olabilir.</p>
                 <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}>
@@ -447,7 +447,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                 
                 {/* Poll Data */}
                 {pollData && (
-                  <div className="mt-3 border border-slate-200 rounded-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-3 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
                     {pollData.options.map((opt: any, i: number) => {
                       const totalVotes = pollData.options.reduce((acc: number, curr: any) => acc + curr.votes, 0);
                       const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
@@ -459,27 +459,27 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                           disabled={isVoting || pollData.userVotedIndex !== undefined}
                           onClick={(e) => handleVote(e, i)}
                           className={cn(
-                            "relative w-full flex items-center justify-between p-3 border-b border-slate-100 last:border-0 transition-colors",
-                            pollData.userVotedIndex === undefined ? "hover:bg-slate-50" : "cursor-default"
+                            "relative w-full flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors",
+                            pollData.userVotedIndex === undefined ? "hover:bg-slate-50 dark:bg-slate-900" : "cursor-default"
                           )}
                         >
                           <div
                             className={cn(
-                              "absolute inset-y-0 left-0 bg-slate-100 transition-all duration-500 ease-out",
-                              isVotedByMe && "bg-slate-200"
+                              "absolute inset-y-0 left-0 bg-slate-100 dark:bg-slate-900 transition-all duration-500 ease-out",
+                              isVotedByMe && "bg-slate-200 dark:bg-slate-800"
                             )}
                             style={{ width: `${pollData.userVotedIndex !== undefined ? percent : 0}%` }}
                           />
-                          <span className={cn("relative z-10 text-[14px] font-medium", isVotedByMe ? "text-slate-900 font-bold" : "text-slate-700")}>
+                          <span className={cn("relative z-10 text-[14px] font-medium", isVotedByMe ? "text-slate-900 dark:text-slate-100 font-bold" : "text-slate-700")}>
                             {opt.text}
                           </span>
-                          <span className="relative z-10 text-[13px] font-semibold text-slate-500">
+                          <span className="relative z-10 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
                             {pollData.userVotedIndex !== undefined ? `%${percent}` : ""}
                           </span>
                         </button>
                       );
                     })}
-                    <div className="p-2.5 bg-slate-50 text-[12px] font-medium text-slate-500 border-t border-slate-100">
+                    <div className="p-2.5 bg-slate-50 dark:bg-slate-900 text-[12px] font-medium text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800">
                       Toplam {pollData.options.reduce((acc: number, curr: any) => acc + curr.votes, 0)} oy
                     </div>
                   </div>
@@ -489,7 +489,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                 {post.media && post.media.length > 0 && (
                   <div 
                     className={cn(
-                      "mt-3 grid gap-1 rounded-xl overflow-hidden border border-slate-200/50",
+                      "mt-3 grid gap-1 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800/50",
                       post.media.length === 1 ? "grid-cols-1" : 
                       post.media.length === 2 ? "grid-cols-2" : 
                       post.media.length === 3 ? "grid-cols-2" : 
@@ -502,7 +502,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                         <div
                           key={i}
                           className={cn(
-                            "relative bg-slate-100 overflow-hidden",
+                            "relative bg-slate-100 dark:bg-slate-900 overflow-hidden",
                             post.media.length === 1
                               ? "aspect-[16/9] sm:aspect-auto sm:max-h-[500px]"
                               : post.media.length === 3 && i === 0
@@ -536,14 +536,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         )}
 
         {/* 3. INTERACTION ACTION BAR */}
-        <div className="flex items-center justify-between text-slate-500 max-w-md pt-2 mt-2 select-none">
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 max-w-md pt-2 mt-2 select-none">
           {/* Comment */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.95 }}
             onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.id}`); }}
             aria-label="Yorum yap"
-            className="group/btn flex items-center gap-1.5 text-slate-500 hover:text-blue-600 transition-colors"
+            className="group/btn flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors"
           >
             <div className="p-2 -m-2 rounded-full group-hover/btn:bg-blue-50 transition-colors">
               <MessageCircle className="w-[18px] h-[18px] stroke-[1.8]" />
@@ -559,7 +559,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
             aria-label="Yeniden Paylaş"
             className={cn(
               "group/btn flex items-center gap-1.5 transition-colors",
-              reposted ? "text-emerald-600" : "text-slate-500 hover:text-emerald-600"
+              reposted ? "text-emerald-600" : "text-slate-500 dark:text-slate-400 hover:text-emerald-600"
             )}
           >
             <div className={cn("p-2 -m-2 rounded-full transition-colors", reposted ? "bg-emerald-50/50" : "group-hover/btn:bg-emerald-50")}>
@@ -576,7 +576,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
             aria-label="Beğen"
             className={cn(
               "group/btn flex items-center gap-1.5 transition-colors",
-              liked ? "text-rose-600" : "text-slate-500 hover:text-rose-600"
+              liked ? "text-rose-600" : "text-slate-500 dark:text-slate-400 hover:text-rose-600"
             )}
           >
             <div className={cn("p-2 -m-2 rounded-full transition-colors", liked ? "bg-rose-50/50" : "group-hover/btn:bg-rose-50")}>
@@ -594,7 +594,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
               aria-label="Kaydet"
               className={cn(
                 "group/btn p-2 -m-2 rounded-full transition-colors",
-                saved ? "text-blue-600" : "text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+                saved ? "text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50"
               )}
             >
               <Bookmark className={cn("w-[18px] h-[18px]", saved ? "fill-blue-600 stroke-blue-600" : "stroke-[1.8]")} />
@@ -608,7 +608,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                 toast.success("Bağlantı kopyalandı");
               }}
               aria-label="Paylaş"
-              className="group/btn p-2 -m-2 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-4"
+              className="group/btn p-2 -m-2 rounded-full text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-4"
             >
               <Share2 className="w-[18px] h-[18px] stroke-[1.8]" />
             </motion.button>

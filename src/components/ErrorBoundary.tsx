@@ -25,10 +25,10 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-100 text-center max-w-lg">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+          <div className="bg-white dark:bg-slate-950 p-8 rounded-2xl shadow-sm border border-red-100 text-center max-w-lg">
             <h2 className="text-2xl font-bold text-red-600 mb-4">Bir şeyler ters gitti</h2>
-            <p className="text-slate-600 mb-6">Uygulama yüklenirken beklenmeyen bir hata oluştu.</p>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">Uygulama yüklenirken beklenmeyen bir hata oluştu.</p>
             <button
               onClick={() => window.location.reload()}
               className="bg-red-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-red-700 transition-colors"

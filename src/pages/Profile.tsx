@@ -190,9 +190,9 @@ export function Profile() {
   // 1. Loading Skeleton State
   if (loading) {
     return (
-      <div className="flex flex-col w-full min-h-screen bg-white">
+      <div className="flex flex-col w-full min-h-screen bg-white dark:bg-slate-950">
         {/* Sticky Header Skeleton */}
-        <div className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-4">
+        <div className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-4">
           <Skeleton variant="circular" className="w-9 h-9" />
           <div className="space-y-1">
             <Skeleton className="h-4 w-32 rounded-md" />
@@ -204,9 +204,9 @@ export function Profile() {
         <Skeleton variant="rectangular" className="h-32 sm:h-44 md:h-48 w-full" />
 
         {/* Profile Info Skeleton */}
-        <div className="px-4 sm:px-6 relative pb-6 border-b border-slate-100">
+        <div className="px-4 sm:px-6 relative pb-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex justify-between items-end -mt-10 sm:-mt-14 mb-4">
-            <div className="p-1 bg-white rounded-full">
+            <div className="p-1 bg-white dark:bg-slate-950 rounded-full">
               <SkeletonCircle className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32" />
             </div>
             <div className="flex gap-2">
@@ -229,7 +229,7 @@ export function Profile() {
   // 2. User Not Found State
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 sm:p-16 min-h-[60vh] bg-white">
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 min-h-[60vh] bg-white dark:bg-slate-950">
         <EmptyState
           icon={<Users className="w-8 h-8" />}
           title="Kullanıcı Bulunamadı"
@@ -246,22 +246,22 @@ export function Profile() {
   const isMe = currentUser?.username === profile.username;
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-white select-none">
+    <div className="flex flex-col w-full min-h-screen bg-white dark:bg-slate-950 select-none">
       {/* STICKY TOP APP BAR */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-100/90 px-4 py-2.5 flex items-center justify-between">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <IconButton
             aria-label="Geri Dön"
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            className="rounded-full shrink-0 -ml-1 text-slate-700 hover:text-slate-900"
+            className="rounded-full shrink-0 -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-100"
           >
             <ArrowLeft className="w-5 h-5" />
           </IconButton>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
-              <h1 className="text-base sm:text-lg font-black text-slate-900 truncate tracking-tight">
+              <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 truncate tracking-tight">
                 {profile.displayName || profile.username}
               </h1>
               {profile.isVerified && (
@@ -271,7 +271,7 @@ export function Profile() {
                   aria-label="Doğrulanmış Rozet"
                   className="shrink-0 inline-flex items-center"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
                 </button>
               )}
             </div>
@@ -288,7 +288,7 @@ export function Profile() {
             variant="ghost"
             size="sm"
             onClick={() => setShowShare(true)}
-            className="rounded-full text-slate-500 hover:text-slate-900"
+            className="rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-100"
           >
             <Share2 className="w-4.5 h-4.5" />
           </IconButton>
@@ -301,11 +301,11 @@ export function Profile() {
       </div>
 
       {/* PROFILE INFO HEADER */}
-      <div className="px-4 sm:px-6 pb-5 border-b border-slate-100 relative">
+      <div className="px-4 sm:px-6 pb-5 border-b border-slate-100 dark:border-slate-800 relative">
         {/* Avatar and Main Actions Row */}
         <div className="flex justify-between items-end -mt-10 sm:-mt-14 md:-mt-16 mb-3">
           {/* Avatar with White Border */}
-          <div className="p-1 bg-white rounded-full shadow-xs shrink-0 z-10">
+          <div className="p-1 bg-white dark:bg-slate-950 rounded-full shadow-xs shrink-0 z-10">
             <Avatar
               url={profile.avatarUrl}
               name={profile.displayName || profile.username}
@@ -348,21 +348,21 @@ export function Profile() {
                     <div
                       role="button"
                       aria-label="Daha fazla seçenek"
-                      className="w-9 h-9 rounded-full border border-slate-200/90 flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-xs"
+                      className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-800/90 flex items-center justify-center text-slate-600 hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-900 dark:text-slate-100 transition-colors shadow-xs"
                     >
                       <MoreHorizontal className="w-4.5 h-4.5" />
                     </div>
                   </DropdownTrigger>
                   <DropdownContent align="right" width="w-48">
                     <DropdownItem
-                      icon={<Share2 className="w-4 h-4 text-slate-600" />}
+                      icon={<Share2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
                       onClick={() => setShowShare(true)}
                     >
                       Profili Paylaş
                     </DropdownItem>
                     <DropdownDivider />
                     <DropdownItem
-                      icon={<Shield className="w-4 h-4 text-slate-600" />}
+                      icon={<Shield className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
                       onClick={handleBlock}
                     >
                       Kullanıcıyı Engelle
@@ -383,7 +383,7 @@ export function Profile() {
                 size="md"
                 leftIcon={<Settings className="w-4 h-4" />}
                 onClick={() => navigate("/settings")}
-                className="rounded-full px-5 font-bold border-slate-200/90 hover:bg-slate-50 text-slate-800 shadow-xs"
+                className="rounded-full px-5 font-bold border-slate-200 dark:border-slate-800/90 hover:bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-xs"
               >
                 Profili Düzenle
               </Button>
@@ -394,7 +394,7 @@ export function Profile() {
         {/* User Identity Details */}
         <div className="mt-1">
           <div className="flex items-center gap-1.5">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {profile.displayName || profile.username}
             </h2>
             {profile.isVerified && (
@@ -404,24 +404,24 @@ export function Profile() {
                 aria-label="Doğrulanmış Hesap"
                 className="inline-flex items-center focus:outline-none"
               >
-                <CheckCircle2 className="w-5 h-5 text-slate-900 fill-slate-100 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
               </button>
             )}
           </div>
-          <p className="text-sm font-medium text-slate-500">@{profile.username}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">@{profile.username}</p>
         </div>
 
         {/* Bio */}
         {profile.bio && (
-          <div className="mt-3 text-slate-800 text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+          <div className="mt-3 text-slate-800 dark:text-slate-100 text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
             <RichText text={profile.bio} />
           </div>
         )}
 
         {/* Meta Info Rows (Location, Website, Date) */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3.5 text-xs sm:text-sm text-slate-500 font-medium">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
           {profile.location && (
-            <div className="flex items-center gap-1.5 text-slate-600">
+            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
               <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
               <span>{profile.location}</span>
             </div>
@@ -434,7 +434,7 @@ export function Profile() {
                 href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-900 font-semibold hover:underline inline-flex items-center gap-0.5"
+                className="text-slate-900 dark:text-slate-100 font-semibold hover:underline inline-flex items-center gap-0.5"
               >
                 <span>{profile.website.replace(/^https?:\/\//, "")}</span>
                 <ExternalLink className="w-3 h-3 opacity-70" />
@@ -442,7 +442,7 @@ export function Profile() {
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 text-slate-500">
+          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
             <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
             <span>
               {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
@@ -461,10 +461,10 @@ export function Profile() {
             onClick={() => setActiveTab("following")}
             className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none"
           >
-            <span className="font-extrabold text-slate-900 group-hover/stat:text-slate-900 transition-colors">
+            <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-slate-900 dark:text-slate-100 transition-colors">
               {profile.followingCount || 0}
             </span>
-            <span className="text-slate-500 font-medium group-hover/stat:text-slate-700">Takip Edilen</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700">Takip Edilen</span>
           </button>
 
           <button
@@ -472,16 +472,16 @@ export function Profile() {
             onClick={() => setActiveTab("followers")}
             className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none"
           >
-            <span className="font-extrabold text-slate-900 group-hover/stat:text-slate-900 transition-colors">
+            <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-slate-900 dark:text-slate-100 transition-colors">
               {profile.followersCount || 0}
             </span>
-            <span className="text-slate-500 font-medium group-hover/stat:text-slate-700">Takipçi</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700">Takipçi</span>
           </button>
         </div>
 
         {/* Mutual Followers Display */}
         {profile.mutualFollowers && profile.mutualFollowers.length > 0 && (
-          <div className="flex items-center gap-2.5 mt-3.5 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2.5 mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex -space-x-2 shrink-0">
               {profile.mutualFollowers.slice(0, 3).map((mf: any) => (
                 <Avatar
@@ -493,14 +493,14 @@ export function Profile() {
                 />
               ))}
             </div>
-            <div className="text-xs text-slate-500 font-medium leading-tight">
-              <span className="font-bold text-slate-900">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">
+              <span className="font-bold text-slate-900 dark:text-slate-100">
                 {profile.mutualFollowers[0].displayName || profile.mutualFollowers[0].username}
               </span>
               {profile.mutualFollowersCount > 1 && (
                 <span>
                   {" "}ve{" "}
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-slate-100">
                     {profile.mutualFollowersCount - 1} diğer takip ettiğin kişi
                   </span>
                 </span>
@@ -513,7 +513,7 @@ export function Profile() {
 
       {/* PROFILE TABS */}
       <div 
-        className="sticky top-[108px] z-10 bg-white/95 backdrop-blur-md border-b border-slate-100 flex items-center px-2"
+        className="sticky top-[108px] z-10 bg-white dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center px-2"
         role="tablist"
         aria-label="Profil Sekmeleri"
       >
@@ -523,7 +523,7 @@ export function Profile() {
           aria-selected={activeTab === "posts"}
           onClick={() => setActiveTab("posts")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "posts" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+            activeTab === "posts" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <span>Gönderiler</span>
@@ -542,7 +542,7 @@ export function Profile() {
           aria-selected={activeTab === "projects"}
           onClick={() => setActiveTab("projects")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "projects" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+            activeTab === "projects" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <span>Projeler</span>
@@ -561,7 +561,7 @@ export function Profile() {
           aria-selected={activeTab === "followers"}
           onClick={() => setActiveTab("followers")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "followers" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+            activeTab === "followers" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <span>Takipçiler</span>
@@ -580,7 +580,7 @@ export function Profile() {
           aria-selected={activeTab === "following"}
           onClick={() => setActiveTab("following")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "following" ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+            activeTab === "following" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
           }`}
         >
           <span>Takip Edilenler</span>
@@ -639,7 +639,7 @@ export function Profile() {
           (activeTab === "followers" ? followersQuery : followingQuery).loading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100">
+                <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
                   <SkeletonCircle size="md" />
                   <div className="space-y-1.5 flex-1">
                     <Skeleton className="h-4 w-36 rounded-md" />
@@ -659,7 +659,7 @@ export function Profile() {
                   <Link
                     key={user.id}
                     to={`/profile/${user.username}`}
-                    className="flex items-center gap-3.5 p-4 hover:bg-slate-50/70 border-b border-slate-100 transition-colors group"
+                    className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 transition-colors group"
                   >
                     <Avatar
                       url={user.avatarUrl}
@@ -669,16 +669,16 @@ export function Profile() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors truncate text-sm sm:text-base">
+                        <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate text-sm sm:text-base">
                           {user.displayName || user.username}
                         </span>
                         {user.isVerified && (
-                          <CheckCircle2 className="w-4 h-4 text-slate-900 fill-slate-100 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-slate-100 shrink-0" />
                         )}
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-500 truncate">@{user.username}</p>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">@{user.username}</p>
                       {user.bio && (
-                        <p className="text-xs text-slate-600 truncate mt-0.5 line-clamp-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5 line-clamp-1">
                           {user.bio}
                         </p>
                       )}

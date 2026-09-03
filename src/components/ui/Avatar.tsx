@@ -90,7 +90,7 @@ export function Avatar({
     <div className="relative inline-flex shrink-0">
       <div
         className={cn(
-          'bg-slate-100 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-xs select-none',
+          'bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-xs select-none',
           isBordered && 'border-2 border-white ring-1 ring-slate-100',
           currentSize.container,
           className
@@ -107,7 +107,7 @@ export function Avatar({
             className="w-full h-full object-cover"
           />
         ) : initials ? (
-          <span className={cn('font-bold text-slate-600 tracking-wider', currentSize.text)}>
+          <span className={cn('font-bold text-slate-600 dark:text-slate-400 tracking-wider', currentSize.text)}>
             {initials}
           </span>
         ) : (
@@ -150,7 +150,7 @@ export function AvatarGroup({
         </div>
       ))}
       {excess > 0 && (
-        <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white text-slate-700 text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
+        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-white text-slate-700 text-xs font-bold flex items-center justify-center shrink-0 shadow-xs">
           +{excess}
         </div>
       )}

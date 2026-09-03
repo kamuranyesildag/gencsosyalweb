@@ -75,15 +75,15 @@ export function Communities() {
   });
 
   return (
-    <div className="flex flex-col h-full w-full max-w-3xl mx-auto border-x border-slate-200/80 min-h-screen bg-white">
+    <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
       {/* Sticky Header */}
-      <header className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 text-slate-900 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Topluluklar
             </h1>
           </div>
@@ -104,7 +104,7 @@ export function Communities() {
       </header>
 
       {/* Search Bar */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+      <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
         <div className="relative flex items-center">
           <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
@@ -114,7 +114,7 @@ export function Communities() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Topluluklarda ara..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
           />
         </div>
       </div>
@@ -129,11 +129,11 @@ export function Communities() {
               <div
                 key={c.id}
                 onClick={() => navigate(`/communities/${c.slug}`)}
-                className="p-5 border border-slate-200/80 rounded-2xl bg-white hover:border-slate-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 border border-slate-200 dark:border-slate-800/80 rounded-2xl bg-white dark:bg-slate-950 hover:border-slate-200 dark:border-slate-800 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center gap-3.5 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
                       {c.avatarUrl ? (
                         <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
@@ -141,21 +141,21 @@ export function Communities() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-slate-900 text-base group-hover:text-slate-900 transition-colors truncate">
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate">
                         {c.name}
                       </h3>
-                      <div className="text-xs font-semibold text-slate-900">
+                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                         {c.memberCount || 0} Üye
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-4">
                     {c.description || 'Henüz bir açıklama eklenmedi.'}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-semibold text-slate-600 group-hover:text-slate-900">
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-semibold text-slate-600 group-hover:text-slate-900 dark:text-slate-100">
                   <span>Topluluğu Görüntüle</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -208,16 +208,16 @@ export function Communities() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="create-comm-title"
-              className="relative z-10 w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl p-6 sm:p-7 overflow-hidden"
+              className="relative z-10 w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/90 shadow-2xl p-6 sm:p-7 overflow-hidden"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-                <h3 id="create-comm-title" className="font-extrabold text-lg sm:text-xl text-slate-900">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
+                <h3 id="create-comm-title" className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-slate-100">
                   Yeni Topluluk Oluştur
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowCreate(false)}
-                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -241,7 +241,7 @@ export function Communities() {
                       }
                     }}
                     placeholder="Örn: Yapay Zeka Kulübü"
-                    className="w-full min-h-[44px] px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
+                    className="w-full min-h-[44px] px-3.5 py-2 bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
                   />
                 </div>
 
@@ -256,7 +256,7 @@ export function Communities() {
                     value={newSlug}
                     onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                     placeholder="yapay-zeka-kulubu"
-                    className="w-full min-h-[44px] px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all font-mono"
+                    className="w-full min-h-[44px] px-3.5 py-2 bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all font-mono"
                   />
                 </div>
 
@@ -270,7 +270,7 @@ export function Communities() {
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Topluluğun amacı ve kimlere hitap ettiği..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all resize-none"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all resize-none"
                   />
                 </div>
 

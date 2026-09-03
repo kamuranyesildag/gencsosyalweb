@@ -67,10 +67,10 @@ export function Admin() {
             <ShieldAlert className="w-8 h-8" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               Erişim Yetkisi Gerekli
             </h1>
-            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
               Bu sayfaya yalnızca Genç Sosyal sistem yöneticileri (ADMIN) erişebilir. Lütfen yetkili bir hesap ile giriş yapın.
             </p>
           </div>
@@ -97,15 +97,15 @@ export function Admin() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-16">
       {/* Top Header / Bar */}
-      <div className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
+      <div className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Link
                 to="/"
-                className="p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-100 rounded-xl hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                 title="Ana Sayfaya Dön"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -116,7 +116,7 @@ export function Admin() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-slate-900 text-base tracking-tight">
+                    <span className="font-black text-slate-900 dark:text-slate-100 text-base tracking-tight">
                       Genç Sosyal Admin
                     </span>
                     <Badge variant="danger" size="sm">YÖNETİCİ</Badge>
@@ -135,7 +135,7 @@ export function Admin() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-slate-100 py-1.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800 py-1.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -144,18 +144,18 @@ export function Admin() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                     isActive
-                      ? 'text-slate-900 bg-slate-100/90 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                      ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-900/90 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:bg-slate-900/70'
                   }`}
                 >
-                  <span className={`${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+                  <span className={`${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
                     {tab.icon}
                   </span>
                   <span>{tab.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="admin-active-pill"
-                      className="absolute inset-0 bg-slate-100 rounded-xl -z-10 border border-slate-200/60"
+                      className="absolute inset-0 bg-slate-100 dark:bg-slate-900 rounded-xl -z-10 border border-slate-200 dark:border-slate-800/60"
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     />
                   )}

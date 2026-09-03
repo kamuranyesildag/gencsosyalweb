@@ -208,11 +208,11 @@ export function AdminOfficialAccounts() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Megaphone className="w-6 h-6 text-slate-900" />
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <Megaphone className="w-6 h-6 text-slate-900 dark:text-slate-100" />
             <span>Resmi Hesap Yönetimi</span>
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Genç Sosyal kurumsal ve duyuru hesaplarını yapılandırın, bildirim ve otomatik takip önceliklerini yönetin.
           </p>
         </div>
@@ -229,10 +229,10 @@ export function AdminOfficialAccounts() {
 
       {/* Add New Official Account Card */}
       <Card variant="default" padding="lg" className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h3 className="text-base font-bold text-slate-900">Yeni Resmi Hesap Tanımla</h3>
-            <p className="text-xs text-slate-500 font-medium">Sistemdeki bir kullanıcıyı resmi duyuru hesabı olarak işaretleyin.</p>
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Yeni Resmi Hesap Tanımla</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Sistemdeki bir kullanıcıyı resmi duyuru hesabı olarak işaretleyin.</p>
           </div>
           <Badge variant="info" size="sm">Kurumsal Rozet</Badge>
         </div>
@@ -263,8 +263,8 @@ export function AdminOfficialAccounts() {
 
         {/* Searched Users Results Dropdown / Box */}
         {searchedUsers.length > 0 && (
-          <div className="mt-3 border border-slate-200/80 rounded-2xl p-2 bg-slate-50/70 divide-y divide-slate-100 space-y-1">
-            <div className="px-3 py-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <div className="mt-3 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-2 bg-slate-50 dark:bg-slate-900/70 divide-y divide-slate-100 space-y-1">
+            <div className="px-3 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Arama Sonuçları ({searchedUsers.length})
             </div>
             {searchedUsers.map((u) => {
@@ -274,11 +274,11 @@ export function AdminOfficialAccounts() {
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar url={u.avatarUrl} size="sm" />
                     <div className="min-w-0">
-                      <div className="font-bold text-slate-900 text-sm truncate flex items-center gap-1.5">
+                      <div className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate flex items-center gap-1.5">
                         <span>{u.displayName || u.username}</span>
                         {isOfficial && <Badge variant="info" size="sm">Zaten Resmi</Badge>}
                       </div>
-                      <div className="text-xs text-slate-500 truncate">@{u.username} • {u.email}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">@{u.username} • {u.email}</div>
                     </div>
                   </div>
 
@@ -336,7 +336,7 @@ export function AdminOfficialAccounts() {
             />
           ) : (
             <Card variant="default" padding="none" className="overflow-hidden">
-              <div className="p-4 sm:p-5 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <span>Aktif Resmi Hesaplar ({accounts.length})</span>
                 <span>Öncelik & Otomasyon</span>
               </div>
@@ -349,7 +349,7 @@ export function AdminOfficialAccounts() {
                   return (
                     <div
                       key={acc.id}
-                      className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors"
+                      className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50 dark:bg-slate-900/50 transition-colors"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <Avatar url={acc.avatarUrl} size="lg" />
@@ -357,7 +357,7 @@ export function AdminOfficialAccounts() {
                           <div className="flex items-center gap-2">
                             <Link
                               to={`/profile/${acc.username}`}
-                              className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-base truncate"
+                              className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-900 dark:text-slate-100 transition-colors text-base truncate"
                             >
                               {acc.displayName || acc.username}
                             </Link>
@@ -365,7 +365,7 @@ export function AdminOfficialAccounts() {
                               Resmi
                             </Badge>
                           </div>
-                          <div className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                             @{acc.username} • <span className="text-slate-400">{acc.email}</span>
                           </div>
 
@@ -402,7 +402,7 @@ export function AdminOfficialAccounts() {
                       </div>
 
                       {/* Action Controls */}
-                      <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                      <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
                         <Button
                           variant={isAuto ? 'primary' : 'outline'}
                           size="sm"

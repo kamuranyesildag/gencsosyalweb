@@ -99,7 +99,7 @@ export function MentionAutocomplete({ text, onSelect, inputRef }: Props) {
   };
 
   return (
-    <div className="absolute z-50 bg-white border border-gray-100 shadow-xl rounded-xl w-64 max-h-64 overflow-y-auto mt-1 divide-y divide-gray-50">
+    <div className="absolute z-50 bg-white dark:bg-slate-950 border border-gray-100 shadow-xl rounded-xl w-64 max-h-64 overflow-y-auto mt-1 divide-y divide-gray-50">
       {users.map(user => (
         <button
           key={user.id}

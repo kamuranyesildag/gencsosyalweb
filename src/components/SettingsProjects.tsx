@@ -160,7 +160,7 @@ export function SettingsProjects() {
   if (loading) {
     return (
       <div className="flex justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-900 dark:text-slate-100" />
       </div>
     );
   }
@@ -170,17 +170,17 @@ export function SettingsProjects() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               {editingProject.id ? "Projeyi Düzenle" : "Yeni Proje Ekle"}
             </h3>
-            <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
               Genç Sosyal portföyünüz için projenizi detaylandırın.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setEditingProject(null)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -200,14 +200,14 @@ export function SettingsProjects() {
 
         <form onSubmit={handleSave} className="space-y-6">
           {/* Bölüm 1: Temel Bilgiler */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 mb-1">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 mb-1">
               <LayoutDashboard className="w-5 h-5" />
-              <h4 className="font-bold text-slate-900 text-base">Temel Bilgiler</h4>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base">Temel Bilgiler</h4>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Proje Adı *
               </label>
               <input
@@ -218,14 +218,14 @@ export function SettingsProjects() {
                 onChange={(e) =>
                   setEditingProject({ ...editingProject, title: e.target.value })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                 placeholder="Örn: Akıllı Tarım & Sera Otomasyonu"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Kategori *
                 </label>
                 <select
@@ -234,7 +234,7 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, category: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
                 >
                   <option value="" disabled>Seçiniz</option>
                   <option value="Yazılım">Yazılım</option>
@@ -250,7 +250,7 @@ export function SettingsProjects() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Proje Durumu *
                 </label>
                 <select
@@ -259,7 +259,7 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, status: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all"
                 >
                   <option value="" disabled>Seçiniz</option>
                   <option value="Fikir aşamasında">Fikir aşamasında</option>
@@ -273,14 +273,14 @@ export function SettingsProjects() {
           </div>
 
           {/* Bölüm 2: Proje Detayları */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 mb-1">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 mb-1">
               <Info className="w-5 h-5" />
-              <h4 className="font-bold text-slate-900 text-base">Açıklama & Detaylar</h4>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base">Açıklama & Detaylar</h4>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Kısa Açıklama *
               </label>
               <textarea
@@ -291,13 +291,13 @@ export function SettingsProjects() {
                 onChange={(e) =>
                   setEditingProject({ ...editingProject, description: e.target.value })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-none placeholder:text-slate-400"
                 placeholder="Projenin amacını ve öne çıkan özelliklerini kısaca açıklayın..."
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Detaylı Açıklama (Opsiyonel)
               </label>
               <textarea
@@ -310,21 +310,21 @@ export function SettingsProjects() {
                     detailedDescription: e.target.value,
                   })
                 }
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-y placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all resize-y placeholder:text-slate-400"
                 placeholder="Mimari, hedefler ve kullanılan yöntemler hakkında detay verin..."
               />
             </div>
           </div>
 
           {/* Bölüm 3: Teknolojiler */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 mb-1">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 mb-1">
               <Code className="w-5 h-5" />
-              <h4 className="font-bold text-slate-900 text-base">Teknolojiler & Etiketler</h4>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base">Teknolojiler & Etiketler</h4>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Kullanılan Teknolojiler
               </label>
               <input
@@ -332,11 +332,11 @@ export function SettingsProjects() {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={addTag}
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                 placeholder="React, TypeScript, Python yazıp Enter'a basın..."
               />
               <p className="text-xs text-slate-400 font-medium">
-                En fazla 10 teknoloji ekleyebilirsiniz. Eklemek için <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">Enter</kbd> veya virgül kullanın.
+                En fazla 10 teknoloji ekleyebilirsiniz. Eklemek için <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-900 rounded text-slate-600 dark:text-slate-400">Enter</kbd> veya virgül kullanın.
               </p>
 
               {editingProject.tags && editingProject.tags.length > 0 && (
@@ -344,7 +344,7 @@ export function SettingsProjects() {
                   {editingProject.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-100"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-800"
                     >
                       {tag}
                       <button
@@ -362,15 +362,15 @@ export function SettingsProjects() {
           </div>
 
           {/* Bölüm 4: Bağlantılar */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 mb-1">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 mb-1">
               <LinkIcon className="w-5 h-5" />
-              <h4 className="font-bold text-slate-900 text-base">Medya & Bağlantılar</h4>
+              <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base">Medya & Bağlantılar</h4>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
                   Proje Görsel URL (Opsiyonel)
                 </label>
@@ -380,14 +380,14 @@ export function SettingsProjects() {
                   onChange={(e) =>
                     setEditingProject({ ...editingProject, imageUrl: e.target.value })
                   }
-                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                   placeholder="https://example.com/banner.png"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <Github className="w-3.5 h-3.5 text-slate-400" />
                     GitHub URL (Opsiyonel)
                   </label>
@@ -397,13 +397,13 @@ export function SettingsProjects() {
                     onChange={(e) =>
                       setEditingProject({ ...editingProject, githubUrl: e.target.value })
                     }
-                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                     placeholder="https://github.com/kullanici/repo"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                     Canlı Site URL (Opsiyonel)
                   </label>
@@ -413,7 +413,7 @@ export function SettingsProjects() {
                     onChange={(e) =>
                       setEditingProject({ ...editingProject, projectUrl: e.target.value })
                     }
-                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-slate-900/10 focus:border-slate-500 outline-none transition-all placeholder:text-slate-400"
                     placeholder="https://proje-adresi.com"
                   />
                 </div>
@@ -451,10 +451,10 @@ export function SettingsProjects() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Üretim ve Projelerim
           </h3>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Genç Sosyal vitrininizde yer alan projeleri ve portföyünüzü yönetin.
           </p>
         </div>
@@ -497,7 +497,7 @@ export function SettingsProjects() {
       )}
 
       {projects.length === 0 ? (
-        <div className="bg-white border border-slate-200/80 rounded-3xl p-10 text-center">
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-10 text-center">
           <EmptyState
             icon={<FolderGit2 className="w-8 h-8 text-slate-400" />}
             title="Henüz Proje Eklenmedi"
@@ -524,11 +524,11 @@ export function SettingsProjects() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs hover:border-slate-300 transition-all group"
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs hover:border-slate-300 transition-all group"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h4 className="font-bold text-slate-900 text-base group-hover:text-slate-900 transition-colors truncate">
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate">
                     {project.title}
                   </h4>
                   <Badge variant="secondary" size="sm" isPill>
@@ -539,7 +539,7 @@ export function SettingsProjects() {
                   </Badge>
                 </div>
 
-                <p className="text-xs sm:text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed">
                   {project.description}
                 </p>
 
@@ -548,7 +548,7 @@ export function SettingsProjects() {
                     {project.tags.slice(0, 4).map((t) => (
                       <span
                         key={t}
-                        className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md"
+                        className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md"
                       >
                         #{t}
                       </span>
@@ -571,7 +571,7 @@ export function SettingsProjects() {
                     setEditingProject(project);
                     setMsg({ text: "", type: "success" });
                   }}
-                  leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-600" />}
+                  leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />}
                   className="rounded-xl font-bold text-xs"
                 >
                   Düzenle

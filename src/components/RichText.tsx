@@ -33,7 +33,7 @@ export function RichText({ text }: { text: string }) {
               href={part}
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-baseline gap-0.5 text-slate-900 font-medium hover:underline underline-offset-2 break-all"
+              className="inline-flex items-baseline gap-0.5 text-slate-900 dark:text-slate-100 font-medium hover:underline underline-offset-2 break-all"
               onClick={(e) => e.stopPropagation()}
             >
               <span>{displayUrl}</span>
@@ -48,7 +48,7 @@ export function RichText({ text }: { text: string }) {
             <Link 
               key={i} 
               to={`/hashtags/${encodeURIComponent(tagContent)}`}
-              className="text-slate-900 font-semibold hover:underline underline-offset-2"
+              className="text-slate-900 dark:text-slate-100 font-semibold hover:underline underline-offset-2"
               onClick={(e) => e.stopPropagation()}
             >
               {part}
@@ -62,7 +62,7 @@ export function RichText({ text }: { text: string }) {
             <Link 
               key={i} 
               to={`/profile/${encodeURIComponent(username)}`}
-              className="text-slate-900 font-semibold hover:underline underline-offset-2"
+              className="text-slate-900 dark:text-slate-100 font-semibold hover:underline underline-offset-2"
               onClick={(e) => e.stopPropagation()}
             >
               {part}

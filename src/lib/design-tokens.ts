@@ -17,15 +17,15 @@ export const tokens = {
       gradient: 'from-slate-600 to-violet-600',
     },
     neutral: {
-      bg: 'bg-slate-50',
-      surface: 'bg-white',
-      surfaceMuted: 'bg-slate-50/80',
-      border: 'border-slate-200/80',
-      borderSubtle: 'border-slate-100',
-      textMain: 'text-slate-900',
-      textMuted: 'text-slate-600',
+      bg: 'bg-slate-50 dark:bg-slate-900',
+      surface: 'bg-white dark:bg-slate-950',
+      surfaceMuted: 'bg-slate-50 dark:bg-slate-900/80',
+      border: 'border-slate-200 dark:border-slate-800/80',
+      borderSubtle: 'border-slate-100 dark:border-slate-800',
+      textMain: 'text-slate-900 dark:text-slate-100',
+      textMuted: 'text-slate-600 dark:text-slate-400',
       textSubtle: 'text-slate-400',
-      divider: 'bg-slate-200/80',
+      divider: 'bg-slate-200 dark:bg-slate-800/80',
     },
     feedback: {
       success: {
@@ -77,9 +77,9 @@ export const tokens = {
   focus: {
     ring: 'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
     ringDanger: 'focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
-    input: 'focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 focus:bg-white',
+    input: 'focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 focus:bg-white dark:bg-slate-950',
     inputError: 'focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 focus:bg-rose-50/20',
-    inputSuccess: 'focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:bg-white',
+    inputSuccess: 'focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 focus:bg-white dark:bg-slate-950',
   },
   transitions: {
     fast: 'transition-all duration-150 ease-out',

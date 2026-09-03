@@ -149,11 +149,11 @@ export function AdminVerification() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileCheck2 className="w-6 h-6 text-slate-900" />
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <FileCheck2 className="w-6 h-6 text-slate-900 dark:text-slate-100" />
             <span>Doğrulama (Mavi Tik) Başvuruları</span>
           </h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mt-0.5">
             Kullanıcıların kimlik doğrulama ve tanınmış kişi mavi tik rozet başvurularını inceleyin.
           </p>
         </div>
@@ -169,7 +169,7 @@ export function AdminVerification() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/90 border border-slate-200/60 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/60 overflow-x-auto no-scrollbar">
         {filterTabs.map((tab) => {
           const isActive = statusFilter === tab.id;
           return (
@@ -178,8 +178,8 @@ export function AdminVerification() {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-white text-slate-950 shadow-xs border border-slate-200/70'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-950 text-slate-950 shadow-xs border border-slate-200 dark:border-slate-800/70'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-100'
               }`}
             >
               {tab.label}
@@ -248,26 +248,26 @@ export function AdminVerification() {
                   >
                     <Card variant="default" padding="lg" className="space-y-4">
                       {/* Top Bar: User & Status */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3.5">
                         <div className="flex items-center gap-3.5 min-w-0">
                           <Avatar url={v.avatarUrl} size="lg" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <Link
                                 to={`/profile/${v.username}`}
-                                className="font-bold text-slate-900 hover:text-slate-900 transition-colors text-base truncate"
+                                className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-900 dark:text-slate-100 transition-colors text-base truncate"
                               >
                                 {v.displayName || v.username}
                               </Link>
                               <Link
                                 to={`/profile/${v.username}`}
-                                className="text-slate-400 hover:text-slate-900 transition-colors"
+                                className="text-slate-400 hover:text-slate-900 dark:text-slate-100 transition-colors"
                                 title="Profili Aç"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </Link>
                             </div>
-                            <div className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                               @{v.username} • <span className="text-slate-400">{v.email}</span>
                             </div>
                           </div>
@@ -288,12 +288,12 @@ export function AdminVerification() {
                       </div>
 
                       {/* Reason Description Box */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5 text-slate-900" />
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 space-y-1.5">
+                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />
                           <span>Başvuru Gerekçesi / Tanıtım</span>
                         </div>
-                        <p className="text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
+                        <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed font-medium whitespace-pre-wrap">
                           {v.reason}
                         </p>
                       </div>
@@ -309,7 +309,7 @@ export function AdminVerification() {
                       )}
 
                       {/* Actions */}
-                      <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                         {v.status === 'pending' && (
                           <Button
                             variant="secondary"

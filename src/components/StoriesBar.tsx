@@ -123,12 +123,12 @@ export function StoriesBar() {
   // Loading skeleton
   if (loading) {
     return (
-      <div className="w-full bg-white border-b border-slate-100/90 py-3.5 px-4 overflow-hidden select-none">
+      <div className="w-full bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/90 py-3.5 px-4 overflow-hidden select-none">
         <div className="flex gap-4 items-center">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex flex-col items-center gap-2 shrink-0 animate-pulse">
-              <div className="w-[66px] h-[66px] rounded-full bg-slate-100 ring-2 ring-slate-200/60 p-0.5" />
-              <div className="w-12 h-2.5 bg-slate-100 rounded-full" />
+              <div className="w-[66px] h-[66px] rounded-full bg-slate-100 dark:bg-slate-900 ring-2 ring-slate-200/60 p-0.5" />
+              <div className="w-12 h-2.5 bg-slate-100 dark:bg-slate-900 rounded-full" />
             </div>
           ))}
         </div>
@@ -139,7 +139,7 @@ export function StoriesBar() {
   return (
     <>
       <section 
-        className="w-full bg-white border-b border-slate-100/90 py-3 px-3 sm:px-4 overflow-hidden relative select-none"
+        className="w-full max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] mx-2 sm:mx-4 bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800/60 rounded-[24px] shadow-sm py-4 px-3 sm:px-4 mt-4 mb-2 overflow-hidden relative select-none"
         aria-label="Hikayeler"
       >
         <div className="flex gap-3 sm:gap-4 items-center overflow-x-auto no-scrollbar scroll-smooth py-1 px-1">
@@ -178,7 +178,7 @@ export function StoriesBar() {
                 }
               }}
             >
-              <div className="p-0.5 bg-white rounded-full">
+              <div className="p-0.5 bg-white dark:bg-slate-950 rounded-full">
                 <Avatar 
                   url={currentUser?.avatarUrl} 
                   name={currentUser?.displayName || currentUser?.username || 'Sen'} 
@@ -239,7 +239,7 @@ export function StoriesBar() {
                 }}
               >
                 <div className="rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-slate-600 group-hover:shadow-md group-hover:shadow-slate-500/10 transition-all duration-200">
-                  <div className="p-0.5 bg-white rounded-full">
+                  <div className="p-0.5 bg-white dark:bg-slate-950 rounded-full">
                     <Avatar 
                       url={u.user.avatarUrl} 
                       name={u.user.displayName || u.user.username} 
@@ -248,7 +248,7 @@ export function StoriesBar() {
                     />
                   </div>
                 </div>
-                <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900 truncate w-16 text-center tracking-tight">
+                <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900 dark:text-slate-100 truncate w-16 text-center tracking-tight">
                   {u.user.displayName || u.user.username}
                 </span>
               </div>

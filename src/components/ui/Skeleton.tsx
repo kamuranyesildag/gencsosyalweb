@@ -16,7 +16,7 @@ export function Skeleton({
     <div
       aria-hidden="true"
       className={cn(
-        'animate-pulse bg-slate-200/80',
+        'animate-pulse bg-slate-200 dark:bg-slate-800/80',
         variant === 'circular' && 'rounded-full',
         variant === 'rounded' && 'rounded-xl',
         variant === 'rectangular' && 'rounded-none',
@@ -70,7 +70,7 @@ export const SkeletonAvatar = SkeletonCircle;
 
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn('bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4 shadow-xs', className)}>
+    <div className={cn('bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 space-y-4 shadow-xs', className)}>
       <div className="flex items-center gap-3">
         <SkeletonCircle size="md" />
         <div className="space-y-1.5 flex-1">
@@ -86,7 +86,7 @@ export function SkeletonCard({ className }: { className?: string }) {
 
 export function SkeletonPost({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('bg-white border border-slate-200/80 rounded-2xl p-5 space-y-3.5 shadow-xs', className)} {...props}>
+    <div className={cn('bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 space-y-3.5 shadow-xs', className)} {...props}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <SkeletonCircle size="md" />
@@ -98,7 +98,7 @@ export function SkeletonPost({ className, ...props }: React.HTMLAttributes<HTMLD
         <Skeleton className="h-6 w-12 rounded-full" />
       </div>
       <SkeletonText lines={3} />
-      <div className="flex items-center gap-6 pt-2 border-t border-slate-100">
+      <div className="flex items-center gap-6 pt-2 border-t border-slate-100 dark:border-slate-800">
         <Skeleton className="h-4 w-12 rounded-md" />
         <Skeleton className="h-4 w-12 rounded-md" />
         <Skeleton className="h-4 w-12 rounded-md" />

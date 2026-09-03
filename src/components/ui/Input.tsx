@@ -75,15 +75,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               error ? errorId : isSuccess && successMessage ? successId : helperText ? helperId : undefined
             }
             className={cn(
-              'w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50/80 border rounded-[12px] text-sm text-slate-900 font-normal placeholder:text-slate-400 transition-all duration-150 ease-out',
+              'w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/80 border rounded-[12px] text-sm text-slate-900 dark:text-slate-100 font-normal placeholder:text-slate-400 transition-all duration-150 ease-out',
               leftIcon ? 'pl-10' : 'pl-3.5',
               rightIcon || (clearable && hasValue) || isSuccess ? 'pr-10' : 'pr-3.5',
               error
                 ? 'border-rose-400 bg-rose-50/30 text-rose-900 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                 : isSuccess
-                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
-                : 'border-slate-300 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
-              disabled && 'bg-slate-100/70 border-slate-200 text-slate-400 cursor-not-allowed select-none',
+                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
+                : 'border-slate-300 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
+              disabled && 'bg-slate-100 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed select-none',
               className
             )}
             {...props}
@@ -94,7 +94,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               type="button"
               onClick={onClear}
               aria-label="Metni temizle"
-              className="absolute right-3.5 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              className="absolute right-3.5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:bg-slate-800/60 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -122,7 +122,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {successMessage}
           </p>
         ) : helperText ? (
-          <p id={helperId} className="text-xs text-slate-500 font-normal leading-tight">
+          <p id={helperId} className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-tight">
             {helperText}
           </p>
         ) : null}

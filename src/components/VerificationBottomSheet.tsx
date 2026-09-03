@@ -115,7 +115,7 @@ export function VerificationBottomSheet({ isOpen, onClose }: { isOpen: boolean; 
           <button
             onClick={onClose}
             aria-label="Kapat"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 transition-colors text-white"
           >
             <X className="w-5 h-5" />
           </button>

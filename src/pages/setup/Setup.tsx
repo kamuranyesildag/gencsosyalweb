@@ -74,7 +74,7 @@ export function Setup() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center" role="status" aria-label="Yükleniyor">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center" role="status" aria-label="Yükleniyor">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
     );
@@ -149,8 +149,8 @@ export function Setup() {
 
   const renderWelcome = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>1. Kurulum Sihirbazına Hoş Geldiniz</h2>
-      <p className="text-slate-600 leading-relaxed">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>1. Kurulum Sihirbazına Hoş Geldiniz</h2>
+      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
         Genç Sosyal uygulamanızın ilk yapılandırmasını yapmak için bu sihirbazı kullanacağız. 
         Sistem gereksinimlerinizi doğrulayacak, veritabanı bağlantılarınızı test edecek ve ilk 
         yönetici hesabınızı oluşturacağız.
@@ -165,43 +165,43 @@ export function Setup() {
 
   const renderSystemCheck = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>2. Sistem Kontrolü</h2>
-      <p className="text-slate-600">Sunucu kaynakları, Docker, Network ve Port durumları kontrol ediliyor.</p>
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>2. Sistem Kontrolü</h2>
+      <p className="text-slate-600 dark:text-slate-400">Sunucu kaynakları, Docker, Network ve Port durumları kontrol ediliyor.</p>
       
-      <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200" role="list">
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg" role="listitem">
+      <div className="space-y-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800" role="list">
+        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg" role="listitem">
           <div className="flex items-center gap-3">
-            <Server className="w-5 h-5 text-slate-500" />
+            <Server className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             <div>
-              <p className="font-medium text-slate-900">Docker & Compose</p>
-              <p className="text-sm text-slate-500">Konteyner ortamı aktif.</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">Docker & Compose</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Konteyner ortamı aktif.</p>
             </div>
           </div>
           <StatusBadge status="PASS" />
         </div>
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg" role="listitem">
+        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg" role="listitem">
           <div className="flex items-center gap-3">
-            <Cog className="w-5 h-5 text-slate-500" />
+            <Cog className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             <div>
-              <p className="font-medium text-slate-900">CPU, RAM & Disk</p>
-              <p className="text-sm text-slate-500">Kaynaklar ve yazma izinleri yeterli.</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">CPU, RAM & Disk</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Kaynaklar ve yazma izinleri yeterli.</p>
             </div>
           </div>
           <StatusBadge status="PASS" />
         </div>
-        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg" role="listitem">
+        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg" role="listitem">
           <div className="flex items-center gap-3">
-            <Globe className="w-5 h-5 text-slate-500" />
+            <Globe className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             <div>
-              <p className="font-medium text-slate-900">Network & Ports</p>
-              <p className="text-sm text-slate-500">Port 3000 dinleniyor, iç ağ erişimi açık.</p>
+              <p className="font-medium text-slate-900 dark:text-slate-100">Network & Ports</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Port 3000 dinleniyor, iç ağ erişimi açık.</p>
             </div>
           </div>
           <StatusBadge status="PASS" />
         </div>
       </div>
       <div className="pt-4 flex justify-between">
-        <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+        <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
         <button onClick={handleNext} className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">Devam Et</button>
       </div>
     </div>
@@ -209,23 +209,23 @@ export function Setup() {
 
   const renderSiteInfo = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>3. Site Bilgileri</h2>
-      <p className="text-slate-600">Sitenizin varsayılan tanımları.</p>
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>3. Site Bilgileri</h2>
+      <p className="text-slate-600 dark:text-slate-400">Sitenizin varsayılan tanımları.</p>
       
-      <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
+      <div className="space-y-4 bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Uygulama Adı</label>
           <input 
             type="text" 
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600 cursor-not-allowed"
+            className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-not-allowed"
             value="Genç Sosyal"
             disabled
           />
-          <p className="text-xs text-slate-500 mt-1">Sistem tarafından env üzerinden sağlanır.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Sistem tarafından env üzerinden sağlanır.</p>
         </div>
       </div>
       <div className="pt-4 flex justify-between">
-        <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+        <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
         <button onClick={handleNext} className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">Devam Et</button>
       </div>
     </div>
@@ -239,14 +239,14 @@ export function Setup() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>4. Veritabanı</h2>
-            <p className="text-slate-600">PostgreSQL / Veritabanı bağlantısı ve şema bütünlüğü.</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>4. Veritabanı</h2>
+            <p className="text-slate-600 dark:text-slate-400">PostgreSQL / Veritabanı bağlantısı ve şema bütünlüğü.</p>
           </div>
           <button
             type="button"
             onClick={() => fetchStatus(false)}
             disabled={checking}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
             title="Veritabanı durumunu tekrar sorgula"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checking ? "animate-spin text-blue-600" : ""}`} />
@@ -263,13 +263,13 @@ export function Setup() {
           </div>
         )}
         
-        <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+        <div className="space-y-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <div className="flex items-center gap-3">
-              <Server className="w-5 h-5 text-slate-500" />
+              <Server className="w-5 h-5 text-slate-500 dark:text-slate-400" />
               <div>
-                <p className="font-medium text-slate-900">Veritabanı Bağlantısı</p>
-                <p className="text-sm text-slate-500">
+                <p className="font-medium text-slate-900 dark:text-slate-100">Veritabanı Bağlantısı</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {checking ? "Bağlantı kontrol ediliyor..." : (dbStatus?.message || "Kontrol ediliyor...")}
                 </p>
               </div>
@@ -282,12 +282,12 @@ export function Setup() {
               <StatusBadge status={dbStatus?.status} />
             )}
           </div>
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="w-5 h-5 text-slate-500" />
+              <ShieldCheck className="w-5 h-5 text-slate-500 dark:text-slate-400" />
               <div>
-                <p className="font-medium text-slate-900">Şema Migrasyonu</p>
-                <p className="text-sm text-slate-500">
+                <p className="font-medium text-slate-900 dark:text-slate-100">Şema Migrasyonu</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {checking ? "Şema tabloları kontrol ediliyor..." : (migStatus?.message || "Kontrol ediliyor...")}
                 </p>
               </div>
@@ -302,7 +302,7 @@ export function Setup() {
           </div>
         </div>
         <div className="pt-4 flex justify-between items-center">
-          <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+          <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
           
           <div className="flex items-center gap-3">
             {migStatus?.status !== "SUCCESS" && (
@@ -330,34 +330,34 @@ export function Setup() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>5. Güvenlik</h2>
-            <p className="text-slate-600">Kriptografik anahtarların ve gizli değişkenlerin doğrulanması.</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>5. Güvenlik</h2>
+            <p className="text-slate-600 dark:text-slate-400">Kriptografik anahtarların ve gizli değişkenlerin doğrulanması.</p>
           </div>
           <button
             type="button"
             onClick={() => fetchStatus(false)}
             disabled={checking}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checking ? "animate-spin text-blue-600" : ""}`} />
             {checking ? "Kontrol ediliyor..." : "Yenile"}
           </button>
         </div>
         
-        <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+        <div className="space-y-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="w-5 h-5 text-slate-500" />
+              <ShieldCheck className="w-5 h-5 text-slate-500 dark:text-slate-400" />
               <div>
-                <p className="font-medium text-slate-900">Secret Validation</p>
-                <p className="text-sm text-slate-500">{checking ? "Kontrol ediliyor..." : (envStatus?.message || "Kontrol ediliyor...")}</p>
+                <p className="font-medium text-slate-900 dark:text-slate-100">Secret Validation</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{checking ? "Kontrol ediliyor..." : (envStatus?.message || "Kontrol ediliyor...")}</p>
               </div>
             </div>
             <StatusBadge status={envStatus?.status} />
           </div>
         </div>
         <div className="pt-4 flex justify-between">
-          <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+          <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
           <button 
             onClick={handleNext} 
             disabled={envStatus?.status !== "SUCCESS" || checking} 
@@ -372,15 +372,15 @@ export function Setup() {
 
   const renderDomain = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>6. Domain / HTTPS</h2>
-      <p className="text-slate-600">Sitenizin çalışacağı URL adresleri.</p>
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>6. Domain / HTTPS</h2>
+      <p className="text-slate-600 dark:text-slate-400">Sitenizin çalışacağı URL adresleri.</p>
       
-      <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
+      <div className="space-y-4 bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Algılanan Domain (Origin)</label>
           <input 
             type="text" 
-            className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600"
+            className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
             value={config.appUrl}
             readOnly
           />
@@ -391,7 +391,7 @@ export function Setup() {
         </div>
       </div>
       <div className="pt-4 flex justify-between items-center">
-        <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+        <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
         <button onClick={handleNext} className="bg-slate-900 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-slate-800 transition-colors">Devam Et</button>
       </div>
     </div>
@@ -403,17 +403,17 @@ export function Setup() {
 
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>7. Admin Hesabı</h2>
-        <p className="text-slate-600">Sistemi yönetecek ilk yetkili hesabı oluşturun.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>7. Admin Hesabı</h2>
+        <p className="text-slate-600 dark:text-slate-400">Sistemi yönetecek ilk yetkili hesabı oluşturun.</p>
         
-        <form className="space-y-4 bg-white p-5 rounded-xl border border-slate-200" onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+        <form className="space-y-4 bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800" onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
           <div>
             <label htmlFor="adminName" className="block text-sm font-medium text-slate-700 mb-1">Ad Soyad</label>
             <input 
               id="adminName"
               type="text" 
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={adminData.adminFullName}
               onChange={(e) => setAdminData({...adminData, adminFullName: e.target.value})}
               placeholder="Yönetici Adı"
@@ -425,7 +425,7 @@ export function Setup() {
               id="adminUser"
               type="text" 
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={adminData.adminUsername}
               onChange={(e) => setAdminData({...adminData, adminUsername: e.target.value})}
             />
@@ -436,7 +436,7 @@ export function Setup() {
               id="adminEmail"
               type="email" 
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={adminData.adminEmail}
               onChange={(e) => setAdminData({...adminData, adminEmail: e.target.value})}
             />
@@ -447,7 +447,7 @@ export function Setup() {
               id="adminPass"
               type="password" 
               required
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={adminData.adminPassword}
               onChange={(e) => setAdminData({...adminData, adminPassword: e.target.value})}
               placeholder="Güçlü bir parola seçin"
@@ -460,7 +460,7 @@ export function Setup() {
           </div>
         </form>
         <div className="pt-4 flex justify-between">
-          <button onClick={handlePrev} className="text-slate-600 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 transition-colors">Geri</button>
+          <button onClick={handlePrev} className="text-slate-600 dark:text-slate-400 px-6 py-2.5 rounded-lg font-medium hover:bg-slate-100 dark:bg-slate-900 transition-colors">Geri</button>
           <button 
             onClick={handleNext} 
             disabled={!adminData.adminEmail || !isStrong || !adminData.adminUsername}
@@ -475,8 +475,8 @@ export function Setup() {
 
   const renderInstall = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>8. Kurulum</h2>
-      <p className="text-slate-600">Her şey hazır. Veritabanını başlatmak ve hesabı oluşturmak için Kurulumu Başlat'a tıklayın.</p>
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>8. Kurulum</h2>
+      <p className="text-slate-600 dark:text-slate-400">Her şey hazır. Veritabanını başlatmak ve hesabı oluşturmak için Kurulumu Başlat'a tıklayın.</p>
       
       {installResult && !installResult.success && (
         <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 flex items-start gap-3">
@@ -501,7 +501,7 @@ export function Setup() {
 
   const renderVerify = () => (
     <div className="space-y-6 text-center py-8">
-      <h2 className="text-2xl font-bold text-slate-900" tabIndex={-1}>9. Doğrulama</h2>
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>9. Doğrulama</h2>
       
       {!verifyResult && !verifying && (
         <>
@@ -517,7 +517,7 @@ export function Setup() {
 
       {verifying && (
         <div className="flex flex-col items-center justify-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+          <Loader2 className="w-8 h-8 animate-spin text-slate-900 dark:text-slate-100" />
           <p className="text-slate-600">Sistem sağlığı doğrulanıyor...</p>
         </div>
       )}
@@ -535,16 +535,16 @@ export function Setup() {
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
         <CheckCircle2 className="w-8 h-8 text-emerald-600" />
       </div>
-      <h2 className="text-3xl font-bold text-slate-900" tabIndex={-1}>10. Kurulum Tamamlandı!</h2>
+      <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100" tabIndex={-1}>10. Kurulum Tamamlandı!</h2>
       
-      <div className="text-left bg-white p-6 rounded-xl border border-slate-200 max-w-sm mx-auto space-y-3 mt-6">
+      <div className="text-left bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 max-w-sm mx-auto space-y-3 mt-6">
         <div className="flex justify-between">
           <span className="text-slate-500 text-sm">Site Adresi:</span>
-          <span className="font-medium text-slate-900 text-sm">{config.appUrl}</span>
+          <span className="font-medium text-slate-900 dark:text-slate-100 text-sm">{config.appUrl}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-500 text-sm">Admin E-posta:</span>
-          <span className="font-medium text-slate-900 text-sm">{adminData.adminEmail}</span>
+          <span className="font-medium text-slate-900 dark:text-slate-100 text-sm">{adminData.adminEmail}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-500 text-sm">Health Durumu:</span>
@@ -565,13 +565,13 @@ export function Setup() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 font-sans selection:bg-slate-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 font-sans selection:bg-slate-200">
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* Sidebar */}
           <div className="w-full md:w-64 shrink-0" aria-label="Kurulum Adımları">
-            <h1 className="text-xl font-bold text-slate-900 mb-8 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-8 flex items-center gap-2">
               <Globe className="w-6 h-6 text-blue-600" />
               Genç Sosyal
             </h1>
@@ -607,7 +607,7 @@ export function Setup() {
           </div>
 
           {/* Content Area */}
-          <main className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-10 min-h-[500px]" role="main" aria-live="polite">
+          <main className="flex-1 bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 md:p-10 min-h-[500px]" role="main" aria-live="polite">
             {currentStep === 1 && renderWelcome()}
             {currentStep === 2 && renderSystemCheck()}
             {currentStep === 3 && renderSiteInfo()}

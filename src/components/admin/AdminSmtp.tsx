@@ -134,8 +134,8 @@ export function AdminSmtp() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Mail className="w-6 h-6 text-slate-900" />
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <Mail className="w-6 h-6 text-slate-900 dark:text-slate-100" />
             <span>SMTP ve E-posta Yapılandırması</span>
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">
@@ -181,9 +181,9 @@ export function AdminSmtp() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main SMTP Configuration Form */}
           <Card variant="default" padding="lg" className="lg:col-span-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Sunucu Yapılandırması</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Sunucu Yapılandırması</h3>
                 <p className="text-xs text-slate-500 font-medium">Posta iletim sunucusuna ait bağlantı parametreleri</p>
               </div>
               <Badge variant="default" size="sm" icon={<Server className="w-3 h-3" />}>
@@ -262,7 +262,7 @@ export function AdminSmtp() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <Input
                   label="Gönderen İsmi (From Name)"
                   placeholder="Genç Sosyal"
@@ -308,14 +308,14 @@ export function AdminSmtp() {
           {/* Test Email Card */}
           <div className="lg:col-span-4 space-y-6">
             <Card variant="default" padding="lg" className="space-y-4">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-900">Bağlantıyı Test Et</h3>
-                <p className="text-xs text-slate-500 font-medium">Yapılandırılmış sunucu üzerinden anlık deneme e-postası yollayın.</p>
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Bağlantıyı Test Et</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Yapılandırılmış sunucu üzerinden anlık deneme e-postası yollayın.</p>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2 text-xs text-slate-600">
-                <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-slate-900" /> Test E-postası Hakkında
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/70 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Test E-postası Hakkında
                 </div>
                 <p>
                   Sistem, belirtilen e-posta adresine Genç Sosyal markalı HTML test mesajı gönderecektir.
@@ -347,11 +347,11 @@ export function AdminSmtp() {
               </form>
             </Card>
 
-            <Card variant="flat" padding="md" className="space-y-2.5 text-xs text-slate-600">
-              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+            <Card variant="flat" padding="md" className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
+              <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" /> Güvenlik İpuçları
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-500 leading-relaxed">
+              <ul className="list-disc list-inside space-y-1 text-slate-500 dark:text-slate-400 leading-relaxed">
                 <li>Gmail için 2 Adımlı Doğrulama ve <strong>Uygulama Şifresi</strong> gereklidir.</li>
                 <li>Port 587 STARTTLS için, Port 465 SSL şifreleme için standarttır.</li>
                 <li>Şifreler veritabanında güvenli şekilde saklanmaktadır.</li>

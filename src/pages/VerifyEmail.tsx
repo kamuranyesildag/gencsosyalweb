@@ -51,21 +51,21 @@ export function VerifyEmail() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 rounded-3xl bg-white text-center">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950 text-center">
           {/* Header Brand */}
           <div className="flex flex-col items-center mb-6">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
               <Hexagon className="w-7 h-7 fill-current" />
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               E-posta Doğrulama
             </h1>
           </div>
 
           {status === 'loading' && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
-              <p className="text-sm font-medium text-slate-600">
+              <Loader2 className="w-10 h-10 text-slate-900 dark:text-slate-100 animate-spin" />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 Hesabınız doğrulanıyor, lütfen bekleyin...
               </p>
             </div>
@@ -76,8 +76,8 @@ export function VerifyEmail() {
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900">Doğrulama Başarılı!</h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Doğrulama Başarılı!</h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                 {message}
               </p>
               <Link to="/login" className="w-full">
@@ -93,8 +93,8 @@ export function VerifyEmail() {
               <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mb-2">
                 <XCircle className="w-8 h-8" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900">Doğrulama Başarısız</h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Doğrulama Başarısız</h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                 {message}
               </p>
               <Link to="/login" className="w-full">

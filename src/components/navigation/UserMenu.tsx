@@ -99,7 +99,7 @@ export function UserMenu() {
         type="button"
         id="user-menu-button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 p-1 rounded-full hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 select-none min-w-[44px] min-h-[44px]"
+        className="flex items-center gap-1.5 p-1 rounded-full hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 select-none min-w-[44px] min-h-[44px]"
         aria-label="Kullanıcı Menüsü"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -174,7 +174,7 @@ export function UserMenu() {
                     className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors group ${
                       item.isAdmin
                         ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50/70 dark:hover:bg-amber-950/30'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -198,7 +198,7 @@ export function UserMenu() {
               <button
                 type="button"
                 onClick={() => toggleTheme()}
-                className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {actualTheme === 'dark' ? (

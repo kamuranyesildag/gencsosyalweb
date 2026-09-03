@@ -40,7 +40,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
           <button
             type="button"
             onClick={onMenuClick}
-            className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
             aria-label="Menüyü aç"
           >
             <Menu className="w-5 h-5 stroke-[2]" />
@@ -65,7 +65,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
         {/* Middle: Search Box (Desktop) */}
         <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl mx-6">
           <form onSubmit={handleSearch} className="w-full relative group" role="search">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-900 dark:group-focus-within:text-white transition-colors">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-slate-900 dark:text-slate-100 dark:group-focus-within:text-white transition-colors">
               <Search className="h-4 w-4 stroke-[2.2]" />
             </div>
             <input
@@ -83,7 +83,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label="Aramayı temizle"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -108,7 +108,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                             navigate(`/profile/${user.username}`);
                             setQuery('');
                           }}
-                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                         >
                           <Avatar url={user.avatarUrl} name={user.displayName || user.username} size="sm" />
                           <div className="flex-1 min-w-0">
@@ -135,7 +135,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             onClick={toggleTheme}
             aria-label={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
             title={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
-            className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
+            className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
           >
             {actualTheme === 'dark' ? (
               <Sun className="w-5 h-5 text-amber-400 stroke-[2.2]" />

@@ -58,18 +58,18 @@ export function LoginBottomSheet() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full sm:max-w-md bg-white rounded-t-[28px] sm:rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            className="relative w-full sm:max-w-md bg-white dark:bg-slate-950 rounded-t-[28px] sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Grab Handle for Mobile */}
             <div className="pt-3 pb-1 flex justify-center items-center sm:hidden">
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+              <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full" />
             </div>
 
             {/* Header / Close button */}
             <div className="flex items-center justify-between px-6 pt-4 pb-2">
-              <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-100 flex items-center justify-center text-slate-900">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold text-sm">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-900 dark:text-slate-100">
                   <Hexagon className="w-4 h-4 fill-current" />
                 </div>
                 <span>Genç Sosyal</span>
@@ -77,7 +77,7 @@ export function LoginBottomSheet() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-2 -mr-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-2 -mr-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
                 aria-label="Kapat"
               >
                 <X className="w-5 h-5" />
@@ -86,17 +86,17 @@ export function LoginBottomSheet() {
 
             {/* Modal Body */}
             <div className="px-6 py-4 flex flex-col">
-              <h2 id="auth-modal-title" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+              <h2 id="auth-modal-title" className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
                 Topluluğa katıl, deneyimi kaçırma!
               </h2>
-              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
                 Beğenmek, yorum yapmak, projelerini paylaşmak ve diğer gençlerle bağlantı kurmak için hesabına giriş yap veya anında kaydol.
               </p>
 
               {/* Feature Highlights */}
-              <div className="grid grid-cols-1 gap-2.5 my-5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-1 gap-2.5 my-5 bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700">
-                  <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0">
                     <Heart className="w-3.5 h-3.5 fill-current" />
                   </div>
                   <span>Gönderilerle etkileşime geç ve kaydet</span>
