@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router";
 import { VerifiedBadge } from "./VerifiedBadge";
 import {
@@ -150,6 +151,28 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
   };
 
   // Like Handler
+    useEffect(() => {
+    if (selectedMediaIndex !== null) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedMediaIndex]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedMediaIndex !== null) {
+        setSelectedMediaIndex(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMediaIndex]);
+
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAuthenticated) return openModal();
@@ -630,8 +653,9 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
       <ReportDialog isOpen={showReportDialog} onClose={() => setShowReportDialog(false)} targetType="post" targetId={post.id} />
           
       {/* Media Viewer Lightbox */}
-      <AnimatePresence>
-        {selectedMediaIndex !== null && (
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {selectedMediaIndex !== null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -793,8 +817,10 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
               </div>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
     </article>
   );
