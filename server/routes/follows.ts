@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { follows, blocks, users, profiles } from "../../src/db/schema.js";
 import { eq, and, or } from "drizzle-orm";
-import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
+import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { notifications } from "../../src/db/schema.js";
 import { DbTransaction } from "../../src/db/index.js";
@@ -58,9 +58,30 @@ followsRouter.delete("/:id/follow", requireAuth, async (req, res) => {
 });
 
 // GET /users/:id/followers
-followsRouter.get("/:id/followers", requireAuth, async (req, res) => {
+followsRouter.get("/:id/followers", optionalAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz ID." }});
+    }
+
+    const currentUserId = optionalAuthContext(req);
+
+    // Profile privacy check
+    const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);
+    const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+
+    if (isPrivate && currentUserId !== targetUserId) {
+      let isFollowing = false;
+      if (currentUserId) {
+        const f = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId))).limit(1);
+        isFollowing = f.length > 0;
+      }
+      if (!isFollowing) {
+        return res.json({ success: true, data: [] });
+      }
+    }
+
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;
@@ -86,9 +107,30 @@ followsRouter.get("/:id/followers", requireAuth, async (req, res) => {
 });
 
 // GET /users/:id/following
-followsRouter.get("/:id/following", requireAuth, async (req, res) => {
+followsRouter.get("/:id/following", optionalAuth, async (req, res) => {
   try {
     const targetUserId = parseInt(req.params.id as string);
+    if (isNaN(targetUserId)) {
+      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz ID." }});
+    }
+
+    const currentUserId = optionalAuthContext(req);
+
+    // Profile privacy check
+    const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);
+    const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+
+    if (isPrivate && currentUserId !== targetUserId) {
+      let isFollowing = false;
+      if (currentUserId) {
+        const f = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId))).limit(1);
+        isFollowing = f.length > 0;
+      }
+      if (!isFollowing) {
+        return res.json({ success: true, data: [] });
+      }
+    }
+
     const parsed = paginationSchema.safeParse(req.query);
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;

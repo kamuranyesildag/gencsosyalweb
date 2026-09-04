@@ -19,30 +19,46 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#030712] text-slate-900 dark:text-slate-100 font-sans selection:bg-slate-100 dark:selection:bg-slate-800 selection:text-slate-900 dark:selection:text-white flex flex-col transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070A10] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors">
+      {/* 1. Global Header */}
       <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
+
+      {/* 2. Mobile Drawer Navigation */}
       <MobileSidebarDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+
+      {/* 3. Main Multi-Column Shell */}
       <div className="w-full max-w-7xl mx-auto flex flex-1 relative">
-        {/* Left Sidebar */}
-        <aside className="hidden md:flex flex-col w-20 xl:w-68 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] border-r border-slate-200/50 dark:border-slate-800/50 bg-[#f8fafc] dark:bg-[#030712] z-20 shrink-0 transition-colors">
+        {/* Left Navigation Sidebar (Desktop & Tablet) */}
+        <aside
+          aria-label="Sol Gezinme Menüsü"
+          className="hidden md:flex flex-col w-20 xl:w-64 sticky top-[60px] h-[calc(100vh-60px)] border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80 backdrop-blur-sm z-20 shrink-0 transition-colors"
+        >
           <DesktopSidebar />
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 bg-[#f8fafc] dark:bg-[#030712] border-r border-slate-200/50 dark:border-slate-800/50 pb-[calc(72px+env(safe-area-inset-bottom,0px))] md:pb-8 min-h-[calc(100vh-4rem)] transition-colors">
-          <PageTransition><Outlet /></PageTransition>
+        <main
+          id="main-content"
+          className="flex-1 min-w-0 bg-transparent border-r border-slate-200/80 dark:border-white/[0.08] pb-[calc(68px+var(--sab,0px))] md:pb-10 min-h-[calc(100vh-60px)] transition-colors"
+        >
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
 
-        {/* Right Sidebar */}
-        <aside className="hidden lg:block w-80 sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] p-5 shrink-0 bg-[#f8fafc] dark:bg-[#030712] overflow-y-auto scrollbar-thin transition-colors">
+        {/* Right Sidebar (Discovery & Contextual Panels) */}
+        <aside
+          aria-label="Sağ Bilgi ve Keşif Paneli"
+          className="hidden lg:block w-72 xl:w-80 sticky top-[60px] h-[calc(100vh-60px)] p-4 xl:p-5 shrink-0 bg-transparent overflow-y-auto no-scrollbar transition-colors"
+        >
           <RightSidebar />
         </aside>
 
-        {/* Mobile Bottom Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 z-40 flex flex-col justify-center pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_24px_rgba(0,0,0,0.03)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3)] transition-colors">
-          <MobileBottomNav />
-        </nav>
+        {/* Mobile Bottom Navigation Bar */}
+        <MobileBottomNav />
       </div>
+
+      {/* Auth Modal / Bottom Sheet */}
       <LoginBottomSheet />
     </div>
   );

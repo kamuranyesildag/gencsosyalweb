@@ -48,22 +48,29 @@ async function requestTokenRefresh(): Promise<string | null> {
 }
 
 export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
-  const { data, headers: customHeaders, ...rest } = options;
+  const { data, headers: customHeaders, body: customBody, ...rest } = options;
 
   let accessToken = useAuthStore.getState().accessToken;
 
   const headers = new Headers(customHeaders);
   if (data && !(data instanceof FormData)) {
     headers.set("Content-Type", "application/json");
+  } else if (customBody && typeof customBody === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
+
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
+  const finalBody = customBody !== undefined
+    ? customBody
+    : (data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined);
+
   let response = await fetch(`${API_BASE}${endpoint}`, {
     ...rest,
     headers,
-    body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
+    body: finalBody,
   });
 
   if (response.status === 401 && accessToken) {
@@ -74,7 +81,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
       response = await fetch(`${API_BASE}${endpoint}`, {
         ...rest,
         headers,
-        body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
+        body: finalBody,
       });
     } else {
       // Refresh failed or session expired

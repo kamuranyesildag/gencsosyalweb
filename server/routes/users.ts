@@ -7,23 +7,86 @@ import fs from "fs";
 import path from "path";
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, follows, blocks, postMedia, posts } from "../../src/db/schema.js";
+import { users, profiles, follows, blocks, postMedia, posts, projects } from "../../src/db/schema.js";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
-import { authRateLimiter } from "../middleware/rateLimiter.js";
-import { updateProfileSchema } from "../validators/api.js";
+import { authRateLimiter, standardLimiter } from "../middleware/rateLimiter.js";
+import { updateProfileSchema, suggestionQuerySchema } from "../validators/api.js";
 import { moderateContent } from "../services/moderation/index.js";
 import { moderationLogs } from "../../src/db/schema.js";
 import { authenticator } from "otplib";
 import { decryptString } from "../utils/encryption.js";
+import { getFollowSuggestions } from "../services/suggestions.js";
 
 export const usersRouter = Router();
+
+// GET /api/v1/users/suggestions
+usersRouter.get("/suggestions", requireAuth, standardLimiter, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+
+    // Security check: Do not allow querying recommendations on behalf of another user
+    if (req.query.userId && Number(req.query.userId) !== currentUserId) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: "FORBIDDEN",
+          message: "Başka bir kullanıcının öneri listesine erişemezsiniz."
+        }
+      });
+    }
+
+    // Validate pagination params (limit, offset)
+    const parseResult = suggestionQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: parseResult.error.issues[0]?.message || "Geçersiz parametreler."
+        }
+      });
+    }
+
+    const { limit, offset } = parseResult.data;
+
+    // Optional excluded user IDs from client (e.g. dismissed recommendations)
+    let excludeIds: number[] = [];
+    if (req.query.exclude) {
+      const raw = Array.isArray(req.query.exclude) ? req.query.exclude.join(",") : String(req.query.exclude);
+      excludeIds = raw
+        .split(",")
+        .map((s) => parseInt(s.trim()))
+        .filter((n) => !isNaN(n));
+    }
+
+    const result = await getFollowSuggestions(currentUserId, {
+      limit,
+      offset,
+      excludeIds
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error("Suggestions error:", error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Öneriler getirilirken bir hata oluştu."
+      }
+    });
+  }
+});
 
 usersRouter.get("/:username", optionalAuth, async (req, res) => {
   try {
     const { username } = req.params;
-    const currentUserId = requireAuthContext(req);
+    const currentUserId = optionalAuthContext(req);
 
     const userRecords = await db.select({
       id: users.id,
@@ -54,37 +117,59 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
 
     const targetUser = userRecords[0];
 
-    // Check if blocked
-    const blockRecord = await db.select().from(blocks).where(
-      or(
-        and(eq(blocks.blockerId, currentUserId), eq(blocks.blockedId, targetUser.id)),
-        and(eq(blocks.blockerId, targetUser.id), eq(blocks.blockedId, currentUserId))
-      )
-    ).limit(1);
+    // Check if blocked (only if viewer is authenticated)
+    if (currentUserId) {
+      const blockRecord = await db.select().from(blocks).where(
+        or(
+          and(eq(blocks.blockerId, currentUserId), eq(blocks.blockedId, targetUser.id)),
+          and(eq(blocks.blockerId, targetUser.id), eq(blocks.blockedId, currentUserId))
+        )
+      ).limit(1);
 
-    if (blockRecord.length > 0) {
-      res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }});
-      return;
+      if (blockRecord.length > 0) {
+        res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }});
+        return;
+      }
     }
 
     // Follow stats
     const followerCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(eq(follows.followingId, targetUser.id));
     const followingCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(eq(follows.followerId, targetUser.id));
-    const isFollowingRes = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUser.id))).limit(1);
+
+    // Contribution stats
+    const postCountRes = await db.select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(and(eq(posts.userId, targetUser.id), eq(posts.moderationStatus, 'APPROVED')));
+    const projectCountRes = await db.select({ count: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.userId, targetUser.id));
+    
+    let isFollowing = false;
+    let notificationPreference = null;
+
+    if (currentUserId) {
+      const isFollowingRes = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUser.id))).limit(1);
+      if (isFollowingRes.length > 0) {
+        isFollowing = true;
+        notificationPreference = isFollowingRes[0].notificationPreference;
+      }
+    }
 
     const responseData: any = {
       ...targetUser,
-      followersCount: followerCountRes[0].count,
-      followingCount: followingCountRes[0].count,
-      isFollowing: isFollowingRes.length > 0,
-      notificationPreference: isFollowingRes.length > 0 ? isFollowingRes[0].notificationPreference : null,
+      followersCount: Number(followerCountRes[0]?.count || 0),
+      followingCount: Number(followingCountRes[0]?.count || 0),
+      postsCount: Number(postCountRes[0]?.count || 0),
+      projectsCount: Number(projectCountRes[0]?.count || 0),
+      isFollowing,
+      notificationPreference,
     };
 
     // Mutual Followers
     responseData.mutualFollowers = [];
     responseData.mutualFollowersCount = 0;
 
-    if (currentUserId !== targetUser.id) {
+    if (currentUserId && currentUserId !== targetUser.id) {
       const myFollowing = await db.select({ followingId: follows.followingId })
         .from(follows)
         .where(eq(follows.followerId, currentUserId));
@@ -119,13 +204,13 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
           );
 
         responseData.mutualFollowers = mutuals;
-        responseData.mutualFollowersCount = mutualsCountRes[0].count;
+        responseData.mutualFollowersCount = Number(mutualsCountRes[0]?.count || 0);
       }
     }
 
     res.json({ success: true, data: responseData });
   } catch (error) {
-    console.error(error);
+    console.error("usersRouter.get(/:username) error:", error);
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }
 });

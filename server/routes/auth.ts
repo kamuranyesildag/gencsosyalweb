@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
 import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows } from "../../src/db/schema.js";
-import { eq, or, and, sql, desc, isNull } from "drizzle-orm";
+import { eq, or, and, sql, desc, isNull, inArray } from "drizzle-orm";
 import { 
   registerSchema, 
   sendOtpSchema, 
@@ -389,12 +389,16 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
             ? parsed.map((u: any) => (typeof u === 'number' ? u : u.id)).filter((id: any) => typeof id === 'number' && id !== createdUser.id)
             : [];
           if (userIds.length > 0) {
-            const followsToInsert = userIds.map(id => ({
-              followerId: createdUser.id,
-              followingId: id,
-              notificationPreference: 'standard'
-            }));
-            await tx.insert(follows).values(followsToInsert).onConflictDoNothing();
+            const existingUsers = await tx.select({ id: users.id }).from(users).where(inArray(users.id, userIds));
+            const validUserIds = existingUsers.map(u => u.id);
+            if (validUserIds.length > 0) {
+              const followsToInsert = validUserIds.map(id => ({
+                followerId: createdUser.id,
+                followingId: id,
+                notificationPreference: 'standard'
+              }));
+              await tx.insert(follows).values(followsToInsert).onConflictDoNothing();
+            }
           }
         }
       } catch (e) {

@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Modern Neutral Palette (Zinc/Slate hybrid) */
+  /* Neutral Color Palette (Sophisticated Slate/Zinc hybrid) */
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
   --color-slate-200: #e2e8f0;
@@ -17,62 +17,98 @@
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
 
-  /* Accent Palette: Crisp, deep modern Indigo/Brand */
-  --color-indigo-50: #eef2ff;
-  --color-indigo-100: #e0e7ff;
-  --color-indigo-200: #c7d2fe;
-  --color-indigo-300: #a5b4fc;
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-indigo-800: #3730a3;
-  --color-indigo-900: #312e81;
+  /* Brand Palette: Crisp, accessible Blue/Indigo */
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
 
-  /* Consistent, modern radius system */
-  --radius-3xl: 1.5rem;
-  --radius-2xl: 1rem;
-  --radius-xl: 0.75rem;
-  --radius-lg: 0.5rem;
-  --radius-md: 0.375rem;
-  --radius-sm: 0.25rem;
-  --radius: 0.375rem;
+  /* Semantic Token Colors for Design System */
+  --color-canvas-light: #f8fafc;
+  --color-canvas-dark: #070a10;
+  --color-surface-base-light: #ffffff;
+  --color-surface-base-dark: #0d121d;
+  --color-surface-elevated-light: #ffffff;
+  --color-surface-elevated-dark: #131927;
+  --color-surface-subtle-light: #f1f5f9;
+  --color-surface-subtle-dark: #161e2e;
 
-  /* Font Hiearchy */
+  /* Standardized Radius System: xs(4px), sm(8px), md(12px), lg(16px), xl(20px), pill(9999px) */
+  --radius-xs: 0.25rem;   /* 4px */
+  --radius-sm: 0.5rem;    /* 8px */
+  --radius-md: 0.75rem;   /* 12px - Controls, Inputs, Buttons */
+  --radius-lg: 1rem;      /* 16px - Cards */
+  --radius-xl: 1.25rem;   /* 20px - Modals, Floating Panels */
+  --radius-pill: 9999px;  /* Badges, Avatars */
+  --radius-full: 9999px;
+
+  /* Font Family & Hierarchy */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   
-  /* Modern soft shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.1), 0 1px 2px -1px rgba(15, 23, 42, 0.1);
-  --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -2px rgba(15, 23, 42, 0.1);
-  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.1);
-  --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
-  --shadow-xl: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  /* Modern soft shadows - Natural, low-intensity, no aggressive neon/glow */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 25px 50px -12px rgba(15, 23, 42, 0.16);
 }
 
-
-
 @layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    color-scheme: light dark;
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #f8fafc;
+    color: #0f172a;
   }
 
-  /* Accessible focus rings */
+  html.dark {
+    background-color: #070a10;
+    color: #f8fafc;
+  }
+
+  body {
+    /* Safe-area padding is removed from body to prevent double padding bugs with fixed/absolute nav bars */
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Accessible keyboard focus rings */
   :focus-visible {
-    outline: 2px solid var(--color-indigo-600, #4f46e5);
+    outline: 2px solid var(--color-blue-600, #2563eb);
     outline-offset: 2px;
   }
 
-  /* Safe Area Support */
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+  .dark :focus-visible {
+    outline-color: var(--color-blue-500, #3b82f6);
+  }
+
+  /* Accessible selection */
+  ::selection {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: #0f172a;
+  }
+
+  .dark ::selection {
+    background-color: rgba(59, 130, 246, 0.25);
+    color: #f8fafc;
   }
 }
 
@@ -88,7 +124,7 @@
   }
 }
 
-/* Safe area padding utilities */
+/* Safe area padding utilities (single source of truth) */
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -102,10 +138,37 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* Minimum touch targets for mobile */
+/* Accessible minimum touch targets for mobile */
 @media (max-width: 768px) {
   .touch-target {
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* Refined Subtle Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

@@ -95,7 +95,8 @@ export function AdminAutoFollow() {
         setSearchedUsers((prev) => prev.filter((u) => u.id !== targetUser.id));
         toast.success(`@${targetUser.username} otomatik takip listesine eklendi.`);
       } else {
-        toast.error('Eklenemedi.');
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || 'Eklenemedi.');
       }
     } catch (err) {
       toast.error('İşlem başarısız oldu.');
@@ -124,7 +125,8 @@ export function AdminAutoFollow() {
         setAutoFollowUsers((prev) => prev.filter((u) => u.id !== userId));
         toast.success(`@${username} otomatik takip listesinden çıkarıldı.`);
       } else {
-        toast.error('Kaldırılamadı.');
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || 'Kaldırılamadı.');
       }
     } catch (err) {
       toast.error('İşlem başarısız oldu.');

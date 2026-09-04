@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import { tokens } from '../../lib/design-tokens';
 
-export type CardVariant = 'default' | 'bordered' | 'flat' | 'elevated' | 'interactive';
+export type CardVariant = 'default' | 'bordered' | 'flat' | 'elevated' | 'interactive' | 'glass';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
@@ -10,12 +10,18 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variantStyles: Record<CardVariant, string> = {
-  default: 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 shadow-xs',
-  bordered: 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-none',
-  flat: 'bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/60 shadow-none',
-  elevated: 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-md shadow-slate-200/50',
+  default:
+    'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
+  bordered:
+    'bg-white dark:bg-[#0D121D] border border-slate-200 dark:border-white/[0.12] shadow-none',
+  flat:
+    'bg-slate-50 dark:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] shadow-none',
+  elevated:
+    'bg-white dark:bg-[#131927] border border-slate-200/80 dark:border-white/[0.08] shadow-md dark:shadow-slate-950/40',
   interactive:
-    'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 shadow-xs md:hover:shadow-md md:hover:border-slate-200 dark:border-slate-800/90 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
+    'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.16] cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
+  glass:
+    'backdrop-blur-md bg-white/75 dark:bg-[#0D121D]/75 border border-slate-900/[0.06] dark:border-white/[0.08] shadow-xs',
 };
 
 const paddingStyles = {
@@ -52,7 +58,7 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 
 export function CardTitle({ className, children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={cn('text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-snug', className)} {...props}>
+    <h3 className={cn('text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 tracking-tight leading-snug', className)} {...props}>
       {children}
     </h3>
   );
@@ -67,6 +73,5 @@ export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDi
 }
 
 export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('p-5 sm:p-6 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center', className)} {...props} />;
+  return <div className={cn('p-5 sm:p-6 pt-2 sm:pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center', className)} {...props} />;
 }
-

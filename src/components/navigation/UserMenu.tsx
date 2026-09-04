@@ -1,4 +1,4 @@
-import { VerifiedBadge } from "../VerifiedBadge";
+import { VerifiedBadge } from '../VerifiedBadge';
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
@@ -16,7 +16,6 @@ import {
   Mail,
   Bell,
   ShieldAlert,
-  CheckCircle2,
   ChevronDown,
   Moon,
   Sun,
@@ -56,10 +55,10 @@ export function UserMenu() {
 
   if (!isAuthenticated || !user) {
     return (
-      <button 
+      <button
         type="button"
         onClick={() => openModal()}
-        className="flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
+        className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161E2E] hover:bg-slate-200 dark:hover:bg-[#1E293B] text-slate-900 dark:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
         aria-label="Giriş Yap"
       >
         <User className="w-5 h-5" />
@@ -100,7 +99,7 @@ export function UserMenu() {
         type="button"
         id="user-menu-button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 p-1 rounded-full hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20 dark:focus-visible:ring-white/20 select-none min-w-[44px] min-h-[44px]"
+        className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-[#161E2E] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 select-none min-w-[44px] min-h-[44px] cursor-pointer"
         aria-label="Kullanıcı Menüsü"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -110,9 +109,13 @@ export function UserMenu() {
           name={user.displayName || user.username}
           size="sm"
           status="online"
-          className="ring-2 ring-slate-900/10 dark:ring-white/10"
+          className="ring-1.5 ring-slate-200 dark:ring-white/[0.12]"
         />
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hidden sm:block transition-transform duration-200 ${isOpen ? 'rotate-180 text-slate-900 dark:text-white' : ''}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hidden sm:block transition-transform duration-200 ${
+            isOpen ? 'rotate-180 text-slate-900 dark:text-white' : ''
+          }`}
+        />
       </button>
 
       <AnimatePresence>
@@ -125,10 +128,10 @@ export function UserMenu() {
             role="menu"
             aria-orientation="vertical"
             aria-labelledby="user-menu-button"
-            className="absolute right-0 mt-2.5 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/50 border border-slate-200/90 dark:border-slate-800 overflow-hidden z-50 origin-top-right focus:outline-none transition-colors"
+            className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#0D121D] rounded-2xl shadow-lg border border-slate-200/80 dark:border-white/[0.08] overflow-hidden z-50 origin-top-right focus:outline-none transition-colors"
           >
             {/* User Info Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50">
+            <div className="p-3.5 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-[#161E2E]/30">
               <Link
                 to={`/profile/${user.username}`}
                 onClick={() => setIsOpen(false)}
@@ -139,21 +142,21 @@ export function UserMenu() {
                   name={user.displayName || user.username}
                   size="md"
                   status="online"
-                  className="ring-2 ring-white dark:ring-slate-800 group-hover:scale-105 transition-transform"
+                  className="ring-1 ring-slate-200 dark:ring-white/[0.12]"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {user.displayName || user.username}
                     </p>
-                    {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
+                    {user.isVerified && <VerifiedBadge iconClassName="w-3.5 h-3.5" withModal={false} />}
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">@{user.username}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">@{user.username}</p>
                 </div>
               </Link>
               {user.role === 'ADMIN' && (
-                <div className="mt-2.5 flex items-center gap-1.5">
-                  <Badge variant="primary" size="sm" dot>
+                <div className="mt-2 flex items-center gap-1.5">
+                  <Badge variant="warning" size="sm" dot>
                     Yönetici
                   </Badge>
                 </div>
@@ -161,7 +164,7 @@ export function UserMenu() {
             </div>
 
             {/* Menu Items */}
-            <div className="py-1.5 max-h-[55vh] overflow-y-auto scrollbar-thin">
+            <div className="py-1 max-h-[55vh] overflow-y-auto no-scrollbar">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -170,18 +173,20 @@ export function UserMenu() {
                     to={item.path}
                     role="menuitem"
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors group ${
+                    className={`flex items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors group ${
                       item.isAdmin
                         ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50/70 dark:hover:bg-amber-950/30'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#161E2E] hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className={`w-4.5 h-4.5 shrink-0 transition-colors ${
-                        item.isAdmin
-                          ? 'text-amber-500 group-hover:text-amber-600'
-                          : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white'
-                      }`} />
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          item.isAdmin
+                            ? 'text-amber-500'
+                            : 'text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        }`}
+                      />
                       <span className="truncate">{item.label}</span>
                     </div>
                     {item.isAdmin && (
@@ -197,31 +202,31 @@ export function UserMenu() {
               <button
                 type="button"
                 onClick={() => toggleTheme()}
-                className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="flex items-center justify-between w-full px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#161E2E] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   {actualTheme === 'dark' ? (
-                    <Sun className="w-4.5 h-4.5 text-amber-400 shrink-0" />
+                    <Sun className="w-4 h-4 text-amber-400 shrink-0" />
                   ) : (
-                    <Moon className="w-4.5 h-4.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    <Moon className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
-                  <span>{actualTheme === 'dark' ? 'Açık Mod' : 'Karanlık Mod'}</span>
+                  <span>{actualTheme === 'dark' ? 'Açık Mod' : 'Koyu Mod'}</span>
                 </div>
-                <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-xs bg-slate-100 dark:bg-[#161E2E] px-2 py-0.5 rounded font-semibold text-slate-500 dark:text-slate-400">
                   {actualTheme === 'dark' ? 'Koyu' : 'Açık'}
                 </span>
               </button>
             </div>
 
             {/* Logout Footer */}
-            <div className="p-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+            <div className="p-1.5 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-[#161E2E]/30">
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleLogout}
-                className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 rounded-xl transition-colors min-h-[40px]"
+                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer min-h-[40px]"
               >
-                <LogOut className="w-4.5 h-4.5 shrink-0 text-rose-500 dark:text-rose-400" />
+                <LogOut className="w-4 h-4 shrink-0 text-rose-500 dark:text-rose-400" />
                 <span>Çıkış Yap</span>
               </button>
             </div>

@@ -6,6 +6,11 @@ export const paginationSchema = z.object({
   cursor: z.string().optional(),
 });
 
+export const suggestionQuerySchema = z.object({
+  limit: z.coerce.number().min(1, "Limit en az 1 olmalıdır.").max(50, "Limit en fazla 50 olabilir.").default(10),
+  offset: z.coerce.number().min(0, "Offset negatif olamaz.").default(0),
+});
+
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(100).optional(),
   bio: z.string().max(500).optional().or(z.literal("")),

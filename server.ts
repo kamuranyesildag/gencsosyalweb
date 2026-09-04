@@ -66,6 +66,15 @@ async function startServer() {
   // Serve uploads statically
   app.use("/uploads", express.static(getUploadDir()));
 
+  // Ensure database migrations are run
+  try {
+    const { runMigration } = await import("./server/migrate.js");
+    await runMigration(false);
+    const { seedInitialDataIfNeeded } = await import("./server/seed.js");
+    await seedInitialDataIfNeeded();
+  } catch (migErr) {
+    console.error("Database migration/seed check failed on startup:", migErr);
+  }
   
   // --- API Routes Start ---
   const { setupRouter } = await import("./server/routes/setup.js");

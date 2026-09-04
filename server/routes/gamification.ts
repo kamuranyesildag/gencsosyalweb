@@ -57,6 +57,20 @@ gamificationRouter.get("/leaderboard", async (req, res) => {
     recentProjects.forEach((p: any) => addToMap(p.userId, 'project', p.count));
     recentComments.forEach((p: any) => addToMap(p.userId, 'comment', p.count));
 
+    // Fallback: If no activity in current week yet, populate from all-time activity
+    if (scoresMap.size === 0) {
+      const allPosts = await db.select({ userId: posts.userId, count: sql<number>`count(*)::int` })
+        .from(posts).groupBy(posts.userId);
+      const allProjects = await db.select({ userId: projects.userId, count: sql<number>`count(*)::int` })
+        .from(projects).groupBy(projects.userId);
+      const allComments = await db.select({ userId: comments.userId, count: sql<number>`count(*)::int` })
+        .from(comments).groupBy(comments.userId);
+
+      allPosts.forEach((p: any) => addToMap(p.userId, 'post', p.count));
+      allProjects.forEach((p: any) => addToMap(p.userId, 'project', p.count));
+      allComments.forEach((p: any) => addToMap(p.userId, 'comment', p.count));
+    }
+
     // Convert to array and sort
     const sorted = Array.from(scoresMap.entries())
       .map(([userId, scores]) => ({ userId, ...scores }))

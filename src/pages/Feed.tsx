@@ -1,208 +1,361 @@
-import { useNavigate } from 'react-router';
-import React, { useState, useEffect } from "react";
-import { CreatePost } from "../components/CreatePost";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router";
 import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
 import { FeedSuggestedUsers } from "../components/FeedSuggestedUsers";
-import { InfiniteScroll } from "../components/InfiniteScroll";
-import { SkeletonList } from "../components/ui/Skeleton";
-import { EmptyState } from "../components/ui/EmptyState";
-import { ErrorState } from "../components/ui/ErrorState";
-import { usePagination } from "../hooks/usePagination";
+import { fetchApi } from "../lib/api";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
-import { Sparkles, Users, RefreshCw } from "lucide-react";
-import { Avatar } from "../components/ui/Avatar";
-import { motion } from "motion/react";
-import { cn } from "../lib/utils";
+import { Sparkles, Users, ArrowUp, RefreshCw } from "lucide-react";
+import { Skeleton } from "../components/ui/Skeleton";
+import { motion, AnimatePresence } from "motion/react";
+import { Button } from "../components/ui/Button";
 
-export type FeedTab = "for_you" | "following";
+interface Post {
+  id: number;
+  content: string;
+  media?: any[];
+  likeCount: number;
+  commentCount: number;
+  repostCount?: number;
+  viewCount?: number;
+  isLiked?: boolean;
+  isReposted?: boolean;
+  isSaved?: boolean;
+  createdAt: string;
+  visibility?: "PUBLIC" | "FOLLOWERS" | "PRIVATE";
+  postType?: "NORMAL" | "POLL" | "SENSITIVE";
+  contentWarning?: string;
+  pollData?: any;
+  user: {
+    id: number;
+    username: string;
+    displayName: string;
+    avatarUrl?: string;
+    isVerified?: boolean;
+  };
+}
 
 export function Feed() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<FeedTab>("for_you");
+  const [feedType, setFeedType] = useState<"for_you" | "following">("for_you");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+
   const { isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
 
-  const endpoint = activeTab === "for_you" ? "/feed" : "/feed/following";
-  const {
-    data: posts,
-    loading,
-    loadingMore,
-    hasMore,
-    error,
-    loadInitial,
-    loadMore,
-  } = usePagination(endpoint);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const firstPostIdRef = useRef<number | null>(null);
 
+  // Load feed posts
+  const loadPosts = useCallback(
+    async (currentPage: number, type: "for_you" | "following", reset = false) => {
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      try {
+        const endpoint =
+          type === "following"
+            ? `/feed/following?page=${currentPage}&limit=10`
+            : `/feed/for-you?page=${currentPage}&limit=10`;
+
+        const res = await fetchApi(endpoint);
+        const json = await res.json();
+
+        if (json.success) {
+          const fetchedPosts = json.data.posts || [];
+          if (reset) {
+            setPosts(fetchedPosts);
+            if (fetchedPosts.length > 0) {
+              firstPostIdRef.current = fetchedPosts[0].id;
+            }
+          } else {
+            setPosts((prev) => [...prev, ...fetchedPosts]);
+          }
+
+          setHasMore(json.data.hasMore ?? fetchedPosts.length >= 10);
+        }
+      } catch (err) {
+        console.error("Feed fetch error:", err);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    []
+  );
+
+  // Initial & Tab Change Load
   useEffect(() => {
-    loadInitial();
-  }, [activeTab, loadInitial]);
+    setPage(1);
+    setNewPostsAvailable(false);
+    loadPosts(1, feedType, true);
+  }, [feedType, loadPosts]);
 
-  const handleTabChange = (tab: FeedTab) => {
-    if (tab === "following" && !isAuthenticated) {
-      openModal();
-      return;
-    }
-    setActiveTab(tab);
+  // Periodic check for new posts (only when at page 1)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(async () => {
+      if (!firstPostIdRef.current || page > 1) return;
+      try {
+        const endpoint =
+          feedType === "following"
+            ? `/feed/following?limit=1`
+            : `/feed/for-you?limit=1`;
+        const res = await fetchApi(endpoint);
+        const json = await res.json();
+        if (json.success && json.data.posts?.length > 0) {
+          const latestId = json.data.posts[0].id;
+          if (latestId > firstPostIdRef.current) {
+            setNewPostsAvailable(true);
+          }
+        }
+      } catch {
+        // ignore background poll error
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [feedType, isAuthenticated, page]);
+
+  // Infinite Scroll Observer
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setPage((prevPage) => {
+            const nextPage = prevPage + 1;
+            loadPosts(nextPage, feedType, false);
+            return nextPage;
+          });
+        }
+      },
+      { threshold: 0.1, rootMargin: "300px" }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) observer.observe(currentRef);
+
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
+  }, [loading, loadingMore, hasMore, feedType, loadPosts]);
+
+  const handlePostDeleted = (deletedId: number) => {
+    setPosts((prev) => prev.filter((p) => p.id !== deletedId));
+  };
+
+  const handleRefreshToNewPosts = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setNewPostsAvailable(false);
+    setPage(1);
+    loadPosts(1, feedType, true);
   };
 
   return (
-    <div className="flex flex-col h-full w-full min-h-screen bg-[#f8fafc] dark:bg-[#030712] transition-colors">
-      {/* 1. Feed Header & Segmented Tabs */}
-      <header className="sticky top-14 md:top-[60px] z-30 bg-[#f8fafc]/90 dark:bg-[#030712]/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-2 sm:px-4 transition-colors">
-        <div className="flex items-center justify-between gap-4 w-full">
-          {/* Modern Segmented Control */}
-          <div className="flex w-full" role="tablist" aria-label="Akış Sekmeleri">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "for_you"}
-              aria-controls="feed-panel"
-              id="tab-for-you"
-              onClick={() => handleTabChange("for_you")}
-              className={cn(
-                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-900/60 transition-colors outline-none",
-                activeTab === "for_you"
-                  ? "text-slate-900 dark:text-white font-bold"
-                  : "text-slate-500 dark:text-slate-400 font-medium"
-              )}
-            >
-              <span>Sizin İçin</span>
-              {activeTab === "for_you" && (
-                <motion.div
-                  layoutId="feedActiveSegment"
-                  className="absolute bottom-0 h-1 w-12 bg-slate-900 dark:bg-white rounded-t-full"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "following"}
-              aria-controls="feed-panel"
-              id="tab-following"
-              onClick={() => handleTabChange("following")}
-              className={cn(
-                "relative flex-1 flex items-center justify-center py-4 text-[15px] hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-900/60 transition-colors outline-none",
-                activeTab === "following"
-                  ? "text-slate-900 dark:text-white font-bold"
-                  : "text-slate-500 dark:text-slate-400 font-medium"
-              )}
-            >
-              <span>Takip Edilenler</span>
-              {activeTab === "following" && (
-                <motion.div
-                  layoutId="feedActiveSegment"
-                  className="absolute bottom-0 h-1 w-12 bg-slate-900 dark:bg-white rounded-t-full"
-                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                />
-              )}
-            </button>
-          </div>
-
-          {/* Quick Refresh Button */}
+    <main className="w-full min-h-screen pb-16">
+      {/* 1. STICKY FEED HEADER (60px high, blurred liquid glass) */}
+      <header className="sticky top-[60px] z-20 bg-white/85 dark:bg-[#0D121D]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+        <div className="flex h-12 w-full max-w-2xl mx-auto">
+          {/* For You Tab */}
           <button
             type="button"
-            onClick={loadInitial}
-            disabled={loading}
-            aria-label="Akışı Yenile"
-            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-xl text-slate-400 hover:text-slate-900 dark:text-slate-100 dark:hover:text-white hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40"
+            onClick={() => setFeedType("for_you")}
+            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-slate-900 dark:text-white" : ""}`} />
+            <span
+              className={
+                feedType === "for_you"
+                  ? "text-slate-900 dark:text-slate-100"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              }
+            >
+              Sana Özel
+            </span>
+            {feedType === "for_you" && (
+              <motion.div
+                layoutId="feed-tab-indicator"
+                className="absolute bottom-0 h-0.5 w-12 bg-blue-600 rounded-full"
+                transition={{ duration: 0.2 }}
+              />
+            )}
+          </button>
+
+          {/* Following Tab */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAuthenticated) return openModal();
+              setFeedType("following");
+            }}
+            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <span
+              className={
+                feedType === "following"
+                  ? "text-slate-900 dark:text-slate-100"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              }
+            >
+              Takip Edilenler
+            </span>
+            {feedType === "following" && (
+              <motion.div
+                layoutId="feed-tab-indicator"
+                className="absolute bottom-0 h-0.5 w-16 bg-blue-600 rounded-full"
+                transition={{ duration: 0.2 }}
+              />
+            )}
           </button>
         </div>
       </header>
 
-      {/* 2. Stories Bar */}
-      <StoriesBar />
-
-      {/* 3. Create Post Trigger */}
-      {isAuthenticated && (
-        <div className="mb-2 sm:mb-4 transition-colors">
-          {/* Mobile Trigger */}
-          <div className="md:hidden py-4 mx-2">
-            <div 
-              onClick={() => navigate("/create")}
-              className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors p-3.5 rounded-full cursor-pointer border border-slate-200/60 dark:border-slate-800"
-              role="button"
-              tabIndex={0}
+      {/* Floating New Posts Pill Notification */}
+      <AnimatePresence>
+        {newPostsAvailable && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="sticky top-[118px] z-30 flex justify-center pointer-events-none py-2"
+          >
+            <button
+              type="button"
+              onClick={handleRefreshToNewPosts}
+              className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-full shadow-lg transition-all cursor-pointer"
             >
-              <Avatar url={useAuthStore.getState().user?.avatarUrl} name={useAuthStore.getState().user?.displayName || useAuthStore.getState().user?.username || "?"} size="sm" />
-              <span className="text-slate-500 dark:text-slate-400 font-medium text-[15px]">Ne paylaşmak istiyorsun?</span>
-            </div>
-          </div>
-          {/* Desktop Inline Create */}
-          <div className="hidden md:block px-6 pt-4 pb-0">
-            <CreatePost onPostCreated={() => { loadInitial(); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
-          </div>
-        </div>
-      )}
-
-      {/* 4. Feed Stream */}
-      <div 
-        id="feed-panel" 
-        role="tabpanel" 
-        aria-labelledby={`tab-${activeTab === "for_you" ? "for-you" : "following"}`}
-        className="flex-1 w-full"
-      >
-        {loading ? (
-          <div className="py-16">
-            <SkeletonList count={5} className="p-4" />
-          </div>
-        ) : error ? (
-          <div className="px-4 py-8 max-w-lg mx-auto">
-            <ErrorState
-              title="Gönderiler yüklenemedi"
-              message={error}
-              retryLabel="Yeniden Dene"
-              onRetry={loadInitial}
-            />
-          </div>
-        ) : posts && posts.length > 0 ? (
-          <div className="flex flex-col pb-20">
-            <InfiniteScroll 
-              items={posts}
-              renderItem={(post, index) => (
-                <React.Fragment key={post.id}>
-                  {index === 2 && isAuthenticated && activeTab === "for_you" && <FeedSuggestedUsers />}
-                  <PostCard post={post} />
-                </React.Fragment>
-              )}
-              hasMore={hasMore} 
-              isLoading={loadingMore} 
-              onLoadMore={loadMore} 
-            />
-          </div>
-        ) : (
-          <div className="px-4 py-10 max-w-md mx-auto">
-            <EmptyState
-              icon={activeTab === "for_you" ? <Sparkles className="w-7 h-7" /> : <Users className="w-7 h-7" />}
-              title={
-                activeTab === "for_you"
-                  ? "Henüz Akışında Gönderi Yok"
-                  : "Takip Ettiğin Kişilerden Gönderi Yok"
-              }
-              description={
-                activeTab === "for_you"
-                  ? "Topluluk henüz yeni gönderiler paylaşmamış olabilir veya ilk gönderiyi sen oluşturabilirsin!"
-                  : "Takip ettiğin kişilerin paylaşımları burada görünecek. Keşfet sayfasından yeni insanları ve projeleri takip etmeye başlayabilirsin."
-              }
-              action={{
-                label: activeTab === "for_you" ? "İlk Gönderini Paylaş" : "İnsanları Keşfet",
-                onClick: () => {
-                  if (activeTab === "for_you") {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  } else {
-                    navigate("/explore");
-                  }
-                },
-              }}
-            />
-          </div>
+              <ArrowUp className="w-3.5 h-3.5" />
+              <span>Yeni Gönderiler Var</span>
+            </button>
+          </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* 2. FEED CONTENT FLOW */}
+      <div className="w-full max-w-2xl mx-auto pt-3">
+        {/* Stories Bar */}
+        <StoriesBar />
+
+        {/* 3. POSTS STREAM */}
+        <div role="feed" aria-label="Sosyal akış" className="w-full">
+          {loading ? (
+            /* Skeleton Loading State */
+            <div className="space-y-3 px-2 sm:px-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex gap-3.5"
+                >
+                  <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-28 rounded-md" />
+                      <Skeleton className="h-3 w-16 rounded-md" />
+                    </div>
+                    <Skeleton className="h-4 w-full rounded-md" />
+                    <Skeleton className="h-4 w-4/5 rounded-md" />
+                    <Skeleton className="h-48 w-full rounded-xl mt-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            /* Empty State */
+            <div className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl mx-2 sm:mx-4 p-8 text-center my-4 shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3.5">
+                {feedType === "following" ? (
+                  <Users className="w-6 h-6 stroke-[1.75]" />
+                ) : (
+                  <Sparkles className="w-6 h-6 stroke-[1.75]" />
+                )}
+              </div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
+                {feedType === "following"
+                  ? "Takip ettiğin kimse yok"
+                  : "Henüz gönderi bulunmuyor"}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal max-w-sm mx-auto mb-5 leading-relaxed">
+                {feedType === "following"
+                  ? "İlgini çeken üreticileri ve geliştiricileri takip ederek akışını zenginleştir."
+                  : "İlk gönderiyi paylaşarak toplulukta sohbeti başlatabilirsin!"}
+              </p>
+              {feedType === "following" ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setFeedType("for_you")}
+                  className="rounded-xl font-semibold shadow-xs"
+                >
+                  Sana Özel Akışa Git
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (!isAuthenticated) openModal();
+                    else navigate("/create");
+                  }}
+                  className="rounded-xl font-semibold shadow-xs"
+                >
+                  İlk Gönderiyi Paylaş
+                </Button>
+              )}
+
+              {/* Discovery in empty state */}
+              {feedType === "following" && (
+                <div className="mt-8 text-left border-t border-slate-100 dark:border-white/[0.06] pt-6">
+                  <FeedSuggestedUsers />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Posts List */
+            <>
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                />
+              ))}
+
+              {/* End of Feed Discovery / Suggested Users */}
+              {!hasMore && (
+                <div className="pt-3 pb-6">
+                  <FeedSuggestedUsers />
+                  <div className="text-center py-6 text-xs text-slate-400 dark:text-slate-500 font-medium">
+                    Tüm gönderileri gördün ✨
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Infinite Scroll Trigger & Loader */}
+          {hasMore && !loading && (
+            <div ref={loadMoreRef} className="py-6 flex justify-center">
+              {loadingMore && (
+                <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 font-medium">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  <span>Daha fazla gönderi yükleniyor...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

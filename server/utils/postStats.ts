@@ -2,10 +2,11 @@ import { db } from "../../src/db/index.js";
 import { postMedia, reposts, likes, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes } from "../../src/db/schema.js";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
-export async function populatePostStats(postsList: any[], currentUserId: number) {
+export async function populatePostStats(postsList: any[], currentUserId?: number | null) {
   if (!postsList || postsList.length === 0) return postsList;
   
   const postIds = postsList.map(p => p.id);
+  const viewerId = currentUserId ?? -1;
   
   let allMedia: any[] = [];
   let repostStats: any[] = [];
@@ -23,18 +24,18 @@ export async function populatePostStats(postsList: any[], currentUserId: number)
       db.select({
         postId: reposts.postId,
         count: sql<number>`cast(count(*) as integer)`,
-        isReposted: sql<number>`MAX(CASE WHEN ${reposts.userId} = ${currentUserId} THEN 1 ELSE 0 END)`
+        isReposted: sql<number>`MAX(CASE WHEN ${reposts.userId} = ${viewerId} THEN 1 ELSE 0 END)`
       }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
       
       db.select({
         postId: likes.postId,
         count: sql<number>`cast(count(*) as integer)`,
-        isLiked: sql<number>`MAX(CASE WHEN ${likes.userId} = ${currentUserId} THEN 1 ELSE 0 END)`
+        isLiked: sql<number>`MAX(CASE WHEN ${likes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
       }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
       
       db.select({
         postId: bookmarks.postId,
-        isSaved: sql<number>`MAX(CASE WHEN ${bookmarks.userId} = ${currentUserId} THEN 1 ELSE 0 END)`
+        isSaved: sql<number>`MAX(CASE WHEN ${bookmarks.userId} = ${viewerId} THEN 1 ELSE 0 END)`
       }).from(bookmarks).where(inArray(bookmarks.postId, postIds)).groupBy(bookmarks.postId),
       
       db.select({
@@ -59,7 +60,7 @@ export async function populatePostStats(postsList: any[], currentUserId: number)
         optionId: pollVotes.optionId,
         postId: pollVotes.postId,
         count: sql<number>`cast(count(*) as integer)`,
-        isVoted: sql<number>`MAX(CASE WHEN ${pollVotes.userId} = ${currentUserId} THEN 1 ELSE 0 END)`
+        isVoted: sql<number>`MAX(CASE WHEN ${pollVotes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
       }).from(pollVotes).where(inArray(pollVotes.postId, postIds)).groupBy(pollVotes.optionId, pollVotes.postId)
     ]);
   }

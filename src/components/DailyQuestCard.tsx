@@ -17,8 +17,8 @@ export function DailyQuestCard() {
       return;
     }
     fetchApi("/gamification/daily-quest")
-      .then(r => r.json())
-      .then(d => {
+      .then((r) => r.json())
+      .then((d) => {
         if (d.success) setQuest(d.data);
       })
       .finally(() => setLoading(false));
@@ -34,7 +34,7 @@ export function DailyQuestCard() {
   const handleClaim = async () => {
     setClaiming(true);
     try {
-      const res = await fetchApi("/gamification/daily-quest/claim", { method: 'POST' });
+      const res = await fetchApi("/gamification/daily-quest/claim", { method: "POST" });
       const json = await res.json();
       if (json.success) {
         setQuest((prev: any) => ({ ...prev, claimed: true }));
@@ -47,44 +47,50 @@ export function DailyQuestCard() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/40 dark:to-slate-900 rounded-2xl p-4 sm:p-5 border border-indigo-100 dark:border-indigo-900/50 shadow-xs relative overflow-hidden group">
-      {/* Background Decor */}
-      <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors pointer-events-none" />
-
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-          <Target className="w-4.5 h-4.5" />
+    <section
+      aria-label="Günün Görevi"
+      className="bg-white dark:bg-[#0D121D] rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-2xs relative overflow-hidden"
+    >
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <Target className="w-4 h-4 stroke-[2]" />
         </div>
         <div>
-          <h3 className="text-[15px] font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
             {quest.title}
           </h3>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            +{quest.rewardXP} XP Kazan
+          <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            +{quest.rewardXP} XP
           </p>
         </div>
       </div>
 
-      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
+      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 leading-relaxed">
         {quest.description}
       </p>
 
       {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+      <div className="mb-3">
+        <div className="flex justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
           <span>İlerleme</span>
-          <span className={cn(isComplete ? "text-green-600 dark:text-green-400" : "text-indigo-600 dark:text-indigo-400")}>
+          <span
+            className={cn(
+              isComplete
+                ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                : "text-blue-600 dark:text-blue-400"
+            )}
+          >
             {progress} / {total}
           </span>
         </div>
-        <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <motion.div 
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+          <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${(Math.min(progress, total) / total) * 100}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className={cn(
               "h-full rounded-full transition-colors",
-              isComplete ? "bg-green-500" : "bg-indigo-500"
+              isComplete ? "bg-emerald-500" : "bg-blue-600"
             )}
           />
         </div>
@@ -96,30 +102,30 @@ export function DailyQuestCard() {
         disabled={!isComplete || claimed || claiming}
         onClick={handleClaim}
         className={cn(
-          "w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-          !isComplete 
-            ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed" 
-            : claimed 
-              ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-500/20 cursor-default"
-              : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow active:scale-[0.98]"
+          "w-full py-2 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+          !isComplete
+            ? "bg-slate-100 dark:bg-white/[0.04] text-slate-400 dark:text-slate-500 cursor-not-allowed"
+            : claimed
+            ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40 cursor-default"
+            : "bg-blue-600 hover:bg-blue-700 text-white shadow-xs active:scale-[0.98]"
         )}
       >
         {claiming ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : claimed ? (
           <>
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-3.5 h-3.5" />
             Ödül Alındı
           </>
         ) : !isComplete ? (
           "Devam Ediyor"
         ) : (
           <>
-            <Trophy className="w-4 h-4" />
-            Ödülü Topla
+            <Trophy className="w-3.5 h-3.5" />
+            Ödülü Al
           </>
         )}
       </button>
-    </div>
+    </section>
   );
 }

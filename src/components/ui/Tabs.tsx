@@ -70,8 +70,8 @@ export function TabList({ children, className, fullWidth = false }: TabListProps
       role="tablist"
       className={cn(
         'flex items-center gap-1 overflow-x-auto no-scrollbar',
-        variant === 'pills' && 'bg-slate-100 dark:bg-slate-900/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/60',
-        variant === 'underline' && 'border-b border-slate-200 dark:border-slate-800 gap-4',
+        variant === 'pills' && 'bg-slate-100/80 dark:bg-[#161E2E] p-1 rounded-xl border border-slate-200/60 dark:border-white/[0.06]',
+        variant === 'underline' && 'border-b border-slate-200/80 dark:border-white/[0.08] gap-4',
         fullWidth && 'w-full',
         className
       )}
@@ -109,14 +109,19 @@ export function TabTrigger({
       disabled={disabled}
       onClick={() => setActiveTab(value)}
       className={cn(
-        'relative flex items-center justify-center gap-2 font-semibold text-sm transition-colors duration-200 select-none whitespace-nowrap min-h-[40px] px-4 py-2',
+        'relative flex items-center justify-center gap-2 font-medium text-sm transition-colors duration-150 select-none whitespace-nowrap min-h-[40px] px-3.5 py-1.5 cursor-pointer',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0D121D]',
         variant === 'pills' && [
-          'rounded-xl z-10 flex-1',
-          isActive ? 'text-slate-950 font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-100',
+          'rounded-lg z-10 flex-1',
+          isActive
+            ? 'text-slate-900 dark:text-slate-100 font-semibold'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100',
         ],
         variant === 'underline' && [
           'pb-3 font-medium',
-          isActive ? 'text-slate-900 dark:text-slate-100 font-bold' : 'text-slate-500 hover:text-slate-800 dark:text-slate-100',
+          isActive
+            ? 'text-blue-600 dark:text-blue-400 font-semibold'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200',
         ],
         disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
         className
@@ -131,7 +136,7 @@ export function TabTrigger({
         <motion.div
           layoutId={`${layoutIdPrefix}-pill-indicator`}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-          className="absolute inset-0 bg-white dark:bg-slate-950 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800/70 -z-10"
+          className="absolute inset-0 bg-white dark:bg-[#0D121D] rounded-lg shadow-xs border border-slate-200/80 dark:border-white/[0.08] -z-10"
         />
       )}
 
@@ -139,7 +144,7 @@ export function TabTrigger({
         <motion.div
           layoutId={`${layoutIdPrefix}-line-indicator`}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 rounded-full"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full"
         />
       )}
     </button>
@@ -160,7 +165,7 @@ export function TabContent({ value, children, className }: TabContentProps) {
     <div
       role="tabpanel"
       tabIndex={0}
-      className={cn('pt-4 focus:outline-none animate-in fade-in duration-200', className)}
+      className={cn('pt-4 focus:outline-none animate-in fade-in duration-150', className)}
     >
       {children}
     </div>

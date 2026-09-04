@@ -180,7 +180,9 @@ export function AdminOfficialAccounts() {
             : 'Hesap otomatik takip listesine eklendi.'
         );
       } else {
+        const json = await res.json().catch(() => null);
         loadData(); // Revert
+        toast.error(json?.error?.message || 'Otomatik takip güncellenemedi.');
       }
     } catch (err) {
       loadData();

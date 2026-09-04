@@ -3,13 +3,11 @@ import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
 import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
 import { db, createPool, createPglite } from "../src/db/index.js";
 
-async function runMigration() {
+export async function runMigration(isStandalone = false) {
   if (process.env.NODE_ENV !== "production") {
     const dotenv = await import("dotenv");
     dotenv.config();
   }
-
-  
 
   let exitCode = 0;
   console.log("🚀 Starting database migration...");
@@ -35,16 +33,20 @@ async function runMigration() {
       exitCode = 1;
     }
   } finally {
-    try {
-      if (global._postgresPool) {
-        await global._postgresPool.end();
-      }
-      if (global._pgliteClient) {
-        await global._pgliteClient.close();
-      }
-    } catch(e) {}
-    process.exit(exitCode);
+    if (isStandalone) {
+      try {
+        if (global._postgresPool) {
+          await global._postgresPool.end();
+        }
+        if (global._pgliteClient) {
+          await global._pgliteClient.close();
+        }
+      } catch(e) {}
+      process.exit(exitCode);
+    }
   }
 }
 
-runMigration();
+if (process.argv[1] && process.argv[1].includes("migrate")) {
+  runMigration(true);
+}

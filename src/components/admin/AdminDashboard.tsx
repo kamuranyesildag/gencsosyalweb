@@ -8,6 +8,7 @@ import {
   Server, 
   ArrowUpRight, 
   ShieldCheck, 
+  ShieldAlert,
   Mail, 
   History, 
   UserCheck, 
@@ -30,6 +31,7 @@ interface AdminDashboardProps {
 
 interface StatsData {
   totalUsers: number;
+  bannedUsers?: number;
   pendingVerifications: number;
   openReports?: number;
   officialAccounts?: number;
@@ -60,8 +62,9 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
       if (statsJson.success) {
         setStats({
           totalUsers: statsJson.data.totalUsers || 0,
+          bannedUsers: statsJson.data.bannedUsers || 0,
           pendingVerifications: statsJson.data.pendingVerifications || 0,
-          openReports: Array.isArray(reportsJson.data) ? reportsJson.data.length : 0,
+          openReports: Array.isArray(reportsJson.data) ? reportsJson.data.length : (statsJson.data.openReports || 0),
           officialAccounts: Array.isArray(officialJson.data) ? officialJson.data.length : 0,
         });
       }
@@ -97,8 +100,18 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
       icon: <Users className="w-5 h-5" />,
       color: 'text-slate-900 dark:text-slate-100',
       bg: 'bg-slate-100 dark:bg-slate-900',
-      badge: 'Aktif Platform',
+      badge: 'Platform Geneli',
       badgeVariant: 'default' as const,
+      tab: 'users' as const,
+    },
+    {
+      title: 'Yasaklı Hesaplar',
+      value: stats?.bannedUsers ?? 0,
+      icon: <ShieldAlert className="w-5 h-5" />,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50 dark:bg-rose-950/20',
+      badge: stats?.bannedUsers ? `${stats.bannedUsers} Hesap Askıda` : 'Yasaklı Yok',
+      badgeVariant: stats?.bannedUsers ? ('danger' as const) : ('secondary' as const),
       tab: 'users' as const,
     },
     {

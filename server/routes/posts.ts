@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { posts, postMedia, likes, comments, bookmarks, users, profiles, reposts, postCollaborators, communityMembers, communities, pollOptions, pollVotes, notifications } from "../../src/db/schema.js";
+import { posts, postMedia, likes, comments, bookmarks, users, profiles, reposts, postCollaborators, communityMembers, communities, pollOptions, pollVotes, notifications, postViews } from "../../src/db/schema.js";
 import { eq, and, sql, or, inArray } from "drizzle-orm";
 import { extractHashtags, normalizeHashtag } from "../utils/hashtags.js";
 import { extractMentions } from "../utils/mentions.js";
@@ -135,7 +135,26 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
     const repostRecords = await db.select().from(reposts).where(eq(reposts.postId, postId));
     const repostCount = repostRecords.length;
     const isReposted = repostRecords.some((r: any) => r.userId === currentUserId);
-    res.json({ success: true, data: { ...post, media, repostCount, isReposted, pollData }});
+
+    // Increment view count and record view
+    (async () => {
+      try {
+        await db.update(posts)
+          .set({ viewCount: sql`${posts.viewCount} + 1` })
+          .where(eq(posts.id, postId));
+        if (currentUserId) {
+          await db.insert(postViews).values({
+            postId,
+            userId: currentUserId,
+            viewedAt: new Date()
+          }).catch(() => {});
+        }
+      } catch (err) {
+        // silent
+      }
+    })();
+
+    res.json({ success: true, data: { ...post, viewCount: (post.viewCount || 0) + 1, media, repostCount, isReposted, pollData }});
   } catch (error) {
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }

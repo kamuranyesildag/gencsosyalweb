@@ -3,6 +3,7 @@ import { requireAuth, requireAuthContext, optionalAuthContext } from "../middlew
 import { db } from "../../src/db/index.js";
 import { users, profiles, follows, posts, projects, blocks } from "../../src/db/schema.js";
 import { eq, ne, and, or, isNull, inArray, sql, notInArray } from "drizzle-orm";
+import { getFollowSuggestions } from "../services/suggestions.js";
 
 export const onboardingRouter = Router();
 
@@ -68,47 +69,10 @@ onboardingRouter.post("/complete", requireAuth, async (req, res) => {
 onboardingRouter.get("/suggested-users", requireAuth, async (req, res) => {
   try {
     const currentUserId = requireAuthContext(req);
-    
-    // Get already followed
-    const followedResult = await db.select({ followingId: follows.followingId })
-      .from(follows)
-      .where(eq(follows.followerId, currentUserId));
-        
-    const excludedUserIds = followedResult.map((f: any) => f.followingId);
-    excludedUserIds.push(currentUserId);
-
-    // Get blocked users (both blocker and blocked directions)
-    const blocksResult = await db.select()
-      .from(blocks)
-      .where(or(
-        eq(blocks.blockerId, currentUserId),
-        eq(blocks.blockedId, currentUserId)
-      ));
-      
-    blocksResult.forEach((b: any) => {
-      if (b.blockerId !== currentUserId) excludedUserIds.push(b.blockerId);
-      if (b.blockedId !== currentUserId) excludedUserIds.push(b.blockedId);
-    });
-
-    // Suggest active users that have profiles
-    const suggestedUsers = await db.select({
-      id: users.id,
-      username: users.username,
-      displayName: profiles.displayName,
-      avatarUrl: profiles.avatarUrl,
-      bio: profiles.bio
-    })
-    .from(users)
-    .leftJoin(profiles, eq(users.id, profiles.userId))
-    .where(and(
-      notInArray(users.id, excludedUserIds),
-      eq(users.isActive, true)
-    ))
-    .limit(10);
-    
+    const result = await getFollowSuggestions(currentUserId, { limit: 10 });
     res.json({
       success: true,
-      data: suggestedUsers
+      data: result.users
     });
   } catch (error) {
     console.error("Onboarding suggestions error:", error);
