@@ -472,9 +472,7 @@ postsRouter.post("/:id/like", requireAuth, standardLimiter, async (req, res) => 
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
-    if (postRecord[0].userId === currentUserId) {
-      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi gönderinize beğeni atamazsınız." }});
-    }
+    
     
     let wasLiked = false;
     try {
@@ -615,7 +613,8 @@ if (postRecord[0].userId !== currentUserId) {
           .where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))));
       }
         
-      return newComment;
+      const userProfile = await tx.select({ username: users.username, displayName: profiles.displayName, avatarUrl: profiles.avatarUrl }).from(users).leftJoin(profiles, eq(users.id, profiles.userId)).where(eq(users.id, currentUserId)).limit(1);
+      return { ...newComment, user: userProfile[0] };
     });
 
     if (returnedError) {
@@ -778,9 +777,7 @@ postsRouter.post("/:id/repost", requireAuth, standardLimiter, async (req, res) =
     const postRecord = await db.select().from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
     
-    if (postRecord[0].userId === currentUserId) {
-      return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi gönderinizi yeniden paylaşamazsınız." }});
-    }
+    
     
     let wasReposted = false;
     try {

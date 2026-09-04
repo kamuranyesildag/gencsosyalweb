@@ -4818,9 +4818,6 @@ var init_posts = __esm({
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
         const postRecord = await db.select().from(posts).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(posts.id, postId), (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm12.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
-        if (postRecord[0].userId === currentUserId) {
-          return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi g\xF6nderinize be\u011Feni atamazs\u0131n\u0131z." } });
-        }
         let wasLiked = false;
         try {
           await db.transaction(async (tx) => {
@@ -4932,7 +4929,8 @@ var init_posts = __esm({
           if (postRecord[0].userId !== currentUserId) {
             await tx.update(posts).set({ baseScore: import_drizzle_orm12.sql`GREATEST(${posts.baseScore} + 3, 0)` }).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(posts.id, postId), (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm12.eq)(posts.userId, currentUserId))));
           }
-          return newComment;
+          const userProfile = await tx.select({ username: users.username, displayName: profiles.displayName, avatarUrl: profiles.avatarUrl }).from(users).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.eq)(users.id, currentUserId)).limit(1);
+          return { ...newComment, user: userProfile[0] };
         });
         if (returnedError) {
           return res.status(403).json({ success: false, error: returnedError });
@@ -5056,9 +5054,6 @@ var init_posts = __esm({
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
         const postRecord = await db.select().from(posts).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(posts.id, postId), (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm12.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
-        if (postRecord[0].userId === currentUserId) {
-          return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi g\xF6nderinizi yeniden payla\u015Famazs\u0131n\u0131z." } });
-        }
         let wasReposted = false;
         try {
           await db.transaction(async (tx) => {
