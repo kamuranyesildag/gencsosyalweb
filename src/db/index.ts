@@ -53,20 +53,30 @@ export const createPglite = () => {
     console.warn("=========================================================");
     const dbPath = path.join(process.cwd(), 'database');
     const pidPath = path.join(dbPath, 'postmaster.pid');
+    const optsPath = path.join(dbPath, 'postmaster.opts');
     if (fs.existsSync(pidPath)) {
       try {
         fs.unlinkSync(pidPath);
       } catch (_) {}
     }
+    if (fs.existsSync(optsPath)) {
+      try {
+        fs.unlinkSync(optsPath);
+      } catch (_) {}
+    }
     try {
       global._pgliteClient = new PGlite(dbPath);
     } catch (err) {
-      console.error("PGlite initialization failed, attempting to clear database folder...", err);
+      console.error("PGlite initialization failed. Backing up existing database directory...", err);
       try {
-        fs.rmSync(dbPath, { recursive: true, force: true });
+        const backupPath = path.join(process.cwd(), `database_backup_${Date.now()}`);
+        if (fs.existsSync(dbPath)) {
+          fs.renameSync(dbPath, backupPath);
+          console.warn(`Old database backed up to: ${backupPath}`);
+        }
         global._pgliteClient = new PGlite(dbPath);
       } catch (retryErr) {
-        console.error("Failed to recover PGlite:", retryErr);
+        console.error("Failed to initialize PGlite:", retryErr);
         throw retryErr;
       }
     }

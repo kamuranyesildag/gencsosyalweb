@@ -84,7 +84,7 @@ const ALGO_CONFIG = {
   TIME_CONSTANT: 2 // Saat cinsinden yaşa eklenecek sabit değer (bölme hatasını ve yeni gönderilerdeki anormalliği önler)
 };
 
-feedRouter.get("/", optionalAuth, async (req, res) => {
+const getFeedHandler = async (req: any, res: any) => {
   try {
     const currentUserId = req.user?.userId ?? null;
     const parsed = paginationSchema.safeParse(req.query);
@@ -179,12 +179,24 @@ feedRouter.get("/", optionalAuth, async (req, res) => {
     .offset(offset);
     
     const formattedPosts = await populatePostStats(feedPosts, currentUserId ?? -1);
-    res.json({ success: true, data: formattedPosts });
+    const hasMore = formattedPosts.length >= limit;
+    res.json({
+      success: true,
+      data: {
+        posts: formattedPosts,
+        hasMore,
+      },
+      posts: formattedPosts,
+      hasMore,
+    });
   } catch (error) {
     console.error("Feed error:", error);
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }
-});
+};
+
+feedRouter.get("/", optionalAuth, getFeedHandler);
+feedRouter.get("/for-you", optionalAuth, getFeedHandler);
 
 feedRouter.get("/following", requireAuth, async (req, res) => {
   try {
@@ -204,7 +216,13 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
     const safeFollowingIds = followingIds.length > 0 ? followingIds : [-1];
 
     if (safeFollowingIds[0] === -1) {
-       return res.json({ success: true, data: [], meta: { followingCount: 0 } });
+       return res.json({
+         success: true,
+         data: { posts: [], hasMore: false },
+         posts: [],
+         hasMore: false,
+         meta: { followingCount: 0 }
+       });
     }
 
     const ageInHours = sql`GREATEST(EXTRACT(EPOCH FROM (NOW() - ${posts.createdAt})) / 3600, 0)`;
@@ -246,7 +264,17 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
     .offset(offset);
     
     const formattedPosts = await populatePostStats(feedPosts, currentUserId);
-    res.json({ success: true, data: formattedPosts, meta: { followingCount: followingIds.length } });
+    const hasMore = formattedPosts.length >= limit;
+    res.json({
+      success: true,
+      data: {
+        posts: formattedPosts,
+        hasMore,
+      },
+      posts: formattedPosts,
+      hasMore,
+      meta: { followingCount: followingIds.length }
+    });
   } catch (error) {
     console.error("Feed following error:", error);
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});

@@ -51,10 +51,14 @@ export function Feed() {
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const firstPostIdRef = useRef<number | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
 
   // Load feed posts
   const loadPosts = useCallback(
     async (currentPage: number, type: "for_you" | "following", reset = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
       if (reset) {
         setLoading(true);
       } else {
@@ -67,25 +71,58 @@ export function Feed() {
             ? `/feed/following?page=${currentPage}&limit=10`
             : `/feed/for-you?page=${currentPage}&limit=10`;
 
-        const res = await fetchApi(endpoint);
+        let res = await fetchApi(endpoint);
+        // Fallback to /feed if /feed/for-you is not available
+        if (!res.ok && type === "for_you") {
+          res = await fetchApi(`/feed?page=${currentPage}&limit=10`);
+        }
+
+        if (!res.ok) {
+          setHasMore(false);
+          return;
+        }
+
         const json = await res.json();
 
-        if (json.success) {
-          const fetchedPosts = json.data.posts || [];
+        if (json.success && (json.data || json.posts)) {
+          let fetchedPosts: Post[] = [];
+          if (Array.isArray(json.data)) {
+            fetchedPosts = json.data;
+          } else if (Array.isArray(json.data?.posts)) {
+            fetchedPosts = json.data.posts;
+          } else if (Array.isArray(json.posts)) {
+            fetchedPosts = json.posts;
+          }
+
           if (reset) {
             setPosts(fetchedPosts);
             if (fetchedPosts.length > 0) {
               firstPostIdRef.current = fetchedPosts[0].id;
             }
           } else {
-            setPosts((prev) => [...prev, ...fetchedPosts]);
+            setPosts((prev) => {
+              // Deduplicate by post id
+              const existingIds = new Set(prev.map((p) => p.id));
+              const uniqueNew = fetchedPosts.filter((p) => !existingIds.has(p.id));
+              return [...prev, ...uniqueNew];
+            });
           }
 
-          setHasMore(json.data.hasMore ?? fetchedPosts.length >= 10);
+          const backendHasMore =
+            typeof json.data?.hasMore === "boolean"
+              ? json.data.hasMore
+              : typeof json.hasMore === "boolean"
+              ? json.hasMore
+              : fetchedPosts.length >= 10;
+          setHasMore(backendHasMore);
+        } else {
+          setHasMore(false);
         }
       } catch (err) {
         console.error("Feed fetch error:", err);
+        setHasMore(false);
       } finally {
+        isFetchingRef.current = false;
         setLoading(false);
         setLoadingMore(false);
       }
@@ -100,40 +137,13 @@ export function Feed() {
     loadPosts(1, feedType, true);
   }, [feedType, loadPosts]);
 
-  // Periodic check for new posts (only when at page 1)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const interval = setInterval(async () => {
-      if (!firstPostIdRef.current || page > 1) return;
-      try {
-        const endpoint =
-          feedType === "following"
-            ? `/feed/following?limit=1`
-            : `/feed/for-you?limit=1`;
-        const res = await fetchApi(endpoint);
-        const json = await res.json();
-        if (json.success && json.data.posts?.length > 0) {
-          const latestId = json.data.posts[0].id;
-          if (latestId > firstPostIdRef.current) {
-            setNewPostsAvailable(true);
-          }
-        }
-      } catch {
-        // ignore background poll error
-      }
-    }, 45000);
-
-    return () => clearInterval(interval);
-  }, [feedType, isAuthenticated, page]);
-
   // Infinite Scroll Observer
   useEffect(() => {
-    if (loading || loadingMore || !hasMore) return;
+    if (loading || loadingMore || !hasMore || posts.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0].isIntersecting && !isFetchingRef.current && hasMore) {
           setPage((prevPage) => {
             const nextPage = prevPage + 1;
             loadPosts(nextPage, feedType, false);
@@ -141,7 +151,7 @@ export function Feed() {
           });
         }
       },
-      { threshold: 0.1, rootMargin: "300px" }
+      { threshold: 0.1, rootMargin: "200px" }
     );
 
     const currentRef = loadMoreRef.current;
@@ -150,7 +160,7 @@ export function Feed() {
     return () => {
       if (currentRef) observer.unobserve(currentRef);
     };
-  }, [loading, loadingMore, hasMore, feedType, loadPosts]);
+  }, [loading, loadingMore, hasMore, posts.length, feedType, loadPosts]);
 
   const handlePostDeleted = (deletedId: number) => {
     setPosts((prev) => prev.filter((p) => p.id !== deletedId));
@@ -344,7 +354,7 @@ export function Feed() {
           )}
 
           {/* Infinite Scroll Trigger & Loader */}
-          {hasMore && !loading && (
+          {hasMore && !loading && posts.length > 0 && (
             <div ref={loadMoreRef} className="py-6 flex justify-center">
               {loadingMore && (
                 <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 font-medium">
