@@ -4510,6 +4510,7 @@ var init_posts = __esm({
           postType: posts.postType,
           contentWarning: posts.contentWarning,
           visibility: posts.visibility,
+          viewCount: posts.viewCount,
           createdAt: posts.createdAt,
           userId: posts.userId,
           // We need this to check owner
@@ -5457,6 +5458,7 @@ var init_feed = __esm({
           postType: posts.postType,
           contentWarning: posts.contentWarning,
           visibility: posts.visibility,
+          viewCount: posts.viewCount,
           createdAt: posts.createdAt,
           user: {
             id: users.id,
@@ -5498,6 +5500,7 @@ var init_feed = __esm({
           postType: posts.postType,
           contentWarning: posts.contentWarning,
           visibility: posts.visibility,
+          viewCount: posts.viewCount,
           createdAt: posts.createdAt,
           user: {
             id: users.id,
@@ -5584,6 +5587,7 @@ var init_userPosts = __esm({
           postType: posts.postType,
           contentWarning: posts.contentWarning,
           visibility: posts.visibility,
+          viewCount: posts.viewCount,
           createdAt: posts.createdAt,
           user: {
             id: users.id,

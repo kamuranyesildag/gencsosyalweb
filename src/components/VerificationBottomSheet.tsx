@@ -189,7 +189,7 @@ export function VerificationBottomSheet({ isOpen, onClose }: { isOpen: boolean; 
     );
   };
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -224,6 +224,7 @@ export function VerificationBottomSheet({ isOpen, onClose }: { isOpen: boolean; 
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

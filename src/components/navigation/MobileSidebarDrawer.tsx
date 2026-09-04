@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Hexagon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MobileSidebar } from './MobileSidebar';
@@ -19,10 +20,10 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
     };
   }, [isOpen, onClose]);
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-[9999] flex md:hidden">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -65,6 +66,7 @@ export function MobileSidebarDrawer({ isOpen, onClose }: { isOpen: boolean; onCl
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

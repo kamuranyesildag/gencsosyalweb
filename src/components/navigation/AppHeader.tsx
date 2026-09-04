@@ -31,9 +31,11 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   const isNotificationsActive = location.pathname === '/notifications';
   const isMessagesActive = location.pathname === '/messages';
+  const isProfileActive = location.pathname.startsWith('/profile');
+
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800/80 h-14 md:h-[60px] flex items-center justify-center transition-colors">
+    <header className={`sticky top-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800/80 h-14 md:h-[60px] flex items-center justify-center transition-colors ${isProfileActive ? "hidden md:flex" : "flex"}`}>
       <div className="w-full max-w-7xl px-4 sm:px-6 flex justify-between items-center h-full">
         {/* Left: Logo & Mobile Menu */}
         <div className="flex items-center gap-1 sm:gap-2">

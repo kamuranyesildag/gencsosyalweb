@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from 'react-router';
 import { PenTool, Rocket, Users, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,7 +29,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     onClose();
   };
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col justify-end">
@@ -131,6 +132,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

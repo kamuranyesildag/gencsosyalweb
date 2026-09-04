@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router';
 import { X, Hexagon, Sparkles, Heart, MessageCircle, ArrowRight, UserPlus, LogIn } from 'lucide-react';
@@ -32,11 +33,11 @@ export function LoginBottomSheet() {
 
   if (isAuthenticated) return null;
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       {isOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="auth-modal-title"
@@ -151,6 +152,7 @@ export function LoginBottomSheet() {
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

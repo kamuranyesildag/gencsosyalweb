@@ -1,5 +1,6 @@
 import { VerifiedBadge } from "./VerifiedBadge";
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Search, Loader2, CheckCircle2, UserPlus, Users } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -84,7 +85,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
 
   if (!isOpen) return null;
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       <div
         className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-x-hidden select-none"
@@ -219,6 +220,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

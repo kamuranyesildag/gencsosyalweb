@@ -7,6 +7,7 @@ interface VerifiedBadgeProps {
   iconClassName?: string;
   onClick?: (e: React.MouseEvent) => void;
   withModal?: boolean;
+  targetUser?: { username: string; isVerified: boolean };
 }
 
 export function VerifiedBadge({ 
@@ -40,9 +41,10 @@ export function VerifiedBadge({
       
       {withModal && (
         <VerificationBottomSheet 
-          isOpen={showModal} 
-          onClose={() => setShowModal(false)} 
-        />
+           isOpen={showModal} 
+           onClose={() => setShowModal(false)}
+           targetUser={targetUser}
+         />
       )}
     </>
   );

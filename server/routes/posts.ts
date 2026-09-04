@@ -74,6 +74,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
       postType: posts.postType,
       contentWarning: posts.contentWarning,
       visibility: posts.visibility,
+      viewCount: posts.viewCount,
       createdAt: posts.createdAt,
       userId: posts.userId, // We need this to check owner
       user: {

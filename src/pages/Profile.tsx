@@ -192,7 +192,7 @@ export function Profile() {
     return (
       <div className="flex flex-col w-full min-h-screen bg-white dark:bg-slate-950">
         {/* Sticky Header Skeleton */}
-        <div className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-4">
+        <div className="sticky top-0 md:top-[60px] z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-4">
           <Skeleton variant="circular" className="w-9 h-9" />
           <div className="space-y-1">
             <Skeleton className="h-4 w-32 rounded-md" />
@@ -248,14 +248,14 @@ export function Profile() {
   return (
     <div className="flex flex-col w-full min-h-screen bg-white dark:bg-slate-950 select-none">
       {/* STICKY TOP APP BAR */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 px-4 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/95 dark:bg-[#030712]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 h-[56px] md:h-[60px] px-4 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3 min-w-0">
           <IconButton
             aria-label="Geri Dön"
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            className="rounded-full shrink-0 -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-100"
+            className="rounded-full shrink-0 -ml-1 text-slate-700 hover:text-indigo-600 dark:text-indigo-400"
           >
             <ArrowLeft className="w-5 h-5" />
           </IconButton>
@@ -264,7 +264,7 @@ export function Profile() {
               <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 truncate tracking-tight">
                 {profile.displayName || profile.username}
               </h1>
-              {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" />}
+              {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" targetUser={{ username: profile.username, isVerified: !!profile.isVerified }} />}
             </div>
             <p className="text-xs text-slate-400 font-medium truncate">
               {profile.postsCount !== undefined ? `${profile.postsCount} gönderi` : `@${profile.username}`}
@@ -279,7 +279,7 @@ export function Profile() {
             variant="ghost"
             size="sm"
             onClick={() => setShowShare(true)}
-            className="rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-100"
+            className="rounded-full text-slate-500 hover:text-indigo-600 dark:text-indigo-400"
           >
             <Share2 className="w-4.5 h-4.5" />
           </IconButton>
@@ -287,8 +287,16 @@ export function Profile() {
       </header>
 
       {/* COVER IMAGE */}
-      <div className="relative h-28 sm:h-40 md:h-48 bg-gradient-to-tr from-slate-500 via-slate-600 to-violet-700 w-full overflow-hidden shrink-0">
-        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+      {/* COVER IMAGE */}
+      <div className="relative h-32 sm:h-44 md:h-52 bg-slate-200 dark:bg-slate-800 w-full overflow-hidden shrink-0 group">
+        {profile.coverUrl ? (
+          <img src={profile.coverUrl} alt="Kapak" className="w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-tr from-slate-500 via-slate-600 to-violet-700">
+            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors pointer-events-none" />
       </div>
 
       {/* PROFILE INFO HEADER */}
@@ -301,7 +309,7 @@ export function Profile() {
               url={profile.avatarUrl}
               name={profile.displayName || profile.username}
               size="xl"
-              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 ring-2 ring-slate-100"
+              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 ring-4 ring-white dark:ring-[#030712] bg-white dark:bg-[#030712]"
             />
           </div>
 
@@ -374,7 +382,7 @@ export function Profile() {
                 size="md"
                 leftIcon={<Settings className="w-4 h-4" />}
                 onClick={() => navigate("/settings")}
-                className="rounded-full px-5 font-bold border-slate-200 dark:border-slate-800/90 hover:bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-xs"
+                className="rounded-full px-5 font-bold border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm transition-all"
               >
                 Profili Düzenle
               </Button>
@@ -388,7 +396,7 @@ export function Profile() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {profile.displayName || profile.username}
             </h2>
-            {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" />}
+            {profile.isVerified && <VerifiedBadge iconClassName="w-5 h-5" targetUser={{ username: profile.username, isVerified: !!profile.isVerified }} />}
           </div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">@{profile.username}</p>
         </div>
@@ -401,16 +409,16 @@ export function Profile() {
         )}
 
         {/* Meta Info Rows (Location, Website, Date) */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+        <div className="flex flex-wrap gap-2.5 mt-4 text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 font-medium">
           {profile.location && (
-            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
               <span>{profile.location}</span>
             </div>
           )}
 
           {profile.website && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
               <a
                 href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
@@ -424,7 +432,7 @@ export function Profile() {
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
             <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
             <span>
               {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
@@ -437,7 +445,7 @@ export function Profile() {
         </div>
 
         {/* Followers & Following Counts */}
-        <div className="flex items-center gap-5 mt-4 text-sm select-none">
+        <div className="flex items-center gap-6 mt-5 text-sm select-none">
           <button
             type="button"
             onClick={() => setActiveTab("following")}
@@ -476,13 +484,13 @@ export function Profile() {
               ))}
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">
-              <span className="font-bold text-slate-900 dark:text-slate-100">
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">
                 {profile.mutualFollowers[0].displayName || profile.mutualFollowers[0].username}
               </span>
               {profile.mutualFollowersCount > 1 && (
                 <span>
                   {" "}ve{" "}
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
                     {profile.mutualFollowersCount - 1} diğer takip ettiğin kişi
                   </span>
                 </span>
@@ -494,8 +502,8 @@ export function Profile() {
       </div>
 
       {/* PROFILE TABS */}
-      <div 
-        className="sticky top-[108px] z-10 bg-white dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center px-2"
+      <div
+        className="sticky top-[56px] md:top-[120px] z-10 bg-white/95 dark:bg-[#030712]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center px-2 sm:px-4 transition-colors"
         role="tablist"
         aria-label="Profil Sekmeleri"
       >
@@ -505,14 +513,14 @@ export function Profile() {
           aria-selected={activeTab === "posts"}
           onClick={() => setActiveTab("posts")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "posts" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
+            activeTab === "posts" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-indigo-600 dark:text-indigo-400"
           }`}
         >
           <span>Gönderiler</span>
           {activeTab === "posts" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-indigo-600 dark:bg-indigo-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -524,14 +532,14 @@ export function Profile() {
           aria-selected={activeTab === "projects"}
           onClick={() => setActiveTab("projects")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "projects" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
+            activeTab === "projects" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-indigo-600 dark:text-indigo-400"
           }`}
         >
           <span>Projeler</span>
           {activeTab === "projects" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-indigo-600 dark:bg-indigo-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -543,14 +551,14 @@ export function Profile() {
           aria-selected={activeTab === "followers"}
           onClick={() => setActiveTab("followers")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "followers" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
+            activeTab === "followers" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-indigo-600 dark:text-indigo-400"
           }`}
         >
           <span>Takipçiler</span>
           {activeTab === "followers" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-indigo-600 dark:bg-indigo-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -562,14 +570,14 @@ export function Profile() {
           aria-selected={activeTab === "following"}
           onClick={() => setActiveTab("following")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "following" ? "text-slate-900 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:text-slate-100"
+            activeTab === "following" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-indigo-600 dark:text-indigo-400"
           }`}
         >
           <span>Takip Edilenler</span>
           {activeTab === "following" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 rounded-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-indigo-600 dark:bg-indigo-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -654,7 +662,7 @@ export function Profile() {
                         <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate text-sm sm:text-base">
                           {user.displayName || user.username}
                         </span>
-                        {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} />}
+                        {user.isVerified && <VerifiedBadge iconClassName="w-4 h-4" withModal={false} targetUser={{ username: user.username, isVerified: !!user.isVerified }} />}
                       </div>
                       <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">@{user.username}</p>
                       {user.bio && (

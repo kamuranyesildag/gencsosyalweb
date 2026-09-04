@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Copy, Share2, QrCode, Check, ArrowLeft } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -62,7 +63,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
     }
   };
 
-  return (
+  return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       <div 
         className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-x-hidden select-none"
@@ -251,6 +252,7 @@ export function ProfileShareSheet({ isOpen, onClose, profile }: ProfileShareShee
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
-  );
+    </AnimatePresence>,
+    document.body
+  ) : null;
 }

@@ -4,6 +4,9 @@ import { Link, useNavigate } from "react-router";
 import { VerifiedBadge } from "./VerifiedBadge";
 import {
   ShieldAlert,
+  Globe,
+  Users,
+  Lock,
   Heart,
   MessageCircle,
   Repeat2,
@@ -352,7 +355,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
       }}
       className={cn(
         "group flex flex-col sm:flex-row gap-3 p-4 sm:p-5 mb-3 mx-2 sm:mx-4 bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800/60 rounded-2xl sm:rounded-[24px] shadow-sm hover:shadow-md dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.2)] cursor-pointer transition-all duration-300",
-        post.type === "SENSITIVE" && !isRevealed && "opacity-90"
+        post.postType === "SENSITIVE" && !isRevealed && "opacity-90"
       )}
     >
       {/* 1. LEFT COLUMN: Avatar */}
@@ -371,7 +374,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Header: Author info & Context */}
         <div className="flex items-start justify-between mb-1">
-          <div className="flex items-center gap-2 overflow-hidden flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 min-w-0 sm:flex-nowrap">
             {/* Mobile Avatar */}
             <div className="sm:hidden shrink-0 mr-1">
               <Link to={`/profile/${post.user?.username}`} onClick={(e) => e.stopPropagation()}>
@@ -382,12 +385,12 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
             <Link 
               to={`/profile/${post.user?.username}`} 
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 truncate group/author"
+              className="flex items-center gap-1.5 min-w-0 truncate group/author"
             >
               <span className="font-bold text-slate-900 dark:text-white text-[15px] group-hover/author:underline truncate">
                 {post.user?.displayName || post.user?.username}
               </span>
-              {post.user?.isVerified && <VerifiedBadge iconClassName="w-4 h-4" />}
+              {post.user?.isVerified && <VerifiedBadge iconClassName="w-4 h-4" targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }} />}
             </Link>
             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[14px] shrink-0">
               <span className="hidden sm:inline">@{post.user?.username}</span>
@@ -458,10 +461,11 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
           </div>
         ) : (
           <div className="mt-1 text-[15px] leading-[1.5] text-slate-900 dark:text-slate-100 whitespace-pre-wrap break-words">
-            {post.type === "SENSITIVE" && !isRevealed ? (
+            {post.postType === "SENSITIVE" && !isRevealed ? (
               <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
                 <ShieldAlert className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-slate-700 mb-3">Bu gönderi gizlenmiş olabilir.</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">{post.contentWarning || "Hassas İçerik"}</p>
+                <p className="text-xs font-medium text-slate-500 mb-3">Bu gönderi gizlenmiş olabilir.</p>
                 <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); setIsRevealed(true); }}>
                   Yine de göster
                 </Button>
@@ -620,6 +624,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
             <span className="text-[13px] font-medium min-w-[20px]">{likeCount}</span>
           </motion.button>
 
+          {/* View Count */}
+          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 ml-1">
+            <Eye className="w-[18px] h-[18px] stroke-[1.8]" />
+            <span className="text-[13px] font-medium min-w-[20px]">{post.viewCount || 0}</span>
+          </div>
+
+          <div className="flex-1" />
+
           {/* Bookmark & Share (Grouped) */}
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <motion.button
@@ -676,7 +688,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                     <span className="font-bold text-white text-base sm:text-lg drop-shadow-md">
                       {post.user?.displayName || post.user?.username}
                     </span>
-                    {post.user?.isVerified && <VerifiedBadge size="sm" />}
+                    {post.user?.isVerified && <VerifiedBadge iconClassName="w-4 h-4" targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }} />}
                   </div>
                   <span className="text-sm text-white/70 drop-shadow-sm">@{post.user?.username}</span>
                 </div>
@@ -813,6 +825,13 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                     </div>
                     <span className="text-[13px] font-medium text-white/80">Paylaş</span>
                   </button>
+                  
+                  <div className="flex flex-col items-center gap-1.5 group">
+                    <div className="p-3 rounded-full bg-white/5 transition-colors backdrop-blur-md">
+                      <Eye className="w-6 h-6 text-white/50" />
+                    </div>
+                    <span className="text-[13px] font-medium text-white/50">{post.viewCount || 0}</span>
+                  </div>
                 </div>
               </div>
             </div>

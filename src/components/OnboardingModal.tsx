@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthStore } from "../context/useAuth";
 import { Sparkles, Users, ArrowRight, X } from "lucide-react";
@@ -26,8 +27,8 @@ export function OnboardingModal() {
     sessionStorage.setItem("onboardingDismissed", "true");
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+  return typeof document !== "undefined" ? createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -121,6 +122,7 @@ export function OnboardingModal() {
           </AnimatePresence>
         </div>
       </motion.div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 }
