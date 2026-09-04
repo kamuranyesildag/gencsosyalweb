@@ -803,7 +803,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSave(e as any);
+                      handleBookmark(e);
                     }}
                     className="flex flex-col items-center gap-1.5 group"
                   >

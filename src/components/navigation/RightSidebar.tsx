@@ -10,6 +10,8 @@ import { fetchApi } from "../../lib/api";
 import { Users, Hash, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../ui/Button";
 
+import { LeaderboardCard } from "../LeaderboardCard";
+
 export function RightSidebar() {
   const { isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
@@ -87,6 +89,9 @@ export function RightSidebar() {
 
       {/* Quest of the day */}
       {isAuthenticated && <DailyQuestCard />}
+
+      {/* Leaderboard */}
+      <LeaderboardCard />
 
       {/* Quick Poll */}
       <QuickPollCard />

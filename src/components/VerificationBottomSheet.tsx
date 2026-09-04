@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2, BadgeCheck, ShieldAlert, Clock, CheckCircle2, Circle } from "lucide-react";
 import { fetchApi } from "../lib/api";
 import { useAuthStore } from "../context/useAuth";
 import { useNavigate } from "react-router";
 
-export function VerificationBottomSheet({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function VerificationBottomSheet({ isOpen, onClose, targetUser }: { isOpen: boolean; onClose: () => void; targetUser?: { username: string; isVerified: boolean } }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);

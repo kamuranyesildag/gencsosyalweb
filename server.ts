@@ -13,6 +13,8 @@ if (process.env.NODE_ENV !== "production") {
   import("dotenv").then((dotenv) => dotenv.config());
 }
 
+import { gamificationRouter } from "./server/routes/gamification.js";
+
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
   const app = express();
@@ -135,6 +137,7 @@ async function startServer() {
     app.use("/api/v1/hashtags", hashtagsRouter);
     app.use("/api/v1/collaborators", collaboratorsRouter);
     app.use("/api/v1/onboarding", onboardingRouter);
+    app.use("/api/v1/gamification", gamificationRouter);
 
     const { seoMiddleware } = await import("./server/middleware/seo.js");
     app.use(seoMiddleware);

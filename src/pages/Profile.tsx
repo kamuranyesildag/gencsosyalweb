@@ -8,6 +8,7 @@ import { ReportDialog } from "../components/ReportDialog";
 import { ProfileProjects } from "../components/ProfileProjects";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { RichText } from "../components/RichText";
+import { UserBadges } from "../components/UserBadges";
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";
@@ -499,6 +500,10 @@ export function Profile() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="px-4 sm:px-6 mb-6">
+        <UserBadges userId={profile.id} />
       </div>
 
       {/* PROFILE TABS */}

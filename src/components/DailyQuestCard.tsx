@@ -1,14 +1,50 @@
-import React, { useState } from "react";
-import { Target, CheckCircle2, Trophy } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Target, CheckCircle2, Trophy, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
+import { fetchApi } from "../lib/api";
+import { useAuthStore } from "../context/useAuth";
 
 export function DailyQuestCard() {
-  const [claimed, setClaimed] = useState(false);
-  const [progress, setProgress] = useState(2); // e.g. 2 out of 3
-  const total = 3;
+  const { isAuthenticated } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [quest, setQuest] = useState<any>(null);
+  const [claiming, setClaiming] = useState(false);
 
-  const isComplete = progress >= total;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    fetchApi("/gamification/daily-quest")
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setQuest(d.data);
+      })
+      .finally(() => setLoading(false));
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated || loading || !quest) return null;
+
+  const isComplete = quest.isComplete;
+  const claimed = quest.claimed;
+  const progress = quest.progress;
+  const total = quest.total;
+
+  const handleClaim = async () => {
+    setClaiming(true);
+    try {
+      const res = await fetchApi("/gamification/daily-quest/claim", { method: 'POST' });
+      const json = await res.json();
+      if (json.success) {
+        setQuest((prev: any) => ({ ...prev, claimed: true }));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/40 dark:to-slate-900 rounded-2xl p-4 sm:p-5 border border-indigo-100 dark:border-indigo-900/50 shadow-xs relative overflow-hidden group">
@@ -21,16 +57,16 @@ export function DailyQuestCard() {
         </div>
         <div>
           <h3 className="text-[15px] font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Günün Görevi
+            {quest.title}
           </h3>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            +50 XP Kazan
+            +{quest.rewardXP} XP Kazan
           </p>
         </div>
       </div>
 
       <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">
-        Bugün 3 farklı gönderiye yorum yap ve sohbete katıl.
+        {quest.description}
       </p>
 
       {/* Progress Bar */}
@@ -44,7 +80,7 @@ export function DailyQuestCard() {
         <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${(progress / total) * 100}%` }}
+            animate={{ width: `${(Math.min(progress, total) / total) * 100}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
             className={cn(
               "h-full rounded-full transition-colors",
@@ -57,8 +93,8 @@ export function DailyQuestCard() {
       {/* Action Button */}
       <button
         type="button"
-        disabled={!isComplete || claimed}
-        onClick={() => setClaimed(true)}
+        disabled={!isComplete || claimed || claiming}
+        onClick={handleClaim}
         className={cn(
           "w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
           !isComplete 
@@ -68,7 +104,9 @@ export function DailyQuestCard() {
               : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow active:scale-[0.98]"
         )}
       >
-        {claimed ? (
+        {claiming ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : claimed ? (
           <>
             <CheckCircle2 className="w-4 h-4" />
             Ödül Alındı
