@@ -14,7 +14,8 @@ export function VerifiedBadge({
   className = "", 
   iconClassName = "w-4 h-4", 
   onClick, 
-  withModal = true 
+  withModal = true,
+  targetUser
 }: VerifiedBadgeProps) {
   const [showModal, setShowModal] = useState(false);
 

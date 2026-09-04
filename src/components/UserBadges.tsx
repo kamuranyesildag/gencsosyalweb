@@ -9,7 +9,7 @@ export function UserBadges({ userId }: { userId: number }) {
     fetchApi(`/gamification/badges/${userId}`)
       .then(r => r.json())
       .then(d => {
-        if (d.success) setBadges(d.data);
+        if (d.success) setBadges(d.data || []);
       })
       .catch(() => {});
   }, [userId]);
