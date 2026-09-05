@@ -97,3 +97,54 @@ storiesRouter.post("/:id/view", requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
   }
 });
+
+storiesRouter.get("/:id/views", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const storyId = parseInt(req.params.id as string);
+
+    // Verify owner
+    const [story] = await db.select().from(stories).where(eq(stories.id, storyId));
+    if (!story || story.userId !== currentUserId) {
+      return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkiniz yok." } });
+    }
+
+    const viewers = await db.select({
+      id: users.id,
+      username: users.username,
+      displayName: profiles.displayName,
+      avatarUrl: profiles.avatarUrl,
+      viewedAt: storyViews.viewedAt,
+    })
+    .from(storyViews)
+    .innerJoin(users, eq(storyViews.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(eq(storyViews.storyId, storyId))
+    .orderBy(desc(storyViews.viewedAt));
+
+    res.json({ success: true, data: viewers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
+  }
+});
+
+storiesRouter.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const storyId = parseInt(req.params.id as string);
+
+    const [story] = await db.select().from(stories).where(eq(stories.id, storyId));
+    if (!story) {
+      return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Hikaye bulunamadı." } });
+    }
+
+    if (story.userId !== currentUserId) {
+      return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkiniz yok." } });
+    }
+
+    await db.delete(stories).where(eq(stories.id, storyId));
+    res.json({ success: true, data: { message: "Hikaye silindi." } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
+  }
+});

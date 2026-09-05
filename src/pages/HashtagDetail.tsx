@@ -13,7 +13,7 @@ export function HashtagDetail() {
   const navigate = useNavigate();
   const [hashtagInfo, setHashtagInfo] = useState<any>(null);
 
-  const { data: posts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination(`/hashtags/${name}`);
+  const { data: posts, setData: setPosts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination(`/hashtags/${name}`);
 
   useEffect(() => {
     const loadHashtag = async () => {
@@ -64,7 +64,7 @@ export function HashtagDetail() {
           </div>
         ) : posts.length > 0 ? (
           <div className="divide-y divide-slate-100">
-<InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={post} />)} />
+<InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={post} onPostDeleted={(id) => setPosts(prev => prev.filter((p: any) => p.id !== id))} />)} />
 </div>
         ) : (
           <div className="flex-1 flex items-center justify-center p-6">

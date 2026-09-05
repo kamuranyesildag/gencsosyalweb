@@ -25,8 +25,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // server/migrate.ts
+var migrate_exports = {};
+__export(migrate_exports, {
+  runMigration: () => runMigration
+});
+module.exports = __toCommonJS(migrate_exports);
 var import_path2 = __toESM(require("path"), 1);
 var import_migrator = require("drizzle-orm/node-postgres/migrator");
 var import_migrator2 = require("drizzle-orm/pglite/migrator");
@@ -936,21 +942,32 @@ var createPglite = () => {
     console.warn("=========================================================");
     const dbPath = import_path.default.join(process.cwd(), "database");
     const pidPath = import_path.default.join(dbPath, "postmaster.pid");
+    const optsPath = import_path.default.join(dbPath, "postmaster.opts");
     if (import_fs.default.existsSync(pidPath)) {
       try {
         import_fs.default.unlinkSync(pidPath);
       } catch (_) {
       }
     }
+    if (import_fs.default.existsSync(optsPath)) {
+      try {
+        import_fs.default.unlinkSync(optsPath);
+      } catch (_) {
+      }
+    }
     try {
       global._pgliteClient = new import_pglite2.PGlite(dbPath);
     } catch (err) {
-      console.error("PGlite initialization failed, attempting to clear database folder...", err);
+      console.error("PGlite initialization failed. Backing up existing database directory...", err);
       try {
-        import_fs.default.rmSync(dbPath, { recursive: true, force: true });
+        const backupPath = import_path.default.join(process.cwd(), `database_backup_${Date.now()}`);
+        if (import_fs.default.existsSync(dbPath)) {
+          import_fs.default.renameSync(dbPath, backupPath);
+          console.warn(`Old database backed up to: ${backupPath}`);
+        }
         global._pgliteClient = new import_pglite2.PGlite(dbPath);
       } catch (retryErr) {
-        console.error("Failed to recover PGlite:", retryErr);
+        console.error("Failed to initialize PGlite:", retryErr);
         throw retryErr;
       }
     }
@@ -983,7 +1000,7 @@ var db = new Proxy({}, {
 });
 
 // server/migrate.ts
-async function runMigration() {
+async function runMigration(isStandalone = false) {
   if (process.env.NODE_ENV !== "production") {
     const dotenv = await import("dotenv");
     dotenv.config();
@@ -1010,17 +1027,25 @@ async function runMigration() {
       exitCode = 1;
     }
   } finally {
-    try {
-      if (global._postgresPool) {
-        await global._postgresPool.end();
+    if (isStandalone) {
+      try {
+        if (global._postgresPool) {
+          await global._postgresPool.end();
+        }
+        if (global._pgliteClient) {
+          await global._pgliteClient.close();
+        }
+      } catch (e) {
       }
-      if (global._pgliteClient) {
-        await global._pgliteClient.close();
-      }
-    } catch (e) {
+      process.exit(exitCode);
     }
-    process.exit(exitCode);
   }
 }
-runMigration();
+if (process.argv[1] && process.argv[1].includes("migrate")) {
+  runMigration(true);
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  runMigration
+});
 //# sourceMappingURL=migrate.cjs.map

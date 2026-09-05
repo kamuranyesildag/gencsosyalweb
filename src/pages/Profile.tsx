@@ -343,7 +343,7 @@ export function Profile() {
                       : "shadow-slate-500/20"
                   }`}
                 >
-                  {following ? "Takip Ediliyor" : "Takip Et"}
+                  {following ? "Takip Ediliyor" : profile?.followsMe ? "Sende Takip Et" : "Takip Et"}
                 </Button>
 
                 {/* More Menu Dropdown */}
@@ -651,7 +651,7 @@ export function Profile() {
               hasMore={postsQuery.hasMore}
               isLoading={postsQuery.loadingMore}
               onLoadMore={postsQuery.loadMore}
-              renderItem={(post) => <PostCard key={post.id} post={{ ...post, user: profile }} />}
+              renderItem={(post) => <PostCard key={post.id} post={{ ...post, user: profile }} onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))} />}
             />
           ) : (
             <div className="px-4 py-12 max-w-md mx-auto text-center">

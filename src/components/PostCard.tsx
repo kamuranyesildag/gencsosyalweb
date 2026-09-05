@@ -56,8 +56,14 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [pollData, setPollData] = useState(post.pollData);
   const [isVoting, setIsVoting] = useState(false);
+  const [isFollowingUser, setIsFollowingUser] = useState(post.user?.isFollowing || false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
   const { user: currentUser, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
+
+  useEffect(() => {
+    setIsFollowingUser(post.user?.isFollowing || false);
+  }, [post.user?.isFollowing]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
@@ -153,6 +159,34 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedMediaIndex]);
+
+  // Follow Handler
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) return openModal();
+    if (isFollowLoading || !post.user?.id) return;
+
+    setIsFollowLoading(true);
+    // Optimistic
+    const prev = isFollowingUser;
+    setIsFollowingUser(true); // Since button disappears when followed
+
+    try {
+      const res = await fetchApi(`/users/${post.user.id}/follow`, { method: "POST" });
+      const json = await res.json();
+      if (!json.success) {
+        setIsFollowingUser(prev);
+        toast.error(json.error?.message || "Takip edilemedi");
+      } else {
+        toast.success("Takip edildi");
+      }
+    } catch {
+      setIsFollowingUser(prev);
+      toast.error("Bir hata oluştu");
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
 
   // Like Handler
   const handleLike = async (e: React.MouseEvent) => {
@@ -397,6 +431,21 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                 />
               )}
             </Link>
+
+            {/* Follow Button */}
+            {currentUser?.id !== post.user?.id && !isFollowingUser && (
+              <>
+                <span className="text-slate-400 dark:text-slate-500 font-normal hidden sm:inline">&middot;</span>
+                <button
+                  type="button"
+                  onClick={handleFollow}
+                  disabled={isFollowLoading}
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-[14px] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
+                </button>
+              </>
+            )}
 
             {/* Handle & Timestamp */}
             <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs sm:text-[13px] shrink-0 font-normal">

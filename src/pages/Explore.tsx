@@ -293,7 +293,7 @@ export function Explore() {
             {activeTab === "posts" && (
               <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
                 {results.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard key={post.id} post={post} onPostDeleted={(id) => setResults(prev => prev.filter((p: any) => p.id !== id))} />
                 ))}
               </div>
             )}

@@ -1,11 +1,12 @@
 import { db } from "../../src/db/index.js";
-import { postMedia, reposts, likes, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes } from "../../src/db/schema.js";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { postMedia, reposts, likes, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes, follows } from "../../src/db/schema.js";
+import { eq, and, inArray, sql, or } from "drizzle-orm";
 
 export async function populatePostStats(postsList: any[], currentUserId?: number | null) {
   if (!postsList || postsList.length === 0) return postsList;
   
   const postIds = postsList.map(p => p.id);
+  const authorIds = Array.from(new Set(postsList.map(p => p.user?.id || p.userId).filter(Boolean)));
   const viewerId = currentUserId ?? -1;
   
   let allMedia: any[] = [];
@@ -16,6 +17,7 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
   let allCollabs: any[] = [];
   let allPollOptions: any[] = [];
   let allPollVotes: any[] = [];
+  let followStats: any[] = [];
 
   if (postIds.length > 0) {
     [allMedia, repostStats, likeStats, bookmarkStats, commentStats, allCollabs, allPollOptions, allPollVotes] = await Promise.all([
@@ -65,7 +67,26 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
     ]);
   }
 
+  if (viewerId !== -1 && authorIds.length > 0) {
+    followStats = await db.select({
+      followerId: follows.followerId,
+      followingId: follows.followingId
+    }).from(follows)
+    .where(
+      or(
+        and(eq(follows.followerId, viewerId), inArray(follows.followingId, authorIds)),
+        and(eq(follows.followingId, viewerId), inArray(follows.followerId, authorIds))
+      )
+    );
+  }
+
   // Create maps for O(1) lookup
+  const isFollowingMap = new Map();
+  const followsMeMap = new Map();
+  followStats.forEach(f => {
+    if (f.followerId === viewerId) isFollowingMap.set(f.followingId, true);
+    if (f.followingId === viewerId) followsMeMap.set(f.followerId, true);
+  });
   const repostsMap = new Map(repostStats.map(s => [s.postId, { count: s.count, isReposted: s.isReposted === 1 }]));
   const likesMap = new Map(likeStats.map(s => [s.postId, { count: s.count, isLiked: s.isLiked === 1 }]));
   const bookmarksMap = new Map(bookmarkStats.map(s => [s.postId, { isSaved: s.isSaved === 1 }]));
@@ -123,8 +144,16 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
       };
     }
 
+    const authorId = p.user?.id || p.userId;
+    const postUser = p.user ? {
+      ...p.user,
+      isFollowing: viewerId === -1 || authorId === viewerId ? false : !!isFollowingMap.get(authorId),
+      followsMe: viewerId === -1 || authorId === viewerId ? false : !!followsMeMap.get(authorId)
+    } : p.user;
+
     return {
       ...p,
+      user: postUser,
       pollData: pPollOptions,
       media: pMedia,
       repostCount: rStat.count,

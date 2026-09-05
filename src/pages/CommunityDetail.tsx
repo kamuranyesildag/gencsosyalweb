@@ -42,6 +42,7 @@ export function CommunityDetail() {
   const [activeTab, setActiveTab] = useState<"posts" | "members">("posts");
   const {
     data: posts,
+    setData: setPosts,
     loading: loadingPosts,
     loadingMore,
     hasMore,
@@ -292,7 +293,7 @@ export function CommunityDetail() {
               </div>
             ) : posts.length > 0 ? (
               <div className="divide-y divide-slate-100"><InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (
-                    <PostCard key={post.id} post={post} />
+                    <PostCard key={post.id} post={post} onPostDeleted={(id) => setPosts(prev => prev.filter(p => p.id !== id))} />
                   )} /></div>
             ) : (
               <EmptyState

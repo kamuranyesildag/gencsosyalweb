@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, ChevronLeft, ChevronRight, Loader2, Volume2, VolumeX } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Loader2, Volume2, VolumeX, Trash2, Eye } from "lucide-react";
 import { Avatar } from "./ui/Avatar";
 import { fetchApi } from "../lib/api";
+import { useAuthStore } from "../context/useAuth";
+import { toast } from "./ui/Toast";
 
 export interface Story {
   id: number;
@@ -28,15 +30,20 @@ interface StoryViewerProps {
   usersWithStories: UserStories[];
   initialUserIndex: number;
   onClose: () => void;
+  onStoryDeleted?: () => void;
 }
 
-export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: StoryViewerProps) {
+export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onStoryDeleted }: StoryViewerProps) {
+  const { user: currentUser } = useAuthStore();
   const [currentUserIndex, setCurrentUserIndex] = useState(initialUserIndex);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [viewers, setViewers] = useState<any[]>([]);
+  const [showViewers, setShowViewers] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const currentUserStories = usersWithStories[currentUserIndex];
   const currentStory = currentUserStories?.stories[currentStoryIndex];
@@ -57,13 +64,23 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
 
     setLoading(true);
     setProgress(0);
+    setShowViewers(false);
 
     // Record view
     fetchApi(`/stories/${currentStory.id}/view`, { method: "POST" }).catch(() => {});
-  }, [currentStory?.id]);
+    
+    if (currentUser?.id === currentUserStories?.userId) {
+      fetchApi(`/stories/${currentStory.id}/views`).then(async (res) => {
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) setViewers(json.data);
+        }
+      }).catch(() => {});
+    }
+  }, [currentStory?.id, currentUser?.id, currentUserStories?.userId]);
 
   useEffect(() => {
-    if (isPaused || loading || !currentStory) return;
+    if (isPaused || loading || showViewers || !currentStory) return;
 
     let duration = 5000; // default 5s
     if (currentStory.mediaType === "video") {
@@ -87,7 +104,29 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentStory, isPaused, loading, currentUserIndex, currentStoryIndex]);
+  }, [currentStory, isPaused, loading, showViewers, currentUserIndex, currentStoryIndex]);
+
+  const handleDelete = async () => {
+    if (!currentStory) return;
+    if (!confirm("Bu hikayeyi silmek istediğinize emin misiniz?")) return;
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetchApi(`/stories/${currentStory.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Hikaye silindi");
+        if (onStoryDeleted) onStoryDeleted();
+        else onClose(); // Fallback if no callback
+      } else {
+        toast.error(json.error?.message || "Silinemedi");
+      }
+    } catch (e) {
+      toast.error("Silinemedi");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleNext = () => {
     if (!currentUserStories) return;
@@ -207,6 +246,20 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
             </div>
 
             <div className="flex items-center gap-1.5">
+              {currentUser?.id === currentUserStories?.userId && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  disabled={isDeleting}
+                  aria-label="Sil"
+                  className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-red-400 bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-colors cursor-pointer"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+              )}
               {currentStory.mediaType === "video" && (
                 <button
                   type="button"
@@ -252,7 +305,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
                   <video
                     id={`video-${currentStory.id}`}
                     src={currentStory.mediaUrl}
-                    className="w-full h-full object-cover"
+                    className="max-w-full max-h-full object-contain"
                     autoPlay
                     playsInline
                     muted={isMuted}
@@ -263,7 +316,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
                   <img
                     src={currentStory.mediaUrl}
                     alt="Hikaye içeriği"
-                    className="w-full h-full object-cover"
+                    className="max-w-full max-h-full object-contain"
                     onLoad={() => setLoading(false)}
                   />
                 )}
@@ -290,6 +343,83 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose }: Sto
             role="button"
             aria-label="Sonraki"
           />
+          
+          {/* Viewers Toggle for Owner */}
+          {currentUser?.id === currentUserStories?.userId && (
+            <div className="absolute bottom-4 inset-x-0 z-40 flex justify-center pointer-events-none">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowViewers(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white/90 transition-colors pointer-events-auto cursor-pointer"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="text-xs font-medium tracking-wide">{viewers.length} Görüntüleme</span>
+              </button>
+            </div>
+          )}
+
+          {/* Viewers Bottom Sheet */}
+          <AnimatePresence>
+            {showViewers && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowViewers(false)}
+                  className="absolute inset-0 bg-black/60 z-40"
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                  className="absolute bottom-0 inset-x-0 bg-white dark:bg-[#0D121D] z-50 rounded-t-2xl max-h-[60%] flex flex-col"
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-white/10">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-slate-500" />
+                      Görüntüleyenler ({viewers.length})
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowViewers(false)}
+                      className="p-1 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto flex-1 p-2">
+                    {viewers.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-slate-500">
+                        Henüz görüntüleyen yok.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {viewers.map((viewer) => (
+                          <div key={viewer.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                            <Avatar url={viewer.avatarUrl} name={viewer.displayName || viewer.username} size="sm" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                {viewer.displayName || viewer.username}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">@{viewer.username}</p>
+                            </div>
+                            <span className="text-xs text-slate-400">
+                              {new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </AnimatePresence>

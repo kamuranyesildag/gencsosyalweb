@@ -248,6 +248,10 @@ export function StoriesBar() {
           usersWithStories={usersWithStories}
           initialUserIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
+          onStoryDeleted={() => {
+            setViewerIndex(null);
+            loadStories();
+          }}
         />
       )}
     </>

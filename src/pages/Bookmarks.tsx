@@ -9,7 +9,7 @@ import { SkeletonList } from "../components/ui/Skeleton";
 
 export function Bookmarks() {
   const navigate = useNavigate();
-  const { data: posts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination("/bookmarks");
+  const { data: posts, setData: setPosts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination("/bookmarks");
 
   useEffect(() => {
     loadInitial();
@@ -33,7 +33,7 @@ export function Bookmarks() {
           <SkeletonList count={3} className="p-4 sm:p-6" />
         ) : posts.length > 0 ? (
           <div className="divide-y divide-slate-100">
-            <InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={{ ...post, isSaved: true }} />)} />
+            <InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={{ ...post, isSaved: true }} onPostDeleted={(id) => setPosts(prev => prev.filter((p: any) => p.id !== id))} />)} />
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center p-6">

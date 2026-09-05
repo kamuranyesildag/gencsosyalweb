@@ -145,6 +145,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       .where(eq(projects.userId, targetUser.id));
     
     let isFollowing = false;
+    let followsMe = false;
     let notificationPreference = null;
 
     if (currentUserId) {
@@ -152,6 +153,10 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       if (isFollowingRes.length > 0) {
         isFollowing = true;
         notificationPreference = isFollowingRes[0].notificationPreference;
+      }
+      const followsMeRes = await db.select().from(follows).where(and(eq(follows.followerId, targetUser.id), eq(follows.followingId, currentUserId))).limit(1);
+      if (followsMeRes.length > 0) {
+        followsMe = true;
       }
     }
 
@@ -162,6 +167,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       postsCount: Number(postCountRes[0]?.count || 0),
       projectsCount: Number(projectCountRes[0]?.count || 0),
       isFollowing,
+      followsMe,
       notificationPreference,
     };
 
