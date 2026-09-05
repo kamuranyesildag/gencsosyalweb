@@ -218,6 +218,13 @@
       "when": 1788454181710,
       "tag": "0030_tearful_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1788639207907,
+      "tag": "0031_keen_absorbing_man",
+      "breakpoints": true
     }
   ]
 }

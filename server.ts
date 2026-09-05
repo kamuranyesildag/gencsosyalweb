@@ -147,6 +147,12 @@ async function startServer() {
     app.use("/api/v1/collaborators", collaboratorsRouter);
     app.use("/api/v1/onboarding", onboardingRouter);
     app.use("/api/v1/gamification", gamificationRouter);
+    
+    const { supportRouter } = await import("./server/routes/support.js");
+    app.use("/api/v1/support", supportRouter);
+
+    const { feedbacksRouter } = await import("./server/routes/feedbacks.js");
+    app.use("/api/v1/feedbacks", feedbacksRouter);
 
     const { seoMiddleware } = await import("./server/middleware/seo.js");
     app.use(seoMiddleware);

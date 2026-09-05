@@ -12,11 +12,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc17) => {
+var __copyProps = (to, from, except, desc19) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc17 = __getOwnPropDesc(from, key)) || desc17.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc19 = __getOwnPropDesc(from, key)) || desc19.enumerable });
   }
   return to;
 };
@@ -272,6 +272,8 @@ __export(schema_exports, {
   conversationMembersRelations: () => conversationMembersRelations,
   conversations: () => conversations,
   conversationsRelations: () => conversationsRelations,
+  feedbacks: () => feedbacks,
+  feedbacksRelations: () => feedbacksRelations,
   follows: () => follows,
   followsRelations: () => followsRelations,
   hashtags: () => hashtags,
@@ -315,6 +317,10 @@ __export(schema_exports, {
   securityAuditLogs: () => securityAuditLogs,
   stories: () => stories,
   storyViews: () => storyViews,
+  supportTicketMessages: () => supportTicketMessages,
+  supportTicketMessagesRelations: () => supportTicketMessagesRelations,
+  supportTickets: () => supportTickets,
+  supportTicketsRelations: () => supportTicketsRelations,
   systemSettings: () => systemSettings,
   userBadges: () => userBadges,
   userBadgesRelations: () => userBadgesRelations,
@@ -325,7 +331,7 @@ __export(schema_exports, {
   weeklyLeaderboards: () => weeklyLeaderboards,
   weeklyLeaderboardsRelations: () => weeklyLeaderboardsRelations
 });
-var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations;
+var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations, supportTickets, supportTicketMessages, feedbacks, supportTicketsRelations, supportTicketMessagesRelations, feedbacksRelations;
 var init_schema = __esm({
   "src/db/schema.ts"() {
     "use strict";
@@ -1120,6 +1126,59 @@ var init_schema = __esm({
     }));
     badgesRelations = (0, import_drizzle_orm.relations)(badges, ({ many }) => ({
       users: many(userBadges)
+    }));
+    supportTickets = (0, import_pg_core.pgTable)("support_tickets", {
+      id: (0, import_pg_core.serial)("id").primaryKey(),
+      userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      category: (0, import_pg_core.varchar)("category", { length: 50 }).notNull(),
+      subject: (0, import_pg_core.varchar)("subject", { length: 255 }).notNull(),
+      description: (0, import_pg_core.text)("description").notNull(),
+      status: (0, import_pg_core.varchar)("status", { length: 20 }).default("OPEN").notNull(),
+      // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+      createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
+      updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+    });
+    supportTicketMessages = (0, import_pg_core.pgTable)("support_ticket_messages", {
+      id: (0, import_pg_core.serial)("id").primaryKey(),
+      ticketId: (0, import_pg_core.integer)("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+      userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      message: (0, import_pg_core.text)("message").notNull(),
+      isAdmin: (0, import_pg_core.boolean)("is_admin").default(false).notNull(),
+      createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+    });
+    feedbacks = (0, import_pg_core.pgTable)("feedbacks", {
+      id: (0, import_pg_core.serial)("id").primaryKey(),
+      userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      type: (0, import_pg_core.varchar)("type", { length: 50 }).notNull(),
+      // FEATURE_REQUEST, BUG_REPORT, UI_UX, PERFORMANCE, GENERAL
+      title: (0, import_pg_core.varchar)("title", { length: 255 }).notNull(),
+      description: (0, import_pg_core.text)("description").notNull(),
+      status: (0, import_pg_core.varchar)("status", { length: 20 }).default("NEW").notNull(),
+      // NEW, REVIEWED, IN_PROGRESS, RESOLVED, REJECTED
+      createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+    });
+    supportTicketsRelations = (0, import_drizzle_orm.relations)(supportTickets, ({ one, many }) => ({
+      user: one(users, {
+        fields: [supportTickets.userId],
+        references: [users.id]
+      }),
+      messages: many(supportTicketMessages)
+    }));
+    supportTicketMessagesRelations = (0, import_drizzle_orm.relations)(supportTicketMessages, ({ one }) => ({
+      ticket: one(supportTickets, {
+        fields: [supportTicketMessages.ticketId],
+        references: [supportTickets.id]
+      }),
+      user: one(users, {
+        fields: [supportTicketMessages.userId],
+        references: [users.id]
+      })
+    }));
+    feedbacksRelations = (0, import_drizzle_orm.relations)(feedbacks, ({ one }) => ({
+      user: one(users, {
+        fields: [feedbacks.userId],
+        references: [users.id]
+      })
     }));
   }
 });
@@ -8537,6 +8596,183 @@ var init_collaborators = __esm({
   }
 });
 
+// server/routes/support.ts
+var support_exports = {};
+__export(support_exports, {
+  supportRouter: () => supportRouter
+});
+var import_express28, import_drizzle_orm33, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
+var init_support = __esm({
+  "server/routes/support.ts"() {
+    "use strict";
+    import_express28 = require("express");
+    init_db();
+    init_schema();
+    import_drizzle_orm33 = require("drizzle-orm");
+    init_auth();
+    import_zod9 = require("zod");
+    supportRouter = (0, import_express28.Router)();
+    createTicketSchema = import_zod9.z.object({
+      category: import_zod9.z.string().min(1).max(50),
+      subject: import_zod9.z.string().min(5, "Konu en az 5 karakter olmal\u0131d\u0131r.").max(255),
+      description: import_zod9.z.string().min(10, "A\xE7\u0131klama en az 10 karakter olmal\u0131d\u0131r.")
+    });
+    createMessageSchema2 = import_zod9.z.object({
+      message: import_zod9.z.string().min(1, "Mesaj bo\u015F olamaz.")
+    });
+    supportRouter.post("/", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const parsed = createTicketSchema.safeParse(req.body);
+        if (!parsed.success) {
+          return res.status(400).json({
+            success: false,
+            error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message }
+          });
+        }
+        const [ticket] = await db.insert(supportTickets).values({
+          userId: currentUserId,
+          category: parsed.data.category,
+          subject: parsed.data.subject,
+          description: parsed.data.description,
+          status: "OPEN"
+        }).returning();
+        res.json({ success: true, data: ticket });
+      } catch (error) {
+        console.error("Create ticket error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+    supportRouter.get("/", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const tickets = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.userId, currentUserId)).orderBy((0, import_drizzle_orm33.desc)(supportTickets.createdAt));
+        res.json({ success: true, data: tickets });
+      } catch (error) {
+        console.error("Get tickets error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+    supportRouter.get("/:id", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const ticketId = parseInt(req.params.id);
+        if (isNaN(ticketId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        if (!ticket) {
+          return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
+        }
+        if (ticket.userId !== currentUserId) {
+          return res.status(403).json({ success: false, error: { message: "Yetkisiz eri\u015Fim" } });
+        }
+        const messages2 = await db.select({
+          id: supportTicketMessages.id,
+          message: supportTicketMessages.message,
+          isAdmin: supportTicketMessages.isAdmin,
+          createdAt: supportTicketMessages.createdAt,
+          user: {
+            id: users.id,
+            username: users.username,
+            displayName: profiles.displayName,
+            avatarUrl: profiles.avatarUrl
+          }
+        }).from(supportTicketMessages).innerJoin(users, (0, import_drizzle_orm33.eq)(users.id, supportTicketMessages.userId)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.eq)(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
+        res.json({ success: true, data: { ...ticket, messages: messages2 } });
+      } catch (error) {
+        console.error("Get ticket error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+    supportRouter.post("/:id/messages", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const ticketId = parseInt(req.params.id);
+        if (isNaN(ticketId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
+        const parsed = createMessageSchema2.safeParse(req.body);
+        if (!parsed.success) {
+          return res.status(400).json({ success: false, error: { message: parsed.error.issues[0].message } });
+        }
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        if (!ticket) return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
+        if (ticket.userId !== currentUserId) {
+          return res.status(403).json({ success: false, error: { message: "Yetkisiz eri\u015Fim" } });
+        }
+        if (ticket.status === "CLOSED") {
+          return res.status(400).json({ success: false, error: { message: "Kapanm\u0131\u015F bir talebe yan\u0131t veremezsiniz." } });
+        }
+        const [message] = await db.insert(supportTicketMessages).values({
+          ticketId,
+          userId: currentUserId,
+          message: parsed.data.message,
+          isAdmin: false
+        }).returning();
+        await db.update(supportTickets).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        res.json({ success: true, data: message });
+      } catch (error) {
+        console.error("Create ticket message error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+  }
+});
+
+// server/routes/feedbacks.ts
+var feedbacks_exports = {};
+__export(feedbacks_exports, {
+  feedbacksRouter: () => feedbacksRouter
+});
+var import_express29, import_drizzle_orm34, import_zod10, feedbacksRouter, createFeedbackSchema;
+var init_feedbacks = __esm({
+  "server/routes/feedbacks.ts"() {
+    "use strict";
+    import_express29 = require("express");
+    init_db();
+    init_schema();
+    import_drizzle_orm34 = require("drizzle-orm");
+    init_auth();
+    import_zod10 = require("zod");
+    feedbacksRouter = (0, import_express29.Router)();
+    createFeedbackSchema = import_zod10.z.object({
+      type: import_zod10.z.string().min(1).max(50),
+      title: import_zod10.z.string().min(5, "Ba\u015Fl\u0131k en az 5 karakter olmal\u0131d\u0131r.").max(255),
+      description: import_zod10.z.string().min(10, "A\xE7\u0131klama en az 10 karakter olmal\u0131d\u0131r.")
+    });
+    feedbacksRouter.post("/", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const parsed = createFeedbackSchema.safeParse(req.body);
+        if (!parsed.success) {
+          return res.status(400).json({
+            success: false,
+            error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message }
+          });
+        }
+        const [feedback] = await db.insert(feedbacks).values({
+          userId: currentUserId,
+          type: parsed.data.type,
+          title: parsed.data.title,
+          description: parsed.data.description,
+          status: "NEW"
+        }).returning();
+        res.json({ success: true, data: feedback });
+      } catch (error) {
+        console.error("Create feedback error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+    feedbacksRouter.get("/", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = req.user.userId;
+        const results = await db.select().from(feedbacks).where((0, import_drizzle_orm34.eq)(feedbacks.userId, currentUserId)).orderBy((0, import_drizzle_orm34.desc)(feedbacks.createdAt));
+        res.json({ success: true, data: results });
+      } catch (error) {
+        console.error("Get feedbacks error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131" } });
+      }
+    });
+  }
+});
+
 // server/middleware/seo.ts
 var seo_exports = {};
 __export(seo_exports, {
@@ -8551,13 +8787,13 @@ function escapeHtml2(unsafe) {
   if (!unsafe) return "";
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-var import_drizzle_orm33, BOT_USER_AGENTS, seoMiddleware;
+var import_drizzle_orm35, BOT_USER_AGENTS, seoMiddleware;
 var init_seo = __esm({
   "server/middleware/seo.ts"() {
     "use strict";
     init_db();
     init_schema();
-    import_drizzle_orm33 = require("drizzle-orm");
+    import_drizzle_orm35 = require("drizzle-orm");
     BOT_USER_AGENTS = [
       "twitterbot",
       "facebookexternalhit",
@@ -8595,7 +8831,7 @@ var init_seo = __esm({
             visibility: posts.visibility,
             displayName: profiles.displayName,
             username: users.username
-          }).from(posts).innerJoin(users, (0, import_drizzle_orm33.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.eq)(posts.id, postId)).limit(1);
+          }).from(posts).innerJoin(users, (0, import_drizzle_orm35.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(posts.id, postId)).limit(1);
           if (postRecord.length > 0) {
             const p = postRecord[0];
             if (p.visibility === "PUBLIC") {
@@ -8605,7 +8841,7 @@ var init_seo = __esm({
           }
         } else if (communityMatch) {
           const communitySlug = communityMatch[1];
-          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm33.eq)(communities.slug, communitySlug)).limit(1);
+          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm35.eq)(communities.slug, communitySlug)).limit(1);
           if (commRecord.length > 0) {
             const c = commRecord[0];
             title = `${c.name} - Gen\xE7 Sosyal Toplulu\u011Fu`;
@@ -8618,7 +8854,7 @@ var init_seo = __esm({
             displayName: profiles.displayName,
             bio: profiles.bio,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.eq)(users.username, username)).limit(1);
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(users.username, username)).limit(1);
           if (userRecord.length > 0) {
             const u = userRecord[0];
             title = `${u.displayName} (@${username}) - Gen\xE7 Sosyal`;
@@ -8729,7 +8965,7 @@ onboardingRouter.get("/suggested-users", requireAuth, async (req, res) => {
 });
 
 // server.ts
-var import_express28 = __toESM(require("express"), 1);
+var import_express30 = __toESM(require("express"), 1);
 var import_path7 = __toESM(require("path"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
@@ -8925,7 +9161,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
-  const app = (0, import_express28.default)();
+  const app = (0, import_express30.default)();
   app.set("trust proxy", 1);
   const PORT = 3e3;
   app.use((0, import_helmet.default)({
@@ -8958,11 +9194,11 @@ async function startServer() {
     },
     credentials: true
   }));
-  app.use(import_express28.default.json());
-  app.use(import_express28.default.urlencoded({ extended: true }));
+  app.use(import_express30.default.json());
+  app.use(import_express30.default.urlencoded({ extended: true }));
   app.use((0, import_cookie_parser.default)());
   ensureUploadDir();
-  app.use("/uploads", import_express28.default.static(getUploadDir()));
+  app.use("/uploads", import_express30.default.static(getUploadDir()));
   try {
     const { runMigration: runMigration2 } = await Promise.resolve().then(() => (init_migrate(), migrate_exports));
     await runMigration2(false);
@@ -9025,6 +9261,10 @@ async function startServer() {
   app.use("/api/v1/collaborators", collaboratorsRouter2);
   app.use("/api/v1/onboarding", onboardingRouter);
   app.use("/api/v1/gamification", gamificationRouter);
+  const { supportRouter: supportRouter2 } = await Promise.resolve().then(() => (init_support(), support_exports));
+  app.use("/api/v1/support", supportRouter2);
+  const { feedbacksRouter: feedbacksRouter2 } = await Promise.resolve().then(() => (init_feedbacks(), feedbacks_exports));
+  app.use("/api/v1/feedbacks", feedbacksRouter2);
   const { seoMiddleware: seoMiddleware2 } = await Promise.resolve().then(() => (init_seo(), seo_exports));
   app.use(seoMiddleware2);
   if (process.env.NODE_ENV !== "production") {
@@ -9035,7 +9275,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = import_path7.default.join(process.cwd(), "dist");
-    app.use(import_express28.default.static(distPath));
+    app.use(import_express30.default.static(distPath));
     app.use("/api", (req, res) => {
       res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
     });

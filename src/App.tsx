@@ -18,6 +18,7 @@ import { ProjectDetail } from "./pages/ProjectDetail";
 import { Projects } from "./pages/Projects";
 import { HashtagDetail } from "./pages/HashtagDetail";
 import { Settings } from "./pages/Settings";
+import { SupportDetail } from "./pages/SupportDetail";
 import NotFound from "./pages/NotFound";
 import { Admin } from "./pages/Admin";
 import { Onboarding } from "./pages/Onboarding";
@@ -94,6 +95,7 @@ export default function App() {
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/hashtags/:name" element={<HashtagDetail />} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/support/:id" element={<ProtectedRoute><SupportDetail /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
               </Route>
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />

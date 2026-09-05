@@ -4,6 +4,7 @@ import { fetchApi } from "../lib/api";
 import { SettingsProjects } from "../components/SettingsProjects";
 import { SettingsVerification } from "../components/SettingsVerification";
 import { SettingsInvites } from "../components/SettingsInvites";
+import { SettingsSupport } from "../components/settings/SettingsSupport";
 import { SettingsProfile } from "../components/settings/SettingsProfile";
 import { SettingsAccount } from "../components/settings/SettingsAccount";
 import { SettingsPrivacy } from "../components/settings/SettingsPrivacy";
@@ -24,7 +25,8 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  HelpCircle
 } from "lucide-react";
 
 export type SettingsTab = 
@@ -36,7 +38,8 @@ export type SettingsTab =
   | "security" 
   | "projects" 
   | "verification" 
-  | "invites";
+  | "invites"
+  | "support";
 
 interface NavGroup {
   title: string;
@@ -71,6 +74,12 @@ const navGroups: NavGroup[] = [
       { id: "projects", icon: LayoutGrid, label: "Projelerim", description: "Portföy projeleri ve vitrin" },
       { id: "invites", icon: UserCheck, label: "İş Birliği Davetleri", description: "Ortak üretici davetleri" },
       { id: "verification", icon: CheckCircle2, label: "Hesap Doğrulama", description: "Mavi tik rozet başvurusu" },
+    ],
+  },
+  {
+    title: "Yardım",
+    items: [
+      { id: "support", icon: HelpCircle, label: "Destek & Geri Bildirim", description: "Sorun bildir ve fikir paylaş" },
     ],
   },
 ];
@@ -353,6 +362,7 @@ export function Settings() {
                 {activeTab === "projects" && <SettingsProjects />}
                 {activeTab === "verification" && <SettingsVerification />}
                 {activeTab === "invites" && <SettingsInvites />}
+                {activeTab === "support" && <SettingsSupport />}
               </motion.div>
             </AnimatePresence>
           </main>

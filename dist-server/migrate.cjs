@@ -65,6 +65,8 @@ __export(schema_exports, {
   conversationMembersRelations: () => conversationMembersRelations,
   conversations: () => conversations,
   conversationsRelations: () => conversationsRelations,
+  feedbacks: () => feedbacks,
+  feedbacksRelations: () => feedbacksRelations,
   follows: () => follows,
   followsRelations: () => followsRelations,
   hashtags: () => hashtags,
@@ -108,6 +110,10 @@ __export(schema_exports, {
   securityAuditLogs: () => securityAuditLogs,
   stories: () => stories,
   storyViews: () => storyViews,
+  supportTicketMessages: () => supportTicketMessages,
+  supportTicketMessagesRelations: () => supportTicketMessagesRelations,
+  supportTickets: () => supportTickets,
+  supportTicketsRelations: () => supportTicketsRelations,
   systemSettings: () => systemSettings,
   userBadges: () => userBadges,
   userBadgesRelations: () => userBadgesRelations,
@@ -909,6 +915,59 @@ var userBadgesRelations = (0, import_drizzle_orm.relations)(userBadges, ({ one }
 }));
 var badgesRelations = (0, import_drizzle_orm.relations)(badges, ({ many }) => ({
   users: many(userBadges)
+}));
+var supportTickets = (0, import_pg_core.pgTable)("support_tickets", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: (0, import_pg_core.varchar)("category", { length: 50 }).notNull(),
+  subject: (0, import_pg_core.varchar)("subject", { length: 255 }).notNull(),
+  description: (0, import_pg_core.text)("description").notNull(),
+  status: (0, import_pg_core.varchar)("status", { length: 20 }).default("OPEN").notNull(),
+  // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
+  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+});
+var supportTicketMessages = (0, import_pg_core.pgTable)("support_ticket_messages", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  ticketId: (0, import_pg_core.integer)("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+  userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  message: (0, import_pg_core.text)("message").notNull(),
+  isAdmin: (0, import_pg_core.boolean)("is_admin").default(false).notNull(),
+  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+});
+var feedbacks = (0, import_pg_core.pgTable)("feedbacks", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: (0, import_pg_core.varchar)("type", { length: 50 }).notNull(),
+  // FEATURE_REQUEST, BUG_REPORT, UI_UX, PERFORMANCE, GENERAL
+  title: (0, import_pg_core.varchar)("title", { length: 255 }).notNull(),
+  description: (0, import_pg_core.text)("description").notNull(),
+  status: (0, import_pg_core.varchar)("status", { length: 20 }).default("NEW").notNull(),
+  // NEW, REVIEWED, IN_PROGRESS, RESOLVED, REJECTED
+  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
+});
+var supportTicketsRelations = (0, import_drizzle_orm.relations)(supportTickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id]
+  }),
+  messages: many(supportTicketMessages)
+}));
+var supportTicketMessagesRelations = (0, import_drizzle_orm.relations)(supportTicketMessages, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [supportTicketMessages.ticketId],
+    references: [supportTickets.id]
+  }),
+  user: one(users, {
+    fields: [supportTicketMessages.userId],
+    references: [users.id]
+  })
+}));
+var feedbacksRelations = (0, import_drizzle_orm.relations)(feedbacks, ({ one }) => ({
+  user: one(users, {
+    fields: [feedbacks.userId],
+    references: [users.id]
+  })
 }));
 
 // src/db/index.ts

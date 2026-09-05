@@ -884,3 +884,62 @@ export const userBadgesRelations = relations(userBadges, ({ one }) => ({
 export const badgesRelations = relations(badges, ({ many }) => ({
   users: many(userBadges),
 }));
+
+// --- SUPPORT & FEEDBACK ---
+
+export const supportTickets = pgTable('support_tickets', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  category: varchar('category', { length: 50 }).notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  status: varchar('status', { length: 20 }).default('OPEN').notNull(), // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const supportTicketMessages = pgTable('support_ticket_messages', {
+  id: serial('id').primaryKey(),
+  ticketId: integer('ticket_id').notNull().references(() => supportTickets.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  message: text('message').notNull(),
+  isAdmin: boolean('is_admin').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const feedbacks = pgTable('feedbacks', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull(), // FEATURE_REQUEST, BUG_REPORT, UI_UX, PERFORMANCE, GENERAL
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  status: varchar('status', { length: 20 }).default('NEW').notNull(), // NEW, REVIEWED, IN_PROGRESS, RESOLVED, REJECTED
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
+  }),
+  messages: many(supportTicketMessages),
+}));
+
+export const supportTicketMessagesRelations = relations(supportTicketMessages, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [supportTicketMessages.ticketId],
+    references: [supportTickets.id],
+  }),
+  user: one(users, {
+    fields: [supportTicketMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+export const feedbacksRelations = relations(feedbacks, ({ one }) => ({
+  user: one(users, {
+    fields: [feedbacks.userId],
+    references: [users.id],
+  }),
+}));
+
