@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { posts, postMedia, users, profiles, follows, reposts } from "../../src/db/schema.js";
+import { posts, postMedia, users, profiles, follows, reposts, postCollaborators } from "../../src/db/schema.js";
 import { eq, desc, isNull, inArray, and, or, lt } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
@@ -95,9 +95,62 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
     .orderBy(desc(reposts.createdAt), desc(reposts.id))
     .limit(limit);
 
-    const [authoredPosts, repostedPosts] = await Promise.all([p1, p2]);
+    let collabCursorCondition: any = undefined;
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      if (decoded) {
+        collabCursorCondition = or(lt(posts.createdAt, decoded.createdAt), and(eq(posts.createdAt, decoded.createdAt), lt(posts.id, decoded.id)));
+      }
+    }
 
-    let userPosts = [...authoredPosts, ...repostedPosts].sort((a, b) => {
+    const p3 = db.select({
+      id: posts.id,
+      content: posts.content,
+      postType: posts.postType,
+      contentWarning: posts.contentWarning,
+      visibility: posts.visibility,
+      viewCount: posts.viewCount,
+      createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
+      userId: posts.userId,
+      user: {
+        id: users.id,
+        username: users.username,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+      },
+      __repostCreatedAt: sql<Date>`NULL`,
+      __repostUserId: sql<number>`NULL`,
+    })
+    .from(postCollaborators)
+    .innerJoin(posts, eq(postCollaborators.postId, posts.id))
+    .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(and(
+      eq(postCollaborators.userId, targetUserId),
+      eq(postCollaborators.status, 'accepted'),
+      isNull(posts.communityId),
+      moderationCondition,
+      collabCursorCondition ? collabCursorCondition : undefined
+    ))
+    .orderBy(desc(posts.createdAt), desc(posts.id))
+    .limit(limit);
+
+    const [authoredPosts, repostedPosts, collabPosts] = await Promise.all([p1, p2, p3]);
+
+    // Make sure we deduplicate since a user could potentially be in both but shouldn't be
+    const uniqueIds = new Set();
+    let allPosts = [];
+    
+    for (const p of [...authoredPosts, ...repostedPosts, ...collabPosts]) {
+      const uniqueKey = p.__repostUserId ? `repost-${p.id}` : `post-${p.id}`;
+      if (!uniqueIds.has(uniqueKey)) {
+        uniqueIds.add(uniqueKey);
+        allPosts.push(p);
+      }
+    }
+
+    let userPosts = allPosts.sort((a, b) => {
       const timeA = (a.__repostCreatedAt || a.createdAt).getTime();
       const timeB = (b.__repostCreatedAt || b.createdAt).getTime();
       return timeB - timeA;

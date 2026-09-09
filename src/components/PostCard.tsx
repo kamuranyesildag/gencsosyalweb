@@ -441,12 +441,12 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
       )}
     >
       {/* 1. LEFT COLUMN: Author Avatar (Desktop) */}
-      <div className="hidden sm:block shrink-0">
+      <div className="hidden sm:block shrink-0 relative">
         <Link
           to={`/profile/${post.user?.username}`}
           onClick={(e) => e.stopPropagation()}
           aria-label={`${post.user?.displayName || post.user?.username} profili`}
-          className="block rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="block rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 relative z-0"
         >
           <Avatar
             url={post.user?.avatarUrl}
@@ -455,6 +455,19 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
             className="hover:opacity-90 transition-opacity"
           />
         </Link>
+        {post.collaborators && post.collaborators.length > 0 && (
+          <Link
+            to={`/profile/${post.collaborators[0].username}`}
+            onClick={(e) => e.stopPropagation()}
+            className="block rounded-full -mt-4 ml-4 border-2 border-white dark:border-[#0D121D] relative z-10"
+          >
+            <Avatar
+              url={post.collaborators[0].avatarUrl}
+              name={post.collaborators[0].displayName || post.collaborators[0].username}
+              size="sm"
+            />
+          </Link>
+        )}
       </div>
 
       {/* 2. RIGHT COLUMN: Main Post Structure */}
@@ -463,11 +476,12 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
             {/* Mobile Avatar */}
-            <div className="sm:hidden shrink-0">
+            <div className="sm:hidden shrink-0 relative">
               <Link
                 to={`/profile/${post.user?.username}`}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`${post.user?.displayName || post.user?.username} profili`}
+                className="relative z-0 block"
               >
                 <Avatar
                   url={post.user?.avatarUrl}
@@ -475,6 +489,19 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
                   size="sm"
                 />
               </Link>
+              {post.collaborators && post.collaborators.length > 0 && (
+                <Link
+                  to={`/profile/${post.collaborators[0].username}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="block rounded-full -mt-3 ml-3 border-2 border-white dark:border-[#0D121D] relative z-10"
+                >
+                  <Avatar
+                    url={post.collaborators[0].avatarUrl}
+                    name={post.collaborators[0].displayName || post.collaborators[0].username}
+                    size="xs"
+                  />
+                </Link>
+              )}
             </div>
 
             {/* Display Name & Verified Badge */}
@@ -493,6 +520,21 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
                 />
               )}
             </Link>
+
+            {post.collaborators && post.collaborators.length > 0 && (
+              <>
+                <span className="text-slate-400 dark:text-slate-500 text-sm font-normal -mx-1">ve</span>
+                <Link
+                  to={`/profile/${post.collaborators[0].username}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 min-w-0 truncate group/author"
+                >
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] group-hover/author:underline truncate">
+                    {post.collaborators[0].displayName || post.collaborators[0].username}
+                  </span>
+                </Link>
+              </>
+            )}
 
             {/* Follow Button */}
             {currentUser?.id !== post.user?.id && !isFollowingUser && (

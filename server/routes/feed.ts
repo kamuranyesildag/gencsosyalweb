@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { posts, postMedia, follows, users, profiles, postViews, reposts } from "../../src/db/schema.js";
-import { eq, inArray, desc, or, and, not, sql, isNull } from "drizzle-orm";
+import { posts, postMedia, follows, users, profiles, postViews, reposts, postCollaborators } from "../../src/db/schema.js";
+import { eq, inArray, desc, or, and, not, sql, isNull, exists } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { populatePostStats } from "../utils/postStats.js";
 import { paginationSchema } from "../validators/api.js";
@@ -137,14 +137,21 @@ const getFeedHandler = async (req: any, res: any) => {
     if (currentUserId) {
       whereConditions.push(
         or(
-          eq(posts.userId, currentUserId), // Kendi gönderileri
+          or(
+            eq(posts.userId, currentUserId),
+            exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), eq(postCollaborators.userId, currentUserId), eq(postCollaborators.status, 'accepted'))))
+          ), // Kendi gönderileri ve ortak oldukları
           and( // Takip ettiklerinin gönderileri
-            inArray(posts.userId, safeFollowingIds),
+            or(
+              inArray(posts.userId, safeFollowingIds),
+              exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), inArray(postCollaborators.userId, safeFollowingIds), eq(postCollaborators.status, 'accepted'))))
+            ),
             or(eq(posts.visibility, 'PUBLIC'), eq(posts.visibility, 'FOLLOWERS'))
           ),
           and( // Herkese açık olan, ama engellenmemiş genel gönderiler (Discover/Keşfet)
             eq(posts.visibility, 'PUBLIC'),
-            not(inArray(posts.userId, safeBlockedIds))
+            not(inArray(posts.userId, safeBlockedIds)),
+            not(exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), inArray(postCollaborators.userId, safeBlockedIds), eq(postCollaborators.status, 'accepted')))))
           )
         )
       );
@@ -258,8 +265,12 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
       and(
         isNull(posts.communityId),
         eq(posts.moderationStatus, 'APPROVED'),
-        inArray(posts.userId, safeFollowingIds),
+        or(
+          inArray(posts.userId, safeFollowingIds),
+          exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), inArray(postCollaborators.userId, safeFollowingIds), eq(postCollaborators.status, 'accepted'))))
+        ),
         not(inArray(posts.userId, safeBlockedIds)),
+        not(exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), inArray(postCollaborators.userId, safeBlockedIds), eq(postCollaborators.status, 'accepted'))))),
         or(eq(posts.visibility, 'PUBLIC'), eq(posts.visibility, 'FOLLOWERS'))
       )
     )

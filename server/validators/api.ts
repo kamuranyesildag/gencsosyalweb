@@ -29,6 +29,7 @@ export const updateProfileSchema = z.object({
 export const createPostSchema = z.object({
   content: z.string().max(2000).optional(),
   communityId: z.number().int().positive().optional(),
+  collaboratorId: z.number().int().positive().optional(),
   visibility: z.enum(["PUBLIC", "PRIVATE", "FOLLOWERS"]).default("PUBLIC"),
   postType: z.enum(["NORMAL", "POLL", "SENSITIVE"]).default("NORMAL"),
   quotedPostId: z.number().int().positive().optional(),

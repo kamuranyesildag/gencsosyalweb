@@ -103,12 +103,12 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
 
     const quotedMedia = await db.select().from(postMedia).where(inArray(postMedia.postId, quotedPostIds));
     const qMediaMap = new Map();
-    quotedMedia.forEach(m => {
+    quotedMedia.forEach((m: any) => {
       if (!qMediaMap.has(m.postId)) qMediaMap.set(m.postId, []);
       qMediaMap.get(m.postId).push(m);
     });
 
-    quotedPostsData.forEach(qp => {
+    quotedPostsData.forEach((qp: any) => {
       quotedPostsMap.set(qp.id, {
         ...qp,
         media: (qMediaMap.get(qp.id) || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder)

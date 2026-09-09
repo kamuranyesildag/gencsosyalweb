@@ -95,6 +95,8 @@ export function CreatePost({
   const [isFocused, setIsFocused] = useState(false);
   const [visibility, setVisibility] = useState<PostVisibility>("PUBLIC");
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+  const [collaboratorUsername, setCollaboratorUsername] = useState("");
+  const [showCollabInput, setShowCollabInput] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -241,6 +243,20 @@ export function CreatePost({
       }
 
       const filteredOptions = pollOptions.filter((o) => o.trim());
+      
+      let collaboratorId: number | undefined = undefined;
+      if (collaboratorUsername.trim()) {
+        const searchRes = await fetchApi(`/search?q=${collaboratorUsername.trim()}&limit=1`);
+        const searchJson = await searchRes.json();
+        if (searchJson.success && searchJson.data.length > 0) {
+          collaboratorId = searchJson.data[0].id;
+        } else {
+          toast.error("Ortak üretici bulunamadı.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const res = await fetchApi("/posts", {
         method: "POST",
         data: {
@@ -248,6 +264,7 @@ export function CreatePost({
           visibility,
           media: mediaUrls,
           communityId,
+          collaboratorId,
           postType,
           contentWarning: postType === "SENSITIVE" ? contentWarning : undefined,
           pollOptions: postType === "POLL" ? filteredOptions : undefined,
@@ -262,6 +279,7 @@ export function CreatePost({
         setPostType("NORMAL");
         setContentWarning("");
         setPollOptions(["", ""]);
+        setCollaboratorUsername("");
         setIsFocused(false);
         setVisibility("PUBLIC");
         toast.success("Gönderiniz paylaşıldı!");
@@ -419,6 +437,30 @@ export function CreatePost({
                     value={contentWarning}
                     onChange={(e) => setContentWarning(e.target.value)}
                     maxLength={100}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Collab Input Area */}
+          <AnimatePresence>
+            {showCollabInput && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.15 }}
+                className="mb-3 overflow-hidden"
+              >
+                <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-900/40 rounded-xl p-2.5 flex items-center gap-2.5">
+                  <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Ortak üretici kullanıcı adı (örn: can)..."
+                    className="w-full bg-transparent border-none outline-none text-xs font-medium text-emerald-900 dark:text-emerald-200 placeholder:text-emerald-500/70 focus:ring-0"
+                    value={collaboratorUsername}
+                    onChange={(e) => setCollaboratorUsername(e.target.value)}
                   />
                 </div>
               </motion.div>
@@ -628,6 +670,25 @@ export function CreatePost({
                 )}
               >
                 <ShieldAlert className="w-4.5 h-4.5 stroke-[1.75]" />
+              </button>
+
+              {/* Collab Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated) return openModal();
+                  setShowCollabInput(!showCollabInput);
+                }}
+                title="Ortak Üretici Ekle"
+                aria-label="Ortak Üretici Ekle"
+                className={cn(
+                  "flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl transition-all active:scale-[0.97] cursor-pointer",
+                  showCollabInput || collaboratorUsername
+                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40"
+                    : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
+                )}
+              >
+                <Users className="w-4.5 h-4.5 stroke-[1.75]" />
               </button>
             </div>
 

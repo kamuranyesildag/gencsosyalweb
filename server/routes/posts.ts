@@ -306,6 +306,23 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
         }
       }
       
+      if (parsed.data.collaboratorId) {
+         const targetUserId = parsed.data.collaboratorId;
+         if (targetUserId !== currentUserId) {
+           const blockedIds = await getBlockedIds(currentUserId);
+           if (!blockedIds.includes(targetUserId)) {
+             await tx.insert(postCollaborators).values({
+               postId: newPost.id,
+               userId: targetUserId,
+               status: 'pending'
+             });
+             if (modStatus === 'APPROVED') {
+               await notify(currentUserId, targetUserId, 'post_collaborator_invite', newPost.id);
+             }
+           }
+         }
+      }
+
       if (media && media.length > 0) {
         await tx.insert(postMedia).values(
           media.map((m: any, i: number) => ({
@@ -879,6 +896,12 @@ postsRouter.post("/:id/collaborators", requireAuth, async (req, res) => {
       return;
     }
 
+    const blockedIds = await getBlockedIds(currentUserId);
+    if (blockedIds.includes(targetUserId)) {
+      res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu işlem için yetkiniz yok." } });
+      return;
+    }
+
     const post = await db.select({ userId: posts.userId }).from(posts).where(and(eq(posts.id, postId), or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId)))).limit(1);
     if (post.length === 0) {
       res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." } });
@@ -963,7 +986,7 @@ postsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req, res) =
 });
 
 // GET /api/v1/posts/:id/collaborators
-postsRouter.get("/:id/collaborators", async (req, res) => {
+postsRouter.get("/:id/collaborators", optionalAuth, async (req, res) => {
   try {
     const postId = parseInt(req.params.id as string, 10);
     if (isNaN(postId)) {
@@ -971,6 +994,10 @@ postsRouter.get("/:id/collaborators", async (req, res) => {
       return;
     }
     
+    const currentUserId = optionalAuthContext(req);
+    const postRecord = await db.select({ userId: posts.userId }).from(posts).where(eq(posts.id, postId)).limit(1);
+    const isOwner = postRecord.length > 0 && postRecord[0].userId === currentUserId;
+
     const list = await db.select({
       userId: users.id,
       username: users.username,
@@ -983,7 +1010,9 @@ postsRouter.get("/:id/collaborators", async (req, res) => {
     .leftJoin(profiles, eq(users.id, profiles.userId))
     .where(and(
       eq(postCollaborators.postId, postId),
-      or(eq(postCollaborators.status, 'accepted'), eq(postCollaborators.status, 'pending'))
+      isOwner 
+        ? or(eq(postCollaborators.status, 'accepted'), eq(postCollaborators.status, 'pending'))
+        : eq(postCollaborators.status, 'accepted')
     ));
     
     res.json({ success: true, data: list });

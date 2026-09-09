@@ -273,7 +273,10 @@ export function PostDetail() {
           api
             .get(`/api/v1/posts/${json.data.id}/collaborators`)
             .then((c) => {
-              if (c.data?.success) setCollaborators(c.data.data);
+              if (c.data?.success) {
+                 setCollaborators(c.data.data);
+                 setPost((prev: any) => ({ ...prev, collaborators: c.data.data.filter((co: any) => co.status === 'accepted') }));
+              }
             })
             .catch(console.error);
         }

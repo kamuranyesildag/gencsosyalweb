@@ -136,12 +136,12 @@ export function Notifications() {
       setData((prev) => prev.map((n) => n.id === notif.id ? { ...n, isRead: true } : n));
     }
 
-    if (notif.postId) {
+    if (notif.type?.includes("collaborator_invite") || notif.type?.includes("project_invite")) {
+      navigate(`/settings?tab=invites`);
+    } else if (notif.postId) {
       navigate(`/post/${notif.postId}`);
     } else if (notif.projectId) {
       navigate(`/projects/${notif.projectId}`);
-    } else if (notif.type?.includes("collaborator_invite") || notif.type?.includes("project_invite")) {
-      navigate(`/settings?tab=invites`);
     } else if (notif.type === "follow" && notif.actor?.username) {
       navigate(`/profile/${notif.actor.username}`);
     } else if (notif.type === "verification") {
