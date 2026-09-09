@@ -96,8 +96,8 @@ async function startServer() {
 
   // Ensure upload directory exists
   ensureUploadDir();
-  // Serve uploads statically
-  app.use("/uploads", express.static(getUploadDir()));
+  // Serve uploads statically with dotfiles denied (returns 403)
+  app.use("/uploads", express.static(getUploadDir(), { dotfiles: 'deny' }));
 
   // Ensure database migrations are run
   try {
@@ -198,7 +198,8 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    // Serve static files with dotfiles denied (returns 403 Forbidden)
+    app.use(express.static(distPath, { dotfiles: 'deny' }));
     
     // API 404 handler - prevents API calls from returning index.html
     app.use('/api', (req, res) => {
@@ -206,9 +207,10 @@ async function startServer() {
     });
 
     // SPA fallback masking: Prevent sensitive routes and unhandled extensions from returning 200 OK index.html
+    // Return 403 Forbidden for security scanning tools
     app.use((req, res, next) => {
-      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
-        return res.status(404).send("Not Found");
+      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map|log)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
+        return res.status(403).json({ success: false, error: { message: "403 Forbidden: Access is denied." } });
       }
       next();
     });

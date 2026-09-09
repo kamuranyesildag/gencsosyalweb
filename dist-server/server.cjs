@@ -9348,7 +9348,7 @@ async function startServer() {
   app.use(import_express29.default.urlencoded({ extended: true }));
   app.use((0, import_cookie_parser.default)());
   ensureUploadDir();
-  app.use("/uploads", import_express29.default.static(getUploadDir()));
+  app.use("/uploads", import_express29.default.static(getUploadDir(), { dotfiles: "deny" }));
   try {
     const { runMigration: runMigration2 } = await Promise.resolve().then(() => (init_migrate(), migrate_exports));
     await runMigration2(false);
@@ -9422,13 +9422,13 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = import_path7.default.join(process.cwd(), "dist");
-    app.use(import_express29.default.static(distPath));
+    app.use(import_express29.default.static(distPath, { dotfiles: "deny" }));
     app.use("/api", (req, res) => {
       res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
     });
     app.use((req, res, next) => {
-      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
-        return res.status(404).send("Not Found");
+      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map|log)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
+        return res.status(403).json({ success: false, error: { message: "403 Forbidden: Access is denied." } });
       }
       next();
     });
