@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { getAllProjects, Project } from "../lib/projects";
@@ -34,6 +35,7 @@ const getStatusText = (status: string) => {
 };
 
 export function Projects() {
+  useSEO({ title: "Projeler | Genç Sosyal", description: "Genç Sosyal projelerini keşfedin." });
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();

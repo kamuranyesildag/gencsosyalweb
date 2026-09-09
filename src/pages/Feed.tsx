@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { PostCard } from "../components/PostCard";
@@ -37,6 +38,8 @@ interface Post {
 }
 
 export function Feed() {
+  useSEO({ title: "Akış | Genç Sosyal", description: "Genç Sosyal akışınızda en güncel gönderileri görün." });
+  useSEO({ title: "Akış | Genç Sosyal", description: "Genç Sosyal akışınızda en güncel gönderileri görün." });
   const navigate = useNavigate();
   const [feedType, setFeedType] = useState<"for_you" | "following">("for_you");
   const [posts, setPosts] = useState<Post[]>([]);

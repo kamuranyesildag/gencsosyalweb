@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router";
 import { 
@@ -20,6 +21,7 @@ import { InfiniteScroll } from "../components/InfiniteScroll";
 import { NewMessageDialog } from "../components/NewMessageDialog";
 
 export function Messages() {
+  useSEO({ allowIndexing: false });
   const [showNewMsg, setShowNewMsg] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { data: conversations, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination("/messages/conversations");

@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export function Landing() {
+  useSEO({ title: "Genç Sosyal | Türkiye'nin Gençler İçin Sosyal Medya Platformu", description: "Gençlerin buluşma noktası: Genç Sosyal. Fikirlerini paylaş, topluluklara katıl ve projelere destek ol." });
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 

@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../context/useAuth";
 import { fetchApi } from "../lib/api";
@@ -85,6 +86,7 @@ const navGroups: NavGroup[] = [
 ];
 
 export function Settings() {
+  useSEO({ allowIndexing: false });
   const { user } = useAuthStore();
   const authUser = useAuthStore((state) => state.user);
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {

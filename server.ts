@@ -101,6 +101,8 @@ async function startServer() {
   app.use("/api/health", healthRouter);
 
   
+    const { robotsRouter } = await import("./server/routes/robots.js");
+    app.use("/", robotsRouter);
     const { sitemapRouter } = await import("./server/routes/sitemap.js");
     app.use("/", sitemapRouter);
     const { projectsRouter } = await import("./server/routes/projects.js");

@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -13,6 +14,7 @@ import { useAuthModalStore } from "../context/useAuthModal";
 import { backdropVariants, modalVariants } from "../lib/motion";
 
 export function Communities() {
+  useSEO({ title: "Topluluklar | Genç Sosyal", description: "Genç Sosyal topluluklarını keşfedin." });
   const [communities, setCommunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);

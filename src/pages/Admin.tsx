@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore } from '../context/useAuth';
@@ -50,6 +51,7 @@ interface TabItem {
 }
 
 export function Admin() {
+  useSEO({ allowIndexing: false });
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
 

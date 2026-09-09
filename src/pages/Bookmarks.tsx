@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { PostCard } from "../components/PostCard";
@@ -8,6 +9,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonList } from "../components/ui/Skeleton";
 
 export function Bookmarks() {
+  useSEO({ allowIndexing: false });
   const navigate = useNavigate();
   const { data: posts, setData: setPosts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination("/bookmarks");
 

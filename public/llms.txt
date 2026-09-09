@@ -1,0 +1,21 @@
+# Genç Sosyal
+Türkiye'nin gençler için sosyal medya platformu.
+
+## Platform Hakkında
+Genç Sosyal, Türkiye'deki gençlerin buluşma noktasıdır. Kullanıcılar (öğrenciler, gençler) fikirlerini paylaşabilir, ortak ilgi alanlarına göre topluluklara (communities) katılabilir, eğitim ve girişimcilik projeleri (projects) oluşturabilir veya destekleyebilirler.
+
+## Ana Sayfalar
+- Ana Sayfa / Keşfet: https://gencsosyal.com
+- Topluluklar: https://gencsosyal.com/communities
+- Projeler: https://gencsosyal.com/projects
+- Giriş/Kayıt: https://gencsosyal.com/login
+
+## Temel Özellikler
+- **Gönderiler (Posts)**: Normal gönderiler, anketler ve hassas içerik uyarıları.
+- **Topluluklar (Communities)**: İlgi alanlarına göre public veya private tartışma grupları.
+- **Projeler (Projects)**: Gençlerin birlikte üretebileceği fikir ve girişim platformu.
+- **Etkileşim**: Beğeni, yorum, repost, yer imleri, anlık bildirimler, DM (mesajlaşma).
+- **Ortak Üreticiler (Collaborators)**: Bir gönderinin birden fazla yazar tarafından paylaşılabilmesi.
+
+## Teknolojik Altyapı
+Bu proje React, Vite, Tailwind CSS (frontend) ve Node.js, Express, Drizzle ORM, PostgreSQL (backend) ile geliştirilmiştir. Google AI / Gemini API gibi modern AI asistan özellikleriyle desteklenebilecek şekilde tasarlanmıştır.

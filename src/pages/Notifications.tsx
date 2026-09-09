@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { 
@@ -24,6 +25,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle } from "../components/ui/Skeleton";
 
 export function Notifications() {
+  useSEO({ allowIndexing: false });
   const { data: notifications, loading, loadingMore, hasMore, loadInitial, loadMore, setData } = usePagination("/notifications");
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [isMarkingRead, setIsMarkingRead] = useState(false);

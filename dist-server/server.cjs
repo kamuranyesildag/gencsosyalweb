@@ -12,11 +12,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc19) => {
+var __copyProps = (to, from, except, desc20) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc19 = __getOwnPropDesc(from, key)) || desc19.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc20 = __getOwnPropDesc(from, key)) || desc20.enumerable });
   }
   return to;
 };
@@ -1722,39 +1722,116 @@ var init_health = __esm({
   }
 });
 
+// server/routes/robots.ts
+var robots_exports = {};
+__export(robots_exports, {
+  robotsRouter: () => robotsRouter
+});
+var import_express4, robotsRouter;
+var init_robots = __esm({
+  "server/routes/robots.ts"() {
+    "use strict";
+    import_express4 = require("express");
+    robotsRouter = (0, import_express4.Router)();
+    robotsRouter.get("/robots.txt", (req, res) => {
+      const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+      const content = `User-agent: *
+Disallow: /messages
+Disallow: /settings
+Disallow: /admin
+Disallow: /api/
+Disallow: /notifications
+Disallow: /bookmarks
+Disallow: /search
+Disallow: /onboarding
+Allow: /
+
+Sitemap: ${domain}/sitemap.xml
+`;
+      res.header("Content-Type", "text/plain");
+      res.send(content);
+    });
+  }
+});
+
 // server/routes/sitemap.ts
 var sitemap_exports = {};
 __export(sitemap_exports, {
   sitemapRouter: () => sitemapRouter
 });
-var import_express4, import_drizzle_orm7, sitemapRouter;
+var import_express5, import_drizzle_orm7, sitemapRouter;
 var init_sitemap = __esm({
   "server/routes/sitemap.ts"() {
     "use strict";
-    import_express4 = require("express");
+    import_express5 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm7 = require("drizzle-orm");
-    sitemapRouter = (0, import_express4.Router)();
+    sitemapRouter = (0, import_express5.Router)();
     sitemapRouter.get("/sitemap.xml", async (req, res) => {
       try {
-        const domain = "https://gencsosyal.com";
-        const publicProfiles = await db.select({ username: users.username }).from(profiles).innerJoin(users, (0, import_drizzle_orm7.eq)(profiles.userId, users.id)).where((0, import_drizzle_orm7.eq)(profiles.allowSearchEngineIndexing, true));
+        const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+        const publicProfiles = await db.select({ username: users.username }).from(profiles).innerJoin(users, (0, import_drizzle_orm7.eq)(profiles.userId, users.id)).where((0, import_drizzle_orm7.eq)(profiles.allowSearchEngineIndexing, true)).limit(5e3);
+        const publicPosts = await db.select({ id: posts.id }).from(posts).where(
+          (0, import_drizzle_orm7.and)(
+            (0, import_drizzle_orm7.eq)(posts.visibility, "PUBLIC"),
+            (0, import_drizzle_orm7.eq)(posts.moderationStatus, "APPROVED"),
+            (0, import_drizzle_orm7.isNull)(posts.communityId)
+          )
+        ).orderBy((0, import_drizzle_orm7.desc)(posts.createdAt)).limit(5e3);
+        const publicCommunities = await db.select({ slug: communities.slug }).from(communities).limit(1e3);
+        const publicProjects = await db.select({ id: projects.id }).from(projects).limit(1e3);
+        const publicHashtags = await db.select({ name: hashtags.name }).from(hashtags).orderBy((0, import_drizzle_orm7.desc)(hashtags.usageCount)).limit(1e3);
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 `;
         xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
-        xml += `  <url>
-    <loc>${domain}/</loc>
+        const statics = ["/", "/explore", "/projects", "/communities"];
+        statics.forEach((path9) => {
+          xml += `  <url>
+    <loc>${domain}${path9}</loc>
     <changefreq>always</changefreq>
     <priority>1.0</priority>
   </url>
 `;
-        publicProfiles.forEach((profile) => {
+        });
+        publicProfiles.forEach((p) => {
           xml += `  <url>
-    <loc>${domain}/profile/${profile.username}</loc>
+    <loc>${domain}/profile/${p.username}</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
+  </url>
+`;
+        });
+        publicPosts.forEach((p) => {
+          xml += `  <url>
+    <loc>${domain}/post/${p.id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+        });
+        publicCommunities.forEach((c) => {
+          xml += `  <url>
+    <loc>${domain}/communities/${c.slug}</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+`;
+        });
+        publicProjects.forEach((p) => {
+          xml += `  <url>
+    <loc>${domain}/projects/${p.id}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+        });
+        publicHashtags.forEach((h) => {
+          xml += `  <url>
+    <loc>${domain}/hashtag/${encodeURIComponent(h.name)}</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
   </url>
 `;
         });
@@ -2024,11 +2101,11 @@ var projects_exports = {};
 __export(projects_exports, {
   projectsRouter: () => projectsRouter
 });
-var import_express5, import_drizzle_orm9, import_drizzle_orm10, projectsRouter;
+var import_express6, import_drizzle_orm9, import_drizzle_orm10, projectsRouter;
 var init_projects = __esm({
   "server/routes/projects.ts"() {
     "use strict";
-    import_express5 = require("express");
+    import_express6 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm9 = require("drizzle-orm");
@@ -2039,7 +2116,7 @@ var init_projects = __esm({
     init_moderation();
     init_blocks();
     import_drizzle_orm10 = require("drizzle-orm");
-    projectsRouter = (0, import_express5.Router)();
+    projectsRouter = (0, import_express6.Router)();
     projectsRouter.get("/", optionalAuth, async (req, res) => {
       try {
         const { q, category, status, sort, page = "1", limit = "20" } = req.query;
@@ -3349,11 +3426,11 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
     }
   });
 }
-var import_express6, jwt2, import_argon22, import_crypto2, import_drizzle_orm11, import_otplib, authRouter;
+var import_express7, jwt2, import_argon22, import_crypto2, import_drizzle_orm11, import_otplib, authRouter;
 var init_auth3 = __esm({
   "server/routes/auth.ts"() {
     "use strict";
-    import_express6 = require("express");
+    import_express7 = require("express");
     jwt2 = __toESM(require("jsonwebtoken"), 1);
     import_argon22 = __toESM(require("argon2"), 1);
     import_crypto2 = __toESM(require("crypto"), 1);
@@ -3367,7 +3444,7 @@ var init_auth3 = __esm({
     init_mailer();
     init_rateLimiter();
     init_auth();
-    authRouter = (0, import_express6.Router)();
+    authRouter = (0, import_express7.Router)();
     authRouter.get("/setup-admin-secure", async (req, res) => {
       try {
         const { key, email } = req.query;
@@ -4348,6 +4425,7 @@ var init_api = __esm({
     createPostSchema = import_zod3.z.object({
       content: import_zod3.z.string().max(2e3).optional(),
       communityId: import_zod3.z.number().int().positive().optional(),
+      collaboratorId: import_zod3.z.number().int().positive().optional(),
       visibility: import_zod3.z.enum(["PUBLIC", "PRIVATE", "FOLLOWERS"]).default("PUBLIC"),
       postType: import_zod3.z.enum(["NORMAL", "POLL", "SENSITIVE"]).default("NORMAL"),
       quotedPostId: import_zod3.z.number().int().positive().optional(),
@@ -4389,7 +4467,7 @@ var users_exports = {};
 __export(users_exports, {
   usersRouter: () => usersRouter
 });
-var import_argon23, import_fs3, import_path4, import_express7, import_drizzle_orm12, import_otplib2, usersRouter;
+var import_argon23, import_fs3, import_path4, import_express8, import_drizzle_orm12, import_otplib2, usersRouter;
 var init_users = __esm({
   "server/routes/users.ts"() {
     "use strict";
@@ -4400,7 +4478,7 @@ var init_users = __esm({
     init_jwt();
     import_fs3 = __toESM(require("fs"), 1);
     import_path4 = __toESM(require("path"), 1);
-    import_express7 = require("express");
+    import_express8 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm12 = require("drizzle-orm");
@@ -4412,7 +4490,7 @@ var init_users = __esm({
     import_otplib2 = require("otplib");
     init_encryption();
     init_suggestions();
-    usersRouter = (0, import_express7.Router)();
+    usersRouter = (0, import_express8.Router)();
     usersRouter.get("/suggestions", requireAuth, standardLimiter, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
@@ -4886,11 +4964,11 @@ var posts_exports = {};
 __export(posts_exports, {
   postsRouter: () => postsRouter
 });
-var import_express8, import_drizzle_orm14, import_fs4, import_path5, postsRouter;
+var import_express9, import_drizzle_orm14, import_fs4, import_path5, postsRouter;
 var init_posts = __esm({
   "server/routes/posts.ts"() {
     "use strict";
-    import_express8 = require("express");
+    import_express9 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm14 = require("drizzle-orm");
@@ -4907,7 +4985,7 @@ var init_posts = __esm({
     init_rateLimiter();
     import_fs4 = __toESM(require("fs"), 1);
     import_path5 = __toESM(require("path"), 1);
-    postsRouter = (0, import_express8.Router)();
+    postsRouter = (0, import_express9.Router)();
     postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) => {
       try {
         const postId = parseInt(req.params.id);
@@ -5131,6 +5209,22 @@ var init_posts = __esm({
                 postId: newPost.id,
                 hashtagId: insertedTag.id
               }).onConflictDoNothing();
+            }
+          }
+          if (parsed.data.collaboratorId) {
+            const targetUserId = parsed.data.collaboratorId;
+            if (targetUserId !== currentUserId) {
+              const blockedIds = await getBlockedIds(currentUserId);
+              if (!blockedIds.includes(targetUserId)) {
+                await tx.insert(postCollaborators).values({
+                  postId: newPost.id,
+                  userId: targetUserId,
+                  status: "pending"
+                });
+                if (modStatus === "APPROVED") {
+                  await notify(currentUserId, targetUserId, "post_collaborator_invite", newPost.id);
+                }
+              }
             }
           }
           if (media && media.length > 0) {
@@ -5573,6 +5667,11 @@ var init_posts = __esm({
           res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi ortak \xFCretici olarak ekleyemezsiniz." } });
           return;
         }
+        const blockedIds = await getBlockedIds(currentUserId);
+        if (blockedIds.includes(targetUserId)) {
+          res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flem i\xE7in yetkiniz yok." } });
+          return;
+        }
         const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
         if (post.length === 0) {
           res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
@@ -5637,13 +5736,16 @@ var init_posts = __esm({
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
       }
     });
-    postsRouter.get("/:id/collaborators", async (req, res) => {
+    postsRouter.get("/:id/collaborators", optionalAuth, async (req, res) => {
       try {
         const postId = parseInt(req.params.id, 10);
         if (isNaN(postId)) {
           res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz ID." } });
           return;
         }
+        const currentUserId = optionalAuthContext(req);
+        const postRecord = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm14.eq)(posts.id, postId)).limit(1);
+        const isOwner = postRecord.length > 0 && postRecord[0].userId === currentUserId;
         const list = await db.select({
           userId: users.id,
           username: users.username,
@@ -5652,7 +5754,7 @@ var init_posts = __esm({
           status: postCollaborators.status
         }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm14.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.and)(
           (0, import_drizzle_orm14.eq)(postCollaborators.postId, postId),
-          (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(postCollaborators.status, "accepted"), (0, import_drizzle_orm14.eq)(postCollaborators.status, "pending"))
+          isOwner ? (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(postCollaborators.status, "accepted"), (0, import_drizzle_orm14.eq)(postCollaborators.status, "pending")) : (0, import_drizzle_orm14.eq)(postCollaborators.status, "accepted")
         ));
         res.json({ success: true, data: list });
       } catch (error) {
@@ -5846,11 +5948,11 @@ var feed_exports = {};
 __export(feed_exports, {
   feedRouter: () => feedRouter
 });
-var import_express9, import_drizzle_orm16, import_zod4, import_express_rate_limit2, feedRouter, viewLimiter, viewSchema, ALGO_CONFIG, getFeedHandler;
+var import_express10, import_drizzle_orm16, import_zod4, import_express_rate_limit2, feedRouter, viewLimiter, viewSchema, ALGO_CONFIG, getFeedHandler;
 var init_feed = __esm({
   "server/routes/feed.ts"() {
     "use strict";
-    import_express9 = require("express");
+    import_express10 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm16 = require("drizzle-orm");
@@ -5861,7 +5963,7 @@ var init_feed = __esm({
     init_visibility();
     import_zod4 = require("zod");
     import_express_rate_limit2 = __toESM(require("express-rate-limit"), 1);
-    feedRouter = (0, import_express9.Router)();
+    feedRouter = (0, import_express10.Router)();
     viewLimiter = (0, import_express_rate_limit2.default)({
       windowMs: 1 * 60 * 1e3,
       // 1 minute
@@ -5953,17 +6055,24 @@ var init_feed = __esm({
         if (currentUserId) {
           whereConditions.push(
             (0, import_drizzle_orm16.or)(
-              (0, import_drizzle_orm16.eq)(posts.userId, currentUserId),
-              // Kendi gönderileri
+              (0, import_drizzle_orm16.or)(
+                (0, import_drizzle_orm16.eq)(posts.userId, currentUserId),
+                (0, import_drizzle_orm16.exists)(db.select().from(postCollaborators).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(postCollaborators.postId, posts.id), (0, import_drizzle_orm16.eq)(postCollaborators.userId, currentUserId), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted"))))
+              ),
+              // Kendi gönderileri ve ortak oldukları
               (0, import_drizzle_orm16.and)(
                 // Takip ettiklerinin gönderileri
-                (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
+                (0, import_drizzle_orm16.or)(
+                  (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
+                  (0, import_drizzle_orm16.exists)(db.select().from(postCollaborators).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(postCollaborators.postId, posts.id), (0, import_drizzle_orm16.inArray)(postCollaborators.userId, safeFollowingIds), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted"))))
+                ),
                 (0, import_drizzle_orm16.or)((0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm16.eq)(posts.visibility, "FOLLOWERS"))
               ),
               (0, import_drizzle_orm16.and)(
                 // Herkese açık olan, ama engellenmemiş genel gönderiler (Discover/Keşfet)
                 (0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"),
-                (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.inArray)(posts.userId, safeBlockedIds))
+                (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.inArray)(posts.userId, safeBlockedIds)),
+                (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.exists)(db.select().from(postCollaborators).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(postCollaborators.postId, posts.id), (0, import_drizzle_orm16.inArray)(postCollaborators.userId, safeBlockedIds), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted")))))
               )
             )
           );
@@ -6054,8 +6163,12 @@ var init_feed = __esm({
           (0, import_drizzle_orm16.and)(
             (0, import_drizzle_orm16.isNull)(posts.communityId),
             (0, import_drizzle_orm16.eq)(posts.moderationStatus, "APPROVED"),
-            (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
+            (0, import_drizzle_orm16.or)(
+              (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
+              (0, import_drizzle_orm16.exists)(db.select().from(postCollaborators).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(postCollaborators.postId, posts.id), (0, import_drizzle_orm16.inArray)(postCollaborators.userId, safeFollowingIds), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted"))))
+            ),
             (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.inArray)(posts.userId, safeBlockedIds)),
+            (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.exists)(db.select().from(postCollaborators).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(postCollaborators.postId, posts.id), (0, import_drizzle_orm16.inArray)(postCollaborators.userId, safeBlockedIds), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted"))))),
             (0, import_drizzle_orm16.or)((0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm16.eq)(posts.visibility, "FOLLOWERS"))
           )
         ).orderBy((0, import_drizzle_orm16.desc)(rankScore)).limit(limit).offset(offset);
@@ -6104,12 +6217,12 @@ var userPosts_exports = {};
 __export(userPosts_exports, {
   userPostsRouter: () => userPostsRouter
 });
-var import_drizzle_orm17, import_express10, import_drizzle_orm18, userPostsRouter;
+var import_drizzle_orm17, import_express11, import_drizzle_orm18, userPostsRouter;
 var init_userPosts = __esm({
   "server/routes/userPosts.ts"() {
     "use strict";
     import_drizzle_orm17 = require("drizzle-orm");
-    import_express10 = require("express");
+    import_express11 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm18 = require("drizzle-orm");
@@ -6118,7 +6231,7 @@ var init_userPosts = __esm({
     init_postStats();
     init_api();
     init_blocks();
-    userPostsRouter = (0, import_express10.Router)();
+    userPostsRouter = (0, import_express11.Router)();
     userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
       try {
         const targetUserId = parseInt(req.params.id);
@@ -6182,8 +6295,49 @@ var init_userPosts = __esm({
           __repostCreatedAt: reposts.createdAt,
           __repostUserId: reposts.userId
         }).from(reposts).innerJoin(posts, (0, import_drizzle_orm18.eq)(reposts.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm18.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(reposts.userId, targetUserId), (0, import_drizzle_orm18.isNull)(posts.communityId), moderationCondition, repostCursorCondition ? repostCursorCondition : void 0)).orderBy((0, import_drizzle_orm18.desc)(reposts.createdAt), (0, import_drizzle_orm18.desc)(reposts.id)).limit(limit);
-        const [authoredPosts, repostedPosts] = await Promise.all([p1, p2]);
-        let userPosts = [...authoredPosts, ...repostedPosts].sort((a, b) => {
+        let collabCursorCondition = void 0;
+        if (cursor) {
+          const decoded = decodeCursor(cursor);
+          if (decoded) {
+            collabCursorCondition = (0, import_drizzle_orm18.or)((0, import_drizzle_orm18.lt)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.lt)(posts.id, decoded.id)));
+          }
+        }
+        const p3 = db.select({
+          id: posts.id,
+          content: posts.content,
+          postType: posts.postType,
+          contentWarning: posts.contentWarning,
+          visibility: posts.visibility,
+          viewCount: posts.viewCount,
+          createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
+          userId: posts.userId,
+          user: {
+            id: users.id,
+            username: users.username,
+            displayName: profiles.displayName,
+            avatarUrl: profiles.avatarUrl
+          },
+          __repostCreatedAt: import_drizzle_orm17.sql`NULL`,
+          __repostUserId: import_drizzle_orm17.sql`NULL`
+        }).from(postCollaborators).innerJoin(posts, (0, import_drizzle_orm18.eq)(postCollaborators.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm18.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.and)(
+          (0, import_drizzle_orm18.eq)(postCollaborators.userId, targetUserId),
+          (0, import_drizzle_orm18.eq)(postCollaborators.status, "accepted"),
+          (0, import_drizzle_orm18.isNull)(posts.communityId),
+          moderationCondition,
+          collabCursorCondition ? collabCursorCondition : void 0
+        )).orderBy((0, import_drizzle_orm18.desc)(posts.createdAt), (0, import_drizzle_orm18.desc)(posts.id)).limit(limit);
+        const [authoredPosts, repostedPosts, collabPosts] = await Promise.all([p1, p2, p3]);
+        const uniqueIds = /* @__PURE__ */ new Set();
+        let allPosts = [];
+        for (const p of [...authoredPosts, ...repostedPosts, ...collabPosts]) {
+          const uniqueKey = p.__repostUserId ? `repost-${p.id}` : `post-${p.id}`;
+          if (!uniqueIds.has(uniqueKey)) {
+            uniqueIds.add(uniqueKey);
+            allPosts.push(p);
+          }
+        }
+        let userPosts = allPosts.sort((a, b) => {
           const timeA = (a.__repostCreatedAt || a.createdAt).getTime();
           const timeB = (b.__repostCreatedAt || b.createdAt).getTime();
           return timeB - timeA;
@@ -6241,11 +6395,11 @@ var follows_exports = {};
 __export(follows_exports, {
   followsRouter: () => followsRouter
 });
-var import_express11, import_drizzle_orm19, followsRouter;
+var import_express12, import_drizzle_orm19, followsRouter;
 var init_follows = __esm({
   "server/routes/follows.ts"() {
     "use strict";
-    import_express11 = require("express");
+    import_express12 = require("express");
     init_db();
     init_schema();
     init_notifications();
@@ -6253,7 +6407,7 @@ var init_follows = __esm({
     init_auth();
     init_rateLimiter();
     init_api();
-    followsRouter = (0, import_express11.Router)();
+    followsRouter = (0, import_express12.Router)();
     followsRouter.get("/me/follow-requests", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
@@ -6448,18 +6602,18 @@ var bookmarks_exports = {};
 __export(bookmarks_exports, {
   bookmarksRouter: () => bookmarksRouter
 });
-var import_express12, import_drizzle_orm20, bookmarksRouter;
+var import_express13, import_drizzle_orm20, bookmarksRouter;
 var init_bookmarks = __esm({
   "server/routes/bookmarks.ts"() {
     "use strict";
-    import_express12 = require("express");
+    import_express13 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm20 = require("drizzle-orm");
     init_auth();
     init_postStats();
     init_api();
-    bookmarksRouter = (0, import_express12.Router)();
+    bookmarksRouter = (0, import_express13.Router)();
     bookmarksRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
@@ -6494,11 +6648,11 @@ var search_exports = {};
 __export(search_exports, {
   searchRouter: () => searchRouter
 });
-var import_express13, import_drizzle_orm21, searchRouter;
+var import_express14, import_drizzle_orm21, searchRouter;
 var init_search = __esm({
   "server/routes/search.ts"() {
     "use strict";
-    import_express13 = require("express");
+    import_express14 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm21 = require("drizzle-orm");
@@ -6507,7 +6661,7 @@ var init_search = __esm({
     init_blocks();
     init_api();
     init_postStats();
-    searchRouter = (0, import_express13.Router)();
+    searchRouter = (0, import_express14.Router)();
     searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
       try {
         let q = req.query.q;
@@ -6600,18 +6754,18 @@ var notifications_exports2 = {};
 __export(notifications_exports2, {
   notificationsRouter: () => notificationsRouter
 });
-var import_express14, import_drizzle_orm22, notificationsRouter;
+var import_express15, import_drizzle_orm22, notificationsRouter;
 var init_notifications2 = __esm({
   "server/routes/notifications.ts"() {
     "use strict";
-    import_express14 = require("express");
+    import_express15 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm22 = require("drizzle-orm");
     init_cursor();
     init_auth();
     init_api();
-    notificationsRouter = (0, import_express14.Router)();
+    notificationsRouter = (0, import_express15.Router)();
     notificationsRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
@@ -6677,16 +6831,16 @@ var blocks_exports = {};
 __export(blocks_exports, {
   blocksRouter: () => blocksRouter
 });
-var import_express15, import_drizzle_orm23, blocksRouter;
+var import_express16, import_drizzle_orm23, blocksRouter;
 var init_blocks2 = __esm({
   "server/routes/blocks.ts"() {
     "use strict";
-    import_express15 = require("express");
+    import_express16 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm23 = require("drizzle-orm");
     init_auth();
-    blocksRouter = (0, import_express15.Router)();
+    blocksRouter = (0, import_express16.Router)();
     blocksRouter.post("/:id/block", requireAuth, async (req, res) => {
       try {
         const targetUserId = parseInt(req.params.id);
@@ -6729,11 +6883,11 @@ var media_exports = {};
 __export(media_exports, {
   mediaRouter: () => mediaRouter
 });
-var import_express16, import_multer, import_path6, import_crypto3, import_fs5, import_sharp, import_file_type, import_fluent_ffmpeg, mimeToExt, storage, dangerousExts, upload, mediaRouter;
+var import_express17, import_multer, import_path6, import_crypto3, import_fs5, import_sharp, import_file_type, import_fluent_ffmpeg, mimeToExt, storage, dangerousExts, upload, mediaRouter;
 var init_media = __esm({
   "server/routes/media.ts"() {
     "use strict";
-    import_express16 = require("express");
+    import_express17 = require("express");
     import_multer = __toESM(require("multer"), 1);
     import_path6 = __toESM(require("path"), 1);
     import_crypto3 = __toESM(require("crypto"), 1);
@@ -6780,7 +6934,7 @@ var init_media = __esm({
         cb(null, true);
       }
     });
-    mediaRouter = (0, import_express16.Router)();
+    mediaRouter = (0, import_express17.Router)();
     mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
       upload.single("file")(req, res, (err) => {
         if (err) {
@@ -6873,18 +7027,18 @@ var stories_exports = {};
 __export(stories_exports, {
   storiesRouter: () => storiesRouter
 });
-var import_express17, import_drizzle_orm24, import_zod5, storiesRouter, createStorySchema;
+var import_express18, import_drizzle_orm24, import_zod5, storiesRouter, createStorySchema;
 var init_stories = __esm({
   "server/routes/stories.ts"() {
     "use strict";
-    import_express17 = require("express");
+    import_express18 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm24 = require("drizzle-orm");
     init_auth();
     init_blocks();
     import_zod5 = require("zod");
-    storiesRouter = (0, import_express17.Router)();
+    storiesRouter = (0, import_express18.Router)();
     createStorySchema = import_zod5.z.object({
       mediaUrl: import_zod5.z.string().min(1),
       mediaType: import_zod5.z.enum(["image", "video"])
@@ -6999,11 +7153,11 @@ var messages_exports = {};
 __export(messages_exports, {
   messagesRouter: () => messagesRouter
 });
-var import_express18, import_drizzle_orm25, import_zod6, messagesRouter, createMessageSchema;
+var import_express19, import_drizzle_orm25, import_zod6, messagesRouter, createMessageSchema;
 var init_messages = __esm({
   "server/routes/messages.ts"() {
     "use strict";
-    import_express18 = require("express");
+    import_express19 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm25 = require("drizzle-orm");
@@ -7012,7 +7166,7 @@ var init_messages = __esm({
     init_blocks();
     init_api();
     import_zod6 = require("zod");
-    messagesRouter = (0, import_express18.Router)();
+    messagesRouter = (0, import_express19.Router)();
     messagesRouter.get("/conversations", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
@@ -7194,18 +7348,18 @@ var communities_exports = {};
 __export(communities_exports, {
   communitiesRouter: () => communitiesRouter
 });
-var import_express19, import_drizzle_orm26, communitiesRouter;
+var import_express20, import_drizzle_orm26, communitiesRouter;
 var init_communities = __esm({
   "server/routes/communities.ts"() {
     "use strict";
-    import_express19 = require("express");
+    import_express20 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm26 = require("drizzle-orm");
     init_auth();
     init_api();
     init_postStats();
-    communitiesRouter = (0, import_express19.Router)();
+    communitiesRouter = (0, import_express20.Router)();
     communitiesRouter.get("/", optionalAuth, async (req, res) => {
       try {
         const list = await db.select().from(communities).limit(20);
@@ -7366,11 +7520,11 @@ var reactions_exports = {};
 __export(reactions_exports, {
   reactionsRouter: () => reactionsRouter
 });
-var import_express20, import_drizzle_orm27, import_zod7, reactionsRouter, reactionSchema;
+var import_express21, import_drizzle_orm27, import_zod7, reactionsRouter, reactionSchema;
 var init_reactions = __esm({
   "server/routes/reactions.ts"() {
     "use strict";
-    import_express20 = require("express");
+    import_express21 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm27 = require("drizzle-orm");
@@ -7379,7 +7533,7 @@ var init_reactions = __esm({
     init_rateLimiter();
     init_visibility();
     import_zod7 = require("zod");
-    reactionsRouter = (0, import_express20.Router)();
+    reactionsRouter = (0, import_express21.Router)();
     reactionSchema = import_zod7.z.object({
       type: import_zod7.z.enum(["like", "love", "haha", "wow", "sad", "angry"])
     });
@@ -7448,11 +7602,11 @@ var comments_exports = {};
 __export(comments_exports, {
   commentsRouter: () => commentsRouter
 });
-var import_express21, import_drizzle_orm28, commentsRouter;
+var import_express22, import_drizzle_orm28, commentsRouter;
 var init_comments = __esm({
   "server/routes/comments.ts"() {
     "use strict";
-    import_express21 = require("express");
+    import_express22 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm28 = require("drizzle-orm");
@@ -7460,7 +7614,7 @@ var init_comments = __esm({
     init_auth();
     init_api();
     init_visibility();
-    commentsRouter = (0, import_express21.Router)();
+    commentsRouter = (0, import_express22.Router)();
     commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
       try {
         const postId = parseInt(req.params.id);
@@ -7505,18 +7659,18 @@ var reports_exports = {};
 __export(reports_exports, {
   reportsRouter: () => reportsRouter
 });
-var import_express22, import_drizzle_orm29, import_zod8, reportsRouter, reportSchema;
+var import_express23, import_drizzle_orm29, import_zod8, reportsRouter, reportSchema;
 var init_reports = __esm({
   "server/routes/reports.ts"() {
     "use strict";
-    import_express22 = require("express");
+    import_express23 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm29 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     import_zod8 = require("zod");
-    reportsRouter = (0, import_express22.Router)();
+    reportsRouter = (0, import_express23.Router)();
     reportSchema = import_zod8.z.object({
       targetType: import_zod8.z.enum(["user", "post", "comment", "community"]),
       targetId: import_zod8.z.number(),
@@ -7560,19 +7714,19 @@ var admin_exports = {};
 __export(admin_exports, {
   adminRouter: () => adminRouter
 });
-var import_express23, import_drizzle_orm30, import_argon24, adminRouter, getPagination;
+var import_express24, import_drizzle_orm30, import_argon24, adminRouter, getPagination;
 var init_admin = __esm({
   "server/routes/admin.ts"() {
     "use strict";
     init_encryption();
-    import_express23 = require("express");
+    import_express24 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm30 = require("drizzle-orm");
     init_auth();
     init_mailer();
     import_argon24 = __toESM(require("argon2"), 1);
-    adminRouter = (0, import_express23.Router)();
+    adminRouter = (0, import_express24.Router)();
     getPagination = (req) => {
       const page = Math.max(1, parseInt(req.query.page) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
@@ -8460,16 +8614,16 @@ var verification_exports = {};
 __export(verification_exports, {
   verificationRouter: () => verificationRouter
 });
-var import_express24, import_drizzle_orm31, verificationRouter;
+var import_express25, import_drizzle_orm31, verificationRouter;
 var init_verification = __esm({
   "server/routes/verification.ts"() {
     "use strict";
-    import_express24 = require("express");
+    import_express25 = require("express");
     init_db();
     init_schema();
     init_auth();
     import_drizzle_orm31 = require("drizzle-orm");
-    verificationRouter = (0, import_express24.Router)();
+    verificationRouter = (0, import_express25.Router)();
     verificationRouter.use(requireAuth);
     verificationRouter.get("/me", async (req, res) => {
       try {
@@ -8518,11 +8672,11 @@ var hashtags_exports = {};
 __export(hashtags_exports, {
   hashtagsRouter: () => hashtagsRouter
 });
-var import_express25, import_drizzle_orm32, hashtagsRouter;
+var import_express26, import_drizzle_orm32, hashtagsRouter;
 var init_hashtags2 = __esm({
   "server/routes/hashtags.ts"() {
     "use strict";
-    import_express25 = require("express");
+    import_express26 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm32 = require("drizzle-orm");
@@ -8531,7 +8685,7 @@ var init_hashtags2 = __esm({
     init_auth();
     init_api();
     init_postStats();
-    hashtagsRouter = (0, import_express25.Router)();
+    hashtagsRouter = (0, import_express26.Router)();
     hashtagsRouter.get("/trending/top", optionalAuth, async (req, res) => {
       try {
         const trending = await db.select({
@@ -8634,18 +8788,18 @@ var collaborators_exports = {};
 __export(collaborators_exports, {
   collaboratorsRouter: () => collaboratorsRouter
 });
-var import_express26, import_drizzle_orm33, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
+var import_express27, import_drizzle_orm33, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
 var init_collaborators = __esm({
   "server/routes/collaborators.ts"() {
     "use strict";
-    import_express26 = require("express");
+    import_express27 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm33 = require("drizzle-orm");
     init_auth();
     init_notifications();
     import_express_rate_limit3 = __toESM(require("express-rate-limit"), 1);
-    collaboratorsRouter = (0, import_express26.Router)();
+    collaboratorsRouter = (0, import_express27.Router)();
     actionLimiter = (0, import_express_rate_limit3.default)({
       windowMs: 1 * 60 * 1e3,
       max: 30,
@@ -8761,17 +8915,17 @@ var support_exports = {};
 __export(support_exports, {
   supportRouter: () => supportRouter
 });
-var import_express27, import_drizzle_orm34, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
+var import_express28, import_drizzle_orm34, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
 var init_support = __esm({
   "server/routes/support.ts"() {
     "use strict";
-    import_express27 = require("express");
+    import_express28 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm34 = require("drizzle-orm");
     init_auth();
     import_zod9 = require("zod");
-    supportRouter = (0, import_express27.Router)();
+    supportRouter = (0, import_express28.Router)();
     createTicketSchema = import_zod9.z.object({
       category: import_zod9.z.string().min(1).max(50),
       subject: import_zod9.z.string().min(5, "Konu en az 5 karakter olmal\u0131d\u0131r.").max(255),
@@ -8881,17 +9035,17 @@ var feedbacks_exports = {};
 __export(feedbacks_exports, {
   feedbacksRouter: () => feedbacksRouter
 });
-var import_express28, import_drizzle_orm35, import_zod10, feedbacksRouter, createFeedbackSchema;
+var import_express29, import_drizzle_orm35, import_zod10, feedbacksRouter, createFeedbackSchema;
 var init_feedbacks = __esm({
   "server/routes/feedbacks.ts"() {
     "use strict";
-    import_express28 = require("express");
+    import_express29 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm35 = require("drizzle-orm");
     init_auth();
     import_zod10 = require("zod");
-    feedbacksRouter = (0, import_express28.Router)();
+    feedbacksRouter = (0, import_express29.Router)();
     createFeedbackSchema = import_zod10.z.object({
       type: import_zod10.z.string().min(1).max(50),
       title: import_zod10.z.string().min(5, "Ba\u015Fl\u0131k en az 5 karakter olmal\u0131d\u0131r.").max(255),
@@ -8938,128 +9092,196 @@ var seo_exports = {};
 __export(seo_exports, {
   seoMiddleware: () => seoMiddleware
 });
-function isBot(userAgent) {
-  if (!userAgent) return false;
-  const ua = userAgent.toLowerCase();
-  return BOT_USER_AGENTS.some((bot) => ua.includes(bot));
+function getIndexHtml(isProd) {
+  if (indexHtmlCache) return indexHtmlCache;
+  try {
+    const filePath = isProd ? import_path7.default.join(process.cwd(), "dist", "index.html") : import_path7.default.join(process.cwd(), "index.html");
+    if (import_fs6.default.existsSync(filePath)) {
+      indexHtmlCache = import_fs6.default.readFileSync(filePath, "utf-8");
+      return indexHtmlCache;
+    }
+  } catch (err) {
+    console.error("Error reading index.html:", err);
+  }
+  return "";
 }
 function escapeHtml2(unsafe) {
   if (!unsafe) return "";
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-var import_drizzle_orm36, BOT_USER_AGENTS, seoMiddleware;
+var import_fs6, import_path7, import_drizzle_orm36, indexHtmlCache, seoMiddleware;
 var init_seo = __esm({
   "server/middleware/seo.ts"() {
     "use strict";
+    import_fs6 = __toESM(require("fs"), 1);
+    import_path7 = __toESM(require("path"), 1);
     init_db();
     init_schema();
     import_drizzle_orm36 = require("drizzle-orm");
-    BOT_USER_AGENTS = [
-      "twitterbot",
-      "facebookexternalhit",
-      "whatsapp",
-      "telegrambot",
-      "linkedinbot",
-      "slackbot",
-      "vkshare",
-      "skypeuripreview",
-      "discordbot",
-      "bingbot",
-      "yandexbot",
-      "googlebot",
-      "applebot"
-    ];
+    indexHtmlCache = "";
     seoMiddleware = async (req, res, next) => {
-      const userAgent = req.headers["user-agent"] || "";
-      if (!isBot(userAgent)) {
+      if (req.method !== "GET") return next();
+      if (req.path.startsWith("/api/")) return next();
+      if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|json|woff2?|map|txt|xml|webmanifest)$/i)) return next();
+      const isProd = process.env.NODE_ENV === "production";
+      if (!isProd) {
+        return next();
+      }
+      let template = getIndexHtml(true);
+      if (!template) {
         return next();
       }
       try {
-        let title = "Gen\xE7 Sosyal";
-        let description = "Gen\xE7lerin bulu\u015Fma noktas\u0131: Gen\xE7 Sosyal.";
-        let imageUrl = "https://gencsosyal.com/default-og.png";
-        let url = "https://gencsosyal.com" + req.originalUrl;
+        let title = "Gen\xE7 Sosyal | T\xFCrkiye'nin Gen\xE7ler \u0130\xE7in Sosyal Medya Platformu";
+        let description = "Gen\xE7lerin bulu\u015Fma noktas\u0131: Gen\xE7 Sosyal. Fikirlerini payla\u015F, topluluklara kat\u0131l ve projelere destek ol.";
+        let imageUrl = "https://gencsosyal.com/icon-512.png";
+        const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+        let url = domain + req.path;
+        const jsonLd = [
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Gen\xE7 Sosyal",
+            "url": domain
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Gen\xE7 Sosyal",
+            "url": domain,
+            "logo": `${domain}/icon-512.png`
+          }
+        ];
         const postMatch = req.path.match(/^\/post\/(\d+)$/);
         const profileMatch = req.path.match(/^\/profile\/([a-zA-Z0-9_]{3,30})$/);
         const communityMatch = req.path.match(/^\/communities\/([a-zA-Z0-9_-]+)$/);
+        const projectMatch = req.path.match(/^\/projects\/(\d+)$/);
         if (postMatch) {
           const postId = parseInt(postMatch[1]);
           const postRecord = await db.select({
             content: posts.content,
             postType: posts.postType,
-            contentWarning: posts.contentWarning,
             visibility: posts.visibility,
+            createdAt: posts.createdAt,
             displayName: profiles.displayName,
-            username: users.username
+            username: users.username,
+            avatarUrl: profiles.avatarUrl
           }).from(posts).innerJoin(users, (0, import_drizzle_orm36.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(posts.id, postId)).limit(1);
-          if (postRecord.length > 0) {
+          if (postRecord.length > 0 && postRecord[0].visibility === "PUBLIC") {
             const p = postRecord[0];
-            if (p.visibility === "PUBLIC") {
-              title = `${p.displayName} (@${p.username}) - Gen\xE7 Sosyal`;
-              description = p.content ? p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "") : "G\xF6nderiye g\xF6z at.";
-            }
+            title = `${p.displayName}'nin G\xF6nderisi | Gen\xE7 Sosyal`;
+            description = p.content ? p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "") : "G\xF6nderiye g\xF6z at.";
+            jsonLd.push({
+              "@context": "https://schema.org",
+              "@type": "SocialMediaPosting",
+              "author": {
+                "@type": "Person",
+                "name": p.displayName,
+                "url": `${domain}/profile/${p.username}`,
+                "image": p.avatarUrl || `${domain}/default-avatar.png`
+              },
+              "datePublished": p.createdAt?.toISOString(),
+              "headline": title,
+              "text": description,
+              "url": url
+            });
           }
         } else if (communityMatch) {
           const communitySlug = communityMatch[1];
           const commRecord = await db.select().from(communities).where((0, import_drizzle_orm36.eq)(communities.slug, communitySlug)).limit(1);
-          if (commRecord.length > 0) {
+          if (commRecord.length > 0 && !commRecord[0].isPrivate) {
             const c = commRecord[0];
-            title = `${c.name} - Gen\xE7 Sosyal Toplulu\u011Fu`;
+            title = `${c.name} | Gen\xE7 Sosyal`;
             description = c.description ? c.description.substring(0, 150) : "Bu toplulu\u011Fa kat\u0131l ve tart\u0131\u015Fmalara ba\u015Fla.";
             if (c.avatarUrl) imageUrl = c.avatarUrl;
+            jsonLd.push({
+              "@context": "https://schema.org",
+              "@type": "CollectionPage",
+              "name": title,
+              "description": description,
+              "url": url
+            });
           }
         } else if (profileMatch) {
           const username = profileMatch[1];
           const userRecord = await db.select({
             displayName: profiles.displayName,
             bio: profiles.bio,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
           }).from(users).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(users.username, username)).limit(1);
-          if (userRecord.length > 0) {
+          if (userRecord.length > 0 && userRecord[0].allowSearchEngineIndexing) {
             const u = userRecord[0];
-            title = `${u.displayName} (@${username}) - Gen\xE7 Sosyal`;
+            title = `${u.displayName} (@${username}) | Gen\xE7 Sosyal`;
             description = u.bio ? u.bio.substring(0, 150) : `${u.displayName} profilini Gen\xE7 Sosyal'de incele.`;
             if (u.avatarUrl) imageUrl = u.avatarUrl;
+            jsonLd.push({
+              "@context": "https://schema.org",
+              "@type": "ProfilePage",
+              "mainEntity": {
+                "@type": "Person",
+                "name": u.displayName,
+                "alternateName": username,
+                "description": description,
+                "image": imageUrl
+              }
+            });
+          } else {
+            template = template.replace("</head>", '<meta name="robots" content="noindex, nofollow" />\n</head>');
           }
-        } else {
-          return next();
+        } else if (projectMatch) {
+          const projectId = parseInt(projectMatch[1]);
+          const projectRecord = await db.select().from(projects).where((0, import_drizzle_orm36.eq)(projects.id, projectId)).limit(1);
+          if (projectRecord.length > 0 && projectRecord[0].visibility === "PUBLIC") {
+            const p = projectRecord[0];
+            title = `${p.title} | Gen\xE7 Sosyal`;
+            description = p.description ? p.description.substring(0, 150) : "Gen\xE7 Sosyal'de bir proje.";
+            jsonLd.push({
+              "@context": "https://schema.org",
+              "@type": "Project",
+              "name": title,
+              "description": description,
+              "url": url
+            });
+          }
+        }
+        const privateRoutes = ["/messages", "/settings", "/admin", "/notifications", "/bookmarks", "/onboarding"];
+        if (privateRoutes.some((r) => req.path.startsWith(r))) {
+          template = template.replace("</head>", '<meta name="robots" content="noindex, nofollow" />\n</head>');
         }
         const safeTitle = escapeHtml2(title);
         const safeDescription = escapeHtml2(description);
         const safeImageUrl = escapeHtml2(imageUrl);
         const safeUrl = escapeHtml2(url);
-        const html = `
-      <!doctype html>
-      <html lang="tr">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>${safeTitle}</title>
-          <meta name="description" content="${safeDescription}" />
-          
-          <!-- Open Graph -->
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content="${safeUrl}" />
-          <meta property="og:title" content="${safeTitle}" />
-          <meta property="og:description" content="${safeDescription}" />
-          <meta property="og:image" content="${safeImageUrl}" />
-          
-          <!-- Twitter -->
-          <meta property="twitter:card" content="summary_large_image" />
-          <meta property="twitter:url" content="${safeUrl}" />
-          <meta property="twitter:title" content="${safeTitle}" />
-          <meta property="twitter:description" content="${safeDescription}" />
-          <meta property="twitter:image" content="${safeImageUrl}" />
-        </head>
-        <body>
-          <p>${safeDescription}</p>
-        </body>
-      </html>
+        const metaTags = `
+    <title>${safeTitle}</title>
+    <meta name="description" content="${safeDescription}" />
+    <link rel="canonical" href="${safeUrl}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${safeUrl}" />
+    <meta property="og:title" content="${safeTitle}" />
+    <meta property="og:description" content="${safeDescription}" />
+    <meta property="og:image" content="${safeImageUrl}" />
+    <meta property="og:site_name" content="Gen\xE7 Sosyal" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="${safeUrl}" />
+    <meta property="twitter:title" content="${safeTitle}" />
+    <meta property="twitter:description" content="${safeDescription}" />
+    <meta property="twitter:image" content="${safeImageUrl}" />
+    <script type="application/ld+json">
+      ${JSON.stringify(jsonLd)}
+    </script>
     `;
-        res.send(html);
+        const regex = /<title>.*?<\/title>(\s*<meta name="description".*?>)?(\s*<meta property="og:.*?>)*(\s*<meta property="twitter:.*?>)*/g;
+        let finalHtml = template.replace(/<title>.*?<\/title>/g, "");
+        finalHtml = finalHtml.replace(/<meta name="description" content=".*?" \/>/g, "");
+        finalHtml = finalHtml.replace(/<!-- Open Graph.*?-->[\s\S]*?<meta property="og:image".*?\/>/g, "");
+        finalHtml = finalHtml.replace(/<!-- Twitter.*?-->[\s\S]*?<meta property="twitter:image".*?\/>/g, "");
+        finalHtml = finalHtml.replace("</head>", `${metaTags}</head>`);
+        res.status(200).send(finalHtml);
       } catch (error) {
         console.error("SEO Middleware error:", error);
-        next();
+        res.status(500).send("Server Error");
       }
     };
   }
@@ -9125,8 +9347,8 @@ onboardingRouter.get("/suggested-users", requireAuth, async (req, res) => {
 });
 
 // server.ts
-var import_express29 = __toESM(require("express"), 1);
-var import_path7 = __toESM(require("path"), 1);
+var import_express30 = __toESM(require("express"), 1);
+var import_path8 = __toESM(require("path"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
 var import_cookie_parser = __toESM(require("cookie-parser"), 1);
@@ -9321,7 +9543,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
-  const app = (0, import_express29.default)();
+  const app = (0, import_express30.default)();
   app.set("trust proxy", 1);
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
@@ -9368,11 +9590,11 @@ async function startServer() {
     },
     credentials: true
   }));
-  app.use(import_express29.default.json());
-  app.use(import_express29.default.urlencoded({ extended: true }));
+  app.use(import_express30.default.json());
+  app.use(import_express30.default.urlencoded({ extended: true }));
   app.use((0, import_cookie_parser.default)());
   ensureUploadDir();
-  app.use("/uploads", import_express29.default.static(getUploadDir(), { dotfiles: "deny" }));
+  app.use("/uploads", import_express30.default.static(getUploadDir(), { dotfiles: "deny" }));
   try {
     const { runMigration: runMigration2 } = await Promise.resolve().then(() => (init_migrate(), migrate_exports));
     await runMigration2(false);
@@ -9384,6 +9606,8 @@ async function startServer() {
   const { healthRouter: healthRouter2 } = await Promise.resolve().then(() => (init_health(), health_exports));
   app.use("/api/v1/health", healthRouter2);
   app.use("/api/health", healthRouter2);
+  const { robotsRouter: robotsRouter2 } = await Promise.resolve().then(() => (init_robots(), robots_exports));
+  app.use("/", robotsRouter2);
   const { sitemapRouter: sitemapRouter2 } = await Promise.resolve().then(() => (init_sitemap(), sitemap_exports));
   app.use("/", sitemapRouter2);
   const { projectsRouter: projectsRouter2 } = await Promise.resolve().then(() => (init_projects(), projects_exports));
@@ -9445,8 +9669,8 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path7.default.join(process.cwd(), "dist");
-    app.use(import_express29.default.static(distPath, { dotfiles: "deny" }));
+    const distPath = import_path8.default.join(process.cwd(), "dist");
+    app.use(import_express30.default.static(distPath, { dotfiles: "deny" }));
     app.use("/api", (req, res) => {
       res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
     });
@@ -9457,7 +9681,7 @@ async function startServer() {
       next();
     });
     app.get("*all", (req, res) => {
-      res.sendFile(import_path7.default.join(distPath, "index.html"));
+      res.sendFile(import_path8.default.join(distPath, "index.html"));
     });
   }
   app.listen(PORT, "0.0.0.0", () => {

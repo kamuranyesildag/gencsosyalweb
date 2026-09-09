@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,6 +28,7 @@ const AVAILABLE_INTERESTS = [
 ];
 
 export function Onboarding() {
+  useSEO({ allowIndexing: false });
   const [step, setStep] = useState(1);
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);

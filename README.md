@@ -90,3 +90,37 @@ server {
 ```
 
 Cloudflare kullandığınızda `X-Forwarded-Proto` ve WebSocket `Upgrade` bağlantıları da sorunsuz şekilde aktarılacaktır.
+
+## 🔍 SEO ve Keşfedilebilirlik (Production Deployment Checklist)
+
+Uygulamanız canlıya alındığında arama motorlarında doğru indexlenebilmesi için aşağıdaki adımları tamamlayın.
+
+### 1. Domain ve Çevresel Değişkenler
+`.env` dosyanızdaki `VITE_PUBLIC_URL` ve `APP_URL` değişkenlerini üretim (production) domaininiz ile değiştirin. 
+Örneğin:
+```env
+VITE_PUBLIC_URL=https://gencsosyal.com
+APP_URL=https://gencsosyal.com
+```
+*Bu değişkenler, `robots.txt` Sitemap URL'sini, canonical linkleri ve Open Graph verilerini doğru şekilde oluşturmak için gereklidir.*
+
+### 2. Google Search Console Hazırlığı
+1. [Google Search Console](https://search.google.com/search-console)'a gidin.
+2. Domaininizi (veya URL prefix'inizi) ekleyin.
+3. Domain doğrulama (DNS TXT record vb.) işlemlerini tamamlayın.
+4. **Sitemap Ekleme:** Sol menüden "Site Haritaları"na (Sitemaps) tıklayın ve `https://gencsosyal.com/sitemap.xml` adresini gönderin.
+5. URL denetimi yaparak önemli sayfaların (`/`, `/explore`, `/profile/username`) düzgün çalışıp çalışmadığını kontrol edebilirsiniz.
+*(Not: Google'ın sayfalarınızı indexleme süresi tamamen kendi algoritmalarına bağlıdır ve garanti edilemez.)*
+
+### 3. Bing Webmaster Tools
+1. [Bing Webmaster Tools](https://www.bing.com/webmasters/)'a gidin.
+2. Sitenizi doğrulayın (veya Google Search Console'dan içe aktarın).
+3. `https://gencsosyal.com/sitemap.xml` haritanızı Bing'e gönderin.
+
+### 4. Güvenlik ve Gizlilik
+- `messages`, `settings`, `admin`, `notifications` gibi gizli alanlar sistemsel olarak `<meta name="robots" content="noindex, nofollow" />` ile korunmaktadır.
+- Sitemap'iniz sadece public ve izin verilen (isPrivate: false, allowSearchEngineIndexing: true vb.) içerikleri listeler.
+- Yapısal Veri (JSON-LD) entegrasyonu mevcuttur ve uygulamanın türüne göre (`Organization`, `ProfilePage`, `SocialMediaPosting` vb.) dinamik olarak sayfalarınıza eklenir.
+
+### 5. AI Search Optimization
+Projenin root dizininde veya public alanında `/llms.txt` eklenmiştir. Bu dosya, AI tarayıcılarına platformunuzun ne olduğuyla ilgili temel ve resmi marka bilgilerini verir. (Resmi bir standart değildir, emerging bir convention'dır).

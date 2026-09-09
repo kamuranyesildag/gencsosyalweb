@@ -1,3 +1,4 @@
+import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -24,6 +25,7 @@ import { SuggestedUsers } from "../components/SuggestedUsers";
 export type ExploreTab = "users" | "posts" | "tags";
 
 export function Explore() {
+  useSEO({ title: "Keşfet | Genç Sosyal", description: "Genç Sosyal'de popüler içerikleri ve yeni insanları keşfedin." });
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ExploreTab>("users");
   const [results, setResults] = useState<any[]>([]);
