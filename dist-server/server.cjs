@@ -9292,6 +9292,9 @@ async function startServer() {
   });
   if (isProd) {
     app.use((req, res, next) => {
+      if (req.path.includes("/api/health") || req.hostname === "localhost" || req.hostname === "127.0.0.1") {
+        return next();
+      }
       const host = req.headers.host || "";
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       let redirectRequired = false;
