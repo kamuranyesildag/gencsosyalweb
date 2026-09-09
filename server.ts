@@ -33,35 +33,8 @@ async function startServer() {
 
   if (isProd) {
     app.use((req, res, next) => {
-      // Bypass redirects for local health checks and internal traffic
-      if (req.path.includes('/api/health') || req.hostname === 'localhost' || req.hostname === '127.0.0.1') {
-        return next();
-      }
-
-      const host = req.headers.host || '';
-      const forwardedProto = req.headers['x-forwarded-proto'];
-      
-      let protocol = req.protocol;
-      if (typeof forwardedProto === 'string') {
-        // Cloudflare might send "https,http" or just "https"
-        protocol = forwardedProto.split(',')[0].trim();
-      }
-      
-      let redirectRequired = false;
-      let newHost = host;
-
-      if (host.startsWith('www.')) {
-        newHost = host.slice(4);
-        redirectRequired = true;
-      }
-      
-      if (protocol !== 'https' && req.headers['x-forwarded-ssl'] !== 'on') {
-        redirectRequired = true;
-      }
-
-      if (redirectRequired) {
-        return res.redirect(301, `https://${newHost}${req.originalUrl}`);
-      }
+      // By passing the redirect checking entirely since Cloudflare handles HTTPS and we don't want to cause 521s or infinite loops
+      // If we ever want to do WWW redirection, we can rely on Cloudflare Page Rules
       next();
     });
   }

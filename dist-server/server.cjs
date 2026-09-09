@@ -9292,27 +9292,6 @@ async function startServer() {
   });
   if (isProd) {
     app.use((req, res, next) => {
-      if (req.path.includes("/api/health") || req.hostname === "localhost" || req.hostname === "127.0.0.1") {
-        return next();
-      }
-      const host = req.headers.host || "";
-      const forwardedProto = req.headers["x-forwarded-proto"];
-      let protocol = req.protocol;
-      if (typeof forwardedProto === "string") {
-        protocol = forwardedProto.split(",")[0].trim();
-      }
-      let redirectRequired = false;
-      let newHost = host;
-      if (host.startsWith("www.")) {
-        newHost = host.slice(4);
-        redirectRequired = true;
-      }
-      if (protocol !== "https" && req.headers["x-forwarded-ssl"] !== "on") {
-        redirectRequired = true;
-      }
-      if (redirectRequired) {
-        return res.redirect(301, `https://${newHost}${req.originalUrl}`);
-      }
       next();
     });
   }
