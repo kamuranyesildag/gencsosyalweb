@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { PenTool, Rocket, Users, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { backdropVariants, bottomSheetVariants } from '../../lib/motion';
+import { backdropVariants, sheetVariants } from '../../lib/motion';
 
 export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const navigate = useNavigate();
@@ -40,11 +40,11 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 animate="visible"
                 exit="exit"
                 onClick={onClose}
-                className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs"
+                className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 "
               />
 
               <motion.div
-                variants={bottomSheetVariants}
+                variants={sheetVariants}
                 initial="hidden"
                 animate="visible"
                 exit="exit"

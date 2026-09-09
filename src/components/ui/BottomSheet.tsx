@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { backdropVariants, bottomSheetVariants } from '../../lib/motion';
+import { backdropVariants, sheetVariants } from '../../lib/motion';
 
 export interface BottomSheetProps {
   isOpen: boolean;
@@ -58,12 +58,12 @@ export function BottomSheet({
             animate="visible"
             exit="exit"
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/40 "
           />
 
           {/* Bottom Sheet Card */}
           <motion.div
-            variants={bottomSheetVariants}
+            variants={sheetVariants}
             initial="hidden"
             animate="visible"
             exit="exit"

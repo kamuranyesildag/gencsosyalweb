@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, type HTMLMotionProps } from 'motion/react';
+
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { tokens } from '../../lib/design-tokens';
@@ -55,15 +55,15 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
     const isDisabled = disabled || isLoading;
 
     return (
-      <motion.button
+      <button
         ref={ref}
         type={type}
         aria-label={ariaLabel}
         disabled={isDisabled}
         aria-busy={isLoading}
-        whileTap={isDisabled ? undefined : { scale: 0.96 }}
+        
         className={cn(
-          'inline-flex items-center justify-center shrink-0 select-none relative cursor-pointer transition-colors duration-150',
+          'inline-flex items-center justify-center shrink-0 select-none relative cursor-pointer transition-all active:scale-[0.97] duration-150',
           variant === 'danger' ? tokens.focus.ringDanger : tokens.focus.ring,
           isRounded ? tokens.radius.pill : tokens.radius.md,
           variantStyles[variant],
@@ -71,14 +71,14 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
           isDisabled && 'opacity-50 cursor-not-allowed pointer-events-none shadow-none',
           className
         )}
-        {...(props as HTMLMotionProps<'button'>)}
+        {...props}
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
         ) : (
           children
         )}
-      </motion.button>
+      </button>
     );
   }
 );

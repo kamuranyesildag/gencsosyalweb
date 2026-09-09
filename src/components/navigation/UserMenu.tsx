@@ -21,7 +21,7 @@ import {
   Sun,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { dropdownVariants } from '../../lib/motion';
+import { popoverVariants } from '../../lib/motion';
 
 export function UserMenu() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -121,7 +121,7 @@ export function UserMenu() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            variants={dropdownVariants}
+            variants={popoverVariants}
             initial="hidden"
             animate="visible"
             exit="exit"

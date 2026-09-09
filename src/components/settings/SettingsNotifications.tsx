@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Bell, Save, Sparkles, MessageCircle, Heart, UserPlus, Mail } from "lucide-react";
 import { Button } from "../ui/Button";
+import { fetchApi } from "../../lib/api";
 
 interface SettingsNotificationsProps {
   showMsg: (text: string, type?: "success" | "error") => void;
@@ -8,6 +9,7 @@ interface SettingsNotificationsProps {
 
 export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
   const [loading, setLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [settings, setSettings] = useState({
     pushEnabled: true,
     emailEnabled: true,
@@ -19,18 +21,38 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
     newsletters: false,
   });
 
-  const handleUpdate = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchApi("/users/me/notification-preferences")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setSettings(json.data);
+        }
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setIsInitializing(false));
+  }, []);
+
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Persist to localStorage or mock update
+    
     try {
-      localStorage.setItem("notification_preferences", JSON.stringify(settings));
-    } catch {}
-
-    setTimeout(() => {
+      const res = await fetchApi("/users/me/notification-preferences", {
+        method: "PUT",
+        data: settings
+      });
+      const json = await res.json();
+      if (json.success) {
+        showMsg("Bildirim tercihleriniz başarıyla kaydedildi.", "success");
+      } else {
+        showMsg("Kaydedilirken bir hata oluştu.", "error");
+      }
+    } catch (err) {
+      showMsg("Bir bağlantı hatası oluştu.", "error");
+    } finally {
       setLoading(false);
-      showMsg("Bildirim tercihleriniz başarıyla kaydedildi.");
-    }, 400);
+    }
   };
 
   const ToggleRow = ({
@@ -64,6 +86,19 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
       </label>
     </div>
   );
+
+  if (isInitializing) {
+    return (
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-6 animate-pulse">
+        <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
+        <div className="space-y-4">
+          <div className="h-10 bg-slate-100 dark:bg-slate-900 rounded"></div>
+          <div className="h-10 bg-slate-100 dark:bg-slate-900 rounded"></div>
+          <div className="h-10 bg-slate-100 dark:bg-slate-900 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleUpdate} className="space-y-6">

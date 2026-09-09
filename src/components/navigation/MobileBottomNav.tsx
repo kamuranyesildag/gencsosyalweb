@@ -25,7 +25,7 @@ export function MobileBottomNav() {
       <nav
         role="navigation"
         aria-label="Mobil Gezinme Çubuğu"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/85 dark:bg-[#0D121D]/85 backdrop-blur-md border-t border-slate-200/80 dark:border-white/[0.08] shadow-xs pb-[var(--sab,0px)] transition-colors"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#0D121D]  border-t border-slate-200/80 dark:border-white/[0.08] shadow-xs pb-[var(--sab,0px)] transition-colors"
       >
         <div className="flex justify-around items-center w-full h-[56px] px-2 max-w-lg mx-auto relative">
           {/* 1. Home */}

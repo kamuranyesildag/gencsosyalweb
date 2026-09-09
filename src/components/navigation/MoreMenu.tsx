@@ -18,7 +18,7 @@ import {
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { motion, AnimatePresence } from 'motion/react';
-import { backdropVariants, bottomSheetVariants } from '../../lib/motion';
+import { backdropVariants, sheetVariants } from '../../lib/motion';
 
 export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { user, logout } = useAuthStore();
@@ -78,11 +78,11 @@ export function MoreMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
             animate="visible"
             exit="exit"
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/40 "
           />
 
           <motion.div
-            variants={bottomSheetVariants}
+            variants={sheetVariants}
             initial="hidden"
             animate="visible"
             exit="exit"

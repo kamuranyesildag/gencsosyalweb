@@ -34,7 +34,9 @@ import { toast } from "../components/ui/Toast";
 import { confirmDialog } from "../components/ui/ConfirmDialog";
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from "../components/ui/Dropdown";
 
-const CommentItem = ({ comment, postId, onDeleted }: any) => {
+const CommentItem = ({ comment, postId, onDeleted, depth = 0, childrenMap = {}, onReply }: any) => {
+  const replies = childrenMap[comment.id] || [];
+  const maxDepth = 2;
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [currentContent, setCurrentContent] = useState(comment.content);
@@ -51,16 +53,20 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
     setIsSubmittingEdit(true);
     try {
       const res = await fetchApi(`/posts/comments/${comment.id}`, {
-        method: "PUT",
+        method: "PATCH",
         data: { content: editContent.trim() }
       });
       const json = await res.json();
       if (json.success) {
         setCurrentContent(editContent.trim());
         setIsEditing(false);
+        toast.success("Yorum güncellendi.");
+      } else {
+        toast.error(json.error?.message || "Yorum güncellenemedi.");
       }
     } catch (e) {
       console.error(e);
+      toast.error("Bir hata oluştu.");
     } finally {
       setIsSubmittingEdit(false);
     }
@@ -85,29 +91,9 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
     }
   };
 
-  const handleEditSubmit = async () => {
-    if (!editContent.trim()) return;
-    setIsSubmittingEdit(true);
-    try {
-      const res = await fetchApi(`/posts/comments/${comment.id}`, {
-        method: "PATCH",
-        data: { content: editContent.trim() },
-      });
-      if (res.ok) {
-        setCurrentContent(editContent.trim());
-        setIsEditing(false);
-        toast.success("Yorum güncellendi.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Yorum güncellenemedi.");
-    } finally {
-      setIsSubmittingEdit(false);
-    }
-  };
-
   return (
-    <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:bg-slate-900/80 transition-colors flex gap-3.5 sm:gap-4 group">
+    <div className={`flex flex-col border-b border-slate-200 dark:border-slate-800/80 ${depth > 0 ? 'border-none' : ''}`}>
+      <div className={`p-4 sm:p-5 hover:bg-slate-50 dark:bg-slate-900/80 transition-colors flex gap-3.5 sm:gap-4 group ${depth > 0 ? 'pl-8 sm:pl-12 pt-2 pb-3 border-l-2 border-slate-100 dark:border-slate-800/50 ml-4' : ''}`}>
       <div className="shrink-0 pt-0.5">
         <Avatar url={comment.user?.avatarUrl} name={comment.user?.displayName || comment.user?.username} size="sm" className="ring-2 ring-white shadow-xs" />
       </div>
@@ -124,13 +110,24 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
 
           <Dropdown>
             <DropdownTrigger>
-              <button
-                type="button"
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                aria-label="Yorum seçenekleri"
-              >
-                <MoreHorizontal className="w-[18px] h-[18px]" />
-              </button>
+              <div className="flex items-center gap-1">
+                {depth < maxDepth && (
+                  <button
+                    type="button"
+                    onClick={() => onReply(comment)}
+                    className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  >
+                    Yanıtla
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Yorum seçenekleri"
+                >
+                  <MoreHorizontal className="w-[18px] h-[18px]" />
+                </button>
+              </div>
             </DropdownTrigger>
             <DropdownContent align="right" className="w-40 rounded-2xl shadow-lg border-slate-100 dark:border-slate-800">
               {isOwner ? (
@@ -210,7 +207,29 @@ const CommentItem = ({ comment, postId, onDeleted }: any) => {
         targetId={comment.id}
         targetType="comment"
       />
-    </div>  );
+      </div>
+      {replies.length > 0 && depth < maxDepth && (
+        <div className="flex flex-col">
+          {replies.map((reply: any) => (
+            <CommentItem 
+              key={reply.id} 
+              comment={reply} 
+              postId={postId} 
+              onDeleted={onDeleted} 
+              depth={depth + 1} 
+              childrenMap={childrenMap}
+              onReply={onReply}
+            />
+          ))}
+        </div>
+      )}
+      {replies.length > 0 && depth >= maxDepth && (
+        <div className="pl-12 ml-4 py-2 text-xs font-bold text-blue-600 dark:text-blue-400">
+          {replies.length} yanıt daha...
+        </div>
+      )}
+    </div>
+  );
 };
 
 export function PostDetail() {
@@ -226,6 +245,7 @@ export function PostDetail() {
   const [collaborators, setCollaborators] = useState<any[]>([]);
   const [collabUserId, setCollabUserId] = useState("");
   const [addingCollab, setAddingCollab] = useState(false);
+  const [replyTo, setReplyTo] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -353,7 +373,7 @@ export function PostDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 sm:top-16 z-20 bg-white dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/60 px-4 sm:px-6 py-4 flex items-center gap-4 transition-all">
+      <header className="sticky top-0 sm:top-16 z-20 bg-white dark:bg-slate-950/80  border-b border-slate-200 dark:border-slate-800/60 px-4 sm:px-6 py-4 flex items-center gap-4 transition-all">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -478,12 +498,32 @@ export function PostDetail() {
       <div className="flex flex-col flex-1">
         {comments.length > 0 ? (
           <InfiniteScroll 
-        items={comments}
-        renderItem={(comment) => (
-          <CommentItem
+            items={(() => {
+              const roots: any[] = [];
+              const childrenMap: any = {};
+              const idMap = new Set(comments.map(c => c.id));
+              
+              comments.forEach(c => {
+                 if (c.parentId && idMap.has(c.parentId)) {
+                    if (!childrenMap[c.parentId]) childrenMap[c.parentId] = [];
+                    childrenMap[c.parentId].push(c);
+                 } else {
+                    roots.push(c);
+                 }
+              });
+              return roots.map(r => ({ ...r, __childrenMap: childrenMap }));
+            })()}
+            renderItem={(comment) => (
+              <CommentItem
                 key={comment.id}
                 comment={comment}
                 postId={post.id}
+                childrenMap={comment.__childrenMap}
+                onReply={(c: any) => {
+                  setReplyTo(c);
+                  inputRef.current?.focus();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 onDeleted={(delId: number) => {
                   setComments((prev) => prev.filter((c: any) => c.id !== delId));
                   setPost((prev: any) => ({
@@ -492,8 +532,8 @@ export function PostDetail() {
                   }));
                 }}
               />
-        )}
-        hasMore={hasMore} 
+            )}
+            hasMore={hasMore} 
         isLoading={loadingMore} 
         onLoadMore={loadMore} 
       />

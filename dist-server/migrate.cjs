@@ -75,6 +75,8 @@ __export(schema_exports, {
   messages: () => messages,
   messagesRelations: () => messagesRelations,
   moderationLogs: () => moderationLogs,
+  notificationPreferences: () => notificationPreferences,
+  notificationPreferencesRelations: () => notificationPreferencesRelations,
   notifications: () => notifications,
   otpVerifications: () => otpVerifications,
   pollOptions: () => pollOptions,
@@ -220,7 +222,9 @@ var posts = (0, import_pg_core.pgTable)("posts", {
   content: (0, import_pg_core.text)("content"),
   visibility: (0, import_pg_core.varchar)("visibility", { length: 20 }).default("PUBLIC").notNull(),
   postType: (0, import_pg_core.varchar)("post_type", { length: 20 }).default("NORMAL").notNull(),
-  // NORMAL, POLL, SENSITIVE
+  // NORMAL, POLL, SENSITIVE, QUOTE
+  quotedPostId: (0, import_pg_core.integer)("quoted_post_id").references(() => posts.id, { onDelete: "set null" }),
+  // Self-reference for quotes
   moderationStatus: (0, import_pg_core.varchar)("moderation_status", { length: 20 }).default("APPROVED").notNull(),
   contentWarning: (0, import_pg_core.text)("content_warning"),
   baseScore: (0, import_pg_core.real)("base_score").default(0).notNull(),
@@ -324,6 +328,7 @@ var follows = (0, import_pg_core.pgTable)("follows", {
   id: (0, import_pg_core.serial)("id").primaryKey(),
   followerId: (0, import_pg_core.integer)("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   followingId: (0, import_pg_core.integer)("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: (0, import_pg_core.varchar)("status", { length: 20 }).default("accepted").notNull(),
   notificationPreference: (0, import_pg_core.varchar)("notification_preference", { length: 20 }).default("standard").notNull(),
   createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
 }, (t) => ({
@@ -524,6 +529,23 @@ var securityAuditLogs = (0, import_pg_core.pgTable)("security_audit_logs", {
   userIdIdx: (0, import_pg_core.index)("security_audit_logs_user_id_idx").on(t.userId),
   actionIdx: (0, import_pg_core.index)("security_audit_logs_action_idx").on(t.action)
 }));
+var notificationPreferences = (0, import_pg_core.pgTable)("notification_preferences", {
+  userId: (0, import_pg_core.integer)("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  pushEnabled: (0, import_pg_core.boolean)("push_enabled").default(true).notNull(),
+  emailEnabled: (0, import_pg_core.boolean)("email_enabled").default(true).notNull(),
+  likes: (0, import_pg_core.boolean)("likes").default(true).notNull(),
+  comments: (0, import_pg_core.boolean)("comments").default(true).notNull(),
+  mentions: (0, import_pg_core.boolean)("mentions").default(true).notNull(),
+  follows: (0, import_pg_core.boolean)("follows").default(true).notNull(),
+  messages: (0, import_pg_core.boolean)("messages").default(true).notNull(),
+  newsletters: (0, import_pg_core.boolean)("newsletters").default(false).notNull()
+});
+var notificationPreferencesRelations = (0, import_drizzle_orm.relations)(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id]
+  })
+}));
 var adminAuditLogs = (0, import_pg_core.pgTable)("admin_audit_logs", {
   id: (0, import_pg_core.serial)("id").primaryKey(),
   adminUserId: (0, import_pg_core.integer)("admin_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -570,6 +592,10 @@ var usersRelations = (0, import_drizzle_orm.relations)(users, ({ one, many }) =>
     fields: [users.id],
     references: [profiles.userId]
   }),
+  notificationPreferences: one(notificationPreferences, {
+    fields: [users.id],
+    references: [notificationPreferences.userId]
+  }),
   projects: many(projects),
   projectLikes: many(projectLikes),
   projectComments: many(projectComments),
@@ -608,6 +634,10 @@ var postsRelations = (0, import_drizzle_orm.relations)(posts, ({ one, many }) =>
   author: one(users, {
     fields: [posts.userId],
     references: [users.id]
+  }),
+  quotedPost: one(posts, {
+    fields: [posts.quotedPostId],
+    references: [posts.id]
   }),
   media: many(postMedia),
   likes: many(likes),

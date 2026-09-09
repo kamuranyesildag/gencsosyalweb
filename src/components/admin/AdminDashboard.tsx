@@ -22,7 +22,7 @@ import { Badge } from '../ui/Badge';
 import { Skeleton, SkeletonText } from '../ui/Skeleton';
 import { ErrorState } from '../ui/ErrorState';
 import { fetchApi } from '../../lib/api';
-import { fadeInVariants, slideUpVariants } from '../../lib/motion';
+import { fadeInVariants, pageInVariants } from '../../lib/motion';
 import { Link } from 'react-router';
 
 interface AdminDashboardProps {
@@ -158,7 +158,7 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
         <div className="absolute right-0 top-0 w-96 h-96 bg-slate-1000/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-slate-950/10 backdrop-blur-md text-slate-200 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-slate-950/10  text-slate-200 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Yönetim ve Güvenlik Merkezi</span>
             </div>
@@ -175,7 +175,7 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
               size="md"
               leftIcon={<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}
               onClick={loadDashboardData}
-              className="bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 text-white border-white/10 backdrop-blur-md"
+              className="bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 text-white border-white/10 "
             >
               Yenile
             </Button>
@@ -206,7 +206,7 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
           : statCards.map((stat, i) => (
               <motion.div
                 key={stat.title}
-                variants={slideUpVariants}
+                variants={pageInVariants}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: i * 0.05 }}

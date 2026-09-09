@@ -99,7 +99,7 @@ export function SupportDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen border-x border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#070A10]">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white/80 dark:bg-[#070A10]/80 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-16 z-20 bg-white/80 dark:bg-[#070A10]/80  border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => navigate("/settings")}
           className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -155,7 +155,7 @@ export function SupportDetail() {
 
       {/* Message Input */}
       {ticket.status !== 'CLOSED' && (
-        <div className="sticky bottom-0 bg-white/80 dark:bg-[#070A10]/80 backdrop-blur-md border-t border-slate-200/80 dark:border-white/[0.08] p-4 pb-safe">
+        <div className="sticky bottom-0 bg-white/80 dark:bg-[#070A10]/80  border-t border-slate-200/80 dark:border-white/[0.08] p-4 pb-safe">
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
               type="text"

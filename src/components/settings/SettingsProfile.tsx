@@ -193,7 +193,7 @@ export function SettingsProfile({
                   <span className="text-xs font-semibold">Kapak fotoğrafı ekleyin</span>
                 </div>
               )}
-              <label className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <label className="absolute inset-0 bg-slate-950/40  flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 {uploadingCover ? (
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                 ) : (
@@ -227,7 +227,7 @@ export function SettingsProfile({
                   <User className="w-10 h-10" />
                 </div>
               )}
-              <label className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <label className="absolute inset-0 bg-slate-950/40  flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 {uploadingAvatar ? (
                   <Loader2 className="w-5 h-5 text-white animate-spin" />
                 ) : (

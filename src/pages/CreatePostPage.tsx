@@ -9,6 +9,7 @@ export function CreatePostPage() {
   const { isAuthenticated } = useAuthStore();
   const [searchParams] = useSearchParams();
   const communityId = searchParams.get("communityId");
+  const quoteId = searchParams.get("quoteId");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -27,7 +28,7 @@ export function CreatePostPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-60px)] pb-16">
       {/* 1. STICKY SUB-HEADER (Liquid Glass) */}
-      <header className="sticky top-[60px] z-20 bg-white/85 dark:bg-[#0D121D]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+      <header className="sticky top-[60px] z-20 bg-white dark:bg-[#0D121D]  border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
         <div className="flex items-center justify-between h-12 w-full max-w-2xl mx-auto px-4">
           <div className="flex items-center gap-3">
             <button
@@ -60,6 +61,7 @@ export function CreatePostPage() {
       <main className="flex-1 w-full max-w-2xl mx-auto p-3 sm:p-5">
         <div className="bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 transition-colors">
           <CreatePost
+            quoteId={quoteId ? parseInt(quoteId) : undefined}
             standalone={true}
             autoFocus={true}
             communityId={communityId ? parseInt(communityId) : undefined}

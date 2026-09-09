@@ -233,7 +233,7 @@ export function Onboarding() {
                     ) : (
                       <ImageIcon className="w-10 h-10 text-slate-300 group-hover:text-slate-400 transition-colors" />
                     )}
-                    <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white ">
                       <Camera className="w-6 h-6 mb-1.5" />
                       <span className="text-xs font-bold">Fotoğraf Yükle</span>
                     </div>

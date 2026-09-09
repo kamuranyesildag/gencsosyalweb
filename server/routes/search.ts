@@ -56,13 +56,18 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
     else if (type === "posts") {
       
       const visibilityCondition = or(
-        eq(posts.visibility, "PUBLIC"),
         eq(posts.userId, currentUserId),
         and(
-          eq(posts.visibility, "FOLLOWERS"),
-          currentUserId !== -1 
-            ? inArray(posts.userId, db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId)))
-            : sql`FALSE`
+          or(eq(posts.visibility, "PUBLIC"), eq(posts.visibility, "FOLLOWERS")),
+          or(
+            and(
+              or(eq(profiles.isPrivate, false), sql`${profiles.isPrivate} IS NULL`),
+              eq(posts.visibility, "PUBLIC")
+            ),
+            currentUserId !== -1 
+              ? inArray(posts.userId, db.select({ followingId: follows.followingId }).from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.status, 'accepted'))))
+              : sql`FALSE`
+          )
         )
       );
 

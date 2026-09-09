@@ -6,7 +6,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { motion } from 'motion/react';
-import { slideUpVariants } from '../../lib/motion';
+import { pageInVariants } from '../../lib/motion';
 import { ShieldAlert, CheckCircle, XCircle, AlertTriangle, MessageSquare, FileText, User } from 'lucide-react';
 
 interface ModerationLog {
@@ -84,7 +84,7 @@ export function AdminModeration() {
   if (loading) return <div className="p-8 text-center text-slate-500 dark:text-slate-400 font-medium">Yükleniyor...</div>;
 
   return (
-    <motion.div variants={slideUpVariants} initial="hidden" animate="visible" className="space-y-6">
+    <motion.div variants={pageInVariants} initial="hidden" animate="visible" className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Moderasyon Kuyruğu</h2>

@@ -24,7 +24,7 @@ import { ErrorState } from '../ui/ErrorState';
 import { toast } from '../ui/Toast';
 import { confirmDialog } from '../ui/ConfirmDialog';
 import { fetchApi } from '../../lib/api';
-import { fadeInVariants, slideUpVariants } from '../../lib/motion';
+import { fadeInVariants, pageInVariants } from '../../lib/motion';
 import { Link } from 'react-router';
 
 type ReportStatus = 'PENDING' | 'RESOLVED' | 'DISMISSED';
@@ -220,7 +220,7 @@ export function AdminReports() {
                 return (
                   <motion.div
                     key={r.id}
-                    variants={slideUpVariants}
+                    variants={pageInVariants}
                     initial="hidden"
                     animate="visible"
                   >

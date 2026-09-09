@@ -22,7 +22,7 @@ import { Skeleton, SkeletonText } from '../ui/Skeleton';
 import { ErrorState } from '../ui/ErrorState';
 import { toast } from '../ui/Toast';
 import { fetchApi } from '../../lib/api';
-import { fadeInVariants, slideUpVariants } from '../../lib/motion';
+import { fadeInVariants, pageInVariants } from '../../lib/motion';
 
 export function AdminSmtp() {
   const [smtpConfig, setSmtpConfig] = useState({

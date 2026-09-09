@@ -23,7 +23,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { toast } from '../ui/Toast';
 import { fetchApi } from '../../lib/api';
-import { fadeInVariants, slideUpVariants } from '../../lib/motion';
+import { fadeInVariants, pageInVariants } from '../../lib/motion';
 import { Link } from 'react-router';
 
 type VerificationStatus = 'all' | 'pending' | 'under_review' | 'approved' | 'rejected';
@@ -242,7 +242,7 @@ export function AdminVerification() {
                 return (
                   <motion.div
                     key={v.id}
-                    variants={slideUpVariants}
+                    variants={pageInVariants}
                     initial="hidden"
                     animate="visible"
                   >

@@ -29,7 +29,7 @@ import { AdminReports } from '../components/admin/AdminReports';
 import { AdminModeration } from '../components/admin/AdminModeration';
 import { AdminSmtp } from '../components/admin/AdminSmtp';
 import { AdminAuditLogs } from '../components/admin/AdminAuditLogs';
-import { fadeInVariants, slideUpVariants } from '../lib/motion';
+import { fadeInVariants, pageInVariants } from '../lib/motion';
 
 export type AdminTab = 
   | 'stats' 
@@ -171,7 +171,7 @@ export function Admin() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            variants={slideUpVariants}
+            variants={pageInVariants}
             initial="hidden"
             animate="visible"
             exit="exit"

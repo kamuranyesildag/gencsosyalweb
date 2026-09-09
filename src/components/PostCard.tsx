@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import React, { useState, useEffect, useRef } from "react";
+
 import { Link, useNavigate } from "react-router";
 import { VerifiedBadge } from "./VerifiedBadge";
 import {
-  ShieldAlert,
+  Image as ImageIcon, ShieldAlert,
   Heart,
   MessageCircle,
   Repeat2,
@@ -40,12 +41,16 @@ interface PostCardProps {
   post: any;
   key?: React.Key;
   onPostDeleted?: (id: number) => void;
+  onBookmarkToggled?: (id: number, isSaved: boolean) => void;
 }
 
-export function PostCard({ post, onPostDeleted }: PostCardProps) {
+export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardProps) {
   const navigate = useNavigate();
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [liked, setLiked] = useState(post.isLiked || false);
+  const [reactionType, setReactionType] = useState<string | null>(post.myReaction || null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const reactionPickerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
   const [saved, setSaved] = useState(post.isSaved || false);
   const [reposted, setReposted] = useState(post.isReposted || false);
@@ -160,6 +165,16 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedMediaIndex]);
 
+  useEffect(() => {
+    const handleUserFollowToggled = (e: CustomEvent) => {
+      if (post.user && e.detail.userId === post.user.id) {
+        setIsFollowingUser(e.detail.isFollowing);
+      }
+    };
+    window.addEventListener("user_follow_toggled", handleUserFollowToggled as EventListener);
+    return () => window.removeEventListener("user_follow_toggled", handleUserFollowToggled as EventListener);
+  }, [post.user]);
+
   // Follow Handler
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -179,6 +194,11 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         toast.error(json.error?.message || "Takip edilemedi");
       } else {
         toast.success("Takip edildi");
+        window.dispatchEvent(
+          new CustomEvent("user_follow_toggled", {
+            detail: { userId: post.user.id, isFollowing: true },
+          })
+        );
       }
     } catch {
       setIsFollowingUser(prev);
@@ -189,33 +209,55 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
   };
 
   // Like Handler
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleReaction = async (e: React.MouseEvent, type: string = 'like') => {
     e.stopPropagation();
     if (!isAuthenticated) return openModal();
     if (isLiking) return;
     setIsLiking(true);
+    setShowReactionPicker(false);
 
-    const isCurrentlyLiked = liked;
+    const isRemoving = reactionType === type;
+    const oldReaction = reactionType;
     const currentLikeCount = likeCount;
 
     try {
-      setLiked(!isCurrentlyLiked);
-      setLikeCount(isCurrentlyLiked ? currentLikeCount - 1 : currentLikeCount + 1);
-
-      const res = await fetchApi(`/posts/${post.id}/like`, {
-        method: isCurrentlyLiked ? "DELETE" : "POST",
-      });
-      if (!res.ok) {
-        setLiked(isCurrentlyLiked);
-        setLikeCount(currentLikeCount);
+      if (isRemoving) {
+        setReactionType(null);
+        setLiked(false);
+        setLikeCount(Math.max(0, currentLikeCount - 1));
+        const res = await fetchApi(`/posts/${post.id}/reaction`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed");
+      } else {
+        const wasEmpty = !reactionType;
+        setReactionType(type);
+        setLiked(true);
+        if (wasEmpty) setLikeCount(currentLikeCount + 1);
+        
+        const res = await fetchApi(`/posts/${post.id}/reaction`, {
+          method: "POST",
+          body: JSON.stringify({ type })
+        });
+        if (!res.ok) throw new Error("Failed");
       }
-    } catch (e) {
-      console.error(e);
-      setLiked(isCurrentlyLiked);
+    } catch (err) {
+      console.error(err);
+      setReactionType(oldReaction);
+      setLiked(!!oldReaction);
       setLikeCount(currentLikeCount);
     } finally {
       setIsLiking(false);
     }
+  };
+
+  const handleMouseEnterPicker = () => {
+    if (reactionPickerTimeoutRef.current) clearTimeout(reactionPickerTimeoutRef.current);
+    setShowReactionPicker(true);
+  };
+
+  const handleMouseLeavePicker = () => {
+    reactionPickerTimeoutRef.current = setTimeout(() => {
+      setShowReactionPicker(false);
+    }, 300);
   };
 
   // Repost Handler
@@ -269,6 +311,9 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
       } else {
         if (!isCurrentlySaved) toast.success("Kaydedilenlere eklendi!");
         else toast.info("Kaydedilenlerden kaldırıldı.");
+        if (onBookmarkToggled) {
+          onBookmarkToggled(post.id, !isCurrentlySaved);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -359,8 +404,25 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
   };
 
   return (
-    <article
-      ref={articleRef}
+    
+    <div>
+    {post.repostedBy && (
+      <div className="flex items-center gap-2 px-6 pt-3 pb-0 -mb-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+        <Repeat2 className="w-3.5 h-3.5" />
+        <Link to={`/${post.repostedBy?.username}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
+          {post.repostedBy?.displayName || post.repostedBy?.username} repostladı
+        </Link>
+      </div>
+    )}
+    {!post.repostedBy && post.quotedPost && (
+      <div className="flex items-center gap-2 px-6 pt-3 pb-0 -mb-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        <span>
+          {post.user?.displayName || post.user?.username} alıntıladı
+        </span>
+      </div>
+    )}
+    <article ref={articleRef}
       id={`post-${post.id}`}
       onClick={(e) => {
         const target = e.target as HTMLElement;
@@ -615,7 +677,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                           disabled={isVoting || pollData.userVotedIndex !== undefined || !!pollData.userVotedOptionId}
                           onClick={(e) => handleVote(e, opt.id || i)}
                           className={cn(
-                            "relative w-full flex items-center justify-between p-3 border-b border-slate-100 dark:border-white/[0.06] last:border-0 transition-colors text-left",
+                            "relative w-full flex items-center justify-between p-3 border-b border-slate-100 dark:border-white/[0.06] last:border-0 transition-all active:scale-[0.97] text-left",
                             pollData.userVotedIndex === undefined && !pollData.userVotedOptionId
                               ? "hover:bg-slate-100/60 dark:hover:bg-slate-800/40 cursor-pointer"
                               : "cursor-default"
@@ -665,7 +727,33 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   </div>
                 )}
 
-                {/* Media Grid */}
+                
+                {/* Quote Preview */}
+                {post.quotedPost && (
+                   <div 
+                     onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.quotedPost.id}`); }}
+                     className="mt-3 mb-1 border border-slate-200 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-white hover:bg-slate-50 dark:bg-slate-950/50 dark:hover:bg-slate-900/60 cursor-pointer transition-all active:scale-[0.97] shadow-sm"
+                   >
+                      <div className="flex items-center gap-2 mb-2">
+                         <Avatar url={post.quotedPost.user?.avatarUrl} name={post.quotedPost.user?.displayName || post.quotedPost.user?.username} size="sm" />
+                         <div className="flex items-center gap-1.5 text-[13px] sm:text-sm">
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{post.quotedPost.user?.displayName || post.quotedPost.user?.username}</span>
+                            <span className="text-slate-500 dark:text-slate-400">@{post.quotedPost.user?.username}</span>
+                            <span className="text-slate-400">&bull; {formatTimeAgo(post.quotedPost.createdAt)}</span>
+                         </div>
+                      </div>
+                      <div className="text-[13px] sm:text-[14px] text-slate-800 dark:text-slate-200 line-clamp-3">
+                         {post.quotedPost.content}
+                      </div>
+                      {/* Optional: Minimal Media Preview for Quoted Post */}
+                      {post.quotedPost.media && post.quotedPost.media.length > 0 && (
+                         <div className="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                            <ImageIcon className="w-3.5 h-3.5" /> Media eklentisi
+                         </div>
+                      )}
+                   </div>
+                )}
+  {/* Media Grid */}
                 {post.media && post.media.length > 0 && (
                   <div
                     className={cn(
@@ -743,64 +831,122 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         {/* 3. INTERACTION ACTION BAR */}
         <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 pt-2.5 mt-1 select-none border-t border-slate-100 dark:border-white/[0.04]">
           {/* Comment Button */}
-          <motion.button
+          <button
             type="button"
-            whileTap={{ scale: 0.94 }}
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/post/${post.id}`);
             }}
             aria-label={`${post.commentCount || 0} yorum. Yorum yap.`}
-            className="group/btn flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1.5 px-2 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+            className="group/btn flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-[0.97] py-1.5 px-2 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
           >
             <MessageCircle className="w-4.5 h-4.5 stroke-[1.75]" />
             <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
               {post.commentCount || 0}
             </span>
-          </motion.button>
+          </button>
 
-          {/* Repost Button */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.94 }}
-            onClick={handleRepost}
-            aria-label={`${repostCount} yeniden paylaşım. Yeniden paylaş.`}
-            className={cn(
-              "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-colors",
-              reposted
-                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30"
-                : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30"
-            )}
-          >
-            <Repeat2 className={cn("w-4.5 h-4.5", reposted ? "stroke-[2.2]" : "stroke-[1.75]")} />
-            <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
-              {repostCount}
-            </span>
-          </motion.button>
+          {/* Repost Menu */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Dropdown>
+              <DropdownTrigger>
+                <button
+                  type="button"
+                  aria-label={`${repostCount} yeniden paylaşım.`}
+                  className={cn(
+                    "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-[0.97]",
+                    reposted
+                      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30"
+                      : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30"
+                  )}
+                >
+                  <Repeat2 className={cn("w-4.5 h-4.5", reposted ? "stroke-[2.2]" : "stroke-[1.75]")} />
+                  <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
+                    {repostCount}
+                  </span>
+                </button>
+              </DropdownTrigger>
+              <DropdownContent align="left" className="w-40">
+                <DropdownItem onClick={(e) => { e.stopPropagation(); handleRepost(e); }}>
+                  <div className="flex items-center gap-2">
+                    <Repeat2 className="w-4 h-4" />
+                    <span>{reposted ? "Repost'u Geri Al" : "Repost"}</span>
+                  </div>
+                </DropdownItem>
+                <DropdownItem onClick={(e) => { e.stopPropagation(); navigate(`/create?quoteId=${post.id}`); }}>
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    <span>Alıntıla</span>
+                  </div>
+                </DropdownItem>
+              </DropdownContent>
+            </Dropdown>
+          </div>
 
-          {/* Like Button */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.94 }}
-            onClick={handleLike}
-            aria-label={`${likeCount} beğeni. ${liked ? "Beğeniyi geri al" : "Beğen"}`}
-            className={cn(
-              "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-colors",
-              liked
-                ? "text-rose-600 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/30"
-                : "text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/60 dark:hover:bg-rose-950/30"
-            )}
+          {/* Reaction Button with Picker */}
+          <div 
+            className="relative" 
+            onMouseEnter={handleMouseEnterPicker} 
+            onMouseLeave={handleMouseLeavePicker}
           >
-            <Heart
+            {showReactionPicker && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] shadow-lg rounded-full z-50"
+              >
+                {[
+                  { type: 'like', icon: '👍', color: 'text-blue-500' },
+                  { type: 'love', icon: '❤️', color: 'text-rose-500' },
+                  { type: 'haha', icon: '😂', color: 'text-yellow-500' },
+                  { type: 'wow', icon: '😮', color: 'text-yellow-500' },
+                  { type: 'sad', icon: '😢', color: 'text-yellow-500' },
+                  { type: 'angry', icon: '😡', color: 'text-orange-500' }
+                ].map(r => (
+                  <button
+                    key={r.type}
+                    onClick={(e) => handleReaction(e, r.type)}
+                    className="p-2 hover:scale-125 transition-transform origin-bottom text-xl leading-none"
+                    title={r.type}
+                  >
+                    {r.icon}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+            
+            <button
+              type="button"
+              onClick={(e) => handleReaction(e, reactionType || 'like')}
+              aria-label={`${likeCount} tepki.`}
               className={cn(
-                "w-4.5 h-4.5",
-                liked ? "fill-rose-600 dark:fill-rose-500 stroke-rose-600 dark:stroke-rose-500" : "stroke-[1.75]"
+                "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-[0.97]",
+                reactionType
+                  ? "text-rose-600 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/60 dark:hover:bg-rose-950/30"
               )}
-            />
-            <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
-              {likeCount}
-            </span>
-          </motion.button>
+            >
+              {reactionType === 'love' ? (
+                <Heart className="w-4.5 h-4.5 fill-rose-600 stroke-rose-600 dark:fill-rose-500 dark:stroke-rose-500" />
+              ) : reactionType === 'haha' ? (
+                <span className="text-[17px] leading-none">😂</span>
+              ) : reactionType === 'wow' ? (
+                <span className="text-[17px] leading-none">😮</span>
+              ) : reactionType === 'sad' ? (
+                <span className="text-[17px] leading-none">😢</span>
+              ) : reactionType === 'angry' ? (
+                <span className="text-[17px] leading-none">😡</span>
+              ) : reactionType === 'like' ? (
+                <span className="text-[17px] leading-none">👍</span>
+              ) : (
+                <Heart className="w-4.5 h-4.5 stroke-[1.75]" />
+              )}
+              <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
+                {likeCount}
+              </span>
+            </button>
+          </div>
 
           {/* View Count (Subtle) */}
           <div
@@ -813,13 +959,12 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
 
           {/* Bookmark & Share (Grouped Actions) */}
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <motion.button
+            <button
               type="button"
-              whileTap={{ scale: 0.94 }}
               onClick={handleBookmark}
               aria-label={saved ? "Kaydedilenlerden kaldır" : "Kaydet"}
               className={cn(
-                "group/btn p-1.5 rounded-lg transition-colors",
+                "group/btn p-1.5 rounded-lg transition-all active:scale-[0.97]",
                 saved
                   ? "text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30"
                   : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
@@ -831,17 +976,16 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                   saved ? "fill-blue-600 dark:fill-blue-400 stroke-blue-600 dark:stroke-blue-400" : "stroke-[1.75]"
                 )}
               />
-            </motion.button>
+            </button>
 
-            <motion.button
+            <button
               type="button"
-              whileTap={{ scale: 0.94 }}
               onClick={handleShare}
               aria-label="Paylaş"
-              className="group/btn p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition-colors"
+              className="group/btn p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition-all active:scale-[0.97]"
             >
               <Share2 className="w-4.5 h-4.5 stroke-[1.75]" />
-            </motion.button>
+            </button>
           </div>
         </div>
       </div>
@@ -858,12 +1002,13 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
         createPortal(
           <AnimatePresence>
             {selectedMediaIndex !== null && (
-              <motion.div
+              
+  <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-md"
+                className="fixed inset-0 z-50 flex flex-col bg-black/95 "
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedMediaIndex(null);
@@ -898,7 +1043,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                       setSelectedMediaIndex(null);
                     }}
                     aria-label="Kapat"
-                    className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors pointer-events-auto cursor-pointer"
+                    className="p-2 bg-white/10 hover:bg-white/20  rounded-full text-white transition-all active:scale-[0.97] pointer-events-auto cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -921,7 +1066,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                           );
                         }}
                         aria-label="Önceki medya"
-                        className="absolute left-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur-md z-50 transition-all pointer-events-auto cursor-pointer"
+                        className="absolute left-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white  z-50 transition-all pointer-events-auto cursor-pointer"
                       >
                         <ChevronLeft className="w-6 h-6" />
                       </button>
@@ -938,7 +1083,7 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
                           );
                         }}
                         aria-label="Sonraki medya"
-                        className="absolute right-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white backdrop-blur-md z-50 transition-all pointer-events-auto cursor-pointer"
+                        className="absolute right-4 p-3 bg-black/50 hover:bg-black/80 rounded-full text-white  z-50 transition-all pointer-events-auto cursor-pointer"
                       >
                         <ChevronRight className="w-6 h-6" />
                       </button>
@@ -980,5 +1125,6 @@ export function PostCard({ post, onPostDeleted }: PostCardProps) {
           document.body
         )}
     </article>
+    </div>
   );
 }

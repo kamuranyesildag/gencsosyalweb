@@ -34,7 +34,7 @@ export function OnboardingModal() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={handleClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/40 "
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}

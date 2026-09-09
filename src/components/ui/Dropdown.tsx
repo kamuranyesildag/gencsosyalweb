@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { dropdownVariants } from '../../lib/motion';
+import { popoverVariants } from '../../lib/motion';
 
 interface DropdownContextType {
   isOpen: boolean;
@@ -122,7 +122,7 @@ export function DropdownContent({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          variants={dropdownVariants}
+          variants={popoverVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -177,7 +177,7 @@ export function DropdownItem({
         'w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-left transition-colors duration-150',
         isDanger
           ? 'text-rose-600 hover:bg-rose-50 active:bg-rose-100'
-          : 'text-slate-700 hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-900 dark:text-slate-100 active:bg-slate-100 dark:bg-slate-900',
+          : 'text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:text-slate-100 active:bg-slate-100 dark:bg-slate-900',
         disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
         className
       )}

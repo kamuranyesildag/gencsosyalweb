@@ -31,7 +31,7 @@ export function AppLayout() {
         {/* Left Navigation Sidebar (Desktop & Tablet) */}
         <aside
           aria-label="Sol Gezinme Menüsü"
-          className="hidden md:flex flex-col w-20 xl:w-64 sticky top-[60px] h-[calc(100vh-60px)] border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80 backdrop-blur-sm z-20 shrink-0 transition-colors"
+          className="hidden md:flex flex-col w-20 xl:w-64 sticky top-[60px] h-[calc(100vh-60px)] border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80  z-20 shrink-0 transition-colors"
         >
           <DesktopSidebar />
         </aside>

@@ -282,6 +282,8 @@ __export(schema_exports, {
   messages: () => messages,
   messagesRelations: () => messagesRelations,
   moderationLogs: () => moderationLogs,
+  notificationPreferences: () => notificationPreferences,
+  notificationPreferencesRelations: () => notificationPreferencesRelations,
   notifications: () => notifications,
   otpVerifications: () => otpVerifications,
   pollOptions: () => pollOptions,
@@ -331,7 +333,7 @@ __export(schema_exports, {
   weeklyLeaderboards: () => weeklyLeaderboards,
   weeklyLeaderboardsRelations: () => weeklyLeaderboardsRelations
 });
-var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations, supportTickets, supportTicketMessages, feedbacks, supportTicketsRelations, supportTicketMessagesRelations, feedbacksRelations;
+var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, notificationPreferences, notificationPreferencesRelations, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations, supportTickets, supportTicketMessages, feedbacks, supportTicketsRelations, supportTicketMessagesRelations, feedbacksRelations;
 var init_schema = __esm({
   "src/db/schema.ts"() {
     "use strict";
@@ -431,7 +433,9 @@ var init_schema = __esm({
       content: (0, import_pg_core.text)("content"),
       visibility: (0, import_pg_core.varchar)("visibility", { length: 20 }).default("PUBLIC").notNull(),
       postType: (0, import_pg_core.varchar)("post_type", { length: 20 }).default("NORMAL").notNull(),
-      // NORMAL, POLL, SENSITIVE
+      // NORMAL, POLL, SENSITIVE, QUOTE
+      quotedPostId: (0, import_pg_core.integer)("quoted_post_id").references(() => posts.id, { onDelete: "set null" }),
+      // Self-reference for quotes
       moderationStatus: (0, import_pg_core.varchar)("moderation_status", { length: 20 }).default("APPROVED").notNull(),
       contentWarning: (0, import_pg_core.text)("content_warning"),
       baseScore: (0, import_pg_core.real)("base_score").default(0).notNull(),
@@ -535,6 +539,7 @@ var init_schema = __esm({
       id: (0, import_pg_core.serial)("id").primaryKey(),
       followerId: (0, import_pg_core.integer)("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
       followingId: (0, import_pg_core.integer)("following_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      status: (0, import_pg_core.varchar)("status", { length: 20 }).default("accepted").notNull(),
       notificationPreference: (0, import_pg_core.varchar)("notification_preference", { length: 20 }).default("standard").notNull(),
       createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull()
     }, (t) => ({
@@ -735,6 +740,23 @@ var init_schema = __esm({
       userIdIdx: (0, import_pg_core.index)("security_audit_logs_user_id_idx").on(t.userId),
       actionIdx: (0, import_pg_core.index)("security_audit_logs_action_idx").on(t.action)
     }));
+    notificationPreferences = (0, import_pg_core.pgTable)("notification_preferences", {
+      userId: (0, import_pg_core.integer)("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+      pushEnabled: (0, import_pg_core.boolean)("push_enabled").default(true).notNull(),
+      emailEnabled: (0, import_pg_core.boolean)("email_enabled").default(true).notNull(),
+      likes: (0, import_pg_core.boolean)("likes").default(true).notNull(),
+      comments: (0, import_pg_core.boolean)("comments").default(true).notNull(),
+      mentions: (0, import_pg_core.boolean)("mentions").default(true).notNull(),
+      follows: (0, import_pg_core.boolean)("follows").default(true).notNull(),
+      messages: (0, import_pg_core.boolean)("messages").default(true).notNull(),
+      newsletters: (0, import_pg_core.boolean)("newsletters").default(false).notNull()
+    });
+    notificationPreferencesRelations = (0, import_drizzle_orm.relations)(notificationPreferences, ({ one }) => ({
+      user: one(users, {
+        fields: [notificationPreferences.userId],
+        references: [users.id]
+      })
+    }));
     adminAuditLogs = (0, import_pg_core.pgTable)("admin_audit_logs", {
       id: (0, import_pg_core.serial)("id").primaryKey(),
       adminUserId: (0, import_pg_core.integer)("admin_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -781,6 +803,10 @@ var init_schema = __esm({
         fields: [users.id],
         references: [profiles.userId]
       }),
+      notificationPreferences: one(notificationPreferences, {
+        fields: [users.id],
+        references: [notificationPreferences.userId]
+      }),
       projects: many(projects),
       projectLikes: many(projectLikes),
       projectComments: many(projectComments),
@@ -819,6 +845,10 @@ var init_schema = __esm({
       author: one(users, {
         fields: [posts.userId],
         references: [users.id]
+      }),
+      quotedPost: one(posts, {
+        fields: [posts.quotedPostId],
+        references: [posts.id]
       }),
       media: many(postMedia),
       likes: many(likes),
@@ -2035,19 +2065,44 @@ var notifications_exports = {};
 __export(notifications_exports, {
   notify: () => notify
 });
-async function notify(actorId, recipientId, type, postId, commentId, projectId) {
+async function notify(actorId, recipientId, type, postId, commentId, projectId, tx) {
   if (actorId === recipientId) return;
   try {
-    await db.insert(notifications).values({ actorId, recipientId, type, postId, commentId, projectId });
+    const execDb = tx || db;
+    const prefs = await execDb.select().from(notificationPreferences).where((0, import_drizzle_orm9.eq)(notificationPreferences.userId, recipientId)).limit(1);
+    const pref = prefs.length > 0 ? prefs[0] : {
+      pushEnabled: true,
+      emailEnabled: true,
+      likes: true,
+      comments: true,
+      mentions: true,
+      follows: true,
+      messages: true,
+      newsletters: false
+    };
+    if (type.includes("like") || type.includes("reaction")) {
+      if (!pref.likes) return;
+    } else if (type.includes("comment") || type.includes("reply")) {
+      if (!pref.comments) return;
+    } else if (type.includes("mention")) {
+      if (!pref.mentions) return;
+    } else if (type.includes("follow")) {
+      if (!pref.follows) return;
+    } else if (type.includes("message")) {
+      if (!pref.messages) return;
+    }
+    await execDb.insert(notifications).values({ actorId, recipientId, type, postId, commentId, projectId });
   } catch (e) {
     console.error("Failed to create notification:", e);
   }
 }
+var import_drizzle_orm9;
 var init_notifications = __esm({
   "server/utils/notifications.ts"() {
     "use strict";
     init_db();
     init_schema();
+    import_drizzle_orm9 = require("drizzle-orm");
   }
 });
 
@@ -2155,21 +2210,21 @@ var projects_exports = {};
 __export(projects_exports, {
   projectsRouter: () => projectsRouter
 });
-var import_express6, import_drizzle_orm9, import_drizzle_orm10, projectsRouter;
+var import_express6, import_drizzle_orm10, import_drizzle_orm11, projectsRouter;
 var init_projects = __esm({
   "server/routes/projects.ts"() {
     "use strict";
     import_express6 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm9 = require("drizzle-orm");
+    import_drizzle_orm10 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     init_notifications();
     init_project();
     init_moderation();
     init_blocks();
-    import_drizzle_orm10 = require("drizzle-orm");
+    import_drizzle_orm11 = require("drizzle-orm");
     projectsRouter = (0, import_express6.Router)();
     projectsRouter.get("/", optionalAuth, async (req, res) => {
       try {
@@ -2182,25 +2237,25 @@ var init_projects = __esm({
         const offset = (pageNum - 1) * limitNum;
         let conditions = [];
         if (category) {
-          conditions.push((0, import_drizzle_orm9.eq)(projects.category, category));
+          conditions.push((0, import_drizzle_orm10.eq)(projects.category, category));
         }
         if (status) {
-          conditions.push((0, import_drizzle_orm9.eq)(projects.status, status));
+          conditions.push((0, import_drizzle_orm10.eq)(projects.status, status));
         }
         if (q) {
           const search = `%${q}%`;
           conditions.push(
-            (0, import_drizzle_orm9.or)(
-              (0, import_drizzle_orm9.ilike)(projects.title, search),
-              (0, import_drizzle_orm9.ilike)(projects.description, search),
-              import_drizzle_orm9.sql`${projects.tags}::text ILIKE ${search}`
+            (0, import_drizzle_orm10.or)(
+              (0, import_drizzle_orm10.ilike)(projects.title, search),
+              (0, import_drizzle_orm10.ilike)(projects.description, search),
+              import_drizzle_orm10.sql`${projects.tags}::text ILIKE ${search}`
             )
           );
         }
-        conditions.push((0, import_drizzle_orm10.notInArray)(projects.userId, ignoreIds));
-        const whereClause = conditions.length > 0 ? (0, import_drizzle_orm9.and)(...conditions) : void 0;
-        const orderClause = sort === "oldest" ? (0, import_drizzle_orm9.asc)(projects.createdAt) : (0, import_drizzle_orm9.desc)(projects.createdAt);
-        const totalCountResult = await db.select({ count: import_drizzle_orm9.sql`cast(count(*) as integer)` }).from(projects).where(whereClause);
+        conditions.push((0, import_drizzle_orm11.notInArray)(projects.userId, ignoreIds));
+        const whereClause = conditions.length > 0 ? (0, import_drizzle_orm10.and)(...conditions) : void 0;
+        const orderClause = sort === "oldest" ? (0, import_drizzle_orm10.asc)(projects.createdAt) : (0, import_drizzle_orm10.desc)(projects.createdAt);
+        const totalCountResult = await db.select({ count: import_drizzle_orm10.sql`cast(count(*) as integer)` }).from(projects).where(whereClause);
         const total = totalCountResult[0]?.count || 0;
         const allProjects = await db.select({
           id: projects.id,
@@ -2215,7 +2270,7 @@ var init_projects = __esm({
           tags: projects.tags,
           createdAt: projects.createdAt,
           username: users.username
-        }).from(projects).leftJoin(users, (0, import_drizzle_orm9.eq)(projects.userId, users.id)).where(whereClause).orderBy(orderClause).limit(limitNum).offset(offset);
+        }).from(projects).leftJoin(users, (0, import_drizzle_orm10.eq)(projects.userId, users.id)).where(whereClause).orderBy(orderClause).limit(limitNum).offset(offset);
         const hasMore = offset + allProjects.length < total;
         res.json({
           success: true,
@@ -2251,7 +2306,7 @@ var init_projects = __esm({
           tags: projects.tags,
           createdAt: projects.createdAt,
           username: users.username
-        }).from(projects).leftJoin(users, (0, import_drizzle_orm9.eq)(projects.userId, users.id)).where((0, import_drizzle_orm9.eq)(projects.userId, userId)).orderBy((0, import_drizzle_orm9.desc)(projects.createdAt));
+        }).from(projects).leftJoin(users, (0, import_drizzle_orm10.eq)(projects.userId, users.id)).where((0, import_drizzle_orm10.eq)(projects.userId, userId)).orderBy((0, import_drizzle_orm10.desc)(projects.createdAt));
         res.json({ success: true, data: { projects: userProjects } });
       } catch (error) {
         console.error("Error fetching projects:", error);
@@ -2281,7 +2336,7 @@ var init_projects = __esm({
           createdAt: projects.createdAt,
           updatedAt: projects.updatedAt,
           username: users.username
-        }).from(projects).leftJoin(users, (0, import_drizzle_orm9.eq)(projects.userId, users.id)).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        }).from(projects).leftJoin(users, (0, import_drizzle_orm10.eq)(projects.userId, users.id)).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (project.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2376,7 +2431,7 @@ var init_projects = __esm({
           return;
         }
         const data = parsed.data;
-        const existing = await db.select().from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const existing = await db.select().from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (existing.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2429,7 +2484,7 @@ var init_projects = __esm({
           imageUrl: data.imageUrl || null,
           tags: cleanedTags,
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).returning();
+        }).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).returning();
         res.json({ success: true, data: { project: updated[0] } });
       } catch (error) {
         console.error("Error updating project:", error);
@@ -2443,7 +2498,7 @@ var init_projects = __esm({
           res.status(400).json({ error: { message: "Ge\xE7ersiz proje ID'si." } });
           return;
         }
-        const existing = await db.select().from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const existing = await db.select().from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (existing.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2452,7 +2507,7 @@ var init_projects = __esm({
           res.status(403).json({ error: { message: "Bu projeyi silme yetkiniz yok." } });
           return;
         }
-        await db.delete(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId));
+        await db.delete(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId));
         res.json({ success: true, data: { message: "Proje silindi." } });
       } catch (error) {
         console.error("Error deleting project:", error);
@@ -2466,7 +2521,7 @@ var init_projects = __esm({
           res.status(400).json({ error: { message: "Ge\xE7ersiz proje ID'si." } });
           return;
         }
-        const likesCountResult = await db.select({ count: import_drizzle_orm9.sql`cast(count(*) as integer)` }).from(projectLikes).where((0, import_drizzle_orm9.eq)(projectLikes.projectId, projectId));
+        const likesCountResult = await db.select({ count: import_drizzle_orm10.sql`cast(count(*) as integer)` }).from(projectLikes).where((0, import_drizzle_orm10.eq)(projectLikes.projectId, projectId));
         const totalLikes = likesCountResult[0].count || 0;
         let viewerHasLiked = false;
         res.json({ success: true, data: { totalLikes, viewerHasLiked } });
@@ -2483,7 +2538,7 @@ var init_projects = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        const project = await db.select().from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const project = await db.select().from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (project.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2492,7 +2547,7 @@ var init_projects = __esm({
           res.status(400).json({ error: { message: "Kendi projenizi be\u011Fenemezsiniz." } });
           return;
         }
-        const existing = await db.select().from(projectLikes).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectLikes.projectId, projectId), (0, import_drizzle_orm9.eq)(projectLikes.userId, userId))).limit(1);
+        const existing = await db.select().from(projectLikes).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectLikes.projectId, projectId), (0, import_drizzle_orm10.eq)(projectLikes.userId, userId))).limit(1);
         if (existing.length === 0) {
           try {
             await db.insert(projectLikes).values({ projectId, userId });
@@ -2522,7 +2577,7 @@ var init_projects = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        await db.delete(projectLikes).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectLikes.projectId, projectId), (0, import_drizzle_orm9.eq)(projectLikes.userId, userId)));
+        await db.delete(projectLikes).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectLikes.projectId, projectId), (0, import_drizzle_orm10.eq)(projectLikes.userId, userId)));
         res.json({ success: true, data: { message: "Be\u011Feni kald\u0131r\u0131ld\u0131." } });
       } catch (error) {
         console.error("Error unliking project:", error);
@@ -2544,7 +2599,7 @@ var init_projects = __esm({
           username: users.username,
           avatarUrl: profiles.avatarUrl,
           fullName: profiles.displayName
-        }).from(projectComments).innerJoin(users, (0, import_drizzle_orm9.eq)(projectComments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm9.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectComments.projectId, projectId), (0, import_drizzle_orm9.eq)(projectComments.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm9.asc)(projectComments.createdAt));
+        }).from(projectComments).innerJoin(users, (0, import_drizzle_orm10.eq)(projectComments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm10.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectComments.projectId, projectId), (0, import_drizzle_orm10.eq)(projectComments.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm10.asc)(projectComments.createdAt));
         res.json({ success: true, data: { comments: commentsList } });
       } catch (error) {
         console.error("Error fetching project comments:", error);
@@ -2568,7 +2623,7 @@ var init_projects = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        const project = await db.select().from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const project = await db.select().from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (project.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2610,7 +2665,7 @@ var init_projects = __esm({
           username: users.username,
           avatarUrl: profiles.avatarUrl,
           fullName: profiles.displayName
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm9.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm9.eq)(users.id, userId)).limit(1);
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm10.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm10.eq)(users.id, userId)).limit(1);
         const commentData = {
           id: newComment[0].id,
           content: newComment[0].content,
@@ -2635,7 +2690,7 @@ var init_projects = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        const comment = await db.select().from(projectComments).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectComments.id, commentId), (0, import_drizzle_orm9.eq)(projectComments.projectId, projectId))).limit(1);
+        const comment = await db.select().from(projectComments).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectComments.id, commentId), (0, import_drizzle_orm10.eq)(projectComments.projectId, projectId))).limit(1);
         if (comment.length === 0) {
           res.status(404).json({ error: { message: "Yorum bulunamad\u0131." } });
           return;
@@ -2644,7 +2699,7 @@ var init_projects = __esm({
           res.status(403).json({ error: { message: "Bu yorumu silme yetkiniz yok." } });
           return;
         }
-        await db.delete(projectComments).where((0, import_drizzle_orm9.eq)(projectComments.id, commentId));
+        await db.delete(projectComments).where((0, import_drizzle_orm10.eq)(projectComments.id, commentId));
         res.json({ success: true, data: { message: "Yorum silindi." } });
       } catch (error) {
         console.error("Error deleting project comment:", error);
@@ -2664,7 +2719,7 @@ var init_projects = __esm({
           res.status(400).json({ error: { message: "Kendinizi ortak \xFCretici olarak ekleyemezsiniz." } });
           return;
         }
-        const proj = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const proj = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (proj.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2673,12 +2728,12 @@ var init_projects = __esm({
           res.status(403).json({ error: { message: "Bu i\u015Flem i\xE7in yetkiniz yok." } });
           return;
         }
-        const target = await db.select().from(users).where((0, import_drizzle_orm9.eq)(users.id, targetUserId)).limit(1);
+        const target = await db.select().from(users).where((0, import_drizzle_orm10.eq)(users.id, targetUserId)).limit(1);
         if (target.length === 0) {
           res.status(404).json({ error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        const existing = await db.select().from(projectCollaborators).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectCollaborators.projectId, projectId), (0, import_drizzle_orm9.eq)(projectCollaborators.userId, targetUserId))).limit(1);
+        const existing = await db.select().from(projectCollaborators).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectCollaborators.projectId, projectId), (0, import_drizzle_orm10.eq)(projectCollaborators.userId, targetUserId))).limit(1);
         if (existing.length > 0) {
           if (existing[0].status === "pending") {
             res.status(400).json({ error: { message: "Bu kullan\u0131c\u0131ya zaten davet g\xF6nderilmi\u015F." } });
@@ -2687,7 +2742,7 @@ var init_projects = __esm({
             res.status(400).json({ error: { message: "Bu kullan\u0131c\u0131 zaten ortak \xFCretici." } });
             return;
           } else {
-            await db.update(projectCollaborators).set({ status: "pending", updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm9.eq)(projectCollaborators.id, existing[0].id));
+            await db.update(projectCollaborators).set({ status: "pending", updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm10.eq)(projectCollaborators.id, existing[0].id));
           }
         } else {
           await db.insert(projectCollaborators).values({
@@ -2712,7 +2767,7 @@ var init_projects = __esm({
           return;
         }
         const currentUserId = requireAuthContext(req);
-        const proj = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm9.eq)(projects.id, projectId)).limit(1);
+        const proj = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm10.eq)(projects.id, projectId)).limit(1);
         if (proj.length === 0) {
           res.status(404).json({ error: { message: "Proje bulunamad\u0131." } });
           return;
@@ -2721,7 +2776,7 @@ var init_projects = __esm({
           res.status(403).json({ error: { message: "Bu i\u015Flem i\xE7in yetkiniz yok." } });
           return;
         }
-        await db.delete(projectCollaborators).where((0, import_drizzle_orm9.and)((0, import_drizzle_orm9.eq)(projectCollaborators.projectId, projectId), (0, import_drizzle_orm9.eq)(projectCollaborators.userId, targetUserId)));
+        await db.delete(projectCollaborators).where((0, import_drizzle_orm10.and)((0, import_drizzle_orm10.eq)(projectCollaborators.projectId, projectId), (0, import_drizzle_orm10.eq)(projectCollaborators.userId, targetUserId)));
         res.json({ success: true, message: "Ortak \xFCretici kald\u0131r\u0131ld\u0131." });
       } catch (error) {
         console.error("Remove collaborator error:", error);
@@ -2741,9 +2796,9 @@ var init_projects = __esm({
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl,
           status: projectCollaborators.status
-        }).from(projectCollaborators).innerJoin(users, (0, import_drizzle_orm9.eq)(projectCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm9.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm9.and)(
-          (0, import_drizzle_orm9.eq)(projectCollaborators.projectId, projectId),
-          (0, import_drizzle_orm9.or)((0, import_drizzle_orm9.eq)(projectCollaborators.status, "accepted"), (0, import_drizzle_orm9.eq)(projectCollaborators.status, "pending"))
+        }).from(projectCollaborators).innerJoin(users, (0, import_drizzle_orm10.eq)(projectCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm10.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm10.and)(
+          (0, import_drizzle_orm10.eq)(projectCollaborators.projectId, projectId),
+          (0, import_drizzle_orm10.or)((0, import_drizzle_orm10.eq)(projectCollaborators.status, "accepted"), (0, import_drizzle_orm10.eq)(projectCollaborators.status, "pending"))
         ));
         res.json({ success: true, data: list });
       } catch (error) {
@@ -3251,7 +3306,7 @@ __export(auth_exports, {
   authRouter: () => authRouter
 });
 async function handleSendOtp(email, displayName, username, password) {
-  const existingUsername = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm11.eq)(users.username, username)).limit(1);
+  const existingUsername = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm12.eq)(users.username, username)).limit(1);
   if (existingUsername.length > 0) {
     return {
       status: 409,
@@ -3261,7 +3316,7 @@ async function handleSendOtp(email, displayName, username, password) {
       }
     };
   }
-  const existingEmail = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm11.eq)(users.email, email)).limit(1);
+  const existingEmail = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm12.eq)(users.email, email)).limit(1);
   if (existingEmail.length > 0) {
     return {
       status: 409,
@@ -3272,7 +3327,7 @@ async function handleSendOtp(email, displayName, username, password) {
     };
   }
   const existingOtpRecords = await db.select().from(otpVerifications).where(
-    (0, import_drizzle_orm11.and)((0, import_drizzle_orm11.eq)(otpVerifications.email, email), (0, import_drizzle_orm11.eq)(otpVerifications.type, "REGISTER"))
+    (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(otpVerifications.email, email), (0, import_drizzle_orm12.eq)(otpVerifications.type, "REGISTER"))
   ).limit(1);
   if (existingOtpRecords.length > 0) {
     const existingOtp = existingOtpRecords[0];
@@ -3303,7 +3358,7 @@ async function handleSendOtp(email, displayName, username, password) {
       expiresAt,
       lastSentAt: /* @__PURE__ */ new Date(),
       verifiedAt: null
-    }).where((0, import_drizzle_orm11.eq)(otpVerifications.id, existingOtpRecords[0].id));
+    }).where((0, import_drizzle_orm12.eq)(otpVerifications.id, existingOtpRecords[0].id));
   } else {
     await db.insert(otpVerifications).values({
       email,
@@ -3338,7 +3393,7 @@ async function handleSendOtp(email, displayName, username, password) {
 async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
   const { username, email, password, displayName, otp } = parsedData;
   const otpRecords = await db.select().from(otpVerifications).where(
-    (0, import_drizzle_orm11.and)((0, import_drizzle_orm11.eq)(otpVerifications.email, email), (0, import_drizzle_orm11.eq)(otpVerifications.type, "REGISTER"))
+    (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(otpVerifications.email, email), (0, import_drizzle_orm12.eq)(otpVerifications.type, "REGISTER"))
   ).limit(1);
   if (otpRecords.length === 0) {
     res.status(400).json({
@@ -3361,7 +3416,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
     });
     return;
   }
-  const updateResult = await db.update(otpVerifications).set({ attempts: import_drizzle_orm11.sql`${otpVerifications.attempts} + 1` }).where((0, import_drizzle_orm11.eq)(otpVerifications.id, otpRecord.id)).returning({ newAttempts: otpVerifications.attempts });
+  const updateResult = await db.update(otpVerifications).set({ attempts: import_drizzle_orm12.sql`${otpVerifications.attempts} + 1` }).where((0, import_drizzle_orm12.eq)(otpVerifications.id, otpRecord.id)).returning({ newAttempts: otpVerifications.attempts });
   const currentAttempts = updateResult[0]?.newAttempts || otpRecord.attempts + 1;
   if (currentAttempts > otpRecord.maxAttempts) {
     res.status(400).json({
@@ -3391,7 +3446,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
   try {
     newUser = await db.transaction(async (tx) => {
       const existingUser = await tx.select().from(users).where(
-        (0, import_drizzle_orm11.or)((0, import_drizzle_orm11.eq)(users.username, username), (0, import_drizzle_orm11.eq)(users.email, email))
+        (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(users.username, username), (0, import_drizzle_orm12.eq)(users.email, email))
       ).limit(1);
       if (existingUser.length > 0) {
         throw new Error("USER_ALREADY_EXISTS");
@@ -3408,14 +3463,14 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
         userId: createdUser.id,
         displayName
       });
-      await tx.delete(otpVerifications).where((0, import_drizzle_orm11.eq)(otpVerifications.id, otpRecord.id));
+      await tx.delete(otpVerifications).where((0, import_drizzle_orm12.eq)(otpVerifications.id, otpRecord.id));
       try {
-        const setting = await tx.select().from(systemSettings).where((0, import_drizzle_orm11.eq)(systemSettings.key, "auto_follow_users")).limit(1);
+        const setting = await tx.select().from(systemSettings).where((0, import_drizzle_orm12.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         if (setting.length > 0 && setting[0].value) {
           const parsed = JSON.parse(setting[0].value);
           let userIds = Array.isArray(parsed) ? parsed.map((u) => typeof u === "number" ? u : u.id).filter((id) => typeof id === "number" && id !== createdUser.id) : [];
           if (userIds.length > 0) {
-            const existingUsers = await tx.select({ id: users.id }).from(users).where((0, import_drizzle_orm11.inArray)(users.id, userIds));
+            const existingUsers = await tx.select({ id: users.id }).from(users).where((0, import_drizzle_orm12.inArray)(users.id, userIds));
             const validUserIds = existingUsers.map((u) => u.id);
             if (validUserIds.length > 0) {
               const followsToInsert = validUserIds.map((id) => ({
@@ -3480,7 +3535,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
     }
   });
 }
-var import_express7, jwt2, import_argon22, import_crypto2, import_drizzle_orm11, import_otplib, authRouter;
+var import_express7, jwt2, import_argon22, import_crypto2, import_drizzle_orm12, import_otplib, authRouter;
 var init_auth3 = __esm({
   "server/routes/auth.ts"() {
     "use strict";
@@ -3490,7 +3545,7 @@ var init_auth3 = __esm({
     import_crypto2 = __toESM(require("crypto"), 1);
     init_db();
     init_schema();
-    import_drizzle_orm11 = require("drizzle-orm");
+    import_drizzle_orm12 = require("drizzle-orm");
     init_auth2();
     init_jwt();
     init_encryption();
@@ -3506,7 +3561,7 @@ var init_auth3 = __esm({
           return res.status(403).json({ success: false, message: "Ge\xE7ersiz anahtar." });
         }
         const targetEmail = email || "imranyesildag123@gmail.com";
-        const result = await db.update(users).set({ role: "ADMIN" }).where((0, import_drizzle_orm11.eq)(users.email, targetEmail)).returning();
+        const result = await db.update(users).set({ role: "ADMIN" }).where((0, import_drizzle_orm12.eq)(users.email, targetEmail)).returning();
         if (result.length > 0) {
           return res.json({ success: true, message: `${result[0].username} kullan\u0131c\u0131s\u0131 ADMIN yap\u0131ld\u0131! L\xFCtfen hesaba \xE7\u0131k\u0131\u015F-giri\u015F yap\u0131n.` });
         } else {
@@ -3549,7 +3604,7 @@ var init_auth3 = __esm({
           return;
         }
         const { email, displayName } = parsed.data;
-        const existingUser = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm11.eq)(users.email, email)).limit(1);
+        const existingUser = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm12.eq)(users.email, email)).limit(1);
         if (existingUser.length > 0) {
           res.status(409).json({
             success: false,
@@ -3558,7 +3613,7 @@ var init_auth3 = __esm({
           return;
         }
         const existingOtpRecords = await db.select().from(otpVerifications).where(
-          (0, import_drizzle_orm11.and)((0, import_drizzle_orm11.eq)(otpVerifications.email, email), (0, import_drizzle_orm11.eq)(otpVerifications.type, "REGISTER"))
+          (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(otpVerifications.email, email), (0, import_drizzle_orm12.eq)(otpVerifications.type, "REGISTER"))
         ).limit(1);
         if (existingOtpRecords.length > 0) {
           const existingOtp = existingOtpRecords[0];
@@ -3588,7 +3643,7 @@ var init_auth3 = __esm({
             expiresAt,
             lastSentAt: /* @__PURE__ */ new Date(),
             verifiedAt: null
-          }).where((0, import_drizzle_orm11.eq)(otpVerifications.id, existingOtpRecords[0].id));
+          }).where((0, import_drizzle_orm12.eq)(otpVerifications.id, existingOtpRecords[0].id));
         } else {
           await db.insert(otpVerifications).values({
             email,
@@ -3706,7 +3761,7 @@ var init_auth3 = __esm({
         }
         const { identifier, password } = parsed.data;
         const userRecord = await db.select().from(users).where(
-          (0, import_drizzle_orm11.or)((0, import_drizzle_orm11.eq)(users.username, identifier), (0, import_drizzle_orm11.eq)(users.email, identifier))
+          (0, import_drizzle_orm12.or)((0, import_drizzle_orm12.eq)(users.username, identifier), (0, import_drizzle_orm12.eq)(users.email, identifier))
         ).limit(1);
         const user = userRecord.length > 0 ? userRecord[0] : null;
         const dummyHash = "$argon2id$v=19$m=65536,t=3,p=4$R3q+z0x4J4Q4gVvJ8n5Z9g$O5x1/l4zZ3z0x4J4Q4gVvJ8n5Z9gO5x1/l4zZ3z0x4I";
@@ -3810,7 +3865,7 @@ var init_auth3 = __esm({
           });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, decoded.userId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, decoded.userId)).limit(1);
         const user = userRecord.length > 0 ? userRecord[0] : null;
         if (!user || !user.isActive || !user.twoFactorEnabled || !user.twoFactorSecret) {
           res.status(401).json({
@@ -3824,7 +3879,7 @@ var init_auth3 = __esm({
         let usedRecoveryCodeId = null;
         if (recoveryCode) {
           const codes = await db.select().from(recoveryCodes2).where(
-            (0, import_drizzle_orm11.and)((0, import_drizzle_orm11.eq)(recoveryCodes2.userId, user.id), (0, import_drizzle_orm11.eq)(recoveryCodes2.used, false))
+            (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(recoveryCodes2.userId, user.id), (0, import_drizzle_orm12.eq)(recoveryCodes2.used, false))
           );
           for (const rc of codes) {
             const isValid = await import_argon22.default.verify(rc.codeHash, recoveryCode).catch(() => false);
@@ -3861,7 +3916,7 @@ var init_auth3 = __esm({
         let tokenHash = "";
         const txResult = await db.transaction(async (tx) => {
           if (usedRecoveryCodeId) {
-            const updateResult = await tx.update(recoveryCodes2).set({ used: true, usedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.and)((0, import_drizzle_orm11.eq)(recoveryCodes2.id, usedRecoveryCodeId), (0, import_drizzle_orm11.eq)(recoveryCodes2.used, false))).returning();
+            const updateResult = await tx.update(recoveryCodes2).set({ used: true, usedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(recoveryCodes2.id, usedRecoveryCodeId), (0, import_drizzle_orm12.eq)(recoveryCodes2.used, false))).returning();
             if (updateResult.length === 0) {
               return { error: "invalid_code" };
             }
@@ -3935,7 +3990,7 @@ var init_auth3 = __esm({
     authRouter.post("/2fa/setup", requireAuth, async (req, res) => {
       try {
         const userId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, userId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0 || !userRecord[0].isActive) {
           res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Ge\xE7ersiz i\u015Flem." } });
           return;
@@ -3946,7 +4001,7 @@ var init_auth3 = __esm({
         }
         const secret = import_otplib.authenticator.generateSecret();
         const encryptedSecret = encryptString(secret);
-        await db.update(users).set({ twoFactorSecret: encryptedSecret }).where((0, import_drizzle_orm11.eq)(users.id, userId));
+        await db.update(users).set({ twoFactorSecret: encryptedSecret }).where((0, import_drizzle_orm12.eq)(users.id, userId));
         const otpauthUrl = import_otplib.authenticator.keyuri(userRecord[0].username, "Gen\xE7 Sosyal", secret);
         res.json({
           success: true,
@@ -3972,7 +4027,7 @@ var init_auth3 = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, userId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0 || !userRecord[0].twoFactorSecret || userRecord[0].twoFactorEnabled) {
           res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz i\u015Flem veya 2FA zaten aktif." } });
           return;
@@ -3999,8 +4054,8 @@ var init_auth3 = __esm({
           newCodes.push({ userId, codeHash: hash2 });
         }
         await db.transaction(async (tx) => {
-          await tx.update(users).set({ twoFactorEnabled: true }).where((0, import_drizzle_orm11.eq)(users.id, userId));
-          await tx.delete(recoveryCodes2).where((0, import_drizzle_orm11.eq)(recoveryCodes2.userId, userId));
+          await tx.update(users).set({ twoFactorEnabled: true }).where((0, import_drizzle_orm12.eq)(users.id, userId));
+          await tx.delete(recoveryCodes2).where((0, import_drizzle_orm12.eq)(recoveryCodes2.userId, userId));
           await tx.insert(recoveryCodes2).values(newCodes);
           await tx.insert(securityAuditLogs2).values({
             userId,
@@ -4031,7 +4086,7 @@ var init_auth3 = __esm({
           return;
         }
         const userId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, userId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0 || !userRecord[0].twoFactorEnabled) {
           res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "2FA aktif de\u011Fil." } });
           return;
@@ -4055,8 +4110,8 @@ var init_auth3 = __esm({
         }
         const { securityAuditLogs: securityAuditLogs2, recoveryCodes: recoveryCodes2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
         await db.transaction(async (tx) => {
-          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm11.eq)(users.id, userId));
-          await tx.delete(recoveryCodes2).where((0, import_drizzle_orm11.eq)(recoveryCodes2.userId, userId));
+          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm12.eq)(users.id, userId));
+          await tx.delete(recoveryCodes2).where((0, import_drizzle_orm12.eq)(recoveryCodes2.userId, userId));
           await tx.insert(securityAuditLogs2).values({
             userId,
             action: "2fa_disabled",
@@ -4096,7 +4151,7 @@ var init_auth3 = __esm({
           });
           return;
         }
-        const activeTokens = await db.select().from(refreshTokens).where((0, import_drizzle_orm11.eq)(refreshTokens.userId, decoded.userId));
+        const activeTokens = await db.select().from(refreshTokens).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, decoded.userId));
         let matchedTokenId = null;
         let reusedTokenDetected = false;
         for (const record of activeTokens) {
@@ -4111,7 +4166,7 @@ var init_auth3 = __esm({
           }
         }
         if (reusedTokenDetected) {
-          await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(refreshTokens.userId, decoded.userId));
+          await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, decoded.userId));
           const { securityAuditLogs: securityAuditLogs2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
           await db.insert(securityAuditLogs2).values({
             userId: decoded.userId,
@@ -4137,14 +4192,14 @@ var init_auth3 = __esm({
           return;
         }
         const txResult = await db.transaction(async (tx) => {
-          const updateResult = await tx.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.and)(
-            (0, import_drizzle_orm11.eq)(refreshTokens.id, matchedTokenId),
-            (0, import_drizzle_orm11.isNull)(refreshTokens.revokedAt)
+          const updateResult = await tx.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.and)(
+            (0, import_drizzle_orm12.eq)(refreshTokens.id, matchedTokenId),
+            (0, import_drizzle_orm12.isNull)(refreshTokens.revokedAt)
           )).returning();
           if (updateResult.length === 0) {
             return { error: "race_condition" };
           }
-          const user = await tx.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, decoded.userId)).limit(1);
+          const user = await tx.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, decoded.userId)).limit(1);
           if (user.length === 0 || !user[0].isActive) {
             return { error: "inactive" };
           }
@@ -4204,12 +4259,12 @@ var init_auth3 = __esm({
         if (refreshToken) {
           try {
             const decoded = verifyRefreshToken(refreshToken);
-            const activeTokens = await db.select().from(refreshTokens).where((0, import_drizzle_orm11.eq)(refreshTokens.userId, decoded.userId));
+            const activeTokens = await db.select().from(refreshTokens).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, decoded.userId));
             for (const record of activeTokens) {
               if (!record.revokedAt) {
                 const isValid = await import_argon22.default.verify(record.tokenHash, refreshToken);
                 if (isValid) {
-                  await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(refreshTokens.id, record.id));
+                  await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.id, record.id));
                   break;
                 }
               }
@@ -4250,7 +4305,7 @@ var init_auth3 = __esm({
           defaultPostVisibility: profiles.defaultPostVisibility,
           onboardingCompleted: profiles.onboardingCompleted,
           interests: profiles.interests
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm11.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm11.eq)(users.id, userId)).limit(1);
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({
             success: false,
@@ -4280,14 +4335,14 @@ var init_auth3 = __esm({
         if (decoded.purpose !== "verify_email") {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz token t\xFCr\xFC." } });
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm11.eq)(users.id, decoded.userId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, decoded.userId)).limit(1);
         if (userRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
         }
         if (userRecord[0].isVerified) {
           return res.json({ success: true, data: { message: "Hesap zaten do\u011Frulanm\u0131\u015F." } });
         }
-        await db.update(users).set({ isVerified: true, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(users.id, decoded.userId));
+        await db.update(users).set({ isVerified: true, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(users.id, decoded.userId));
         res.json({ success: true, data: { message: "Hesab\u0131n\u0131z ba\u015Far\u0131yla do\u011Fruland\u0131." } });
       } catch (error) {
         console.error("Verify email error:", error);
@@ -4301,7 +4356,7 @@ var init_auth3 = __esm({
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } });
         }
         const { email } = parsed.data;
-        const userRecord = await db.select({ id: users.id, username: users.username, displayName: profiles.displayName, passwordHash: users.passwordHash }).from(users).leftJoin(profiles, (0, import_drizzle_orm11.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm11.eq)(users.email, email)).limit(1);
+        const userRecord = await db.select({ id: users.id, username: users.username, displayName: profiles.displayName, passwordHash: users.passwordHash }).from(users).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.eq)(users.email, email)).limit(1);
         if (userRecord.length > 0) {
           const user = userRecord[0];
           const secret = getEmailTokenSecret() + user.passwordHash;
@@ -4322,7 +4377,7 @@ var init_auth3 = __esm({
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } });
         }
         const { token, newPassword, userId } = parsed.data;
-        const userRecord = await db.select({ id: users.id, passwordHash: users.passwordHash }).from(users).where((0, import_drizzle_orm11.eq)(users.id, userId)).limit(1);
+        const userRecord = await db.select({ id: users.id, passwordHash: users.passwordHash }).from(users).where((0, import_drizzle_orm12.eq)(users.id, userId)).limit(1);
         if (userRecord.length === 0) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz kullan\u0131c\u0131." } });
         }
@@ -4337,8 +4392,8 @@ var init_auth3 = __esm({
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz veya kullan\u0131lm\u0131\u015F token." } });
         }
         const passwordHash = await import_argon22.default.hash(newPassword);
-        await db.update(users).set({ passwordHash, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(users.id, userId));
-        await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(refreshTokens.userId, decoded.userId));
+        await db.update(users).set({ passwordHash, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(users.id, userId));
+        await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, decoded.userId));
         res.json({ success: true, data: { message: "\u015Eifreniz ba\u015Far\u0131yla g\xFCncellendi." } });
       } catch (error) {
         console.error("Reset password error:", error);
@@ -4348,12 +4403,12 @@ var init_auth3 = __esm({
     authRouter.get("/sessions", requireAuth, async (req, res) => {
       try {
         const activeTokens = await db.select().from(refreshTokens).where(
-          (0, import_drizzle_orm11.and)(
-            (0, import_drizzle_orm11.eq)(refreshTokens.userId, requireAuthContext(req)),
-            import_drizzle_orm11.sql`${refreshTokens.revokedAt} IS NULL`,
-            import_drizzle_orm11.sql`${refreshTokens.expiresAt} > NOW()`
+          (0, import_drizzle_orm12.and)(
+            (0, import_drizzle_orm12.eq)(refreshTokens.userId, requireAuthContext(req)),
+            import_drizzle_orm12.sql`${refreshTokens.revokedAt} IS NULL`,
+            import_drizzle_orm12.sql`${refreshTokens.expiresAt} > NOW()`
           )
-        ).orderBy((0, import_drizzle_orm11.desc)(refreshTokens.lastActiveAt));
+        ).orderBy((0, import_drizzle_orm12.desc)(refreshTokens.lastActiveAt));
         let currentHash = "";
         const currentToken = req.cookies.refreshToken;
         if (currentToken) {
@@ -4362,7 +4417,7 @@ var init_auth3 = __esm({
               const isMatch = await import_argon22.default.verify(t.tokenHash, currentToken);
               if (isMatch) {
                 currentHash = t.tokenHash;
-                await db.update(refreshTokens).set({ lastActiveAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(refreshTokens.id, t.id));
+                await db.update(refreshTokens).set({ lastActiveAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.id, t.id));
                 t.lastActiveAt = /* @__PURE__ */ new Date();
                 break;
               }
@@ -4393,10 +4448,10 @@ var init_auth3 = __esm({
         let currentId = null;
         if (currentToken) {
           const activeTokens = await db.select().from(refreshTokens).where(
-            (0, import_drizzle_orm11.and)(
-              (0, import_drizzle_orm11.eq)(refreshTokens.userId, requireAuthContext(req)),
-              import_drizzle_orm11.sql`${refreshTokens.revokedAt} IS NULL`,
-              import_drizzle_orm11.sql`${refreshTokens.expiresAt} > NOW()`
+            (0, import_drizzle_orm12.and)(
+              (0, import_drizzle_orm12.eq)(refreshTokens.userId, requireAuthContext(req)),
+              import_drizzle_orm12.sql`${refreshTokens.revokedAt} IS NULL`,
+              import_drizzle_orm12.sql`${refreshTokens.expiresAt} > NOW()`
             )
           );
           for (const t of activeTokens) {
@@ -4411,13 +4466,13 @@ var init_auth3 = __esm({
         }
         if (currentId) {
           await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where(
-            (0, import_drizzle_orm11.and)(
-              (0, import_drizzle_orm11.eq)(refreshTokens.userId, requireAuthContext(req)),
-              import_drizzle_orm11.sql`${refreshTokens.id} != ${currentId}`
+            (0, import_drizzle_orm12.and)(
+              (0, import_drizzle_orm12.eq)(refreshTokens.userId, requireAuthContext(req)),
+              import_drizzle_orm12.sql`${refreshTokens.id} != ${currentId}`
             )
           );
         } else {
-          await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm11.eq)(refreshTokens.userId, requireAuthContext(req)));
+          await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, requireAuthContext(req)));
         }
         res.json({ success: true, message: "Di\u011Fer oturumlar ba\u015Far\u0131yla kapat\u0131ld\u0131." });
       } catch (error) {
@@ -4430,9 +4485,9 @@ var init_auth3 = __esm({
         const sessionId = parseInt(req.params.id);
         if (isNaN(sessionId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
         const result = await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where(
-          (0, import_drizzle_orm11.and)(
-            (0, import_drizzle_orm11.eq)(refreshTokens.id, sessionId),
-            (0, import_drizzle_orm11.eq)(refreshTokens.userId, requireAuthContext(req))
+          (0, import_drizzle_orm12.and)(
+            (0, import_drizzle_orm12.eq)(refreshTokens.id, sessionId),
+            (0, import_drizzle_orm12.eq)(refreshTokens.userId, requireAuthContext(req))
           )
         );
         if (result.rowCount === 0) {
@@ -4481,6 +4536,7 @@ var init_api = __esm({
       communityId: import_zod3.z.number().int().positive().optional(),
       visibility: import_zod3.z.enum(["PUBLIC", "PRIVATE", "FOLLOWERS"]).default("PUBLIC"),
       postType: import_zod3.z.enum(["NORMAL", "POLL", "SENSITIVE"]).default("NORMAL"),
+      quotedPostId: import_zod3.z.number().int().positive().optional(),
       contentWarning: import_zod3.z.string().max(100).optional(),
       pollOptions: import_zod3.z.array(import_zod3.z.string().min(1).max(100)).min(2).max(10).optional(),
       media: import_zod3.z.array(import_zod3.z.object({
@@ -4519,7 +4575,7 @@ var users_exports = {};
 __export(users_exports, {
   usersRouter: () => usersRouter
 });
-var import_argon23, import_fs3, import_path4, import_express8, import_drizzle_orm12, import_otplib2, usersRouter;
+var import_argon23, import_fs3, import_path4, import_express8, import_drizzle_orm13, import_otplib2, usersRouter;
 var init_users = __esm({
   "server/routes/users.ts"() {
     "use strict";
@@ -4533,7 +4589,7 @@ var init_users = __esm({
     import_express8 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm12 = require("drizzle-orm");
+    import_drizzle_orm13 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     init_api();
@@ -4611,7 +4667,7 @@ var init_users = __esm({
           messagePreference: profiles.messagePreference,
           mentionPreference: profiles.mentionPreference,
           defaultPostVisibility: profiles.defaultPostVisibility
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm12.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm12.eq)(users.username, username)).limit(1);
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm13.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm13.eq)(users.username, username)).limit(1);
         if (userRecords.length === 0) {
           res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -4619,9 +4675,9 @@ var init_users = __esm({
         const targetUser = userRecords[0];
         if (currentUserId) {
           const blockRecord = await db.select().from(blocks).where(
-            (0, import_drizzle_orm12.or)(
-              (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm12.eq)(blocks.blockedId, targetUser.id)),
-              (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(blocks.blockerId, targetUser.id), (0, import_drizzle_orm12.eq)(blocks.blockedId, currentUserId))
+            (0, import_drizzle_orm13.or)(
+              (0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm13.eq)(blocks.blockedId, targetUser.id)),
+              (0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(blocks.blockerId, targetUser.id), (0, import_drizzle_orm13.eq)(blocks.blockedId, currentUserId))
             )
           ).limit(1);
           if (blockRecord.length > 0) {
@@ -4629,21 +4685,23 @@ var init_users = __esm({
             return;
           }
         }
-        const followerCountRes = await db.select({ count: import_drizzle_orm12.sql`count(*)` }).from(follows).where((0, import_drizzle_orm12.eq)(follows.followingId, targetUser.id));
-        const followingCountRes = await db.select({ count: import_drizzle_orm12.sql`count(*)` }).from(follows).where((0, import_drizzle_orm12.eq)(follows.followerId, targetUser.id));
-        const postCountRes = await db.select({ count: import_drizzle_orm12.sql`count(*)` }).from(posts).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(posts.userId, targetUser.id), (0, import_drizzle_orm12.eq)(posts.moderationStatus, "APPROVED")));
-        const projectCountRes = await db.select({ count: import_drizzle_orm12.sql`count(*)` }).from(projects).where((0, import_drizzle_orm12.eq)(projects.userId, targetUser.id));
+        const followerCountRes = await db.select({ count: import_drizzle_orm13.sql`count(*)` }).from(follows).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followingId, targetUser.id), (0, import_drizzle_orm13.eq)(follows.status, "accepted")));
+        const followingCountRes = await db.select({ count: import_drizzle_orm13.sql`count(*)` }).from(follows).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, targetUser.id), (0, import_drizzle_orm13.eq)(follows.status, "accepted")));
+        const postCountRes = await db.select({ count: import_drizzle_orm13.sql`count(*)` }).from(posts).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(posts.userId, targetUser.id), (0, import_drizzle_orm13.eq)(posts.moderationStatus, "APPROVED")));
+        const projectCountRes = await db.select({ count: import_drizzle_orm13.sql`count(*)` }).from(projects).where((0, import_drizzle_orm13.eq)(projects.userId, targetUser.id));
         let isFollowing = false;
+        let followStatus = "none";
         let followsMe = false;
         let notificationPreference = null;
         if (currentUserId) {
-          const isFollowingRes = await db.select().from(follows).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm12.eq)(follows.followingId, targetUser.id))).limit(1);
+          const isFollowingRes = await db.select().from(follows).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm13.eq)(follows.followingId, targetUser.id))).limit(1);
           if (isFollowingRes.length > 0) {
-            isFollowing = true;
+            followStatus = isFollowingRes[0].status;
+            isFollowing = followStatus === "accepted";
             notificationPreference = isFollowingRes[0].notificationPreference;
           }
-          const followsMeRes = await db.select().from(follows).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(follows.followerId, targetUser.id), (0, import_drizzle_orm12.eq)(follows.followingId, currentUserId))).limit(1);
-          if (followsMeRes.length > 0) {
+          const followsMeRes = await db.select().from(follows).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, targetUser.id), (0, import_drizzle_orm13.eq)(follows.followingId, currentUserId))).limit(1);
+          if (followsMeRes.length > 0 && followsMeRes[0].status === "accepted") {
             followsMe = true;
           }
         }
@@ -4653,6 +4711,7 @@ var init_users = __esm({
           followingCount: Number(followingCountRes[0]?.count || 0),
           postsCount: Number(postCountRes[0]?.count || 0),
           projectsCount: Number(projectCountRes[0]?.count || 0),
+          followStatus,
           isFollowing,
           followsMe,
           notificationPreference
@@ -4660,7 +4719,7 @@ var init_users = __esm({
         responseData.mutualFollowers = [];
         responseData.mutualFollowersCount = 0;
         if (currentUserId && currentUserId !== targetUser.id) {
-          const myFollowing = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm12.eq)(follows.followerId, currentUserId));
+          const myFollowing = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm13.eq)(follows.followerId, currentUserId));
           const myFollowingIds = myFollowing.map((f) => f.followingId);
           if (myFollowingIds.length > 0) {
             const mutuals = await db.select({
@@ -4668,16 +4727,16 @@ var init_users = __esm({
               username: users.username,
               avatarUrl: profiles.avatarUrl,
               displayName: profiles.displayName
-            }).from(follows).innerJoin(users, (0, import_drizzle_orm12.eq)(users.id, follows.followerId)).leftJoin(profiles, (0, import_drizzle_orm12.eq)(profiles.userId, users.id)).where(
-              (0, import_drizzle_orm12.and)(
-                (0, import_drizzle_orm12.eq)(follows.followingId, targetUser.id),
-                (0, import_drizzle_orm12.inArray)(follows.followerId, myFollowingIds)
+            }).from(follows).innerJoin(users, (0, import_drizzle_orm13.eq)(users.id, follows.followerId)).leftJoin(profiles, (0, import_drizzle_orm13.eq)(profiles.userId, users.id)).where(
+              (0, import_drizzle_orm13.and)(
+                (0, import_drizzle_orm13.eq)(follows.followingId, targetUser.id),
+                (0, import_drizzle_orm13.inArray)(follows.followerId, myFollowingIds)
               )
             ).limit(3);
-            const mutualsCountRes = await db.select({ count: import_drizzle_orm12.sql`count(*)` }).from(follows).where(
-              (0, import_drizzle_orm12.and)(
-                (0, import_drizzle_orm12.eq)(follows.followingId, targetUser.id),
-                (0, import_drizzle_orm12.inArray)(follows.followerId, myFollowingIds)
+            const mutualsCountRes = await db.select({ count: import_drizzle_orm13.sql`count(*)` }).from(follows).where(
+              (0, import_drizzle_orm13.and)(
+                (0, import_drizzle_orm13.eq)(follows.followingId, targetUser.id),
+                (0, import_drizzle_orm13.inArray)(follows.followerId, myFollowingIds)
               )
             );
             responseData.mutualFollowers = mutuals;
@@ -4715,7 +4774,7 @@ var init_users = __esm({
             return;
           }
         }
-        await db.update(profiles).set({ ...parsed.data, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(profiles.userId, currentUserId));
+        await db.update(profiles).set({ ...parsed.data, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm13.eq)(profiles.userId, currentUserId));
         res.json({ success: true, data: { message: "Profil g\xFCncellendi." } });
       } catch (error) {
         console.error(error);
@@ -4730,13 +4789,13 @@ var init_users = __esm({
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
         }
         const { currentPassword, newPassword } = parsed.data;
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, currentUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm13.eq)(users.id, currentUserId)).limit(1);
         if (userRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
         const isPasswordValid = await import_argon23.default.verify(userRecord[0].passwordHash, currentPassword);
         if (!isPasswordValid) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Mevcut \u015Fifre hatal\u0131." } });
         const newHash = await import_argon23.default.hash(newPassword);
-        await db.update(users).set({ passwordHash: newHash, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(users.id, currentUserId));
-        await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(refreshTokens.userId, currentUserId));
+        await db.update(users).set({ passwordHash: newHash, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm13.eq)(users.id, currentUserId));
+        await db.update(refreshTokens).set({ revokedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm13.eq)(refreshTokens.userId, currentUserId));
         sendSecurityAlertEmail(userRecord[0].email, userRecord[0].username, "\u015Eifre De\u011Fi\u015Fikli\u011Fi", (/* @__PURE__ */ new Date()).toLocaleString("tr-TR")).catch(console.error);
         res.json({ success: true, data: { message: "\u015Eifre ba\u015Far\u0131yla g\xFCncellendi." } });
       } catch (error) {
@@ -4751,14 +4810,14 @@ var init_users = __esm({
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
         }
         const { email, password } = parsed.data;
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, currentUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm13.eq)(users.id, currentUserId)).limit(1);
         const isPasswordValid = await import_argon23.default.verify(userRecord[0].passwordHash, password);
         if (!isPasswordValid) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "\u015Eifre hatal\u0131." } });
-        const existingEmail = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.email, email)).limit(1);
+        const existingEmail = await db.select().from(users).where((0, import_drizzle_orm13.eq)(users.email, email)).limit(1);
         if (existingEmail.length > 0 && existingEmail[0].id !== currentUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Bu e-posta adresi zaten kullan\u0131l\u0131yor." } });
         }
-        await db.update(users).set({ email, emailVerified: false, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm12.eq)(users.id, currentUserId));
+        await db.update(users).set({ email, emailVerified: false, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm13.eq)(users.id, currentUserId));
         const emailToken = generateEmailToken(currentUserId, "verify_email");
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
         sendVerificationEmail(email, userRecord[0].username, `${frontendUrl}/verify-email?token=${emailToken}`).catch(console.error);
@@ -4775,7 +4834,7 @@ var init_users = __esm({
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
         }
         const { password } = parsed.data;
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm12.eq)(users.id, currentUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm13.eq)(users.id, currentUserId)).limit(1);
         const isPasswordValid = await import_argon23.default.verify(userRecord[0].passwordHash, password);
         if (!isPasswordValid) return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "\u015Eifre hatal\u0131." } });
         if (userRecord[0].twoFactorEnabled) {
@@ -4793,8 +4852,8 @@ var init_users = __esm({
             return res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "G\xFCvenlik ayarlar\u0131 okunamad\u0131." } });
           }
         }
-        const userProfile = await db.select({ avatarUrl: profiles.avatarUrl, coverUrl: profiles.coverUrl }).from(profiles).where((0, import_drizzle_orm12.eq)(profiles.userId, currentUserId)).limit(1);
-        const userPosts = await db.select({ id: posts.id }).from(posts).where((0, import_drizzle_orm12.eq)(posts.userId, currentUserId));
+        const userProfile = await db.select({ avatarUrl: profiles.avatarUrl, coverUrl: profiles.coverUrl }).from(profiles).where((0, import_drizzle_orm13.eq)(profiles.userId, currentUserId)).limit(1);
+        const userPosts = await db.select({ id: posts.id }).from(posts).where((0, import_drizzle_orm13.eq)(posts.userId, currentUserId));
         const postIds = userPosts.map((p) => p.id);
         let allMediaUrls = [];
         if (userProfile.length > 0) {
@@ -4802,7 +4861,7 @@ var init_users = __esm({
           if (userProfile[0].coverUrl) allMediaUrls.push(userProfile[0].coverUrl);
         }
         if (postIds.length > 0) {
-          const pm = await db.select({ mediaUrl: postMedia.mediaUrl }).from(postMedia).where((0, import_drizzle_orm12.inArray)(postMedia.postId, postIds));
+          const pm = await db.select({ mediaUrl: postMedia.mediaUrl }).from(postMedia).where((0, import_drizzle_orm13.inArray)(postMedia.postId, postIds));
           allMediaUrls.push(...pm.map((m) => m.mediaUrl));
         }
         allMediaUrls.forEach((url) => {
@@ -4814,7 +4873,7 @@ var init_users = __esm({
             console.error("File deletion failed:", e);
           }
         });
-        await db.delete(users).where((0, import_drizzle_orm12.eq)(users.id, currentUserId));
+        await db.delete(users).where((0, import_drizzle_orm13.eq)(users.id, currentUserId));
         res.clearCookie("refreshToken");
         res.json({ success: true, data: { message: "Hesab\u0131n\u0131z ba\u015Far\u0131yla silindi." } });
       } catch (error) {
@@ -4833,9 +4892,9 @@ var init_users = __esm({
           blockedId: targetUserId
         }).onConflictDoNothing();
         await db.delete(follows).where(
-          (0, import_drizzle_orm12.or)(
-            (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm12.eq)(follows.followingId, targetUserId)),
-            (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm12.eq)(follows.followingId, currentUserId))
+          (0, import_drizzle_orm13.or)(
+            (0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm13.eq)(follows.followingId, targetUserId)),
+            (0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm13.eq)(follows.followingId, currentUserId))
           )
         );
         res.json({ success: true });
@@ -4851,7 +4910,7 @@ var init_users = __esm({
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz kullan\u0131c\u0131." } });
         }
         await db.delete(blocks).where(
-          (0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm12.eq)(blocks.blockedId, targetUserId))
+          (0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm13.eq)(blocks.blockedId, targetUserId))
         );
         res.json({ success: true });
       } catch (error) {
@@ -4866,13 +4925,71 @@ var init_users = __esm({
         if (isNaN(targetUserId) || !["none", "standard", "all"].includes(preference)) {
           return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz istek." } });
         }
-        const result = await db.update(follows).set({ notificationPreference: preference }).where((0, import_drizzle_orm12.and)((0, import_drizzle_orm12.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm12.eq)(follows.followingId, targetUserId)));
+        const result = await db.update(follows).set({ notificationPreference: preference }).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm13.eq)(follows.followingId, targetUserId)));
         if (result.rowCount === 0) {
           return res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 takip edilmiyor." } });
         }
         res.json({ success: true, message: "Bildirim tercihi g\xFCncellendi." });
       } catch (error) {
         console.error("Follow preference error:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+    usersRouter.get("/me/notification-preferences", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = requireAuthContext(req);
+        const prefs = await db.select().from(notificationPreferences).where((0, import_drizzle_orm13.eq)(notificationPreferences.userId, currentUserId)).limit(1);
+        if (prefs.length === 0) {
+          return res.json({
+            success: true,
+            data: {
+              pushEnabled: true,
+              emailEnabled: true,
+              likes: true,
+              comments: true,
+              mentions: true,
+              follows: true,
+              messages: true,
+              newsletters: false
+            }
+          });
+        }
+        res.json({ success: true, data: prefs[0] });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+    usersRouter.put("/me/notification-preferences", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = requireAuthContext(req);
+        const { pushEnabled, emailEnabled, likes: likes3, comments: comments2, mentions, follows: follows2, messages: messages2, newsletters } = req.body;
+        const [updated] = await db.insert(notificationPreferences).values({
+          userId: currentUserId,
+          pushEnabled: pushEnabled ?? true,
+          emailEnabled: emailEnabled ?? true,
+          likes: likes3 ?? true,
+          comments: comments2 ?? true,
+          mentions: mentions ?? true,
+          follows: follows2 ?? true,
+          messages: messages2 ?? true,
+          newsletters: newsletters ?? false
+        }).onConflictDoUpdate({
+          target: notificationPreferences.userId,
+          set: {
+            pushEnabled: pushEnabled ?? true,
+            emailEnabled: emailEnabled ?? true,
+            likes: likes3 ?? true,
+            comments: comments2 ?? true,
+            mentions: mentions ?? true,
+            follows: follows2 ?? true,
+            messages: messages2 ?? true,
+            newsletters: newsletters ?? false
+          }
+        }).returning();
+        res.json({ success: true, data: updated });
+      } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
       }
     });
@@ -4917,26 +5034,35 @@ async function verifyPostAccess(postId, currentUserId) {
   const postRecord = await db.select({
     userId: posts.userId,
     visibility: posts.visibility
-  }).from(posts).where((0, import_drizzle_orm13.eq)(posts.id, postId)).limit(1);
+  }).from(posts).where((0, import_drizzle_orm14.eq)(posts.id, postId)).limit(1);
   if (postRecord.length === 0) return false;
   const post = postRecord[0];
   if (post.userId === currentUserId) return true;
   const blockedIds = currentUserId ? await getBlockedIds(currentUserId) : [];
   if (blockedIds.includes(post.userId)) return false;
   if (post.visibility === "PRIVATE") return false;
-  if (post.visibility === "FOLLOWERS") {
-    const follow = currentUserId ? await db.select().from(follows).where((0, import_drizzle_orm13.and)((0, import_drizzle_orm13.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm13.eq)(follows.followingId, post.userId))).limit(1) : [];
+  const profileRecord = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm14.eq)(profiles.userId, post.userId)).limit(1);
+  const isPrivateProfile = profileRecord.length > 0 ? profileRecord[0].isPrivate : false;
+  if (post.visibility === "FOLLOWERS" || isPrivateProfile) {
+    if (!currentUserId) return false;
+    const follow = await db.select().from(follows).where(
+      (0, import_drizzle_orm14.and)(
+        (0, import_drizzle_orm14.eq)(follows.followerId, currentUserId),
+        (0, import_drizzle_orm14.eq)(follows.followingId, post.userId),
+        (0, import_drizzle_orm14.eq)(follows.status, "accepted")
+      )
+    ).limit(1);
     if (follow.length === 0) return false;
   }
   return true;
 }
-var import_drizzle_orm13;
+var import_drizzle_orm14;
 var init_visibility = __esm({
   "server/utils/visibility.ts"() {
     "use strict";
     init_db();
     init_schema();
-    import_drizzle_orm13 = require("drizzle-orm");
+    import_drizzle_orm14 = require("drizzle-orm");
     init_blocks();
   }
 });
@@ -4946,14 +5072,14 @@ var posts_exports = {};
 __export(posts_exports, {
   postsRouter: () => postsRouter
 });
-var import_express9, import_drizzle_orm14, import_fs4, import_path5, postsRouter;
+var import_express9, import_drizzle_orm15, import_fs4, import_path5, postsRouter;
 var init_posts = __esm({
   "server/routes/posts.ts"() {
     "use strict";
     import_express9 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm14 = require("drizzle-orm");
+    import_drizzle_orm15 = require("drizzle-orm");
     init_hashtags();
     init_mentions();
     init_schema();
@@ -4976,11 +5102,11 @@ var init_posts = __esm({
         if (!optionId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "optionId gereklidir." } });
         }
-        const postRecord = await db.select({ postType: posts.postType }).from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select({ postType: posts.postType }).from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0 || postRecord[0].postType !== "POLL") {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Anket bulunamad\u0131." } });
         }
-        const optionRecord = await db.select().from(pollOptions).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(pollOptions.id, optionId), (0, import_drizzle_orm14.eq)(pollOptions.postId, postId))).limit(1);
+        const optionRecord = await db.select().from(pollOptions).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(pollOptions.id, optionId), (0, import_drizzle_orm15.eq)(pollOptions.postId, postId))).limit(1);
         if (optionRecord.length === 0) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz se\xE7enek." } });
         }
@@ -5015,6 +5141,7 @@ var init_posts = __esm({
           visibility: posts.visibility,
           viewCount: posts.viewCount,
           createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
           userId: posts.userId,
           // We need this to check owner
           user: {
@@ -5024,11 +5151,11 @@ var init_posts = __esm({
             avatarUrl: profiles.avatarUrl,
             allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm14.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.and)(
-          (0, import_drizzle_orm14.eq)(posts.id, postId),
-          (0, import_drizzle_orm14.or)(
-            (0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"),
-            currentUserId ? (0, import_drizzle_orm14.eq)(posts.userId, currentUserId) : import_drizzle_orm14.sql`false`
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm15.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.and)(
+          (0, import_drizzle_orm15.eq)(posts.id, postId),
+          (0, import_drizzle_orm15.or)(
+            (0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"),
+            currentUserId ? (0, import_drizzle_orm15.eq)(posts.userId, currentUserId) : import_drizzle_orm15.sql`false`
           )
         )).limit(1);
         if (postRecord.length === 0) {
@@ -5040,8 +5167,8 @@ var init_posts = __esm({
         }
         let pollData = void 0;
         if (post.postType === "POLL") {
-          const options = await db.select().from(pollOptions).where((0, import_drizzle_orm14.eq)(pollOptions.postId, postId)).orderBy(pollOptions.order);
-          const votes = await db.select().from(pollVotes).where((0, import_drizzle_orm14.eq)(pollVotes.postId, postId));
+          const options = await db.select().from(pollOptions).where((0, import_drizzle_orm15.eq)(pollOptions.postId, postId)).orderBy(pollOptions.order);
+          const votes = await db.select().from(pollVotes).where((0, import_drizzle_orm15.eq)(pollVotes.postId, postId));
           const totalVotes = votes.length;
           const enrichedOptions = options.map((opt) => {
             const optionVotes = votes.filter((v) => v.optionId === opt.id).length;
@@ -5059,13 +5186,13 @@ var init_posts = __esm({
             userVotedOptionId: userVote
           };
         }
-        const media = await db.select().from(postMedia).where((0, import_drizzle_orm14.eq)(postMedia.postId, postId));
-        const repostRecords = await db.select().from(reposts).where((0, import_drizzle_orm14.eq)(reposts.postId, postId));
+        const media = await db.select().from(postMedia).where((0, import_drizzle_orm15.eq)(postMedia.postId, postId));
+        const repostRecords = await db.select().from(reposts).where((0, import_drizzle_orm15.eq)(reposts.postId, postId));
         const repostCount = repostRecords.length;
         const isReposted = repostRecords.some((r) => r.userId === currentUserId);
         (async () => {
           try {
-            await db.update(posts).set({ viewCount: import_drizzle_orm14.sql`${posts.viewCount} + 1` }).where((0, import_drizzle_orm14.eq)(posts.id, postId));
+            await db.update(posts).set({ viewCount: import_drizzle_orm15.sql`${posts.viewCount} + 1` }).where((0, import_drizzle_orm15.eq)(posts.id, postId));
             if (currentUserId) {
               await db.insert(postViews).values({
                 postId,
@@ -5091,23 +5218,28 @@ var init_posts = __esm({
         }
         const { content, visibility, media, communityId } = parsed.data;
         if (communityId) {
-          const communityRecord = await db.select().from(communities).where((0, import_drizzle_orm14.eq)(communities.id, communityId)).limit(1);
+          const communityRecord = await db.select().from(communities).where((0, import_drizzle_orm15.eq)(communities.id, communityId)).limit(1);
           if (communityRecord.length === 0) {
             return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
           }
-          const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm14.eq)(communityMembers.userId, currentUserId))).limit(1);
+          const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm15.eq)(communityMembers.userId, currentUserId))).limit(1);
           if (memberRecord.length === 0 && communityRecord[0].ownerId !== currentUserId) {
             return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu toplulu\u011Fa g\xF6nderi payla\u015Fmak i\xE7in \xFCye olmal\u0131s\u0131n\u0131z." } });
           }
         }
         let finalVisibility = visibility;
         if (!finalVisibility) {
-          const p = await db.select({ defaultPostVisibility: profiles.defaultPostVisibility }).from(profiles).where((0, import_drizzle_orm14.eq)(profiles.userId, currentUserId)).limit(1);
+          const p = await db.select({ defaultPostVisibility: profiles.defaultPostVisibility }).from(profiles).where((0, import_drizzle_orm15.eq)(profiles.userId, currentUserId)).limit(1);
           finalVisibility = p.length > 0 ? p[0].defaultPostVisibility : "PUBLIC";
         }
         const modResult = await moderateContent(content || "");
         const modStatus = modResult.riskLevel === "HIGH_RISK" ? "REJECTED" : modResult.riskLevel === "MEDIUM_RISK" ? "PENDING" : "APPROVED";
         let returnedError = null;
+        if (parsed.data.quotedPostId) {
+          if (!await verifyPostAccess(parsed.data.quotedPostId, currentUserId)) {
+            return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\xE7eri\u011Fi al\u0131nt\u0131lamaya yetkiniz yok." } });
+          }
+        }
         const result = await db.transaction(async (tx) => {
           const [newPost] = await tx.insert(posts).values({
             userId: currentUserId,
@@ -5115,6 +5247,7 @@ var init_posts = __esm({
             visibility: finalVisibility,
             postType: parsed.data.postType,
             contentWarning: parsed.data.contentWarning || null,
+            quotedPostId: parsed.data.quotedPostId || null,
             moderationStatus: modStatus
           }).returning();
           if (modStatus !== "APPROVED") {
@@ -5147,14 +5280,14 @@ var init_posts = __esm({
               id: users.id,
               username: users.username,
               mentionPreference: profiles.mentionPreference
-            }).from(users).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.inArray)(users.username, extractedMentions));
+            }).from(users).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.inArray)(users.username, extractedMentions));
             for (const mUser of mentionedUsers) {
               if (mUser.id !== currentUserId) {
                 let canMention = true;
                 if (mUser.mentionPreference === "NONE") {
                   canMention = false;
                 } else if (mUser.mentionPreference === "FOLLOWERS") {
-                  const isFollowedByTarget = await tx.select().from(follows).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(follows.followerId, mUser.id), (0, import_drizzle_orm14.eq)(follows.followingId, currentUserId))).limit(1);
+                  const isFollowedByTarget = await tx.select().from(follows).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(follows.followerId, mUser.id), (0, import_drizzle_orm15.eq)(follows.followingId, currentUserId))).limit(1);
                   if (isFollowedByTarget.length === 0) {
                     canMention = false;
                   }
@@ -5178,7 +5311,7 @@ var init_posts = __esm({
               const normalized = normalizeHashtag(tag);
               const [insertedTag] = await tx.insert(hashtags).values({ name: tag, normalizedName: normalized, usageCount: 1 }).onConflictDoUpdate({
                 target: hashtags.normalizedName,
-                set: { usageCount: import_drizzle_orm14.sql`${hashtags.usageCount} + 1` }
+                set: { usageCount: import_drizzle_orm15.sql`${hashtags.usageCount} + 1` }
               }).returning();
               await tx.insert(postHashtags).values({
                 postId: newPost.id,
@@ -5238,9 +5371,9 @@ var init_posts = __esm({
             const author = await db.select({
               isOfficialAccount: users3.isOfficialAccount,
               officialNotifyEnabled: users3.officialNotifyEnabled
-            }).from(users3).where((0, import_drizzle_orm14.eq)(users3.id, currentUserId)).limit(1);
+            }).from(users3).where((0, import_drizzle_orm15.eq)(users3.id, currentUserId)).limit(1);
             if (author.length > 0 && author[0].isOfficialAccount && author[0].officialNotifyEnabled) {
-              const followers = await db.select({ followerId: follows2.followerId, preference: follows2.notificationPreference }).from(follows2).where((0, import_drizzle_orm14.eq)(follows2.followingId, currentUserId));
+              const followers = await db.select({ followerId: follows2.followerId, preference: follows2.notificationPreference }).from(follows2).where((0, import_drizzle_orm15.eq)(follows2.followingId, currentUserId));
               const { notifications: notifications3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
               const notifsToInsert = followers.filter((f) => f.preference !== "none").map((f) => ({
                 recipientId: f.followerId,
@@ -5273,12 +5406,12 @@ var init_posts = __esm({
         if (typeof postContent !== "string") {
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz i\xE7erik." } });
         }
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         if (postRecord[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz i\u015Flem." } });
         const modResult = await moderateContent(postContent);
         const modStatus = modResult.riskLevel === "HIGH_RISK" ? "REJECTED" : modResult.riskLevel === "MEDIUM_RISK" ? "PENDING" : "APPROVED";
-        await db.update(posts).set({ content: postContent, moderationStatus: modStatus, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+        await db.update(posts).set({ content: postContent, moderationStatus: modStatus, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
         if (modStatus !== "APPROVED") {
           await db.insert(moderationLogs).values({
             entityType: "POST",
@@ -5303,15 +5436,15 @@ var init_posts = __esm({
       try {
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         if (postRecord[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz i\u015Flem." } });
-        const postTags = await db.select().from(postHashtags).where((0, import_drizzle_orm14.eq)(postHashtags.postId, postId));
+        const postTags = await db.select().from(postHashtags).where((0, import_drizzle_orm15.eq)(postHashtags.postId, postId));
         if (postTags.length > 0) {
           const tagIds = postTags.map((pt) => pt.hashtagId);
-          await db.update(hashtags).set({ usageCount: import_drizzle_orm14.sql`${hashtags.usageCount} - 1` }).where((0, import_drizzle_orm14.inArray)(hashtags.id, tagIds));
+          await db.update(hashtags).set({ usageCount: import_drizzle_orm15.sql`${hashtags.usageCount} - 1` }).where((0, import_drizzle_orm15.inArray)(hashtags.id, tagIds));
         }
-        const media = await db.select().from(postMedia).where((0, import_drizzle_orm14.eq)(postMedia.postId, postId));
+        const media = await db.select().from(postMedia).where((0, import_drizzle_orm15.eq)(postMedia.postId, postId));
         media.forEach((m) => {
           try {
             if (!m.mediaUrl || !m.mediaUrl.startsWith("/uploads/") || m.mediaUrl.includes("..")) {
@@ -5323,7 +5456,7 @@ var init_posts = __esm({
             console.error("File deletion failed:", e);
           }
         });
-        await db.delete(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+        await db.delete(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
         res.json({ success: true, data: { message: "G\xF6nderi silindi." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -5334,15 +5467,15 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         let wasLiked = false;
         try {
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(likes).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(likes.postId, postId), (0, import_drizzle_orm14.eq)(likes.userId, currentUserId))).limit(1);
+            const existing = await tx.select().from(likes).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(likes.postId, postId), (0, import_drizzle_orm15.eq)(likes.userId, currentUserId))).limit(1);
             if (existing.length === 0) {
               await tx.insert(likes).values({ postId, userId: currentUserId });
-              await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
               wasLiked = true;
             }
           });
@@ -5362,13 +5495,13 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.eq)(posts.id, postId)).limit(1);
         await db.transaction(async (tx) => {
-          const existing = await tx.select().from(likes).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(likes.postId, postId), (0, import_drizzle_orm14.eq)(likes.userId, currentUserId))).limit(1);
+          const existing = await tx.select().from(likes).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(likes.postId, postId), (0, import_drizzle_orm15.eq)(likes.userId, currentUserId))).limit(1);
           if (existing.length > 0) {
-            await tx.delete(likes).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(likes.postId, postId), (0, import_drizzle_orm14.eq)(likes.userId, currentUserId)));
+            await tx.delete(likes).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(likes.postId, postId), (0, import_drizzle_orm15.eq)(likes.userId, currentUserId)));
             if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
-              await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
             }
           }
         });
@@ -5384,7 +5517,7 @@ var init_posts = __esm({
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
         const parsed = createCommentSchema.safeParse(req.body);
         if (!parsed.success) return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         const modResult = await moderateContent(parsed.data.content);
         const modStatus = modResult.riskLevel === "HIGH_RISK" ? "REJECTED" : modResult.riskLevel === "MEDIUM_RISK" ? "PENDING" : "APPROVED";
@@ -5419,14 +5552,14 @@ var init_posts = __esm({
               id: users.id,
               username: users.username,
               mentionPreference: profiles.mentionPreference
-            }).from(users).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.inArray)(users.username, extractedMentions));
+            }).from(users).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.inArray)(users.username, extractedMentions));
             for (const mUser of mentionedUsers) {
               if (mUser.id !== currentUserId) {
                 let canMention = true;
                 if (mUser.mentionPreference === "NONE") {
                   canMention = false;
                 } else if (mUser.mentionPreference === "FOLLOWERS") {
-                  const isFollowedByTarget = await tx.select().from(follows).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(follows.followerId, mUser.id), (0, import_drizzle_orm14.eq)(follows.followingId, currentUserId))).limit(1);
+                  const isFollowedByTarget = await tx.select().from(follows).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(follows.followerId, mUser.id), (0, import_drizzle_orm15.eq)(follows.followingId, currentUserId))).limit(1);
                   if (isFollowedByTarget.length === 0) {
                     canMention = false;
                   }
@@ -5445,9 +5578,9 @@ var init_posts = __esm({
             }
           }
           if (postRecord[0].userId !== currentUserId) {
-            await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} + 3, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+            await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} + 3, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
           }
-          const userProfile = await tx.select({ username: users.username, displayName: profiles.displayName, avatarUrl: profiles.avatarUrl }).from(users).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.eq)(users.id, currentUserId)).limit(1);
+          const userProfile = await tx.select({ username: users.username, displayName: profiles.displayName, avatarUrl: profiles.avatarUrl }).from(users).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.eq)(users.id, currentUserId)).limit(1);
           return { ...newComment, user: userProfile[0] };
         });
         if (returnedError) {
@@ -5456,7 +5589,7 @@ var init_posts = __esm({
         if (modStatus === "APPROVED") {
           await notify(currentUserId, postRecord[0].userId, "comment", postId, comment.id);
           if (parsed.data.parentId) {
-            const parentRecord = await db.select().from(comments).where((0, import_drizzle_orm14.eq)(comments.id, parsed.data.parentId)).limit(1);
+            const parentRecord = await db.select().from(comments).where((0, import_drizzle_orm15.eq)(comments.id, parsed.data.parentId)).limit(1);
             if (parentRecord.length > 0) {
               await notify(currentUserId, parentRecord[0].userId, "comment_reply", postId, comment.id);
             }
@@ -5475,12 +5608,12 @@ var init_posts = __esm({
         if (typeof commentContent !== "string" || commentContent.trim().length === 0) {
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz yorum i\xE7eri\u011Fi." } });
         }
-        const c = await db.select().from(comments).where((0, import_drizzle_orm14.eq)(comments.id, commentId)).limit(1);
+        const c = await db.select().from(comments).where((0, import_drizzle_orm15.eq)(comments.id, commentId)).limit(1);
         if (c.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Yorum bulunamad\u0131." } });
         if (c[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
         const modResult = await moderateContent(commentContent);
         const modStatus = modResult.riskLevel === "HIGH_RISK" ? "REJECTED" : modResult.riskLevel === "MEDIUM_RISK" ? "PENDING" : "APPROVED";
-        await db.update(comments).set({ content: commentContent, moderationStatus: modStatus, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm14.eq)(comments.id, commentId));
+        await db.update(comments).set({ content: commentContent, moderationStatus: modStatus, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm15.eq)(comments.id, commentId));
         if (modStatus !== "APPROVED") {
           await db.insert(moderationLogs).values({
             entityType: "COMMENT",
@@ -5505,14 +5638,14 @@ var init_posts = __esm({
       try {
         const commentId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const c = await db.select().from(comments).where((0, import_drizzle_orm14.eq)(comments.id, commentId)).limit(1);
+        const c = await db.select().from(comments).where((0, import_drizzle_orm15.eq)(comments.id, commentId)).limit(1);
         if (c.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Yorum bulunamad\u0131." } });
         if (c[0].userId !== currentUserId) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.eq)(posts.id, c[0].postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.eq)(posts.id, c[0].postId)).limit(1);
         await db.transaction(async (tx) => {
-          await tx.delete(comments).where((0, import_drizzle_orm14.eq)(comments.id, commentId));
+          await tx.delete(comments).where((0, import_drizzle_orm15.eq)(comments.id, commentId));
           if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
-            await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} - 3, 0)` }).where((0, import_drizzle_orm14.eq)(posts.id, c[0].postId));
+            await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} - 3, 0)` }).where((0, import_drizzle_orm15.eq)(posts.id, c[0].postId));
           }
         });
         res.json({ success: true, data: { message: "Yorum silindi." } });
@@ -5525,15 +5658,15 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         try {
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(bookmarks).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(bookmarks.postId, postId), (0, import_drizzle_orm14.eq)(bookmarks.userId, currentUserId))).limit(1);
+            const existing = await tx.select().from(bookmarks).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(bookmarks.postId, postId), (0, import_drizzle_orm15.eq)(bookmarks.userId, currentUserId))).limit(1);
             if (existing.length === 0) {
               await tx.insert(bookmarks).values({ postId, userId: currentUserId });
               if (postRecord[0].userId !== currentUserId) {
-                await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} + 4, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+                await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} + 4, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
               }
             }
           });
@@ -5550,13 +5683,13 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.eq)(posts.id, postId)).limit(1);
         await db.transaction(async (tx) => {
-          const existing = await tx.select().from(bookmarks).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(bookmarks.postId, postId), (0, import_drizzle_orm14.eq)(bookmarks.userId, currentUserId))).limit(1);
+          const existing = await tx.select().from(bookmarks).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(bookmarks.postId, postId), (0, import_drizzle_orm15.eq)(bookmarks.userId, currentUserId))).limit(1);
           if (existing.length > 0) {
-            await tx.delete(bookmarks).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(bookmarks.postId, postId), (0, import_drizzle_orm14.eq)(bookmarks.userId, currentUserId)));
+            await tx.delete(bookmarks).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(bookmarks.postId, postId), (0, import_drizzle_orm15.eq)(bookmarks.userId, currentUserId)));
             if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
-              await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} - 4, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} - 4, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
             }
           }
         });
@@ -5570,15 +5703,15 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         let wasReposted = false;
         try {
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(reposts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(reposts.postId, postId), (0, import_drizzle_orm14.eq)(reposts.userId, currentUserId))).limit(1);
+            const existing = await tx.select().from(reposts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(reposts.postId, postId), (0, import_drizzle_orm15.eq)(reposts.userId, currentUserId))).limit(1);
             if (existing.length === 0) {
               await tx.insert(reposts).values({ postId, userId: currentUserId });
-              await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} + 4, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} + 4, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
               wasReposted = true;
             }
           });
@@ -5598,13 +5731,13 @@ var init_posts = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm14.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm15.eq)(posts.id, postId)).limit(1);
         await db.transaction(async (tx) => {
-          const existing = await tx.select().from(reposts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(reposts.postId, postId), (0, import_drizzle_orm14.eq)(reposts.userId, currentUserId))).limit(1);
+          const existing = await tx.select().from(reposts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(reposts.postId, postId), (0, import_drizzle_orm15.eq)(reposts.userId, currentUserId))).limit(1);
           if (existing.length > 0) {
-            await tx.delete(reposts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(reposts.postId, postId), (0, import_drizzle_orm14.eq)(reposts.userId, currentUserId)));
+            await tx.delete(reposts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(reposts.postId, postId), (0, import_drizzle_orm15.eq)(reposts.userId, currentUserId)));
             if (postRecord.length > 0 && postRecord[0].userId !== currentUserId) {
-              await tx.update(posts).set({ baseScore: import_drizzle_orm14.sql`GREATEST(${posts.baseScore} - 4, 0)` }).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId))));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm15.sql`GREATEST(${posts.baseScore} - 4, 0)` }).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId))));
             }
           }
         });
@@ -5626,7 +5759,7 @@ var init_posts = __esm({
           res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi ortak \xFCretici olarak ekleyemezsiniz." } });
           return;
         }
-        const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (post.length === 0) {
           res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
           return;
@@ -5635,12 +5768,12 @@ var init_posts = __esm({
           res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flem i\xE7in yetkiniz yok." } });
           return;
         }
-        const target = await db.select().from(users).where((0, import_drizzle_orm14.eq)(users.id, targetUserId)).limit(1);
+        const target = await db.select().from(users).where((0, import_drizzle_orm15.eq)(users.id, targetUserId)).limit(1);
         if (target.length === 0) {
           res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        const existing = await db.select().from(postCollaborators).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(postCollaborators.postId, postId), (0, import_drizzle_orm14.eq)(postCollaborators.userId, targetUserId))).limit(1);
+        const existing = await db.select().from(postCollaborators).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(postCollaborators.postId, postId), (0, import_drizzle_orm15.eq)(postCollaborators.userId, targetUserId))).limit(1);
         if (existing.length > 0) {
           if (existing[0].status === "pending") {
             res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Bu kullan\u0131c\u0131ya zaten davet g\xF6nderilmi\u015F." } });
@@ -5649,7 +5782,7 @@ var init_posts = __esm({
             res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Bu kullan\u0131c\u0131 zaten ortak \xFCretici." } });
             return;
           } else {
-            await db.update(postCollaborators).set({ status: "pending", updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm14.eq)(postCollaborators.id, existing[0].id));
+            await db.update(postCollaborators).set({ status: "pending", updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm15.eq)(postCollaborators.id, existing[0].id));
           }
         } else {
           await db.insert(postCollaborators).values({
@@ -5674,7 +5807,7 @@ var init_posts = __esm({
           return;
         }
         const currentUserId = requireAuthContext(req);
-        const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(posts.id, postId), (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm14.eq)(posts.userId, currentUserId)))).limit(1);
+        const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(posts.id, postId), (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm15.eq)(posts.userId, currentUserId)))).limit(1);
         if (post.length === 0) {
           res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
           return;
@@ -5683,7 +5816,7 @@ var init_posts = __esm({
           res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flem i\xE7in yetkiniz yok." } });
           return;
         }
-        await db.delete(postCollaborators).where((0, import_drizzle_orm14.and)((0, import_drizzle_orm14.eq)(postCollaborators.postId, postId), (0, import_drizzle_orm14.eq)(postCollaborators.userId, targetUserId)));
+        await db.delete(postCollaborators).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(postCollaborators.postId, postId), (0, import_drizzle_orm15.eq)(postCollaborators.userId, targetUserId)));
         res.json({ success: true, message: "Ortak \xFCretici kald\u0131r\u0131ld\u0131." });
       } catch (error) {
         console.error("Remove collaborator error:", error);
@@ -5703,9 +5836,9 @@ var init_posts = __esm({
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl,
           status: postCollaborators.status
-        }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm14.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm14.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm14.and)(
-          (0, import_drizzle_orm14.eq)(postCollaborators.postId, postId),
-          (0, import_drizzle_orm14.or)((0, import_drizzle_orm14.eq)(postCollaborators.status, "accepted"), (0, import_drizzle_orm14.eq)(postCollaborators.status, "pending"))
+        }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm15.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.and)(
+          (0, import_drizzle_orm15.eq)(postCollaborators.postId, postId),
+          (0, import_drizzle_orm15.or)((0, import_drizzle_orm15.eq)(postCollaborators.status, "accepted"), (0, import_drizzle_orm15.eq)(postCollaborators.status, "pending"))
         ));
         res.json({ success: true, data: list });
       } catch (error) {
@@ -5733,39 +5866,39 @@ async function populatePostStats(postsList, currentUserId) {
   let followStats = [];
   if (postIds.length > 0) {
     [allMedia, repostStats, likeStats, bookmarkStats, commentStats, allCollabs, allPollOptions, allPollVotes] = await Promise.all([
-      db.select().from(postMedia).where((0, import_drizzle_orm15.inArray)(postMedia.postId, postIds)),
+      db.select().from(postMedia).where((0, import_drizzle_orm16.inArray)(postMedia.postId, postIds)),
       db.select({
         postId: reposts.postId,
-        count: import_drizzle_orm15.sql`cast(count(*) as integer)`,
-        isReposted: import_drizzle_orm15.sql`MAX(CASE WHEN ${reposts.userId} = ${viewerId} THEN 1 ELSE 0 END)`
-      }).from(reposts).where((0, import_drizzle_orm15.inArray)(reposts.postId, postIds)).groupBy(reposts.postId),
+        count: import_drizzle_orm16.sql`cast(count(*) as integer)`,
+        isReposted: import_drizzle_orm16.sql`MAX(CASE WHEN ${reposts.userId} = ${viewerId} THEN 1 ELSE 0 END)`
+      }).from(reposts).where((0, import_drizzle_orm16.inArray)(reposts.postId, postIds)).groupBy(reposts.postId),
       db.select({
-        postId: likes.postId,
-        count: import_drizzle_orm15.sql`cast(count(*) as integer)`,
-        isLiked: import_drizzle_orm15.sql`MAX(CASE WHEN ${likes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
-      }).from(likes).where((0, import_drizzle_orm15.inArray)(likes.postId, postIds)).groupBy(likes.postId),
+        postId: reactions.postId,
+        count: import_drizzle_orm16.sql`cast(count(*) as integer)`,
+        myReaction: import_drizzle_orm16.sql`MAX(CASE WHEN ${reactions.userId} = ${viewerId} THEN ${reactions.type} ELSE NULL END)`
+      }).from(reactions).where((0, import_drizzle_orm16.inArray)(reactions.postId, postIds)).groupBy(reactions.postId),
       db.select({
         postId: bookmarks.postId,
-        isSaved: import_drizzle_orm15.sql`MAX(CASE WHEN ${bookmarks.userId} = ${viewerId} THEN 1 ELSE 0 END)`
-      }).from(bookmarks).where((0, import_drizzle_orm15.inArray)(bookmarks.postId, postIds)).groupBy(bookmarks.postId),
+        isSaved: import_drizzle_orm16.sql`MAX(CASE WHEN ${bookmarks.userId} = ${viewerId} THEN 1 ELSE 0 END)`
+      }).from(bookmarks).where((0, import_drizzle_orm16.inArray)(bookmarks.postId, postIds)).groupBy(bookmarks.postId),
       db.select({
         postId: comments.postId,
-        count: import_drizzle_orm15.sql`cast(count(*) as integer)`
-      }).from(comments).where((0, import_drizzle_orm15.inArray)(comments.postId, postIds)).groupBy(comments.postId),
+        count: import_drizzle_orm16.sql`cast(count(*) as integer)`
+      }).from(comments).where((0, import_drizzle_orm16.inArray)(comments.postId, postIds)).groupBy(comments.postId),
       db.select({
         postId: postCollaborators.postId,
         userId: users.id,
         username: users.username,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl
-      }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm15.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.and)((0, import_drizzle_orm15.inArray)(postCollaborators.postId, postIds), (0, import_drizzle_orm15.eq)(postCollaborators.status, "accepted"))),
-      db.select().from(pollOptions).where((0, import_drizzle_orm15.inArray)(pollOptions.postId, postIds)),
+      }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm16.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm16.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm16.and)((0, import_drizzle_orm16.inArray)(postCollaborators.postId, postIds), (0, import_drizzle_orm16.eq)(postCollaborators.status, "accepted"))),
+      db.select().from(pollOptions).where((0, import_drizzle_orm16.inArray)(pollOptions.postId, postIds)),
       db.select({
         optionId: pollVotes.optionId,
         postId: pollVotes.postId,
-        count: import_drizzle_orm15.sql`cast(count(*) as integer)`,
-        isVoted: import_drizzle_orm15.sql`MAX(CASE WHEN ${pollVotes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
-      }).from(pollVotes).where((0, import_drizzle_orm15.inArray)(pollVotes.postId, postIds)).groupBy(pollVotes.optionId, pollVotes.postId)
+        count: import_drizzle_orm16.sql`cast(count(*) as integer)`,
+        isVoted: import_drizzle_orm16.sql`MAX(CASE WHEN ${pollVotes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
+      }).from(pollVotes).where((0, import_drizzle_orm16.inArray)(pollVotes.postId, postIds)).groupBy(pollVotes.optionId, pollVotes.postId)
     ]);
   }
   if (viewerId !== -1 && authorIds.length > 0) {
@@ -5773,9 +5906,9 @@ async function populatePostStats(postsList, currentUserId) {
       followerId: follows.followerId,
       followingId: follows.followingId
     }).from(follows).where(
-      (0, import_drizzle_orm15.or)(
-        (0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(follows.followerId, viewerId), (0, import_drizzle_orm15.inArray)(follows.followingId, authorIds)),
-        (0, import_drizzle_orm15.and)((0, import_drizzle_orm15.eq)(follows.followingId, viewerId), (0, import_drizzle_orm15.inArray)(follows.followerId, authorIds))
+      (0, import_drizzle_orm16.or)(
+        (0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(follows.followerId, viewerId), (0, import_drizzle_orm16.inArray)(follows.followingId, authorIds)),
+        (0, import_drizzle_orm16.and)((0, import_drizzle_orm16.eq)(follows.followingId, viewerId), (0, import_drizzle_orm16.inArray)(follows.followerId, authorIds))
       )
     );
   }
@@ -5786,7 +5919,7 @@ async function populatePostStats(postsList, currentUserId) {
     if (f.followingId === viewerId) followsMeMap.set(f.followerId, true);
   });
   const repostsMap = new Map(repostStats.map((s) => [s.postId, { count: s.count, isReposted: s.isReposted === 1 }]));
-  const likesMap = new Map(likeStats.map((s) => [s.postId, { count: s.count, isLiked: s.isLiked === 1 }]));
+  const reactionsMap = new Map(likeStats.map((s) => [s.postId, { count: s.count, myReaction: s.myReaction }]));
   const bookmarksMap = new Map(bookmarkStats.map((s) => [s.postId, { isSaved: s.isSaved === 1 }]));
   const commentsMap = new Map(commentStats.map((s) => [s.postId, { count: s.count }]));
   const mediaMap = /* @__PURE__ */ new Map();
@@ -5813,7 +5946,7 @@ async function populatePostStats(postsList, currentUserId) {
     const pMedia = (mediaMap.get(p.id) || []).sort((a, b) => a.sortOrder - b.sortOrder);
     const pCollabs = collabsMap.get(p.id) || [];
     const rStat = repostsMap.get(p.id) || { count: 0, isReposted: false };
-    const lStat = likesMap.get(p.id) || { count: 0, isLiked: false };
+    const rStat2 = reactionsMap.get(p.id) || { count: 0, myReaction: null };
     const bStat = bookmarksMap.get(p.id) || { isSaved: false };
     const cStat = commentsMap.get(p.id) || { count: 0 };
     let pPollOptions = void 0;
@@ -5847,21 +5980,22 @@ async function populatePostStats(postsList, currentUserId) {
       media: pMedia,
       repostCount: rStat.count,
       isReposted: rStat.isReposted,
-      likeCount: lStat.count,
-      isLiked: lStat.isLiked,
+      likeCount: rStat2.count,
+      isLiked: !!rStat2.myReaction,
+      myReaction: rStat2.myReaction,
       commentCount: cStat.count,
       isSaved: bStat.isSaved,
       collaborators: pCollabs.map((c) => ({ userId: c.userId, username: c.username, displayName: c.displayName, avatarUrl: c.avatarUrl }))
     };
   });
 }
-var import_drizzle_orm15;
+var import_drizzle_orm16;
 var init_postStats = __esm({
   "server/utils/postStats.ts"() {
     "use strict";
     init_db();
     init_schema();
-    import_drizzle_orm15 = require("drizzle-orm");
+    import_drizzle_orm16 = require("drizzle-orm");
   }
 });
 
@@ -5870,14 +6004,14 @@ var feed_exports = {};
 __export(feed_exports, {
   feedRouter: () => feedRouter
 });
-var import_express10, import_drizzle_orm16, import_zod4, import_express_rate_limit2, feedRouter, viewLimiter, viewSchema, ALGO_CONFIG, getFeedHandler;
+var import_express10, import_drizzle_orm17, import_zod4, import_express_rate_limit2, feedRouter, viewLimiter, viewSchema, ALGO_CONFIG, getFeedHandler;
 var init_feed = __esm({
   "server/routes/feed.ts"() {
     "use strict";
     import_express10 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm16 = require("drizzle-orm");
+    import_drizzle_orm17 = require("drizzle-orm");
     init_auth();
     init_postStats();
     init_api();
@@ -5911,10 +6045,10 @@ var init_feed = __esm({
         }
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1e3);
         const recentView = await db.select().from(postViews).where(
-          (0, import_drizzle_orm16.and)(
-            (0, import_drizzle_orm16.eq)(postViews.userId, currentUserId),
-            (0, import_drizzle_orm16.eq)(postViews.postId, postId),
-            import_drizzle_orm16.sql`${postViews.viewedAt} > ${fiveMinutesAgo.toISOString()}`
+          (0, import_drizzle_orm17.and)(
+            (0, import_drizzle_orm17.eq)(postViews.userId, currentUserId),
+            (0, import_drizzle_orm17.eq)(postViews.postId, postId),
+            import_drizzle_orm17.sql`${postViews.viewedAt} > ${fiveMinutesAgo.toISOString()}`
           )
         ).limit(1);
         if (recentView.length > 0) {
@@ -5925,7 +6059,7 @@ var init_feed = __esm({
             userId: currentUserId,
             postId
           });
-          await tx.update(posts).set({ viewCount: import_drizzle_orm16.sql`${posts.viewCount} + 1` }).where((0, import_drizzle_orm16.eq)(posts.id, postId));
+          await tx.update(posts).set({ viewCount: import_drizzle_orm17.sql`${posts.viewCount} + 1` }).where((0, import_drizzle_orm17.eq)(posts.id, postId));
         });
         res.json({ success: true });
       } catch (error) {
@@ -5952,48 +6086,48 @@ var init_feed = __esm({
         const safeBlockedIds = blockedIds.length > 0 ? blockedIds : [-1];
         let followingIds = [];
         if (currentUserId) {
-          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm16.eq)(follows.followerId, currentUserId));
+          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm17.and)((0, import_drizzle_orm17.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm17.eq)(follows.status, "accepted")));
           followingIds = followingRecords.map((f) => f.followingId).filter((id) => !blockedIds.includes(id));
         }
         const safeFollowingIds = followingIds.length > 0 ? followingIds : [-1];
-        const ageInHours = import_drizzle_orm16.sql`GREATEST(EXTRACT(EPOCH FROM (NOW() - ${posts.createdAt})) / 3600, 0)`;
-        let isFollowingBonus = import_drizzle_orm16.sql`0`;
-        let isOwnPostBonus = import_drizzle_orm16.sql`0`;
-        let userViewsCountSq = import_drizzle_orm16.sql`0`;
+        const ageInHours = import_drizzle_orm17.sql`GREATEST(EXTRACT(EPOCH FROM (NOW() - ${posts.createdAt})) / 3600, 0)`;
+        let isFollowingBonus = import_drizzle_orm17.sql`0`;
+        let isOwnPostBonus = import_drizzle_orm17.sql`0`;
+        let userViewsCountSq = import_drizzle_orm17.sql`0`;
         if (currentUserId) {
-          const followingIdsSql = import_drizzle_orm16.sql.join(safeFollowingIds.map((id) => import_drizzle_orm16.sql`${id}`), import_drizzle_orm16.sql`, `);
-          isFollowingBonus = import_drizzle_orm16.sql`CASE WHEN ${posts.userId} IN (${followingIdsSql}) THEN ${ALGO_CONFIG.FOLLOWING_BONUS} ELSE 0 END`;
-          isOwnPostBonus = import_drizzle_orm16.sql`CASE WHEN ${posts.userId} = ${currentUserId} THEN ${ALGO_CONFIG.OWN_POST_BONUS} ELSE 0 END`;
-          userViewsCountSq = import_drizzle_orm16.sql`(SELECT COUNT(*) FROM ${postViews} pv WHERE pv.post_id = ${posts.id} AND pv.user_id = ${currentUserId})`;
+          const followingIdsSql = import_drizzle_orm17.sql.join(safeFollowingIds.map((id) => import_drizzle_orm17.sql`${id}`), import_drizzle_orm17.sql`, `);
+          isFollowingBonus = import_drizzle_orm17.sql`CASE WHEN ${posts.userId} IN (${followingIdsSql}) THEN ${ALGO_CONFIG.FOLLOWING_BONUS} ELSE 0 END`;
+          isOwnPostBonus = import_drizzle_orm17.sql`CASE WHEN ${posts.userId} = ${currentUserId} THEN ${ALGO_CONFIG.OWN_POST_BONUS} ELSE 0 END`;
+          userViewsCountSq = import_drizzle_orm17.sql`(SELECT COUNT(*) FROM ${postViews} pv WHERE pv.post_id = ${posts.id} AND pv.user_id = ${currentUserId})`;
         }
-        const numerator = import_drizzle_orm16.sql`GREATEST((${posts.baseScore} * ${ALGO_CONFIG.BASE_SCORE_WEIGHT}) + ${isFollowingBonus} + ${isOwnPostBonus} - (${userViewsCountSq} * ${ALGO_CONFIG.USER_VIEW_PENALTY}), 0.1)`;
-        const denominator = import_drizzle_orm16.sql`POWER(${ageInHours} + ${ALGO_CONFIG.TIME_CONSTANT}, ${ALGO_CONFIG.GRAVITY})`;
-        const rankScore = import_drizzle_orm16.sql`${numerator} / ${denominator}`;
+        const numerator = import_drizzle_orm17.sql`GREATEST((${posts.baseScore} * ${ALGO_CONFIG.BASE_SCORE_WEIGHT}) + ${isFollowingBonus} + ${isOwnPostBonus} - (${userViewsCountSq} * ${ALGO_CONFIG.USER_VIEW_PENALTY}), 0.1)`;
+        const denominator = import_drizzle_orm17.sql`POWER(${ageInHours} + ${ALGO_CONFIG.TIME_CONSTANT}, ${ALGO_CONFIG.GRAVITY})`;
+        const rankScore = import_drizzle_orm17.sql`${numerator} / ${denominator}`;
         const whereConditions = [
-          (0, import_drizzle_orm16.isNull)(posts.communityId),
-          (0, import_drizzle_orm16.eq)(posts.moderationStatus, "APPROVED"),
-          import_drizzle_orm16.sql`${posts.createdAt} >= NOW() - INTERVAL '30 days'`
+          (0, import_drizzle_orm17.isNull)(posts.communityId),
+          (0, import_drizzle_orm17.eq)(posts.moderationStatus, "APPROVED"),
+          import_drizzle_orm17.sql`${posts.createdAt} >= NOW() - INTERVAL '30 days'`
         ];
         if (currentUserId) {
           whereConditions.push(
-            (0, import_drizzle_orm16.or)(
-              (0, import_drizzle_orm16.eq)(posts.userId, currentUserId),
+            (0, import_drizzle_orm17.or)(
+              (0, import_drizzle_orm17.eq)(posts.userId, currentUserId),
               // Kendi gönderileri
-              (0, import_drizzle_orm16.and)(
+              (0, import_drizzle_orm17.and)(
                 // Takip ettiklerinin gönderileri
-                (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
-                (0, import_drizzle_orm16.or)((0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm16.eq)(posts.visibility, "FOLLOWERS"))
+                (0, import_drizzle_orm17.inArray)(posts.userId, safeFollowingIds),
+                (0, import_drizzle_orm17.or)((0, import_drizzle_orm17.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm17.eq)(posts.visibility, "FOLLOWERS"))
               ),
-              (0, import_drizzle_orm16.and)(
+              (0, import_drizzle_orm17.and)(
                 // Herkese açık olan, ama engellenmemiş genel gönderiler (Discover/Keşfet)
-                (0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"),
-                (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.inArray)(posts.userId, safeBlockedIds))
+                (0, import_drizzle_orm17.eq)(posts.visibility, "PUBLIC"),
+                (0, import_drizzle_orm17.not)((0, import_drizzle_orm17.inArray)(posts.userId, safeBlockedIds))
               )
             )
           );
         } else {
           whereConditions.push(
-            (0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC")
+            (0, import_drizzle_orm17.eq)(posts.visibility, "PUBLIC")
           );
         }
         const feedPosts = await db.select({
@@ -6004,6 +6138,8 @@ var init_feed = __esm({
           visibility: posts.visibility,
           viewCount: posts.viewCount,
           createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
+          userId: posts.userId,
           user: {
             id: users.id,
             username: users.username,
@@ -6011,7 +6147,7 @@ var init_feed = __esm({
             avatarUrl: profiles.avatarUrl,
             isVerified: users.isVerified
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm16.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm16.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm16.and)(...whereConditions.filter(Boolean))).orderBy((0, import_drizzle_orm16.desc)(rankScore)).limit(limit).offset(offset);
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm17.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm17.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm17.and)(...whereConditions.filter(Boolean))).orderBy((0, import_drizzle_orm17.desc)(rankScore)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(feedPosts, currentUserId ?? -1);
         const hasMore = formattedPosts.length >= limit;
         res.json({
@@ -6038,7 +6174,7 @@ var init_feed = __esm({
         const offset = (page - 1) * limit;
         const blockedIds = await getBlockedIds(currentUserId);
         const safeBlockedIds = blockedIds.length > 0 ? blockedIds : [-1];
-        const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm16.eq)(follows.followerId, currentUserId));
+        const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm17.and)((0, import_drizzle_orm17.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm17.eq)(follows.status, "accepted")));
         let followingIds = followingRecords.map((f) => f.followingId).filter((id) => !blockedIds.includes(id));
         const safeFollowingIds = followingIds.length > 0 ? followingIds : [-1];
         if (safeFollowingIds[0] === -1) {
@@ -6050,11 +6186,11 @@ var init_feed = __esm({
             meta: { followingCount: 0 }
           });
         }
-        const ageInHours = import_drizzle_orm16.sql`GREATEST(EXTRACT(EPOCH FROM (NOW() - ${posts.createdAt})) / 3600, 0)`;
-        const userViewsCountSq = import_drizzle_orm16.sql`(SELECT COUNT(*) FROM ${postViews} pv WHERE pv.post_id = ${posts.id} AND pv.user_id = ${currentUserId})`;
-        const numerator = import_drizzle_orm16.sql`GREATEST((${posts.baseScore} * ${ALGO_CONFIG.BASE_SCORE_WEIGHT}) + ${ALGO_CONFIG.FOLLOWING_BONUS} - (${userViewsCountSq} * ${ALGO_CONFIG.USER_VIEW_PENALTY}), 0.1)`;
-        const denominator = import_drizzle_orm16.sql`POWER(${ageInHours} + ${ALGO_CONFIG.TIME_CONSTANT}, ${ALGO_CONFIG.GRAVITY})`;
-        const rankScore = import_drizzle_orm16.sql`${numerator} / ${denominator}`;
+        const ageInHours = import_drizzle_orm17.sql`GREATEST(EXTRACT(EPOCH FROM (NOW() - ${posts.createdAt})) / 3600, 0)`;
+        const userViewsCountSq = import_drizzle_orm17.sql`(SELECT COUNT(*) FROM ${postViews} pv WHERE pv.post_id = ${posts.id} AND pv.user_id = ${currentUserId})`;
+        const numerator = import_drizzle_orm17.sql`GREATEST((${posts.baseScore} * ${ALGO_CONFIG.BASE_SCORE_WEIGHT}) + ${ALGO_CONFIG.FOLLOWING_BONUS} - (${userViewsCountSq} * ${ALGO_CONFIG.USER_VIEW_PENALTY}), 0.1)`;
+        const denominator = import_drizzle_orm17.sql`POWER(${ageInHours} + ${ALGO_CONFIG.TIME_CONSTANT}, ${ALGO_CONFIG.GRAVITY})`;
+        const rankScore = import_drizzle_orm17.sql`${numerator} / ${denominator}`;
         const feedPosts = await db.select({
           id: posts.id,
           content: posts.content,
@@ -6063,6 +6199,8 @@ var init_feed = __esm({
           visibility: posts.visibility,
           viewCount: posts.viewCount,
           createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
+          userId: posts.userId,
           user: {
             id: users.id,
             username: users.username,
@@ -6070,15 +6208,15 @@ var init_feed = __esm({
             avatarUrl: profiles.avatarUrl,
             isVerified: users.isVerified
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm16.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm16.eq)(users.id, profiles.userId)).where(
-          (0, import_drizzle_orm16.and)(
-            (0, import_drizzle_orm16.isNull)(posts.communityId),
-            (0, import_drizzle_orm16.eq)(posts.moderationStatus, "APPROVED"),
-            (0, import_drizzle_orm16.inArray)(posts.userId, safeFollowingIds),
-            (0, import_drizzle_orm16.not)((0, import_drizzle_orm16.inArray)(posts.userId, safeBlockedIds)),
-            (0, import_drizzle_orm16.or)((0, import_drizzle_orm16.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm16.eq)(posts.visibility, "FOLLOWERS"))
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm17.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm17.eq)(users.id, profiles.userId)).where(
+          (0, import_drizzle_orm17.and)(
+            (0, import_drizzle_orm17.isNull)(posts.communityId),
+            (0, import_drizzle_orm17.eq)(posts.moderationStatus, "APPROVED"),
+            (0, import_drizzle_orm17.inArray)(posts.userId, safeFollowingIds),
+            (0, import_drizzle_orm17.not)((0, import_drizzle_orm17.inArray)(posts.userId, safeBlockedIds)),
+            (0, import_drizzle_orm17.or)((0, import_drizzle_orm17.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm17.eq)(posts.visibility, "FOLLOWERS"))
           )
-        ).orderBy((0, import_drizzle_orm16.desc)(rankScore)).limit(limit).offset(offset);
+        ).orderBy((0, import_drizzle_orm17.desc)(rankScore)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(feedPosts, currentUserId);
         const hasMore = formattedPosts.length >= limit;
         res.json({
@@ -6124,14 +6262,14 @@ var userPosts_exports = {};
 __export(userPosts_exports, {
   userPostsRouter: () => userPostsRouter
 });
-var import_express11, import_drizzle_orm17, userPostsRouter;
+var import_express11, import_drizzle_orm18, userPostsRouter;
 var init_userPosts = __esm({
   "server/routes/userPosts.ts"() {
     "use strict";
     import_express11 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm17 = require("drizzle-orm");
+    import_drizzle_orm18 = require("drizzle-orm");
     init_cursor();
     init_auth();
     init_postStats();
@@ -6152,11 +6290,11 @@ var init_userPosts = __esm({
         if (cursor) {
           const decoded = decodeCursor(cursor);
           if (decoded) {
-            cursorCondition = (0, import_drizzle_orm17.or)((0, import_drizzle_orm17.lt)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm17.and)((0, import_drizzle_orm17.eq)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm17.lt)(posts.id, decoded.id)));
+            cursorCondition = (0, import_drizzle_orm18.or)((0, import_drizzle_orm18.lt)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(posts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.lt)(posts.id, decoded.id)));
           }
         }
-        const moderationCondition = currentUserId ? (0, import_drizzle_orm17.or)((0, import_drizzle_orm17.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm17.eq)(posts.userId, currentUserId)) : (0, import_drizzle_orm17.eq)(posts.moderationStatus, "APPROVED");
-        const userPosts = await db.select({
+        const moderationCondition = currentUserId ? (0, import_drizzle_orm18.or)((0, import_drizzle_orm18.eq)(posts.moderationStatus, "APPROVED"), (0, import_drizzle_orm18.eq)(posts.userId, currentUserId)) : (0, import_drizzle_orm18.eq)(posts.moderationStatus, "APPROVED");
+        const p1 = db.select({
           id: posts.id,
           content: posts.content,
           postType: posts.postType,
@@ -6164,19 +6302,55 @@ var init_userPosts = __esm({
           visibility: posts.visibility,
           viewCount: posts.viewCount,
           createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
+          userId: posts.userId,
           user: {
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
+          },
+          __repostCreatedAt: sql`NULL`,
+          __repostUserId: sql`NULL`
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm18.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(posts.userId, targetUserId), (0, import_drizzle_orm18.isNull)(posts.communityId), moderationCondition, cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm18.desc)(posts.createdAt), (0, import_drizzle_orm18.desc)(posts.id)).limit(limit);
+        let repostCursorCondition = void 0;
+        if (cursor) {
+          const decoded = decodeCursor(cursor);
+          if (decoded) {
+            repostCursorCondition = (0, import_drizzle_orm18.or)((0, import_drizzle_orm18.lt)(reposts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(reposts.createdAt, decoded.createdAt), (0, import_drizzle_orm18.lt)(reposts.id, decoded.id)));
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm17.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm17.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm17.and)((0, import_drizzle_orm17.eq)(posts.userId, targetUserId), (0, import_drizzle_orm17.isNull)(posts.communityId), moderationCondition, cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm17.desc)(posts.createdAt), (0, import_drizzle_orm17.desc)(posts.id)).limit(limit).offset(offset);
-        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm17.eq)(profiles.userId, targetUserId)).limit(1);
+        }
+        const p2 = db.select({
+          id: posts.id,
+          content: posts.content,
+          postType: posts.postType,
+          contentWarning: posts.contentWarning,
+          visibility: posts.visibility,
+          viewCount: posts.viewCount,
+          createdAt: posts.createdAt,
+          quotedPostId: posts.quotedPostId,
+          userId: posts.userId,
+          user: {
+            id: users.id,
+            username: users.username,
+            displayName: profiles.displayName,
+            avatarUrl: profiles.avatarUrl
+          },
+          __repostCreatedAt: reposts.createdAt,
+          __repostUserId: reposts.userId
+        }).from(reposts).innerJoin(posts, (0, import_drizzle_orm18.eq)(reposts.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm18.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(reposts.userId, targetUserId), (0, import_drizzle_orm18.isNull)(posts.communityId), moderationCondition, repostCursorCondition ? repostCursorCondition : void 0)).orderBy((0, import_drizzle_orm18.desc)(reposts.createdAt), (0, import_drizzle_orm18.desc)(reposts.id)).limit(limit);
+        const [authoredPosts, repostedPosts] = await Promise.all([p1, p2]);
+        let userPosts = [...authoredPosts, ...repostedPosts].sort((a, b) => {
+          const timeA = (a.__repostCreatedAt || a.createdAt).getTime();
+          const timeB = (b.__repostCreatedAt || b.createdAt).getTime();
+          return timeB - timeA;
+        }).slice(0, limit);
+        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm18.eq)(profiles.userId, targetUserId)).limit(1);
         const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
         let isFollowing = false;
         if (currentUserId) {
-          const followRecord = await db.select().from(follows).where((0, import_drizzle_orm17.and)((0, import_drizzle_orm17.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm17.eq)(follows.followingId, targetUserId))).limit(1);
-          isFollowing = followRecord.length > 0;
+          const followRecord = await db.select().from(follows).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm18.eq)(follows.followingId, targetUserId))).limit(1);
+          isFollowing = followRecord.length > 0 && followRecord[0].status === "accepted";
         }
         const isSelf = currentUserId ? currentUserId === targetUserId : false;
         if (isPrivate && !isSelf && !isFollowing) {
@@ -6214,19 +6388,75 @@ var follows_exports = {};
 __export(follows_exports, {
   followsRouter: () => followsRouter
 });
-var import_express12, import_drizzle_orm18, followsRouter;
+var import_express12, import_drizzle_orm19, followsRouter;
 var init_follows = __esm({
   "server/routes/follows.ts"() {
     "use strict";
     import_express12 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm18 = require("drizzle-orm");
+    init_notifications();
+    import_drizzle_orm19 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
-    init_schema();
     init_api();
     followsRouter = (0, import_express12.Router)();
+    followsRouter.get("/me/follow-requests", requireAuth, async (req, res) => {
+      try {
+        const currentUserId = requireAuthContext(req);
+        const parsed = paginationSchema.safeParse(req.query);
+        const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
+        const offset = (page - 1) * limit;
+        const requests = await db.select({
+          id: users.id,
+          username: users.username,
+          isVerified: users.isVerified,
+          displayName: profiles.displayName,
+          avatarUrl: profiles.avatarUrl,
+          createdAt: follows.createdAt
+        }).from(follows).innerJoin(users, (0, import_drizzle_orm19.eq)(follows.followerId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(follows.followingId, currentUserId), (0, import_drizzle_orm19.eq)(follows.status, "pending"))).orderBy(follows.createdAt).limit(limit).offset(offset);
+        res.json({ success: true, data: requests });
+      } catch (error) {
+        res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
+      }
+    });
+    followsRouter.post("/me/follow-requests/:id/accept", requireAuth, async (req, res) => {
+      try {
+        const followerId = parseInt(req.params.id);
+        const currentUserId = requireAuthContext(req);
+        if (isNaN(followerId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
+        await db.transaction(async (tx) => {
+          const result = await tx.update(follows).set({ status: "accepted" }).where((0, import_drizzle_orm19.and)(
+            (0, import_drizzle_orm19.eq)(follows.followerId, followerId),
+            (0, import_drizzle_orm19.eq)(follows.followingId, currentUserId),
+            (0, import_drizzle_orm19.eq)(follows.status, "pending")
+          )).returning();
+          if (result.length > 0) {
+            await notify(currentUserId, followerId, "follow_accepted", void 0, void 0, void 0, tx);
+            await tx.delete(notifications).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(notifications.actorId, followerId), (0, import_drizzle_orm19.eq)(notifications.recipientId, currentUserId), (0, import_drizzle_orm19.eq)(notifications.type, "follow_request")));
+          }
+        });
+        res.json({ success: true, data: { message: "Takip iste\u011Fi kabul edildi." } });
+      } catch (error) {
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+    followsRouter.post("/me/follow-requests/:id/reject", requireAuth, async (req, res) => {
+      try {
+        const followerId = parseInt(req.params.id);
+        const currentUserId = requireAuthContext(req);
+        if (isNaN(followerId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
+        await db.delete(follows).where((0, import_drizzle_orm19.and)(
+          (0, import_drizzle_orm19.eq)(follows.followerId, followerId),
+          (0, import_drizzle_orm19.eq)(follows.followingId, currentUserId),
+          (0, import_drizzle_orm19.eq)(follows.status, "pending")
+        ));
+        await db.delete(notifications).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(notifications.actorId, followerId), (0, import_drizzle_orm19.eq)(notifications.recipientId, currentUserId), (0, import_drizzle_orm19.eq)(notifications.type, "follow_request")));
+        res.json({ success: true, data: { message: "Takip iste\u011Fi reddedildi." } });
+      } catch (error) {
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
     followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res) => {
       try {
         const targetUserId = parseInt(req.params.id);
@@ -6235,21 +6465,38 @@ var init_follows = __esm({
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi takip edemezsiniz." } });
         }
         const blockRecord = await db.select().from(blocks).where(
-          (0, import_drizzle_orm18.or)(
-            (0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm18.eq)(blocks.blockedId, targetUserId)),
-            (0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(blocks.blockerId, targetUserId), (0, import_drizzle_orm18.eq)(blocks.blockedId, currentUserId))
+          (0, import_drizzle_orm19.or)(
+            (0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm19.eq)(blocks.blockedId, targetUserId)),
+            (0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(blocks.blockerId, targetUserId), (0, import_drizzle_orm19.eq)(blocks.blockedId, currentUserId))
           )
         ).limit(1);
         if (blockRecord.length > 0) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flemi ger\xE7ekle\u015Ftiremezsiniz." } });
         }
+        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm19.eq)(profiles.userId, targetUserId)).limit(1);
+        const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+        const initialStatus = isPrivate ? "pending" : "accepted";
+        let returnStatus = initialStatus;
         await db.transaction(async (tx) => {
-          const result = await tx.insert(follows).values({ followerId: currentUserId, followingId: targetUserId }).onConflictDoNothing();
+          const existing = await tx.select().from(follows).where((0, import_drizzle_orm19.and)(
+            (0, import_drizzle_orm19.eq)(follows.followerId, currentUserId),
+            (0, import_drizzle_orm19.eq)(follows.followingId, targetUserId)
+          )).limit(1);
+          if (existing.length > 0) {
+            returnStatus = existing[0].status;
+            return;
+          }
+          const result = await tx.insert(follows).values({
+            followerId: currentUserId,
+            followingId: targetUserId,
+            status: initialStatus
+          }).onConflictDoNothing();
           if (result.rowCount && result.rowCount > 0) {
-            await tx.insert(notifications).values({ actorId: currentUserId, recipientId: targetUserId, type: "follow" });
+            const notifType = initialStatus === "pending" ? "follow_request" : "follow";
+            await notify(currentUserId, targetUserId, notifType, void 0, void 0, void 0, tx);
           }
         });
-        res.json({ success: true, data: { message: "Takip ediliyor." } });
+        res.json({ success: true, data: { message: initialStatus === "pending" ? "Takip iste\u011Fi g\xF6nderildi." : "Takip ediliyor.", status: returnStatus } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
       }
@@ -6258,8 +6505,8 @@ var init_follows = __esm({
       try {
         const targetUserId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        await db.delete(follows).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm18.eq)(follows.followingId, targetUserId)));
-        res.json({ success: true, data: { message: "Takipten \xE7\u0131k\u0131ld\u0131." } });
+        await db.delete(follows).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm19.eq)(follows.followingId, targetUserId)));
+        res.json({ success: true, data: { message: "Takipten \xE7\u0131k\u0131ld\u0131/\u0130stek iptal edildi." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
       }
@@ -6271,12 +6518,16 @@ var init_follows = __esm({
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz ID." } });
         }
         const currentUserId = optionalAuthContext(req);
-        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm18.eq)(profiles.userId, targetUserId)).limit(1);
+        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm19.eq)(profiles.userId, targetUserId)).limit(1);
         const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
         if (isPrivate && currentUserId !== targetUserId) {
           let isFollowing = false;
           if (currentUserId) {
-            const f = await db.select().from(follows).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm18.eq)(follows.followingId, targetUserId))).limit(1);
+            const f = await db.select().from(follows).where((0, import_drizzle_orm19.and)(
+              (0, import_drizzle_orm19.eq)(follows.followerId, currentUserId),
+              (0, import_drizzle_orm19.eq)(follows.followingId, targetUserId),
+              (0, import_drizzle_orm19.eq)(follows.status, "accepted")
+            )).limit(1);
             isFollowing = f.length > 0;
           }
           if (!isFollowing) {
@@ -6292,7 +6543,7 @@ var init_follows = __esm({
           isVerified: users.isVerified,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(follows).innerJoin(users, (0, import_drizzle_orm18.eq)(follows.followerId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.eq)(follows.followingId, targetUserId)).limit(limit).offset(offset);
+        }).from(follows).innerJoin(users, (0, import_drizzle_orm19.eq)(follows.followerId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(follows.followingId, targetUserId), (0, import_drizzle_orm19.eq)(follows.status, "accepted"))).limit(limit).offset(offset);
         res.json({ success: true, data: followersList });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6305,12 +6556,16 @@ var init_follows = __esm({
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz ID." } });
         }
         const currentUserId = optionalAuthContext(req);
-        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm18.eq)(profiles.userId, targetUserId)).limit(1);
+        const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where((0, import_drizzle_orm19.eq)(profiles.userId, targetUserId)).limit(1);
         const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
         if (isPrivate && currentUserId !== targetUserId) {
           let isFollowing = false;
           if (currentUserId) {
-            const f = await db.select().from(follows).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm18.eq)(follows.followingId, targetUserId))).limit(1);
+            const f = await db.select().from(follows).where((0, import_drizzle_orm19.and)(
+              (0, import_drizzle_orm19.eq)(follows.followerId, currentUserId),
+              (0, import_drizzle_orm19.eq)(follows.followingId, targetUserId),
+              (0, import_drizzle_orm19.eq)(follows.status, "accepted")
+            )).limit(1);
             isFollowing = f.length > 0;
           }
           if (!isFollowing) {
@@ -6326,7 +6581,7 @@ var init_follows = __esm({
           isVerified: users.isVerified,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(follows).innerJoin(users, (0, import_drizzle_orm18.eq)(follows.followingId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.eq)(follows.followerId, targetUserId)).limit(limit).offset(offset);
+        }).from(follows).innerJoin(users, (0, import_drizzle_orm19.eq)(follows.followingId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm19.and)((0, import_drizzle_orm19.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm19.eq)(follows.status, "accepted"))).limit(limit).offset(offset);
         res.json({ success: true, data: followingList });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6340,14 +6595,14 @@ var bookmarks_exports = {};
 __export(bookmarks_exports, {
   bookmarksRouter: () => bookmarksRouter
 });
-var import_express13, import_drizzle_orm19, bookmarksRouter;
+var import_express13, import_drizzle_orm20, bookmarksRouter;
 var init_bookmarks = __esm({
   "server/routes/bookmarks.ts"() {
     "use strict";
     import_express13 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm19 = require("drizzle-orm");
+    import_drizzle_orm20 = require("drizzle-orm");
     init_auth();
     init_postStats();
     init_api();
@@ -6371,7 +6626,7 @@ var init_bookmarks = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(bookmarks).innerJoin(posts, (0, import_drizzle_orm19.eq)(bookmarks.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm19.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm19.eq)(bookmarks.userId, currentUserId)).orderBy((0, import_drizzle_orm19.desc)(bookmarks.createdAt)).limit(limit).offset(offset);
+        }).from(bookmarks).innerJoin(posts, (0, import_drizzle_orm20.eq)(bookmarks.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm20.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm20.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm20.eq)(bookmarks.userId, currentUserId)).orderBy((0, import_drizzle_orm20.desc)(bookmarks.createdAt)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(savedPosts, currentUserId);
         res.json({ success: true, data: formattedPosts });
       } catch (error) {
@@ -6386,14 +6641,14 @@ var search_exports = {};
 __export(search_exports, {
   searchRouter: () => searchRouter
 });
-var import_express14, import_drizzle_orm20, searchRouter;
+var import_express14, import_drizzle_orm21, searchRouter;
 var init_search = __esm({
   "server/routes/search.ts"() {
     "use strict";
     import_express14 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm20 = require("drizzle-orm");
+    import_drizzle_orm21 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     init_blocks();
@@ -6419,23 +6674,28 @@ var init_search = __esm({
             username: users.username,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm20.eq)(users.id, profiles.userId)).where(
-            (0, import_drizzle_orm20.and)(
-              (0, import_drizzle_orm20.or)(
-                (0, import_drizzle_orm20.ilike)(users.username, `%${q}%`),
-                (0, import_drizzle_orm20.ilike)(profiles.displayName, `%${q}%`)
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm21.eq)(users.id, profiles.userId)).where(
+            (0, import_drizzle_orm21.and)(
+              (0, import_drizzle_orm21.or)(
+                (0, import_drizzle_orm21.ilike)(users.username, `%${q}%`),
+                (0, import_drizzle_orm21.ilike)(profiles.displayName, `%${q}%`)
               ),
-              (0, import_drizzle_orm20.notInArray)(users.id, ignoreIds)
+              (0, import_drizzle_orm21.notInArray)(users.id, ignoreIds)
             )
           ).limit(limit).offset(offset);
           return res.json({ success: true, data: searchResults });
         } else if (type === "posts") {
-          const visibilityCondition = (0, import_drizzle_orm20.or)(
-            (0, import_drizzle_orm20.eq)(posts.visibility, "PUBLIC"),
-            (0, import_drizzle_orm20.eq)(posts.userId, currentUserId),
-            (0, import_drizzle_orm20.and)(
-              (0, import_drizzle_orm20.eq)(posts.visibility, "FOLLOWERS"),
-              currentUserId !== -1 ? (0, import_drizzle_orm20.inArray)(posts.userId, db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm20.eq)(follows.followerId, currentUserId))) : import_drizzle_orm20.sql`FALSE`
+          const visibilityCondition = (0, import_drizzle_orm21.or)(
+            (0, import_drizzle_orm21.eq)(posts.userId, currentUserId),
+            (0, import_drizzle_orm21.and)(
+              (0, import_drizzle_orm21.or)((0, import_drizzle_orm21.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm21.eq)(posts.visibility, "FOLLOWERS")),
+              (0, import_drizzle_orm21.or)(
+                (0, import_drizzle_orm21.and)(
+                  (0, import_drizzle_orm21.or)((0, import_drizzle_orm21.eq)(profiles.isPrivate, false), import_drizzle_orm21.sql`${profiles.isPrivate} IS NULL`),
+                  (0, import_drizzle_orm21.eq)(posts.visibility, "PUBLIC")
+                ),
+                currentUserId !== -1 ? (0, import_drizzle_orm21.inArray)(posts.userId, db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm21.and)((0, import_drizzle_orm21.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm21.eq)(follows.status, "accepted")))) : import_drizzle_orm21.sql`FALSE`
+              )
             )
           );
           const searchResults = await db.select({
@@ -6452,13 +6712,13 @@ var init_search = __esm({
               displayName: profiles.displayName,
               avatarUrl: profiles.avatarUrl
             }
-          }).from(posts).innerJoin(users, (0, import_drizzle_orm20.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm20.eq)(users.id, profiles.userId)).where(
-            (0, import_drizzle_orm20.and)(
-              (0, import_drizzle_orm20.ilike)(posts.content, `%${q}%`),
-              (0, import_drizzle_orm20.notInArray)(posts.userId, ignoreIds),
+          }).from(posts).innerJoin(users, (0, import_drizzle_orm21.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm21.eq)(users.id, profiles.userId)).where(
+            (0, import_drizzle_orm21.and)(
+              (0, import_drizzle_orm21.ilike)(posts.content, `%${q}%`),
+              (0, import_drizzle_orm21.notInArray)(posts.userId, ignoreIds),
               visibilityCondition
             )
-          ).orderBy((0, import_drizzle_orm20.desc)(posts.createdAt)).limit(limit).offset(offset);
+          ).orderBy((0, import_drizzle_orm21.desc)(posts.createdAt)).limit(limit).offset(offset);
           const formattedPosts = await populatePostStats(searchResults, currentUserId);
           return res.json({ success: true, data: formattedPosts });
         } else if (type === "tags") {
@@ -6468,8 +6728,8 @@ var init_search = __esm({
           const searchResults = await db.select({
             id: hashtags.id,
             name: hashtags.name,
-            postCount: import_drizzle_orm20.sql`(SELECT count(*) FROM ${postHashtags} WHERE ${postHashtags.hashtagId} = ${hashtags.id})`
-          }).from(hashtags).where((0, import_drizzle_orm20.ilike)(hashtags.name, `%${q}%`)).limit(limit).offset(offset);
+            postCount: import_drizzle_orm21.sql`(SELECT count(*) FROM ${postHashtags} WHERE ${postHashtags.hashtagId} = ${hashtags.id})`
+          }).from(hashtags).where((0, import_drizzle_orm21.ilike)(hashtags.name, `%${q}%`)).limit(limit).offset(offset);
           return res.json({ success: true, data: searchResults });
         } else {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz arama tipi." } });
@@ -6487,14 +6747,14 @@ var notifications_exports2 = {};
 __export(notifications_exports2, {
   notificationsRouter: () => notificationsRouter
 });
-var import_express15, import_drizzle_orm21, notificationsRouter;
+var import_express15, import_drizzle_orm22, notificationsRouter;
 var init_notifications2 = __esm({
   "server/routes/notifications.ts"() {
     "use strict";
     import_express15 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm21 = require("drizzle-orm");
+    import_drizzle_orm22 = require("drizzle-orm");
     init_cursor();
     init_auth();
     init_api();
@@ -6509,7 +6769,7 @@ var init_notifications2 = __esm({
         if (cursor) {
           const decoded = decodeCursor(cursor);
           if (decoded) {
-            cursorCondition = (0, import_drizzle_orm21.or)((0, import_drizzle_orm21.lt)(notifications.createdAt, decoded.createdAt), (0, import_drizzle_orm21.and)((0, import_drizzle_orm21.eq)(notifications.createdAt, decoded.createdAt), (0, import_drizzle_orm21.lt)(notifications.id, decoded.id)));
+            cursorCondition = (0, import_drizzle_orm22.or)((0, import_drizzle_orm22.lt)(notifications.createdAt, decoded.createdAt), (0, import_drizzle_orm22.and)((0, import_drizzle_orm22.eq)(notifications.createdAt, decoded.createdAt), (0, import_drizzle_orm22.lt)(notifications.id, decoded.id)));
           }
         }
         const list = await db.select({
@@ -6526,7 +6786,7 @@ var init_notifications2 = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(notifications).innerJoin(users, (0, import_drizzle_orm21.eq)(notifications.actorId, users.id)).leftJoin(profiles, (0, import_drizzle_orm21.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm21.and)((0, import_drizzle_orm21.eq)(notifications.recipientId, currentUserId), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm21.desc)(notifications.createdAt), (0, import_drizzle_orm21.desc)(notifications.id)).limit(limit).offset(offset);
+        }).from(notifications).innerJoin(users, (0, import_drizzle_orm22.eq)(notifications.actorId, users.id)).leftJoin(profiles, (0, import_drizzle_orm22.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm22.and)((0, import_drizzle_orm22.eq)(notifications.recipientId, currentUserId), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm22.desc)(notifications.createdAt), (0, import_drizzle_orm22.desc)(notifications.id)).limit(limit).offset(offset);
         let nextCursor = void 0;
         if (list.length === limit) {
           const last = list[list.length - 1];
@@ -6540,7 +6800,7 @@ var init_notifications2 = __esm({
     notificationsRouter.put("/read", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
-        await db.update(notifications).set({ isRead: true }).where((0, import_drizzle_orm21.eq)(notifications.recipientId, currentUserId));
+        await db.update(notifications).set({ isRead: true }).where((0, import_drizzle_orm22.eq)(notifications.recipientId, currentUserId));
         res.json({ success: true, data: { message: "T\xFCm\xFC okundu olarak i\u015Faretlendi." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6550,7 +6810,7 @@ var init_notifications2 = __esm({
       try {
         const notifId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        await db.update(notifications).set({ isRead: true }).where((0, import_drizzle_orm21.and)((0, import_drizzle_orm21.eq)(notifications.id, notifId), (0, import_drizzle_orm21.eq)(notifications.recipientId, currentUserId)));
+        await db.update(notifications).set({ isRead: true }).where((0, import_drizzle_orm22.and)((0, import_drizzle_orm22.eq)(notifications.id, notifId), (0, import_drizzle_orm22.eq)(notifications.recipientId, currentUserId)));
         res.json({ success: true, data: { message: "Okundu olarak i\u015Faretlendi." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6564,14 +6824,14 @@ var blocks_exports = {};
 __export(blocks_exports, {
   blocksRouter: () => blocksRouter
 });
-var import_express16, import_drizzle_orm22, blocksRouter;
+var import_express16, import_drizzle_orm23, blocksRouter;
 var init_blocks2 = __esm({
   "server/routes/blocks.ts"() {
     "use strict";
     import_express16 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm22 = require("drizzle-orm");
+    import_drizzle_orm23 = require("drizzle-orm");
     init_auth();
     blocksRouter = (0, import_express16.Router)();
     blocksRouter.post("/:id/block", requireAuth, async (req, res) => {
@@ -6589,7 +6849,7 @@ var init_blocks2 = __esm({
       try {
         const targetUserId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        await db.delete(blocks).where((0, import_drizzle_orm22.and)((0, import_drizzle_orm22.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm22.eq)(blocks.blockedId, targetUserId)));
+        await db.delete(blocks).where((0, import_drizzle_orm23.and)((0, import_drizzle_orm23.eq)(blocks.blockerId, currentUserId), (0, import_drizzle_orm23.eq)(blocks.blockedId, targetUserId)));
         res.json({ success: true, data: { message: "Engel kald\u0131r\u0131ld\u0131." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6602,7 +6862,7 @@ var init_blocks2 = __esm({
           id: users.id,
           username: users.username,
           displayName: profiles.displayName
-        }).from(blocks).innerJoin(users, (0, import_drizzle_orm22.eq)(blocks.blockedId, users.id)).leftJoin(profiles, (0, import_drizzle_orm22.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm22.eq)(blocks.blockerId, currentUserId));
+        }).from(blocks).innerJoin(users, (0, import_drizzle_orm23.eq)(blocks.blockedId, users.id)).leftJoin(profiles, (0, import_drizzle_orm23.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm23.eq)(blocks.blockerId, currentUserId));
         res.json({ success: true, data: list });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6724,14 +6984,14 @@ var stories_exports = {};
 __export(stories_exports, {
   storiesRouter: () => storiesRouter
 });
-var import_express18, import_drizzle_orm23, import_zod5, storiesRouter, createStorySchema;
+var import_express18, import_drizzle_orm24, import_zod5, storiesRouter, createStorySchema;
 var init_stories = __esm({
   "server/routes/stories.ts"() {
     "use strict";
     import_express18 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm23 = require("drizzle-orm");
+    import_drizzle_orm24 = require("drizzle-orm");
     init_auth();
     init_blocks();
     import_zod5 = require("zod");
@@ -6764,7 +7024,7 @@ var init_stories = __esm({
       try {
         const currentUserId = requireAuthContext(req);
         const blockedIds = await getBlockedIds(currentUserId);
-        const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm23.eq)(follows.followerId, currentUserId));
+        const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm24.eq)(follows.followerId, currentUserId));
         let targetIds = followingRecords.map((f) => f.followingId);
         targetIds.push(currentUserId);
         targetIds = targetIds.filter((id) => !blockedIds.includes(id));
@@ -6781,12 +7041,12 @@ var init_stories = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(stories).innerJoin(users, (0, import_drizzle_orm23.eq)(stories.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm23.eq)(users.id, profiles.userId)).where(
-          (0, import_drizzle_orm23.and)(
-            (0, import_drizzle_orm23.inArray)(stories.userId, targetIds),
-            (0, import_drizzle_orm23.gt)(stories.expiresAt, /* @__PURE__ */ new Date())
+        }).from(stories).innerJoin(users, (0, import_drizzle_orm24.eq)(stories.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where(
+          (0, import_drizzle_orm24.and)(
+            (0, import_drizzle_orm24.inArray)(stories.userId, targetIds),
+            (0, import_drizzle_orm24.gt)(stories.expiresAt, /* @__PURE__ */ new Date())
           )
-        ).orderBy((0, import_drizzle_orm23.desc)(stories.createdAt));
+        ).orderBy((0, import_drizzle_orm24.desc)(stories.createdAt));
         res.json({ success: true, data: activeStories });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6809,7 +7069,7 @@ var init_stories = __esm({
       try {
         const currentUserId = requireAuthContext(req);
         const storyId = parseInt(req.params.id);
-        const [story] = await db.select().from(stories).where((0, import_drizzle_orm23.eq)(stories.id, storyId));
+        const [story] = await db.select().from(stories).where((0, import_drizzle_orm24.eq)(stories.id, storyId));
         if (!story || story.userId !== currentUserId) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkiniz yok." } });
         }
@@ -6819,7 +7079,7 @@ var init_stories = __esm({
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl,
           viewedAt: storyViews.viewedAt
-        }).from(storyViews).innerJoin(users, (0, import_drizzle_orm23.eq)(storyViews.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm23.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm23.eq)(storyViews.storyId, storyId)).orderBy((0, import_drizzle_orm23.desc)(storyViews.viewedAt));
+        }).from(storyViews).innerJoin(users, (0, import_drizzle_orm24.eq)(storyViews.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm24.eq)(storyViews.storyId, storyId)).orderBy((0, import_drizzle_orm24.desc)(storyViews.viewedAt));
         res.json({ success: true, data: viewers });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6829,14 +7089,14 @@ var init_stories = __esm({
       try {
         const currentUserId = requireAuthContext(req);
         const storyId = parseInt(req.params.id);
-        const [story] = await db.select().from(stories).where((0, import_drizzle_orm23.eq)(stories.id, storyId));
+        const [story] = await db.select().from(stories).where((0, import_drizzle_orm24.eq)(stories.id, storyId));
         if (!story) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Hikaye bulunamad\u0131." } });
         }
         if (story.userId !== currentUserId) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkiniz yok." } });
         }
-        await db.delete(stories).where((0, import_drizzle_orm23.eq)(stories.id, storyId));
+        await db.delete(stories).where((0, import_drizzle_orm24.eq)(stories.id, storyId));
         res.json({ success: true, data: { message: "Hikaye silindi." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -6850,14 +7110,14 @@ var messages_exports = {};
 __export(messages_exports, {
   messagesRouter: () => messagesRouter
 });
-var import_express19, import_drizzle_orm24, import_zod6, messagesRouter, createMessageSchema;
+var import_express19, import_drizzle_orm25, import_zod6, messagesRouter, createMessageSchema;
 var init_messages = __esm({
   "server/routes/messages.ts"() {
     "use strict";
     import_express19 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm24 = require("drizzle-orm");
+    import_drizzle_orm25 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     init_blocks();
@@ -6870,12 +7130,12 @@ var init_messages = __esm({
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
         const offset = (page - 1) * limit;
-        const memberships = await db.select().from(conversationMembers).where((0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId));
+        const memberships = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId));
         const convIds = memberships.map((m) => m.conversationId);
         if (convIds.length === 0) {
           return res.json({ success: true, data: [] });
         }
-        const convs = await db.select().from(conversations).where((0, import_drizzle_orm24.inArray)(conversations.id, convIds)).orderBy((0, import_drizzle_orm24.desc)(conversations.updatedAt)).limit(limit).offset(offset);
+        const convs = await db.select().from(conversations).where((0, import_drizzle_orm25.inArray)(conversations.id, convIds)).orderBy((0, import_drizzle_orm25.desc)(conversations.updatedAt)).limit(limit).offset(offset);
         if (convs.length === 0) {
           return res.json({ success: true, data: [] });
         }
@@ -6886,17 +7146,17 @@ var init_messages = __esm({
           username: users.username,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(conversationMembers).innerJoin(users, (0, import_drizzle_orm24.eq)(conversationMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.inArray)(conversationMembers.conversationId, fetchedConvIds), (0, import_drizzle_orm24.not)((0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId))));
+        }).from(conversationMembers).innerJoin(users, (0, import_drizzle_orm25.eq)(conversationMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.inArray)(conversationMembers.conversationId, fetchedConvIds), (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))));
         const unreadCounts = await db.select({
           conversationId: messages.conversationId,
-          count: import_drizzle_orm24.sql`cast(count(*) as integer)`
-        }).from(messages).where((0, import_drizzle_orm24.and)(
-          (0, import_drizzle_orm24.inArray)(messages.conversationId, fetchedConvIds),
-          (0, import_drizzle_orm24.eq)(messages.isRead, false),
-          (0, import_drizzle_orm24.not)((0, import_drizzle_orm24.eq)(messages.senderId, currentUserId))
+          count: import_drizzle_orm25.sql`cast(count(*) as integer)`
+        }).from(messages).where((0, import_drizzle_orm25.and)(
+          (0, import_drizzle_orm25.inArray)(messages.conversationId, fetchedConvIds),
+          (0, import_drizzle_orm25.eq)(messages.isRead, false),
+          (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(messages.senderId, currentUserId))
         )).groupBy(messages.conversationId);
-        const convIdsSql = import_drizzle_orm24.sql.join(fetchedConvIds.map((id) => import_drizzle_orm24.sql`${id}`), import_drizzle_orm24.sql`, `);
-        const lastMessagesResult = await db.execute(import_drizzle_orm24.sql`
+        const convIdsSql = import_drizzle_orm25.sql.join(fetchedConvIds.map((id) => import_drizzle_orm25.sql`${id}`), import_drizzle_orm25.sql`, `);
+        const lastMessagesResult = await db.execute(import_drizzle_orm25.sql`
       SELECT DISTINCT ON (conversation_id)
         id, conversation_id as "conversationId", sender_id as "senderId", content, media_url as "mediaUrl", is_read as "isRead", created_at as "createdAt"
       FROM messages
@@ -6937,24 +7197,24 @@ var init_messages = __esm({
         if (blockedIds.includes(targetUserId)) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Engelli kullan\u0131c\u0131." } });
         }
-        const targetProfile = await db.select({ messagePreference: profiles.messagePreference }).from(profiles).where((0, import_drizzle_orm24.eq)(profiles.userId, targetUserId)).limit(1);
+        const targetProfile = await db.select({ messagePreference: profiles.messagePreference }).from(profiles).where((0, import_drizzle_orm25.eq)(profiles.userId, targetUserId)).limit(1);
         if (targetProfile.length > 0) {
           const pref = targetProfile[0].messagePreference;
           if (pref === "NONE") {
             return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu kullan\u0131c\u0131ya mesaj g\xF6nderilemiyor." } });
           } else if (pref === "FOLLOWERS") {
-            const isFollowedByTarget = await db.select().from(follows).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm24.eq)(follows.followingId, currentUserId))).limit(1);
+            const isFollowedByTarget = await db.select().from(follows).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm25.eq)(follows.followingId, currentUserId))).limit(1);
             if (isFollowedByTarget.length === 0) {
               return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Kullan\u0131c\u0131 sadece takip etti\u011Fi ki\u015Filerden mesaj kabul ediyor." } });
             }
           }
         }
-        const userConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId));
+        const userConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId));
         const userConvIds = userConvs.map((c) => c.convId);
         if (userConvIds.length > 0) {
-          const targetConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.eq)(conversationMembers.userId, targetUserId), (0, import_drizzle_orm24.inArray)(conversationMembers.conversationId, userConvIds))).limit(1);
+          const targetConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.userId, targetUserId), (0, import_drizzle_orm25.inArray)(conversationMembers.conversationId, userConvIds))).limit(1);
           if (targetConvs.length > 0) {
-            const [existing] = await db.select().from(conversations).where((0, import_drizzle_orm24.eq)(conversations.id, targetConvs[0].convId)).limit(1);
+            const [existing] = await db.select().from(conversations).where((0, import_drizzle_orm25.eq)(conversations.id, targetConvs[0].convId)).limit(1);
             return res.json({ success: true, data: existing });
           }
         }
@@ -6975,7 +7235,7 @@ var init_messages = __esm({
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
         const offset = (page - 1) * limit;
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
         const msgs = await db.select({
           id: messages.id,
@@ -6989,7 +7249,7 @@ var init_messages = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(messages).innerJoin(users, (0, import_drizzle_orm24.eq)(messages.senderId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm24.eq)(messages.conversationId, conversationId)).orderBy((0, import_drizzle_orm24.desc)(messages.createdAt)).limit(limit).offset(offset);
+        }).from(messages).innerJoin(users, (0, import_drizzle_orm25.eq)(messages.senderId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.eq)(messages.conversationId, conversationId)).orderBy((0, import_drizzle_orm25.desc)(messages.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: msgs });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7007,7 +7267,7 @@ var init_messages = __esm({
         if (!parsed.success || !parsed.data.content && !parsed.data.mediaUrl) {
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Mesaj i\xE7eri\u011Fi gerekli." } });
         }
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
         const [msg] = await db.insert(messages).values({
           conversationId,
@@ -7015,7 +7275,7 @@ var init_messages = __esm({
           content: parsed.data.content || null,
           mediaUrl: parsed.data.mediaUrl || null
         }).returning();
-        await db.update(conversations).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm24.eq)(conversations.id, conversationId));
+        await db.update(conversations).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm25.eq)(conversations.id, conversationId));
         res.status(201).json({ success: true, data: msg });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7025,12 +7285,12 @@ var init_messages = __esm({
       try {
         const currentUserId = requireAuthContext(req);
         const conversationId = parseInt(req.params.id);
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm24.and)((0, import_drizzle_orm24.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm24.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
-        await db.update(messages).set({ isRead: true }).where((0, import_drizzle_orm24.and)(
-          (0, import_drizzle_orm24.eq)(messages.conversationId, conversationId),
-          (0, import_drizzle_orm24.not)((0, import_drizzle_orm24.eq)(messages.senderId, currentUserId)),
-          (0, import_drizzle_orm24.eq)(messages.isRead, false)
+        await db.update(messages).set({ isRead: true }).where((0, import_drizzle_orm25.and)(
+          (0, import_drizzle_orm25.eq)(messages.conversationId, conversationId),
+          (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(messages.senderId, currentUserId)),
+          (0, import_drizzle_orm25.eq)(messages.isRead, false)
         ));
         res.json({ success: true, data: { message: "Okundu olarak i\u015Faretlendi." } });
       } catch (error) {
@@ -7045,14 +7305,14 @@ var communities_exports = {};
 __export(communities_exports, {
   communitiesRouter: () => communitiesRouter
 });
-var import_express20, import_drizzle_orm25, communitiesRouter;
+var import_express20, import_drizzle_orm26, communitiesRouter;
 var init_communities = __esm({
   "server/routes/communities.ts"() {
     "use strict";
     import_express20 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm25 = require("drizzle-orm");
+    import_drizzle_orm26 = require("drizzle-orm");
     init_auth();
     init_api();
     init_postStats();
@@ -7088,10 +7348,10 @@ var init_communities = __esm({
     communitiesRouter.get("/:slug", optionalAuth, async (req, res) => {
       try {
         const slug = req.params.slug;
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm25.eq)(communities.slug, slug)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.slug, slug)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         const currentUserId = requireAuthContext(req);
-        const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(communityMembers.communityId, community.id), (0, import_drizzle_orm25.eq)(communityMembers.userId, currentUserId))).limit(1);
+        const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, community.id), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId))).limit(1);
         const isMember = memberRecord.length > 0 || community.ownerId === currentUserId;
         const isModerator = community.ownerId === currentUserId || memberRecord.length > 0 && ["admin", "OWNER", "MODERATOR"].includes(memberRecord[0].role);
         res.json({ success: true, data: { ...community, isMember, isModerator } });
@@ -7103,7 +7363,7 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm25.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         await db.insert(communityMembers).values({ communityId, userId: currentUserId, role: "MEMBER" }).onConflictDoNothing();
         res.json({ success: true, data: { message: "Kat\u0131ld\u0131n\u0131z." } });
@@ -7115,12 +7375,12 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm25.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         if (community.ownerId === currentUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Topluluk sahibi ayr\u0131lamaz." } });
         }
-        await db.delete(communityMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm25.eq)(communityMembers.userId, currentUserId)));
+        await db.delete(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId)));
         res.json({ success: true, data: { message: "Ayr\u0131ld\u0131n\u0131z." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7142,7 +7402,7 @@ var init_communities = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(communityMembers).innerJoin(users, (0, import_drizzle_orm25.eq)(communityMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.eq)(communityMembers.communityId, communityId)).orderBy((0, import_drizzle_orm25.desc)(communityMembers.createdAt)).limit(limit).offset(offset);
+        }).from(communityMembers).innerJoin(users, (0, import_drizzle_orm26.eq)(communityMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId)).orderBy((0, import_drizzle_orm26.desc)(communityMembers.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: members });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7159,22 +7419,22 @@ var init_communities = __esm({
         if (currentUserId === targetUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi bu b\xF6l\xFCmden \xE7\u0131karamazs\u0131n\u0131z, l\xFCtfen ayr\u0131lma se\xE7ene\u011Fini kullan\u0131n." } });
         }
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm25.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         if (community.ownerId === targetUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Topluluk sahibi \xE7\u0131kar\u0131lamaz." } });
         }
-        const currentUserMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm25.eq)(communityMembers.userId, currentUserId))).limit(1);
+        const currentUserMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId))).limit(1);
         const isOwner = community.ownerId === currentUserId;
         const isModerator = currentUserMembership.length > 0 && ["admin", "OWNER", "MODERATOR"].includes(currentUserMembership[0].role);
         if (!isOwner && !isModerator) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flemi yapmak i\xE7in yetkiniz yok." } });
         }
-        const targetMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm25.eq)(communityMembers.userId, targetUserId))).limit(1);
+        const targetMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, targetUserId))).limit(1);
         if (targetMembership.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bu toplulu\u011Fun \xFCyesi de\u011Fil." } });
         }
-        await db.delete(communityMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm25.eq)(communityMembers.userId, targetUserId)));
+        await db.delete(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, targetUserId)));
         res.json({ success: true, data: { message: "\xDCye ba\u015Far\u0131yla \xE7\u0131kar\u0131ld\u0131." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7184,7 +7444,7 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm25.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
@@ -7202,7 +7462,7 @@ var init_communities = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm25.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(posts.communityId, communityId), (0, import_drizzle_orm25.eq)(posts.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm25.desc)(posts.createdAt)).limit(limit).offset(offset);
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm26.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(posts.communityId, communityId), (0, import_drizzle_orm26.eq)(posts.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm26.desc)(posts.createdAt)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(communityPosts, currentUserId);
         res.json({ success: true, data: formattedPosts });
       } catch (error) {
@@ -7217,14 +7477,14 @@ var reactions_exports = {};
 __export(reactions_exports, {
   reactionsRouter: () => reactionsRouter
 });
-var import_express21, import_drizzle_orm26, import_zod7, reactionsRouter, reactionSchema;
+var import_express21, import_drizzle_orm27, import_zod7, reactionsRouter, reactionSchema;
 var init_reactions = __esm({
   "server/routes/reactions.ts"() {
     "use strict";
     import_express21 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm26 = require("drizzle-orm");
+    import_drizzle_orm27 = require("drizzle-orm");
     init_auth();
     init_notifications();
     init_rateLimiter();
@@ -7241,7 +7501,7 @@ var init_reactions = __esm({
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
         const parsed = reactionSchema.safeParse(req.body);
         if (!parsed.success) return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm26.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm27.eq)(posts.id, postId)).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         if (postRecord[0].userId === currentUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi g\xF6nderinize tepki veremezsiniz." } });
@@ -7252,12 +7512,12 @@ var init_reactions = __esm({
         let isNew = false;
         try {
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(reactions).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(reactions.postId, postId), (0, import_drizzle_orm26.eq)(reactions.userId, currentUserId))).limit(1);
+            const existing = await tx.select().from(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId))).limit(1);
             if (existing.length > 0) {
-              await tx.update(reactions).set({ type: parsed.data.type }).where((0, import_drizzle_orm26.eq)(reactions.id, existing[0].id));
+              await tx.update(reactions).set({ type: parsed.data.type }).where((0, import_drizzle_orm27.eq)(reactions.id, existing[0].id));
             } else {
               await tx.insert(reactions).values({ postId, userId: currentUserId, type: parsed.data.type });
-              await tx.update(posts).set({ baseScore: import_drizzle_orm26.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm26.eq)(posts.id, postId));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm27.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm27.eq)(posts.id, postId));
               isNew = true;
             }
           });
@@ -7277,13 +7537,13 @@ var init_reactions = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm26.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm27.eq)(posts.id, postId)).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         await db.transaction(async (tx) => {
-          const existing = await tx.select().from(reactions).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(reactions.postId, postId), (0, import_drizzle_orm26.eq)(reactions.userId, currentUserId))).limit(1);
+          const existing = await tx.select().from(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId))).limit(1);
           if (existing.length > 0) {
-            await tx.delete(reactions).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(reactions.postId, postId), (0, import_drizzle_orm26.eq)(reactions.userId, currentUserId)));
-            await tx.update(posts).set({ baseScore: import_drizzle_orm26.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm26.eq)(posts.id, postId));
+            await tx.delete(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId)));
+            await tx.update(posts).set({ baseScore: import_drizzle_orm27.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm27.eq)(posts.id, postId));
           }
         });
         res.json({ success: true, data: { message: "Tepki kald\u0131r\u0131ld\u0131." } });
@@ -7299,14 +7559,14 @@ var comments_exports = {};
 __export(comments_exports, {
   commentsRouter: () => commentsRouter
 });
-var import_express22, import_drizzle_orm27, commentsRouter;
+var import_express22, import_drizzle_orm28, commentsRouter;
 var init_comments = __esm({
   "server/routes/comments.ts"() {
     "use strict";
     import_express22 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm27 = require("drizzle-orm");
+    import_drizzle_orm28 = require("drizzle-orm");
     init_cursor();
     init_auth();
     init_api();
@@ -7323,7 +7583,7 @@ var init_comments = __esm({
         if (cursor) {
           const decoded = decodeCursor(cursor);
           if (decoded) {
-            cursorCondition = (0, import_drizzle_orm27.or)((0, import_drizzle_orm27.lt)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm27.lt)(comments.id, decoded.id)));
+            cursorCondition = (0, import_drizzle_orm28.or)((0, import_drizzle_orm28.lt)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm28.lt)(comments.id, decoded.id)));
           }
         }
         const list = await db.select({
@@ -7337,7 +7597,7 @@ var init_comments = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(comments).innerJoin(users, (0, import_drizzle_orm27.eq)(comments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm27.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(comments.postId, postId), (0, import_drizzle_orm27.eq)(comments.moderationStatus, "APPROVED"), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm27.desc)(comments.createdAt), (0, import_drizzle_orm27.desc)(comments.id)).limit(limit);
+        }).from(comments).innerJoin(users, (0, import_drizzle_orm28.eq)(comments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm28.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(comments.postId, postId), (0, import_drizzle_orm28.eq)(comments.moderationStatus, "APPROVED"), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm28.desc)(comments.createdAt), (0, import_drizzle_orm28.desc)(comments.id)).limit(limit);
         let nextCursor = void 0;
         if (list.length === limit) {
           const last = list[list.length - 1];
@@ -7356,14 +7616,14 @@ var reports_exports = {};
 __export(reports_exports, {
   reportsRouter: () => reportsRouter
 });
-var import_express23, import_drizzle_orm28, import_zod8, reportsRouter, reportSchema;
+var import_express23, import_drizzle_orm29, import_zod8, reportsRouter, reportSchema;
 var init_reports = __esm({
   "server/routes/reports.ts"() {
     "use strict";
     import_express23 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm28 = require("drizzle-orm");
+    import_drizzle_orm29 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     import_zod8 = require("zod");
@@ -7382,11 +7642,11 @@ var init_reports = __esm({
         }
         const { targetType, targetId, reason } = parsed.data;
         const existing = await db.select().from(reports).where(
-          (0, import_drizzle_orm28.and)(
-            (0, import_drizzle_orm28.eq)(reports.reporterId, currentUserId),
-            (0, import_drizzle_orm28.eq)(reports.targetType, targetType),
-            (0, import_drizzle_orm28.eq)(reports.targetId, targetId),
-            (0, import_drizzle_orm28.eq)(reports.status, "PENDING")
+          (0, import_drizzle_orm29.and)(
+            (0, import_drizzle_orm29.eq)(reports.reporterId, currentUserId),
+            (0, import_drizzle_orm29.eq)(reports.targetType, targetType),
+            (0, import_drizzle_orm29.eq)(reports.targetId, targetId),
+            (0, import_drizzle_orm29.eq)(reports.status, "PENDING")
           )
         ).limit(1);
         if (existing.length > 0) {
@@ -7411,7 +7671,7 @@ var admin_exports = {};
 __export(admin_exports, {
   adminRouter: () => adminRouter
 });
-var import_express24, import_drizzle_orm29, import_argon24, adminRouter, getPagination;
+var import_express24, import_drizzle_orm30, import_argon24, adminRouter, getPagination;
 var init_admin = __esm({
   "server/routes/admin.ts"() {
     "use strict";
@@ -7419,7 +7679,7 @@ var init_admin = __esm({
     import_express24 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm29 = require("drizzle-orm");
+    import_drizzle_orm30 = require("drizzle-orm");
     init_auth();
     init_mailer();
     import_argon24 = __toESM(require("argon2"), 1);
@@ -7432,10 +7692,10 @@ var init_admin = __esm({
     adminRouter.use(requireAuth, requireRole("ADMIN"));
     adminRouter.get("/stats", async (req, res) => {
       try {
-        const totalUsers = await db.select({ count: import_drizzle_orm29.sql`cast(count(*) as integer)` }).from(users);
-        const bannedUsers = await db.select({ count: import_drizzle_orm29.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm29.eq)(users.isActive, false));
-        const pendingVerifications = await db.select({ count: import_drizzle_orm29.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm29.eq)(verificationRequests.status, "pending"));
-        const pendingReports = await db.select({ count: import_drizzle_orm29.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm29.eq)(reports.status, "PENDING"));
+        const totalUsers = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(users);
+        const bannedUsers = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm30.eq)(users.isActive, false));
+        const pendingVerifications = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.status, "pending"));
+        const pendingReports = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm30.eq)(reports.status, "PENDING"));
         res.json({
           success: true,
           data: {
@@ -7468,27 +7728,27 @@ var init_admin = __esm({
           createdAt: users.createdAt,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
         const conditions = [];
         if (q && q.trim().length > 0) {
           const qTerm = `%${q.trim()}%`;
           conditions.push(
-            (0, import_drizzle_orm29.or)(
-              (0, import_drizzle_orm29.ilike)(users.username, qTerm),
-              (0, import_drizzle_orm29.ilike)(profiles.displayName, qTerm),
-              (0, import_drizzle_orm29.ilike)(users.email, qTerm)
+            (0, import_drizzle_orm30.or)(
+              (0, import_drizzle_orm30.ilike)(users.username, qTerm),
+              (0, import_drizzle_orm30.ilike)(profiles.displayName, qTerm),
+              (0, import_drizzle_orm30.ilike)(users.email, qTerm)
             )
           );
         }
         if (statusFilter === "ACTIVE") {
-          conditions.push((0, import_drizzle_orm29.eq)(users.isActive, true));
+          conditions.push((0, import_drizzle_orm30.eq)(users.isActive, true));
         } else if (statusFilter === "BANNED") {
-          conditions.push((0, import_drizzle_orm29.eq)(users.isActive, false));
+          conditions.push((0, import_drizzle_orm30.eq)(users.isActive, false));
         }
         if (conditions.length > 0) {
-          query = query.where((0, import_drizzle_orm29.and)(...conditions));
+          query = query.where((0, import_drizzle_orm30.and)(...conditions));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm29.desc)(users.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(users.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin users error:", error);
@@ -7512,11 +7772,11 @@ var init_admin = __esm({
           email: users.email,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm29.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId));
+        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm30.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
         if (status && ["pending", "under_review", "approved", "rejected"].includes(status)) {
-          query = query.where((0, import_drizzle_orm29.eq)(verificationRequests.status, status));
+          query = query.where((0, import_drizzle_orm30.eq)(verificationRequests.status, status));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm29.desc)(verificationRequests.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(verificationRequests.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin verifications error:", error);
@@ -7536,7 +7796,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz durum." } });
           return;
         }
-        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm29.eq)(verificationRequests.id, requestId)).limit(1);
+        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.id, requestId)).limit(1);
         if (vReq.length === 0) {
           res.status(404).json({ success: false, error: { message: "Ba\u015Fvuru bulunamad\u0131." } });
           return;
@@ -7549,17 +7809,17 @@ var init_admin = __esm({
           reviewedBy: adminId,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm29.eq)(verificationRequests.id, requestId));
+        }).where((0, import_drizzle_orm30.eq)(verificationRequests.id, requestId));
         if (status === "approved" || status === "rejected") {
-          const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, currentReq.userId)).limit(1);
+          const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId)).limit(1);
           if (userRecord.length > 0) {
             sendVerificationStatusEmail(userRecord[0].email, userRecord[0].username, status).catch(console.error);
           }
         }
         if (status === "approved" && currentReq.status !== "approved") {
-          await db.update(users).set({ isVerified: true }).where((0, import_drizzle_orm29.eq)(users.id, currentReq.userId));
+          await db.update(users).set({ isVerified: true }).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId));
         } else if (status !== "approved" && currentReq.status === "approved") {
-          await db.update(users).set({ isVerified: false }).where((0, import_drizzle_orm29.eq)(users.id, currentReq.userId));
+          await db.update(users).set({ isVerified: false }).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId));
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
@@ -7587,12 +7847,12 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz veri." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        await db.update(users).set({ isVerified }).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
+        await db.update(users).set({ isVerified }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
           action: `user_verify_toggle`,
@@ -7614,14 +7874,14 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         await db.transaction(async (tx) => {
-          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
-          await tx.delete(recoveryCodes).where((0, import_drizzle_orm29.eq)(recoveryCodes.userId, targetUserId));
+          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+          await tx.delete(recoveryCodes).where((0, import_drizzle_orm30.eq)(recoveryCodes.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_2fa_reset",
@@ -7653,7 +7913,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi hesab\u0131n\u0131z\u0131 yasaklayamazs\u0131n\u0131z." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -7667,9 +7927,9 @@ var init_admin = __esm({
           await tx.update(users).set({
             isActive,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
           if (!isActive) {
-            await tx.delete(refreshTokens).where((0, import_drizzle_orm29.eq)(refreshTokens.userId, targetUserId));
+            await tx.delete(refreshTokens).where((0, import_drizzle_orm30.eq)(refreshTokens.userId, targetUserId));
           }
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
@@ -7713,7 +7973,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici rol\xFCn\xFCz\xFC d\xFC\u015F\xFCremezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -7724,7 +7984,7 @@ var init_admin = __esm({
           await tx.update(users).set({
             role,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_role_change",
@@ -7762,7 +8022,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Yeni parola en az 8 karakter uzunlu\u011Funda olmal\u0131d\u0131r." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -7773,8 +8033,8 @@ var init_admin = __esm({
           await tx.update(users).set({
             passwordHash,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
-          await tx.delete(refreshTokens).where((0, import_drizzle_orm29.eq)(refreshTokens.userId, targetUserId));
+          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+          await tx.delete(refreshTokens).where((0, import_drizzle_orm30.eq)(refreshTokens.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_password_reset",
@@ -7806,15 +8066,15 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(posts).where((0, import_drizzle_orm29.eq)(posts.userId, targetUserId));
-          await tx.delete(comments).where((0, import_drizzle_orm29.eq)(comments.userId, targetUserId));
+          await tx.delete(posts).where((0, import_drizzle_orm30.eq)(posts.userId, targetUserId));
+          await tx.delete(comments).where((0, import_drizzle_orm30.eq)(comments.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_content_purged",
@@ -7849,14 +8109,14 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici hesab\u0131n\u0131z\u0131 silemezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(users).where((0, import_drizzle_orm29.eq)(users.id, targetUserId));
+          await tx.delete(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_deleted_permanently",
@@ -7888,7 +8148,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Duyuru mesaj\u0131 bo\u015F olamaz." } });
           return;
         }
-        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm29.eq)(users.isActive, true));
+        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm30.eq)(users.isActive, true));
         if (allActiveUsers.length > 0) {
           const notificationRows = allActiveUsers.map((u) => ({
             recipientId: u.id,
@@ -7931,7 +8191,7 @@ var init_admin = __esm({
           status: reports.status,
           createdAt: reports.createdAt,
           reporterUsername: users.username
-        }).from(reports).leftJoin(users, (0, import_drizzle_orm29.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm29.eq)(reports.status, status)).orderBy((0, import_drizzle_orm29.desc)(reports.createdAt)).limit(limit).offset(offset);
+        }).from(reports).leftJoin(users, (0, import_drizzle_orm30.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm30.eq)(reports.status, status)).orderBy((0, import_drizzle_orm30.desc)(reports.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin reports error:", error);
@@ -7943,7 +8203,7 @@ var init_admin = __esm({
         const reportId = parseInt(req.params.id);
         const { status, action } = req.body;
         const adminId = requireAuthContext(req);
-        const r = await db.select().from(reports).where((0, import_drizzle_orm29.eq)(reports.id, reportId)).limit(1);
+        const r = await db.select().from(reports).where((0, import_drizzle_orm30.eq)(reports.id, reportId)).limit(1);
         if (r.length === 0) {
           res.status(404).json({ success: false, error: { message: "Rapor bulunamad\u0131." } });
           return;
@@ -7951,28 +8211,28 @@ var init_admin = __esm({
         const report = r[0];
         if (action === "remove_content") {
           if (report.targetType === "post") {
-            await db.delete(posts).where((0, import_drizzle_orm29.eq)(posts.id, report.targetId));
+            await db.delete(posts).where((0, import_drizzle_orm30.eq)(posts.id, report.targetId));
           } else if (report.targetType === "comment") {
-            await db.delete(comments).where((0, import_drizzle_orm29.eq)(comments.id, report.targetId));
+            await db.delete(comments).where((0, import_drizzle_orm30.eq)(comments.id, report.targetId));
           } else if (report.targetType === "community") {
-            await db.delete(communities).where((0, import_drizzle_orm29.eq)(communities.id, report.targetId));
+            await db.delete(communities).where((0, import_drizzle_orm30.eq)(communities.id, report.targetId));
           }
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm29.eq)(reports.id, reportId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
         } else if (action === "suspend_user") {
           let uId = report.targetId;
           if (report.targetType !== "user") {
             if (report.targetType === "post") {
-              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm29.eq)(posts.id, report.targetId)).limit(1);
+              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm30.eq)(posts.id, report.targetId)).limit(1);
               if (p.length > 0) uId = p[0].userId;
             } else if (report.targetType === "comment") {
-              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm29.eq)(comments.id, report.targetId)).limit(1);
+              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm30.eq)(comments.id, report.targetId)).limit(1);
               if (c.length > 0) uId = c[0].userId;
             }
           }
-          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm29.eq)(users.id, uId));
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm29.eq)(reports.id, reportId));
+          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm30.eq)(users.id, uId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
         } else if (status) {
-          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm29.eq)(reports.id, reportId));
+          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
@@ -8080,7 +8340,7 @@ var init_admin = __esm({
           officialPriority: users.officialPriority,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm29.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm29.desc)(users.createdAt));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm30.desc)(users.createdAt));
         res.json({ success: true, data });
       } catch (error) {
         console.error("GET /official-accounts error:", error);
@@ -8099,7 +8359,7 @@ var init_admin = __esm({
           officialNotifyEnabled: !!officialNotifyEnabled,
           officialPriority: officialPriority || "normal",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm29.eq)(users.id, targetId));
+        }).where((0, import_drizzle_orm30.eq)(users.id, targetId));
         res.json({ success: true, message: "Resmi hesap ayarlar\u0131 g\xFCncellendi." });
       } catch (error) {
         console.error("PUT /official-accounts/:id error:", error);
@@ -8108,7 +8368,7 @@ var init_admin = __esm({
     });
     adminRouter.get("/auto-follow", async (req, res) => {
       try {
-        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm29.eq)(systemSettings.key, "auto_follow_users")).limit(1);
+        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm30.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         let userIds = [];
         if (setting.length > 0 && setting[0].value) {
           try {
@@ -8140,7 +8400,7 @@ var init_admin = __esm({
             isVerified: users.isVerified,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm29.inArray)(users.id, userIds));
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.inArray)(users.id, userIds));
         }
         res.json({ success: true, data: autoFollowUsers });
       } catch (error) {
@@ -8170,7 +8430,7 @@ var init_admin = __esm({
         try {
           const callerId = optionalAuthContext(req) || requireAuthContext(req);
           if (callerId) {
-            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm29.eq)(users.id, callerId)).limit(1);
+            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm30.eq)(users.id, callerId)).limit(1);
             if (check.length > 0) {
               adminUserId = callerId;
             }
@@ -8212,11 +8472,11 @@ var init_admin = __esm({
           adminUsername: users.username,
           adminDisplayName: profiles.displayName,
           adminAvatarUrl: profiles.avatarUrl
-        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm29.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId));
+        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm30.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
         if (action && action.trim().length > 0) {
-          query = query.where((0, import_drizzle_orm29.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
+          query = query.where((0, import_drizzle_orm30.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm29.desc)(adminAuditLogs.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(adminAuditLogs.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin audit logs error:", error);
@@ -8238,23 +8498,23 @@ var init_admin = __esm({
             username: users.username,
             displayName: profiles.displayName
           }
-        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm29.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm29.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm29.desc)(moderationLogs.createdAt)).limit(50);
+        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm30.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm30.desc)(moderationLogs.createdAt)).limit(50);
         const result = await Promise.all(pendingLogs.map(async (log) => {
           let content = "";
           if (log.entityType === "POST") {
-            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm29.eq)(posts.id, log.entityId)).limit(1);
+            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm30.eq)(posts.id, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].content || "";
           } else if (log.entityType === "COMMENT") {
-            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm29.eq)(comments.id, log.entityId)).limit(1);
+            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm30.eq)(comments.id, log.entityId)).limit(1);
             if (c.length > 0) content = c[0].content || "";
           } else if (log.entityType === "PROFILE") {
-            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm29.eq)(profiles.userId, log.entityId)).limit(1);
+            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm30.eq)(profiles.userId, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].bio || "";
           } else if (log.entityType === "PROJECT_COMMENT") {
-            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm29.eq)(projectComments.id, log.entityId)).limit(1);
+            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm30.eq)(projectComments.id, log.entityId)).limit(1);
             if (pc.length > 0) content = pc[0].content || "";
           } else if (log.entityType === "PROJECT") {
-            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm29.eq)(projects.id, log.entityId)).limit(1);
+            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm30.eq)(projects.id, log.entityId)).limit(1);
             if (pj.length > 0) content = pj[0].description || "";
           }
           return { ...log, content };
@@ -8273,20 +8533,20 @@ var init_admin = __esm({
         if (action !== "APPROVE" && action !== "REJECT") {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz aksiyon." } });
         }
-        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm29.eq)(moderationLogs.id, logId)).limit(1);
+        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm30.eq)(moderationLogs.id, logId)).limit(1);
         if (logRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Log bulunamad\u0131." } });
         }
         const log = logRecord[0];
         await db.transaction(async (tx) => {
-          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm29.eq)(moderationLogs.id, logId));
+          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(moderationLogs.id, logId));
           const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
           if (log.entityType === "POST") {
-            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm29.eq)(posts.id, log.entityId));
+            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(posts.id, log.entityId));
           } else if (log.entityType === "COMMENT") {
-            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm29.eq)(comments.id, log.entityId));
+            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(comments.id, log.entityId));
           } else if (log.entityType === "PROJECT_COMMENT") {
-            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm29.eq)(projectComments.id, log.entityId));
+            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(projectComments.id, log.entityId));
           } else if (log.entityType === "PROFILE" || log.entityType === "PROJECT") {
           }
           await tx.insert(adminAuditLogs).values({
@@ -8311,7 +8571,7 @@ var verification_exports = {};
 __export(verification_exports, {
   verificationRouter: () => verificationRouter
 });
-var import_express25, import_drizzle_orm30, verificationRouter;
+var import_express25, import_drizzle_orm31, verificationRouter;
 var init_verification = __esm({
   "server/routes/verification.ts"() {
     "use strict";
@@ -8319,13 +8579,13 @@ var init_verification = __esm({
     init_db();
     init_schema();
     init_auth();
-    import_drizzle_orm30 = require("drizzle-orm");
+    import_drizzle_orm31 = require("drizzle-orm");
     verificationRouter = (0, import_express25.Router)();
     verificationRouter.use(requireAuth);
     verificationRouter.get("/me", async (req, res) => {
       try {
         const userId = requireAuthContext(req);
-        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm30.desc)(verificationRequests.createdAt)).limit(10);
+        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm31.desc)(verificationRequests.createdAt)).limit(10);
         res.json({ success: true, data: requests });
       } catch (error) {
         console.error("Error fetching verification requests:", error);
@@ -8344,7 +8604,7 @@ var init_verification = __esm({
           res.status(400).json({ success: false, error: { message: "Ba\u015Fvuru sebebi en fazla 1000 karakter olabilir." } });
           return;
         }
-        const existingActive = await db.select().from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm30.desc)(verificationRequests.createdAt)).limit(5);
+        const existingActive = await db.select().from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm31.desc)(verificationRequests.createdAt)).limit(5);
         const hasActive = existingActive.some((r) => r.status === "pending" || r.status === "under_review");
         if (hasActive) {
           res.status(400).json({ success: false, error: { message: "Hali haz\u0131rda devam eden bir ba\u015Fvurunuz bulunmaktad\u0131r." } });
@@ -8369,14 +8629,14 @@ var hashtags_exports = {};
 __export(hashtags_exports, {
   hashtagsRouter: () => hashtagsRouter
 });
-var import_express26, import_drizzle_orm31, hashtagsRouter;
+var import_express26, import_drizzle_orm32, hashtagsRouter;
 var init_hashtags2 = __esm({
   "server/routes/hashtags.ts"() {
     "use strict";
     import_express26 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm31 = require("drizzle-orm");
+    import_drizzle_orm32 = require("drizzle-orm");
     init_blocks();
     init_hashtags();
     init_auth();
@@ -8389,7 +8649,7 @@ var init_hashtags2 = __esm({
           name: hashtags.name,
           normalizedName: hashtags.normalizedName,
           count: hashtags.usageCount
-        }).from(hashtags).orderBy((0, import_drizzle_orm31.desc)(hashtags.usageCount)).limit(5);
+        }).from(hashtags).orderBy((0, import_drizzle_orm32.desc)(hashtags.usageCount)).limit(5);
         res.json({ success: true, data: trending });
       } catch (error) {
         console.error("Trending hashtags error:", error);
@@ -8409,23 +8669,34 @@ var init_hashtags2 = __esm({
         }
         const blockedIds = await getBlockedIds(currentUserId);
         const ignoreIds = blockedIds.length > 0 ? blockedIds : [-1];
-        const tagRecord = await db.select().from(hashtags).where((0, import_drizzle_orm31.eq)(hashtags.normalizedName, normalizedName)).limit(1);
+        const tagRecord = await db.select().from(hashtags).where((0, import_drizzle_orm32.eq)(hashtags.normalizedName, normalizedName)).limit(1);
         if (tagRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Hashtag bulunamad\u0131." } });
         }
         const hashtag = tagRecord[0];
         let visibilityCondition;
         if (currentUserId !== -1) {
-          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm31.eq)(follows.followerId, currentUserId));
+          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm32.eq)(follows.status, "accepted")));
           const followingIds = followingRecords.map((f) => f.followingId);
           const followingIdsWithSelf = followingIds.length > 0 ? followingIds : [-1];
-          visibilityCondition = (0, import_drizzle_orm31.or)(
-            (0, import_drizzle_orm31.eq)(posts.visibility, "PUBLIC"),
-            (0, import_drizzle_orm31.eq)(posts.userId, currentUserId),
-            (0, import_drizzle_orm31.and)((0, import_drizzle_orm31.eq)(posts.visibility, "FOLLOWERS"), (0, import_drizzle_orm31.inArray)(posts.userId, followingIdsWithSelf))
+          visibilityCondition = (0, import_drizzle_orm32.or)(
+            (0, import_drizzle_orm32.eq)(posts.userId, currentUserId),
+            (0, import_drizzle_orm32.and)(
+              (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm32.eq)(posts.visibility, "FOLLOWERS")),
+              (0, import_drizzle_orm32.or)(
+                (0, import_drizzle_orm32.and)(
+                  (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(profiles.isPrivate, false), import_drizzle_orm32.sql`${profiles.isPrivate} IS NULL`),
+                  (0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC")
+                ),
+                (0, import_drizzle_orm32.inArray)(posts.userId, followingIdsWithSelf)
+              )
+            )
           );
         } else {
-          visibilityCondition = (0, import_drizzle_orm31.eq)(posts.visibility, "PUBLIC");
+          visibilityCondition = (0, import_drizzle_orm32.and)(
+            (0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC"),
+            (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(profiles.isPrivate, false), import_drizzle_orm32.sql`${profiles.isPrivate} IS NULL`)
+          );
         }
         const postsResult = await db.select({
           id: posts.id,
@@ -8441,17 +8712,17 @@ var init_hashtags2 = __esm({
             avatarUrl: profiles.avatarUrl,
             isVerified: users.isVerified
           }
-        }).from(posts).innerJoin(postHashtags, (0, import_drizzle_orm31.eq)(posts.id, postHashtags.postId)).innerJoin(users, (0, import_drizzle_orm31.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm31.and)(
-          (0, import_drizzle_orm31.eq)(postHashtags.hashtagId, hashtag.id),
-          (0, import_drizzle_orm31.notInArray)(posts.userId, ignoreIds),
+        }).from(posts).innerJoin(postHashtags, (0, import_drizzle_orm32.eq)(posts.id, postHashtags.postId)).innerJoin(users, (0, import_drizzle_orm32.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm32.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm32.and)(
+          (0, import_drizzle_orm32.eq)(postHashtags.hashtagId, hashtag.id),
+          (0, import_drizzle_orm32.notInArray)(posts.userId, ignoreIds),
           visibilityCondition
-        )).orderBy((0, import_drizzle_orm31.desc)(posts.createdAt)).limit(limit).offset(offset);
+        )).orderBy((0, import_drizzle_orm32.desc)(posts.createdAt)).limit(limit).offset(offset);
         if (postsResult.length === 0) {
           return res.json({ success: true, data: { hashtag, posts: [] } });
         }
         const populatedPosts = await populatePostStats(postsResult, currentUserId);
         const fetchedPostIds = populatedPosts.map((p) => p.id);
-        const allMedia = await db.select().from(postMedia).where((0, import_drizzle_orm31.inArray)(postMedia.postId, fetchedPostIds));
+        const allMedia = await db.select().from(postMedia).where((0, import_drizzle_orm32.inArray)(postMedia.postId, fetchedPostIds));
         const mediaByPost = allMedia.reduce((acc, media) => {
           if (!acc[media.postId]) acc[media.postId] = [];
           acc[media.postId].push(media);
@@ -8474,14 +8745,14 @@ var collaborators_exports = {};
 __export(collaborators_exports, {
   collaboratorsRouter: () => collaboratorsRouter
 });
-var import_express27, import_drizzle_orm32, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
+var import_express27, import_drizzle_orm33, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
 var init_collaborators = __esm({
   "server/routes/collaborators.ts"() {
     "use strict";
     import_express27 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm32 = require("drizzle-orm");
+    import_drizzle_orm33 = require("drizzle-orm");
     init_auth();
     init_notifications();
     import_express_rate_limit3 = __toESM(require("express-rate-limit"), 1);
@@ -8500,7 +8771,7 @@ var init_collaborators = __esm({
         const currentUserId = requireAuthContext(req);
         const projectInvites = await db.select({
           id: projectCollaborators.id,
-          type: import_drizzle_orm32.sql`'project'`,
+          type: import_drizzle_orm33.sql`'project'`,
           projectId: projects.id,
           title: projects.title,
           status: projectCollaborators.status,
@@ -8509,10 +8780,10 @@ var init_collaborators = __esm({
           inviterUsername: users.username,
           inviterDisplayName: profiles.displayName,
           inviterAvatarUrl: profiles.avatarUrl
-        }).from(projectCollaborators).innerJoin(projects, (0, import_drizzle_orm32.eq)(projectCollaborators.projectId, projects.id)).innerJoin(users, (0, import_drizzle_orm32.eq)(projects.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm32.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(projectCollaborators.userId, currentUserId), (0, import_drizzle_orm32.eq)(projectCollaborators.status, "pending")));
+        }).from(projectCollaborators).innerJoin(projects, (0, import_drizzle_orm33.eq)(projectCollaborators.projectId, projects.id)).innerJoin(users, (0, import_drizzle_orm33.eq)(projects.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(projectCollaborators.userId, currentUserId), (0, import_drizzle_orm33.eq)(projectCollaborators.status, "pending")));
         const postInvites = await db.select({
           id: postCollaborators.id,
-          type: import_drizzle_orm32.sql`'post'`,
+          type: import_drizzle_orm33.sql`'post'`,
           postId: posts.id,
           content: posts.content,
           postType: posts.postType,
@@ -8523,7 +8794,7 @@ var init_collaborators = __esm({
           inviterUsername: users.username,
           inviterDisplayName: profiles.displayName,
           inviterAvatarUrl: profiles.avatarUrl
-        }).from(postCollaborators).innerJoin(posts, (0, import_drizzle_orm32.eq)(postCollaborators.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm32.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm32.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(postCollaborators.userId, currentUserId), (0, import_drizzle_orm32.eq)(postCollaborators.status, "pending")));
+        }).from(postCollaborators).innerJoin(posts, (0, import_drizzle_orm33.eq)(postCollaborators.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm33.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(postCollaborators.userId, currentUserId), (0, import_drizzle_orm33.eq)(postCollaborators.status, "pending")));
         res.json({
           success: true,
           data: {
@@ -8551,7 +8822,7 @@ var init_collaborators = __esm({
           return;
         }
         if (type === "project") {
-          const invite = await db.select().from(projectCollaborators).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(projectCollaborators.id, inviteId), (0, import_drizzle_orm32.eq)(projectCollaborators.userId, currentUserId))).limit(1);
+          const invite = await db.select().from(projectCollaborators).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(projectCollaborators.id, inviteId), (0, import_drizzle_orm33.eq)(projectCollaborators.userId, currentUserId))).limit(1);
           if (invite.length === 0) {
             res.status(404).json({ success: false, error: { message: "Davet bulunamad\u0131." } });
             return;
@@ -8560,15 +8831,15 @@ var init_collaborators = __esm({
             res.status(400).json({ success: false, error: { message: "Bu davet zaten yan\u0131tlanm\u0131\u015F." } });
             return;
           }
-          await db.update(projectCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm32.eq)(projectCollaborators.id, inviteId));
-          const project = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm32.eq)(projects.id, invite[0].projectId)).limit(1);
+          await db.update(projectCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(projectCollaborators.id, inviteId));
+          const project = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm33.eq)(projects.id, invite[0].projectId)).limit(1);
           if (project.length > 0) {
             await notify(currentUserId, project[0].userId, `project_collaborator_${status}`, void 0, void 0, invite[0].projectId);
           }
           res.json({ success: true, data: { status } });
           return;
         } else if (type === "post") {
-          const invite = await db.select().from(postCollaborators).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(postCollaborators.id, inviteId), (0, import_drizzle_orm32.eq)(postCollaborators.userId, currentUserId))).limit(1);
+          const invite = await db.select().from(postCollaborators).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(postCollaborators.id, inviteId), (0, import_drizzle_orm33.eq)(postCollaborators.userId, currentUserId))).limit(1);
           if (invite.length === 0) {
             res.status(404).json({ success: false, error: { message: "Davet bulunamad\u0131." } });
             return;
@@ -8577,8 +8848,8 @@ var init_collaborators = __esm({
             res.status(400).json({ success: false, error: { message: "Bu davet zaten yan\u0131tlanm\u0131\u015F." } });
             return;
           }
-          await db.update(postCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm32.eq)(postCollaborators.id, inviteId));
-          const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm32.eq)(posts.id, invite[0].postId)).limit(1);
+          await db.update(postCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(postCollaborators.id, inviteId));
+          const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm33.eq)(posts.id, invite[0].postId)).limit(1);
           if (post.length > 0) {
             await notify(currentUserId, post[0].userId, `post_collaborator_${status}`, invite[0].postId);
           }
@@ -8601,14 +8872,14 @@ var support_exports = {};
 __export(support_exports, {
   supportRouter: () => supportRouter
 });
-var import_express28, import_drizzle_orm33, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
+var import_express28, import_drizzle_orm34, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
 var init_support = __esm({
   "server/routes/support.ts"() {
     "use strict";
     import_express28 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm33 = require("drizzle-orm");
+    import_drizzle_orm34 = require("drizzle-orm");
     init_auth();
     import_zod9 = require("zod");
     supportRouter = (0, import_express28.Router)();
@@ -8646,7 +8917,7 @@ var init_support = __esm({
     supportRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = req.user.userId;
-        const tickets = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.userId, currentUserId)).orderBy((0, import_drizzle_orm33.desc)(supportTickets.createdAt));
+        const tickets = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.userId, currentUserId)).orderBy((0, import_drizzle_orm34.desc)(supportTickets.createdAt));
         res.json({ success: true, data: tickets });
       } catch (error) {
         console.error("Get tickets error:", error);
@@ -8658,7 +8929,7 @@ var init_support = __esm({
         const currentUserId = req.user.userId;
         const ticketId = parseInt(req.params.id);
         if (isNaN(ticketId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
-        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
         if (!ticket) {
           return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
         }
@@ -8676,7 +8947,7 @@ var init_support = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(supportTicketMessages).innerJoin(users, (0, import_drizzle_orm33.eq)(users.id, supportTicketMessages.userId)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.eq)(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
+        }).from(supportTicketMessages).innerJoin(users, (0, import_drizzle_orm34.eq)(users.id, supportTicketMessages.userId)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.eq)(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
         res.json({ success: true, data: { ...ticket, messages: messages2 } });
       } catch (error) {
         console.error("Get ticket error:", error);
@@ -8692,7 +8963,7 @@ var init_support = __esm({
         if (!parsed.success) {
           return res.status(400).json({ success: false, error: { message: parsed.error.issues[0].message } });
         }
-        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
         if (!ticket) return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
         if (ticket.userId !== currentUserId) {
           return res.status(403).json({ success: false, error: { message: "Yetkisiz eri\u015Fim" } });
@@ -8706,7 +8977,7 @@ var init_support = __esm({
           message: parsed.data.message,
           isAdmin: false
         }).returning();
-        await db.update(supportTickets).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(supportTickets.id, ticketId));
+        await db.update(supportTickets).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
         res.json({ success: true, data: message });
       } catch (error) {
         console.error("Create ticket message error:", error);
@@ -8721,14 +8992,14 @@ var feedbacks_exports = {};
 __export(feedbacks_exports, {
   feedbacksRouter: () => feedbacksRouter
 });
-var import_express29, import_drizzle_orm34, import_zod10, feedbacksRouter, createFeedbackSchema;
+var import_express29, import_drizzle_orm35, import_zod10, feedbacksRouter, createFeedbackSchema;
 var init_feedbacks = __esm({
   "server/routes/feedbacks.ts"() {
     "use strict";
     import_express29 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm34 = require("drizzle-orm");
+    import_drizzle_orm35 = require("drizzle-orm");
     init_auth();
     import_zod10 = require("zod");
     feedbacksRouter = (0, import_express29.Router)();
@@ -8763,7 +9034,7 @@ var init_feedbacks = __esm({
     feedbacksRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = req.user.userId;
-        const results = await db.select().from(feedbacks).where((0, import_drizzle_orm34.eq)(feedbacks.userId, currentUserId)).orderBy((0, import_drizzle_orm34.desc)(feedbacks.createdAt));
+        const results = await db.select().from(feedbacks).where((0, import_drizzle_orm35.eq)(feedbacks.userId, currentUserId)).orderBy((0, import_drizzle_orm35.desc)(feedbacks.createdAt));
         res.json({ success: true, data: results });
       } catch (error) {
         console.error("Get feedbacks error:", error);
@@ -8787,13 +9058,13 @@ function escapeHtml2(unsafe) {
   if (!unsafe) return "";
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-var import_drizzle_orm35, BOT_USER_AGENTS, seoMiddleware;
+var import_drizzle_orm36, BOT_USER_AGENTS, seoMiddleware;
 var init_seo = __esm({
   "server/middleware/seo.ts"() {
     "use strict";
     init_db();
     init_schema();
-    import_drizzle_orm35 = require("drizzle-orm");
+    import_drizzle_orm36 = require("drizzle-orm");
     BOT_USER_AGENTS = [
       "twitterbot",
       "facebookexternalhit",
@@ -8831,7 +9102,7 @@ var init_seo = __esm({
             visibility: posts.visibility,
             displayName: profiles.displayName,
             username: users.username
-          }).from(posts).innerJoin(users, (0, import_drizzle_orm35.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(posts.id, postId)).limit(1);
+          }).from(posts).innerJoin(users, (0, import_drizzle_orm36.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(posts.id, postId)).limit(1);
           if (postRecord.length > 0) {
             const p = postRecord[0];
             if (p.visibility === "PUBLIC") {
@@ -8841,7 +9112,7 @@ var init_seo = __esm({
           }
         } else if (communityMatch) {
           const communitySlug = communityMatch[1];
-          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm35.eq)(communities.slug, communitySlug)).limit(1);
+          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm36.eq)(communities.slug, communitySlug)).limit(1);
           if (commRecord.length > 0) {
             const c = commRecord[0];
             title = `${c.name} - Gen\xE7 Sosyal Toplulu\u011Fu`;
@@ -8854,7 +9125,7 @@ var init_seo = __esm({
             displayName: profiles.displayName,
             bio: profiles.bio,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(users.username, username)).limit(1);
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(users.username, username)).limit(1);
           if (userRecord.length > 0) {
             const u = userRecord[0];
             title = `${u.displayName} (@${username}) - Gen\xE7 Sosyal`;

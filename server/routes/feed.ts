@@ -100,7 +100,7 @@ const getFeedHandler = async (req: any, res: any) => {
     if (currentUserId) {
       const followingRecords = await db.select({ followingId: follows.followingId })
         .from(follows)
-        .where(eq(follows.followerId, currentUserId));
+        .where(and(eq(follows.followerId, currentUserId), eq(follows.status, 'accepted')));
       followingIds = followingRecords.map((f: any) => f.followingId).filter((id: any) => !blockedIds.includes(id));
     }
     const safeFollowingIds = followingIds.length > 0 ? followingIds : [-1];
@@ -162,6 +162,8 @@ const getFeedHandler = async (req: any, res: any) => {
       visibility: posts.visibility,
       viewCount: posts.viewCount,
       createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
+      userId: posts.userId,
       user: {
         id: users.id,
         username: users.username,
@@ -210,7 +212,7 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
 
     const followingRecords = await db.select({ followingId: follows.followingId })
       .from(follows)
-      .where(eq(follows.followerId, currentUserId));
+      .where(and(eq(follows.followerId, currentUserId), eq(follows.status, 'accepted')));
     
     let followingIds = followingRecords.map((f: any) => f.followingId).filter((id: any) => !blockedIds.includes(id));
     const safeFollowingIds = followingIds.length > 0 ? followingIds : [-1];
@@ -239,6 +241,8 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
       visibility: posts.visibility,
       viewCount: posts.viewCount,
       createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
+      userId: posts.userId,
       user: {
         id: users.id,
         username: users.username,

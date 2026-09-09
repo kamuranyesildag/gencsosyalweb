@@ -38,7 +38,7 @@ export function MobileSidebarDrawer({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs"
+                className="absolute inset-0 bg-slate-900/60 dark:bg-black/60 "
               />
 
               {/* Drawer Content */}
@@ -46,7 +46,7 @@ export function MobileSidebarDrawer({
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 28, stiffness: 240 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="relative w-[280px] max-w-[85vw] h-full bg-white dark:bg-[#0D121D] shadow-xl flex flex-col transition-colors border-r border-slate-200/80 dark:border-white/[0.08]"
               >
                 {/* Header */}

@@ -70,7 +70,7 @@ export function ReportDialog({ isOpen, onClose, targetType, targetId }: ReportDi
   return typeof document !== "undefined" ? createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/40 ">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

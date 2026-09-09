@@ -160,7 +160,7 @@ export function CommunityDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90  border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"

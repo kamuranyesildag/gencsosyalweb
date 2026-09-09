@@ -143,7 +143,7 @@ export function ConfirmDialog({
             onClick={() => {
               if (!isLoading) onClose();
             }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/40 "
           />
 
           <motion.div
@@ -248,7 +248,7 @@ export function ConfirmDialogContainer() {
               onCancel();
               close();
             }}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-950/40 "
           />
 
           <motion.div

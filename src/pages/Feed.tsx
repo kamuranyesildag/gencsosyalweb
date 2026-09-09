@@ -176,7 +176,7 @@ export function Feed() {
   return (
     <main className="w-full min-h-screen pb-16">
       {/* 1. STICKY FEED HEADER (60px high, blurred liquid glass) */}
-      <header className="sticky top-[60px] z-20 bg-white/85 dark:bg-[#0D121D]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+      <header className="sticky top-[60px] z-20 bg-white/85 dark:bg-[#0D121D]/85  border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
         <div className="flex h-12 w-full max-w-2xl mx-auto">
           {/* For You Tab */}
           <button

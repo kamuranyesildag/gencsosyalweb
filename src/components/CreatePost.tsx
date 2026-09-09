@@ -21,7 +21,7 @@ import {
   Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "../lib/utils";
+import { cn, formatTimeAgo } from "../lib/utils";
 
 export type PostType = "NORMAL" | "POLL" | "SENSITIVE";
 export type PostVisibility = "PUBLIC" | "FOLLOWERS" | "PRIVATE";
@@ -31,6 +31,7 @@ interface CreatePostProps {
   communityId?: number;
   standalone?: boolean;
   autoFocus?: boolean;
+  quoteId?: number | null;
 }
 
 const VISIBILITY_OPTIONS: {
@@ -64,12 +65,30 @@ export function CreatePost({
   communityId,
   standalone = false,
   autoFocus = false,
+  quoteId,
 }: CreatePostProps) {
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  
+  const [quotedPost, setQuotedPost] = useState<any>(null);
+  const [loadingQuote, setLoadingQuote] = useState(false);
+
+  useEffect(() => {
+    if (quoteId) {
+      setLoadingQuote(true);
+      fetchApi(`/posts/${quoteId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+             setQuotedPost(data.data);
+          }
+        })
+        .finally(() => setLoadingQuote(false));
+    }
+  }, [quoteId]);
   const [postType, setPostType] = useState<PostType>("NORMAL");
   const [contentWarning, setContentWarning] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
@@ -160,10 +179,10 @@ export function CreatePost({
   const isFormValid = () => {
     if (loading) return false;
     if (content.length > 2000) return false;
-    if (postType === "NORMAL") return content.trim().length > 0 || mediaFiles.length > 0;
+    if (postType === "NORMAL") return content.trim().length > 0 || mediaFiles.length > 0 || !!quoteId;
     if (postType === "SENSITIVE")
       return (
-        contentWarning.trim().length > 0 && (content.trim().length > 0 || mediaFiles.length > 0)
+        contentWarning.trim().length > 0 && (content.trim().length > 0 || mediaFiles.length > 0 || !!quoteId)
       );
     if (postType === "POLL")
       return content.trim().length > 0 && pollOptions.filter((o) => o.trim()).length >= 2;
@@ -179,7 +198,7 @@ export function CreatePost({
       return;
     }
 
-    if (postType === "NORMAL" && !content.trim() && mediaFiles.length === 0) {
+    if (postType === "NORMAL" && !content.trim() && mediaFiles.length === 0 && !quoteId) {
       toast.error("Lütfen bir şeyler yazın veya medya ekleyin.");
       return;
     }
@@ -232,6 +251,7 @@ export function CreatePost({
           postType,
           contentWarning: postType === "SENSITIVE" ? contentWarning : undefined,
           pollOptions: postType === "POLL" ? filteredOptions : undefined,
+          quotedPostId: quoteId || undefined,
         },
       });
       const json = await res.json();
@@ -304,7 +324,7 @@ export function CreatePost({
                 aria-controls="post-visibility-menu"
                 aria-label={`Görünürlük: ${activeVisibility.label}`}
                 onClick={() => setShowVisibilityMenu(!showVisibilityMenu)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] border border-slate-200/60 dark:border-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] border border-slate-200/60 dark:border-white/[0.06] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
               >
                 <ActiveIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                 <span>{activeVisibility.label}</span>
@@ -346,7 +366,7 @@ export function CreatePost({
                             visibilityBtnRef.current?.focus();
                           }}
                           className={cn(
-                            "w-full flex items-start gap-2.5 p-2 rounded-lg text-left transition-colors cursor-pointer group",
+                            "w-full flex items-start gap-2.5 p-2 rounded-lg text-left transition-all active:scale-[0.97] cursor-pointer group",
                             isSelected
                               ? "bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
                               : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
@@ -479,7 +499,7 @@ export function CreatePost({
                           type="button"
                           onClick={() => handleRemovePollOption(idx)}
                           aria-label={`${idx + 1}. seçeneği sil`}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors shrink-0 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all active:scale-[0.97] shrink-0 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -492,7 +512,7 @@ export function CreatePost({
                   <button
                     type="button"
                     onClick={handleAddPollOption}
-                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 py-1.5 px-2.5 rounded-lg transition-colors mt-1 self-start cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 py-1.5 px-2.5 rounded-lg transition-all active:scale-[0.97] mt-1 self-start cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Seçenek Ekle</span>
@@ -501,6 +521,24 @@ export function CreatePost({
               </motion.div>
             )}
           </AnimatePresence>
+
+
+          {/* Quote Preview */}
+          {quoteId && quotedPost && (
+             <div className="mb-4 border border-slate-200 dark:border-white/[0.08] rounded-xl p-3 bg-white dark:bg-slate-950 shadow-sm opacity-80 pointer-events-none">
+                <div className="flex items-center gap-2 mb-2">
+                   <Avatar url={quotedPost.user?.avatarUrl} name={quotedPost.user?.displayName || quotedPost.user?.username} size="sm" />
+                   <div className="flex items-center gap-1.5 text-sm">
+                      <span className="font-bold text-slate-900 dark:text-slate-100">{quotedPost.user?.displayName || quotedPost.user?.username}</span>
+                      <span className="text-slate-500 dark:text-slate-400">@{quotedPost.user?.username}</span>
+                      <span className="text-slate-400">&bull; {formatTimeAgo(quotedPost.createdAt)}</span>
+                   </div>
+                </div>
+                <div className="text-sm text-slate-800 dark:text-slate-200 line-clamp-3">
+                   {quotedPost.content}
+                </div>
+             </div>
+          )}
 
           {/* Media Previews */}
           {mediaFiles.length > 0 && (
@@ -519,7 +557,7 @@ export function CreatePost({
                     type="button"
                     onClick={() => handleRemoveMedia(i)}
                     aria-label="Medyayı kaldır"
-                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 backdrop-blur-xs transition-transform active:scale-95 cursor-pointer"
+                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5  transition-transform active:scale-95 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -541,7 +579,7 @@ export function CreatePost({
                 disabled={mediaFiles.length >= 4}
                 title="Görsel veya Video Ekle (En fazla 4 dosya)"
                 aria-label="Medya Ekle (Görsel veya Video)"
-                className="flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 transition-colors cursor-pointer"
+                className="flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 transition-all active:scale-[0.97] cursor-pointer"
               >
                 <ImageIcon className="w-4.5 h-4.5 stroke-[1.75]" />
               </button>
@@ -564,7 +602,7 @@ export function CreatePost({
                 title="Anket Ekle"
                 aria-label="Anket Ekle"
                 className={cn(
-                  "flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl transition-colors cursor-pointer",
+                  "flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl transition-all active:scale-[0.97] cursor-pointer",
                   postType === "POLL"
                     ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
                     : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
@@ -583,7 +621,7 @@ export function CreatePost({
                 title="Hassas İçerik Uyarısı Ekle"
                 aria-label="Hassas İçerik Uyarısı Ekle"
                 className={cn(
-                  "flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl transition-colors cursor-pointer",
+                  "flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl transition-all active:scale-[0.97] cursor-pointer",
                   postType === "SENSITIVE"
                     ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40"
                     : "text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/[0.06]"

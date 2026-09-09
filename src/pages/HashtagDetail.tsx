@@ -35,7 +35,7 @@ export function HashtagDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center gap-3.5 shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90  border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center gap-3.5 shadow-xs">
         <button
           type="button"
           onClick={() => navigate(-1)}

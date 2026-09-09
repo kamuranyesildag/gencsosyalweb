@@ -77,7 +77,7 @@ export function Communities() {
   return (
     <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
       {/* Sticky Header */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90  border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
             <Users className="w-4 h-4" />
@@ -197,7 +197,7 @@ export function Communities() {
               animate="visible"
               exit="exit"
               onClick={() => setShowCreate(false)}
-              className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+              className="fixed inset-0 bg-slate-950/40 "
             />
 
             <motion.div

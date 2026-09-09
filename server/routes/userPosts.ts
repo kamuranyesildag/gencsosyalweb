@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { posts, postMedia, users, profiles, follows, reposts } from "../../src/db/schema.js";
@@ -32,7 +33,8 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
       ? or(eq(posts.moderationStatus, 'APPROVED'), eq(posts.userId, currentUserId))
       : eq(posts.moderationStatus, 'APPROVED');
 
-    const userPosts = await db.select({
+    
+    const p1 = db.select({
       id: posts.id,
       content: posts.content,
       postType: posts.postType,
@@ -40,20 +42,67 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
       visibility: posts.visibility,
       viewCount: posts.viewCount,
       createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
+      userId: posts.userId,
       user: {
         id: users.id,
         username: users.username,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
-      }
+      },
+      __repostCreatedAt: sql<Date>`NULL`,
+      __repostUserId: sql<number>`NULL`,
     })
     .from(posts)
     .innerJoin(users, eq(posts.userId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId))
     .where(and(eq(posts.userId, targetUserId), isNull(posts.communityId), moderationCondition, cursorCondition ? cursorCondition : undefined))
     .orderBy(desc(posts.createdAt), desc(posts.id))
-    .limit(limit)
-    .offset(offset);
+    .limit(limit);
+
+    let repostCursorCondition: any = undefined;
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      if (decoded) {
+        repostCursorCondition = or(lt(reposts.createdAt, decoded.createdAt), and(eq(reposts.createdAt, decoded.createdAt), lt(reposts.id, decoded.id)));
+      }
+    }
+
+    const p2 = db.select({
+      id: posts.id,
+      content: posts.content,
+      postType: posts.postType,
+      contentWarning: posts.contentWarning,
+      visibility: posts.visibility,
+      viewCount: posts.viewCount,
+      createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
+      userId: posts.userId,
+      user: {
+        id: users.id,
+        username: users.username,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+      },
+      __repostCreatedAt: reposts.createdAt,
+      __repostUserId: reposts.userId,
+    })
+    .from(reposts)
+    .innerJoin(posts, eq(reposts.postId, posts.id))
+    .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(and(eq(reposts.userId, targetUserId), isNull(posts.communityId), moderationCondition, repostCursorCondition ? repostCursorCondition : undefined))
+    .orderBy(desc(reposts.createdAt), desc(reposts.id))
+    .limit(limit);
+
+    const [authoredPosts, repostedPosts] = await Promise.all([p1, p2]);
+
+    let userPosts = [...authoredPosts, ...repostedPosts].sort((a, b) => {
+      const timeA = (a.__repostCreatedAt || a.createdAt).getTime();
+      const timeB = (b.__repostCreatedAt || b.createdAt).getTime();
+      return timeB - timeA;
+    }).slice(0, limit);
+  
 
     // Profile privacy check
     const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);
@@ -62,7 +111,7 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
     let isFollowing = false;
     if (currentUserId) {
       const followRecord = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId))).limit(1);
-      isFollowing = followRecord.length > 0;
+      isFollowing = followRecord.length > 0 && followRecord[0].status === 'accepted';
     }
     const isSelf = currentUserId ? currentUserId === targetUserId : false;
 

@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, follows, blocks, postMedia, posts, projects } from "../../src/db/schema.js";
+import { users, profiles, follows, blocks, postMedia, posts, projects, notificationPreferences } from "../../src/db/schema.js";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -133,8 +133,8 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
     }
 
     // Follow stats
-    const followerCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(eq(follows.followingId, targetUser.id));
-    const followingCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(eq(follows.followerId, targetUser.id));
+    const followerCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(and(eq(follows.followingId, targetUser.id), eq(follows.status, 'accepted')));
+    const followingCountRes = await db.select({ count: sql<number>`count(*)` }).from(follows).where(and(eq(follows.followerId, targetUser.id), eq(follows.status, 'accepted')));
 
     // Contribution stats
     const postCountRes = await db.select({ count: sql<number>`count(*)` })
@@ -145,17 +145,18 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       .where(eq(projects.userId, targetUser.id));
     
     let isFollowing = false;
+    let followStatus = 'none';
     let followsMe = false;
     let notificationPreference = null;
-
     if (currentUserId) {
       const isFollowingRes = await db.select().from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUser.id))).limit(1);
       if (isFollowingRes.length > 0) {
-        isFollowing = true;
+        followStatus = isFollowingRes[0].status;
+        isFollowing = followStatus === 'accepted';
         notificationPreference = isFollowingRes[0].notificationPreference;
       }
       const followsMeRes = await db.select().from(follows).where(and(eq(follows.followerId, targetUser.id), eq(follows.followingId, currentUserId))).limit(1);
-      if (followsMeRes.length > 0) {
+      if (followsMeRes.length > 0 && followsMeRes[0].status === 'accepted') {
         followsMe = true;
       }
     }
@@ -166,6 +167,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       followingCount: Number(followingCountRes[0]?.count || 0),
       postsCount: Number(postCountRes[0]?.count || 0),
       projectsCount: Number(projectCountRes[0]?.count || 0),
+      followStatus,
       isFollowing,
       followsMe,
       notificationPreference,
@@ -467,6 +469,73 @@ usersRouter.put("/:id/follow-preference", requireAuth, async (req, res) => {
     res.json({ success: true, message: "Bildirim tercihi güncellendi." });
   } catch (error) {
     console.error("Follow preference error:", error);
+    res.status(500).json({ success: false, error: { message: "Sunucu hatası." }});
+  }
+});
+
+// GET /users/me/notification-preferences
+usersRouter.get("/me/notification-preferences", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const prefs = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, currentUserId)).limit(1);
+    
+    if (prefs.length === 0) {
+      // Return defaults if not exists
+      return res.json({
+        success: true,
+        data: {
+          pushEnabled: true,
+          emailEnabled: true,
+          likes: true,
+          comments: true,
+          mentions: true,
+          follows: true,
+          messages: true,
+          newsletters: false,
+        }
+      });
+    }
+    
+    res.json({ success: true, data: prefs[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: { message: "Sunucu hatası." }});
+  }
+});
+
+// PUT /users/me/notification-preferences
+usersRouter.put("/me/notification-preferences", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const { pushEnabled, emailEnabled, likes, comments, mentions, follows, messages, newsletters } = req.body;
+    
+    const [updated] = await db.insert(notificationPreferences).values({
+      userId: currentUserId,
+      pushEnabled: pushEnabled ?? true,
+      emailEnabled: emailEnabled ?? true,
+      likes: likes ?? true,
+      comments: comments ?? true,
+      mentions: mentions ?? true,
+      follows: follows ?? true,
+      messages: messages ?? true,
+      newsletters: newsletters ?? false,
+    }).onConflictDoUpdate({
+      target: notificationPreferences.userId,
+      set: {
+        pushEnabled: pushEnabled ?? true,
+        emailEnabled: emailEnabled ?? true,
+        likes: likes ?? true,
+        comments: comments ?? true,
+        mentions: mentions ?? true,
+        follows: follows ?? true,
+        messages: messages ?? true,
+        newsletters: newsletters ?? false,
+      }
+    }).returning();
+    
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." }});
   }
 });

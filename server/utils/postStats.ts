@@ -1,5 +1,5 @@
 import { db } from "../../src/db/index.js";
-import { postMedia, reposts, likes, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes, follows } from "../../src/db/schema.js";
+import { postMedia, reposts, likes, reactions, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes, follows } from "../../src/db/schema.js";
 import { eq, and, inArray, sql, or } from "drizzle-orm";
 
 export async function populatePostStats(postsList: any[], currentUserId?: number | null) {
@@ -30,10 +30,10 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
       }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
       
       db.select({
-        postId: likes.postId,
+        postId: reactions.postId,
         count: sql<number>`cast(count(*) as integer)`,
-        isLiked: sql<number>`MAX(CASE WHEN ${likes.userId} = ${viewerId} THEN 1 ELSE 0 END)`
-      }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
+        myReaction: sql<string>`MAX(CASE WHEN ${reactions.userId} = ${viewerId} THEN ${reactions.type} ELSE NULL END)`
+      }).from(reactions).where(inArray(reactions.postId, postIds)).groupBy(reactions.postId),
       
       db.select({
         postId: bookmarks.postId,
@@ -88,7 +88,7 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
     if (f.followingId === viewerId) followsMeMap.set(f.followerId, true);
   });
   const repostsMap = new Map(repostStats.map(s => [s.postId, { count: s.count, isReposted: s.isReposted === 1 }]));
-  const likesMap = new Map(likeStats.map(s => [s.postId, { count: s.count, isLiked: s.isLiked === 1 }]));
+  const reactionsMap = new Map(likeStats.map(s => [s.postId, { count: s.count, myReaction: s.myReaction }]));
   const bookmarksMap = new Map(bookmarkStats.map(s => [s.postId, { isSaved: s.isSaved === 1 }]));
   const commentsMap = new Map(commentStats.map(s => [s.postId, { count: s.count }]));
   
@@ -121,7 +121,7 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
     const pCollabs = collabsMap.get(p.id) || [];
     
     const rStat = repostsMap.get(p.id) || { count: 0, isReposted: false };
-    const lStat = likesMap.get(p.id) || { count: 0, isLiked: false };
+    const rStat2 = reactionsMap.get(p.id) || { count: 0, myReaction: null };
     const bStat = bookmarksMap.get(p.id) || { isSaved: false };
     const cStat = commentsMap.get(p.id) || { count: 0 };
 
@@ -158,8 +158,9 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
       media: pMedia,
       repostCount: rStat.count,
       isReposted: rStat.isReposted,
-      likeCount: lStat.count,
-      isLiked: lStat.isLiked,
+      likeCount: rStat2.count,
+      isLiked: !!rStat2.myReaction,
+      myReaction: rStat2.myReaction,
       commentCount: cStat.count,
       isSaved: bStat.isSaved,
       collaborators: pCollabs.map((c: any) => ({ userId: c.userId, username: c.username, displayName: c.displayName, avatarUrl: c.avatarUrl }))

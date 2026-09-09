@@ -25,7 +25,7 @@ import { Skeleton, SkeletonCircle, SkeletonText } from '../ui/Skeleton';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { fetchApi } from '../../lib/api';
-import { fadeInVariants, slideUpVariants } from '../../lib/motion';
+import { fadeInVariants, pageInVariants } from '../../lib/motion';
 
 export function AdminAuditLogs() {
   const [logs, setLogs] = useState<any[]>([]);

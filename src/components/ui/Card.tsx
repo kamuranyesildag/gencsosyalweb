@@ -21,7 +21,7 @@ const variantStyles: Record<CardVariant, string> = {
   interactive:
     'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.16] cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
   glass:
-    'backdrop-blur-md bg-white/75 dark:bg-[#0D121D]/75 border border-slate-900/[0.06] dark:border-white/[0.08] shadow-xs',
+    ' bg-white/75 dark:bg-[#0D121D]/75 border border-slate-900/[0.06] dark:border-white/[0.08] shadow-xs',
 };
 
 const paddingStyles = {

@@ -76,6 +76,7 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
       visibility: posts.visibility,
       viewCount: posts.viewCount,
       createdAt: posts.createdAt,
+      quotedPostId: posts.quotedPostId,
       userId: posts.userId, // We need this to check owner
       user: {
         id: users.id,
@@ -197,6 +198,13 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
 
     let returnedError: any = null;
 
+    
+    if (parsed.data.quotedPostId) {
+      if (!(await verifyPostAccess(parsed.data.quotedPostId, currentUserId))) {
+        return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu içeriği alıntılamaya yetkiniz yok." } });
+      }
+    }
+
     const result = await db.transaction(async (tx: DbTransaction) => {
       const [newPost] = await tx.insert(posts).values({
         userId: currentUserId,
@@ -204,6 +212,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
         visibility: finalVisibility as any,
         postType: parsed.data.postType,
         contentWarning: parsed.data.contentWarning || null,
+        quotedPostId: parsed.data.quotedPostId || null,
         moderationStatus: modStatus
       }).returning();
       

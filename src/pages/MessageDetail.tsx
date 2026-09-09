@@ -119,9 +119,9 @@ export function MessageDetail() {
   const otherUser = messages.find((m) => m.sender?.id !== user?.id)?.sender;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#070A10] transition-colors">
+    <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#070A10] transition-all active:scale-[0.97]">
       {/* STICKY CHAT HEADER */}
-      <header className="sticky top-0 z-20 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-all active:scale-[0.97]">
         <div className="flex items-center gap-2.5 min-w-0">
           <IconButton
             aria-label="Geri Dön"
@@ -146,7 +146,7 @@ export function MessageDetail() {
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm sm:text-base truncate">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all active:scale-[0.97] text-sm sm:text-base truncate">
                     {otherUser.displayName || otherUser.username}
                   </span>
                   {otherUser.isVerified && (
@@ -245,7 +245,7 @@ export function MessageDetail() {
       </div>
 
       {/* STICKY INPUT BAR */}
-      <div className="p-3 sm:p-4 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-t border-slate-200/80 dark:border-white/[0.08]">
+      <div className="p-3 sm:p-4 bg-white/85 dark:bg-[#070A10]/85  border-t border-slate-200/80 dark:border-white/[0.08]">
         <div className="flex gap-2 items-center bg-slate-100/70 hover:bg-slate-100 focus-within:bg-white dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:focus:bg-[#0D121D] rounded-2xl p-1.5 pl-4 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-blue-500/50 dark:focus:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all">
           <input
             type="text"
@@ -261,20 +261,20 @@ export function MessageDetail() {
             }}
           />
 
-          <motion.button
-            whileTap={{ scale: 0.94 }}
+          <button
+            
             type="button"
             disabled={!content.trim() || isSending}
             onClick={handleSend}
             aria-label="Mesaj Gönder"
-            className="w-10 h-10 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-slate-900 dark:disabled:hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-colors shadow-xs shrink-0"
+            className="w-10 h-10 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-slate-900 dark:disabled:hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-all active:scale-[0.97] shadow-xs shrink-0"
           >
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Send className="w-4 h-4 -mr-0.5" />
             )}
-          </motion.button>
+          </button>
         </div>
       </div>
     </div>

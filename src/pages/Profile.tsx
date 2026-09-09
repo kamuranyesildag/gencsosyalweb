@@ -53,6 +53,7 @@ export function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<"none"|"pending"|"accepted">("none");
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
 
@@ -79,6 +80,7 @@ export function Profile() {
         if (json.success) {
           setProfile(json.data);
           setFollowing(json.data.isFollowing);
+          setFollowStatus(json.data.followStatus || (json.data.isFollowing ? "accepted" : "none"));
         } else {
           setProfile(null);
         }
@@ -106,40 +108,53 @@ export function Profile() {
     if (!profile || isFollowLoading) return;
 
     setIsFollowLoading(true);
-    const nextState = !following;
-    setFollowing(nextState);
+    const nextState = followStatus === 'none' ? (profile.isPrivate ? 'pending' : 'accepted') : 'none';
+    const wasFollowing = following;
+    const wasFollowStatus = followStatus;
+
+    setFollowStatus(nextState);
+    setFollowing(nextState === 'accepted');
 
     // Optimistic follower count update
-    setProfile((prev: any) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        followersCount: Math.max(0, (prev.followersCount || 0) + (nextState ? 1 : -1)),
-      };
-    });
+    if (nextState === 'accepted' || wasFollowing) {
+      setProfile((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          followersCount: Math.max(0, (prev.followersCount || 0) + (nextState === 'accepted' ? 1 : -1)),
+        };
+      });
+    }
 
     try {
       const res = await fetchApi(`/users/${profile.id}/follow`, {
-        method: nextState ? "POST" : "DELETE",
+        method: nextState !== 'none' ? "POST" : "DELETE",
       });
-      if (!res.ok) {
-        // Revert on failure
-        setFollowing(!nextState);
-        setProfile((prev: any) => ({
-          ...prev,
-          followersCount: Math.max(0, (prev.followersCount || 0) + (nextState ? -1 : 1)),
-        }));
-        toast.error("İşlem gerçekleştirilemedi.");
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error("Failed");
       } else {
-        toast.success(nextState ? `@${profile.username} takip ediliyor` : `Takip bırakıldı`);
+        if (json.data && json.data.status) {
+            setFollowStatus(json.data.status);
+            setFollowing(json.data.status === 'accepted');
+        }
+        toast.success(nextState === 'none' ? `İşlem iptal edildi` : json.data.message || `İşlem başarılı`);
+        window.dispatchEvent(
+          new CustomEvent("user_follow_toggled", {
+            detail: { userId: profile.id, isFollowing: nextState === 'accepted' },
+          })
+        );
       }
     } catch (e) {
       console.error(e);
-      setFollowing(!nextState);
-      setProfile((prev: any) => ({
-        ...prev,
-        followersCount: Math.max(0, (prev.followersCount || 0) + (nextState ? -1 : 1)),
-      }));
+      setFollowStatus(wasFollowStatus);
+      setFollowing(wasFollowing);
+      if (nextState === 'accepted' || wasFollowing) {
+        setProfile((prev: any) => ({
+          ...prev,
+          followersCount: Math.max(0, (prev.followersCount || 0) + (nextState === 'accepted' ? -1 : 1)),
+        }));
+      }
       toast.error("İşlem gerçekleştirilemedi.");
     } finally {
       setIsFollowLoading(false);
@@ -193,7 +208,7 @@ export function Profile() {
     return (
       <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
         {/* Sticky Header Skeleton */}
-        <div className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
           <Skeleton variant="circular" className="w-9 h-9" />
           <div className="space-y-1.5 flex-1">
             <Skeleton className="h-4 w-32 rounded-md" />
@@ -249,7 +264,7 @@ export function Profile() {
   return (
     <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
       {/* STICKY TOP APP BAR */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[56px] md:h-[60px] px-4 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] h-[56px] md:h-[60px] px-4 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3 min-w-0">
           <IconButton
             aria-label="Geri Dön"
@@ -333,17 +348,17 @@ export function Profile() {
                 </IconButton>
 
                 <Button
-                  variant={following ? "secondary" : "primary"}
+                  variant={followStatus !== 'none' ? "secondary" : "primary"}
                   size="md"
                   isLoading={isFollowLoading}
                   onClick={handleFollow}
                   className={`rounded-full px-5 font-bold transition-all shadow-xs ${
-                    following
+                    followStatus !== 'none'
                       ? "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
                       : "shadow-slate-500/20"
                   }`}
                 >
-                  {following ? "Takip Ediliyor" : profile?.followsMe ? "Sende Takip Et" : "Takip Et"}
+                  {followStatus === 'accepted' ? "Takip Ediliyor" : followStatus === 'pending' ? "İstek Gönderildi" : profile?.followsMe ? "Sende Takip Et" : "Takip Et"}
                 </Button>
 
                 {/* More Menu Dropdown */}
@@ -550,7 +565,7 @@ export function Profile() {
 
       {/* PROFILE TABS */}
       <div
-        className="sticky top-[56px] md:top-[120px] z-10 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
+        className="sticky top-[56px] md:top-[120px] z-10 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
         role="tablist"
         aria-label="Profil Sekmeleri"
       >

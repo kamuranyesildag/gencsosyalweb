@@ -31,6 +31,7 @@ export const createPostSchema = z.object({
   communityId: z.number().int().positive().optional(),
   visibility: z.enum(["PUBLIC", "PRIVATE", "FOLLOWERS"]).default("PUBLIC"),
   postType: z.enum(["NORMAL", "POLL", "SENSITIVE"]).default("NORMAL"),
+  quotedPostId: z.number().int().positive().optional(),
   contentWarning: z.string().max(100).optional(),
   pollOptions: z.array(z.string().min(1).max(100)).min(2).max(10).optional(),
   media: z.array(z.object({

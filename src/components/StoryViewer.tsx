@@ -158,7 +158,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center select-none"
+        className="fixed inset-0 z-50 bg-black/90  flex items-center justify-center select-none"
         role="dialog"
         aria-modal="true"
         aria-label="Hikaye Görüntüleyici"
@@ -173,7 +173,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
             }}
             disabled={currentUserIndex === 0 && currentStoryIndex === 0}
             aria-label="Önceki Hikaye"
-            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all cursor-pointer"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 disabled:opacity-20 text-white flex items-center justify-center  pointer-events-auto transition-all cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -184,7 +184,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
               handleNext();
             }}
             aria-label="Sonraki Hikaye"
-            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto transition-all cursor-pointer"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center  pointer-events-auto transition-all cursor-pointer"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -255,7 +255,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
                   }}
                   disabled={isDeleting}
                   aria-label="Sil"
-                  className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-red-400 bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-red-400 bg-black/30 hover:bg-black/50 rounded-full  transition-colors cursor-pointer"
                 >
                   {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </button>
@@ -268,7 +268,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
                     setIsMuted(!isMuted);
                   }}
                   aria-label={isMuted ? "Sesi Aç" : "Sesi Kapat"}
-                  className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-colors cursor-pointer"
+                  className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full  transition-colors cursor-pointer"
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
@@ -277,7 +277,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
                 type="button"
                 onClick={onClose}
                 aria-label="Kapat"
-                className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-colors cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white bg-black/30 hover:bg-black/50 rounded-full  transition-colors cursor-pointer"
               >
                 <X className="w-4.5 h-4.5" />
               </button>
@@ -353,7 +353,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
                   e.stopPropagation();
                   setShowViewers(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white/90 transition-colors pointer-events-auto cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 hover:bg-black/60  text-white/90 transition-colors pointer-events-auto cursor-pointer"
               >
                 <Eye className="w-4 h-4" />
                 <span className="text-xs font-medium tracking-wide">{viewers.length} Görüntüleme</span>

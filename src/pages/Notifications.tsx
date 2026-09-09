@@ -31,8 +31,6 @@ export function Notifications() {
 
   useEffect(() => {
     loadInitial();
-    // Mark as read
-    fetchApi("/notifications/read", { method: "PUT" }).catch(console.error);
   }, [loadInitial]);
 
   const handleMarkAllAsRead = async () => {
@@ -80,6 +78,23 @@ export function Notifications() {
           bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
           text: "seni takip etmeye başladı.",
         };
+      case "follow_request":
+        return {
+          icon: <UserPlus className="w-4.5 h-4.5 text-orange-600 dark:text-orange-400" />,
+          bg: "bg-orange-50/80 dark:bg-orange-950/30 border-orange-200/60 dark:border-orange-900/40 text-orange-600 dark:text-orange-400",
+          text: "sana takip isteği gönderdi.",
+        };
+      case "follow_accepted":
+        return {
+          icon: <UserPlus className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
+          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
+          text: "takip isteğini kabul etti.",
+        };
+        return {
+          icon: <UserPlus className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
+          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
+          text: "seni takip etmeye başladı.",
+        };
       case "repost":
         return {
           icon: <Repeat2 className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 stroke-[2.5]" />,
@@ -116,6 +131,11 @@ export function Notifications() {
   };
 
   const handleNotificationClick = (notif: any) => {
+    if (!notif.isRead) {
+      fetchApi(`/notifications/${notif.id}/read`, { method: "POST" }).catch(console.error);
+      setData((prev) => prev.map((n) => n.id === notif.id ? { ...n, isRead: true } : n));
+    }
+
     if (notif.postId) {
       navigate(`/post/${notif.postId}`);
     } else if (notif.projectId) {
@@ -135,7 +155,7 @@ export function Notifications() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] min-h-screen bg-white dark:bg-[#070A10] transition-colors">
       {/* STICKY HEADER */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
         <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
@@ -303,6 +323,34 @@ export function Notifications() {
                       <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
                         {details.text}
                       </p>
+                      
+                      {/* Follow Request Actions */}
+                      {notif.type === "follow_request" && (
+                        <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                            onClick={async () => {
+                              try {
+                                const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/accept`, { method: "POST" });
+                                if (res.ok) {
+                                  window.location.reload();
+                                }
+                              } catch(e) {}
+                            }}
+                          >Kabul Et</button>
+                          <button 
+                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.05] dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 dark:border-white/[0.1] hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-colors"
+                            onClick={async () => {
+                              try {
+                                const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/reject`, { method: "POST" });
+                                if (res.ok) {
+                                  window.location.reload();
+                                }
+                              } catch(e) {}
+                            }}
+                          >Reddet</button>
+                        </div>
+                      )}
 
                       {/* Post / Content Snippet if available */}
                       {notif.post?.content && (

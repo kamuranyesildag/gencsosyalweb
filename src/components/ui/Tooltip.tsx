@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { tooltipVariants } from '../../lib/motion';
+import { scaleInVariants } from '../../lib/motion';
 
 export type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -70,7 +70,7 @@ export function Tooltip({
           <motion.div
             id={tooltipId}
             role="tooltip"
-            variants={tooltipVariants}
+            variants={scaleInVariants}
             initial="hidden"
             animate="visible"
             exit="exit"

@@ -100,7 +100,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-950/60 "
         />
 
         {/* Modal / BottomSheet Content */}
@@ -109,7 +109,7 @@ export function NewMessageDialog({ isOpen, onClose }: NewMessageDialogProps) {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: "100%", opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="relative w-full sm:max-w-md bg-white/95 dark:bg-[#0E131F]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col h-[520px] max-h-[90vh]"
+          className="relative w-full sm:max-w-md bg-white/95 dark:bg-[#0E131F]/95  border border-slate-200/80 dark:border-white/[0.08] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col h-[520px] max-h-[90vh]"
         >
           {/* Mobile Drag Handle */}
           <div className="pt-3 pb-1 flex justify-center sm:hidden">

@@ -107,7 +107,8 @@ export const posts = pgTable('posts', {
   communityId: integer('community_id').references(() => communities.id, { onDelete: 'cascade' }),
   content: text('content'),
   visibility: varchar('visibility', { length: 20 }).default('PUBLIC').notNull(), 
-  postType: varchar('post_type', { length: 20 }).default('NORMAL').notNull(), // NORMAL, POLL, SENSITIVE
+  postType: varchar('post_type', { length: 20 }).default('NORMAL').notNull(), // NORMAL, POLL, SENSITIVE, QUOTE
+  quotedPostId: integer('quoted_post_id').references((): any => posts.id, { onDelete: 'set null' }), // Self-reference for quotes
   moderationStatus: varchar('moderation_status', { length: 20 }).default('APPROVED').notNull(),
   contentWarning: text('content_warning'),
   baseScore: real('base_score').default(0).notNull(),
@@ -224,6 +225,7 @@ export const follows = pgTable('follows', {
   id: serial('id').primaryKey(),
   followerId: integer('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   followingId: integer('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).default('accepted').notNull(),
   notificationPreference: varchar('notification_preference', { length: 20 }).default('standard').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
@@ -460,6 +462,25 @@ export const securityAuditLogs = pgTable('security_audit_logs', {
   actionIdx: index('security_audit_logs_action_idx').on(t.action),
 }));
 
+export const notificationPreferences = pgTable('notification_preferences', {
+  userId: integer('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  pushEnabled: boolean('push_enabled').default(true).notNull(),
+  emailEnabled: boolean('email_enabled').default(true).notNull(),
+  likes: boolean('likes').default(true).notNull(),
+  comments: boolean('comments').default(true).notNull(),
+  mentions: boolean('mentions').default(true).notNull(),
+  follows: boolean('follows').default(true).notNull(),
+  messages: boolean('messages').default(true).notNull(),
+  newsletters: boolean('newsletters').default(false).notNull(),
+});
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
 export const adminAuditLogs = pgTable('admin_audit_logs', {
   id: serial('id').primaryKey(),
   adminUserId: integer('admin_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -507,6 +528,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [profiles.userId],
   }),
+  notificationPreferences: one(notificationPreferences, {
+    fields: [users.id],
+    references: [notificationPreferences.userId],
+  }),
   projects: many(projects),
   projectLikes: many(projectLikes),
   projectComments: many(projectComments),
@@ -546,6 +571,10 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   author: one(users, {
     fields: [posts.userId],
     references: [users.id],
+  }),
+  quotedPost: one(posts, {
+    fields: [posts.quotedPostId],
+    references: [posts.id],
   }),
   media: many(postMedia),
   likes: many(likes),

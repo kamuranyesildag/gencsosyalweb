@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
   Home,
-  Compass,
+  Compass, Mail, Bell,
   Rocket,
   Users,
   Bookmark,
@@ -35,12 +35,14 @@ export function MobileSidebar({ onItemClick }: { onItemClick?: () => void }) {
     }
   };
 
-  const navItems = [
+    const navItems = [
     { name: 'Ana Sayfa', path: '/home', icon: Home, protected: false },
     { name: 'Keşfet', path: '/explore', icon: Compass, protected: false },
+    { name: 'Mesajlar', path: '/messages', icon: Mail, protected: true },
+    { name: 'Bildirimler', path: '/notifications', icon: Bell, protected: true },
     { name: 'Projeler', path: '/projects', icon: Rocket, protected: false },
     { name: 'Topluluklar', path: '/communities', icon: Users, protected: false },
-    { name: 'Kaydedilenler', path: '/bookmarks', icon: Bookmark, protected: true },
+    { name: 'Yer İşaretleri', path: '/bookmarks', icon: Bookmark, protected: true },
   ];
 
   if (user?.role === 'ADMIN') {
