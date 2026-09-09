@@ -9296,14 +9296,18 @@ async function startServer() {
         return next();
       }
       const host = req.headers.host || "";
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const forwardedProto = req.headers["x-forwarded-proto"];
+      let protocol = req.protocol;
+      if (typeof forwardedProto === "string") {
+        protocol = forwardedProto.split(",")[0].trim();
+      }
       let redirectRequired = false;
       let newHost = host;
       if (host.startsWith("www.")) {
         newHost = host.slice(4);
         redirectRequired = true;
       }
-      if (protocol !== "https" && protocol !== "https,http" && req.headers["x-forwarded-ssl"] !== "on") {
+      if (protocol !== "https" && req.headers["x-forwarded-ssl"] !== "on") {
         redirectRequired = true;
       }
       if (redirectRequired) {
