@@ -9303,7 +9303,7 @@ async function startServer() {
         newHost = host.slice(4);
         redirectRequired = true;
       }
-      if (protocol !== "https") {
+      if (protocol !== "https" && protocol !== "https,http" && req.headers["x-forwarded-ssl"] !== "on") {
         redirectRequired = true;
       }
       if (redirectRequired) {

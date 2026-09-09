@@ -39,6 +39,7 @@ async function startServer() {
       }
 
       const host = req.headers.host || '';
+      // check Cloudflare / standard proxy protocol headers properly
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       
       let redirectRequired = false;
@@ -48,7 +49,9 @@ async function startServer() {
         newHost = host.slice(4);
         redirectRequired = true;
       }
-      if (protocol !== 'https') {
+      
+      // If we are already on https and not www, don't redirect again
+      if (protocol !== 'https' && protocol !== 'https,http' && req.headers['x-forwarded-ssl'] !== 'on') {
         redirectRequired = true;
       }
 
