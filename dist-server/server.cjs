@@ -5726,6 +5726,33 @@ async function populatePostStats(postsList, currentUserId) {
       )
     );
   }
+  const quotedPostIds = Array.from(new Set(postsList.map((p) => p.quotedPostId).filter(Boolean)));
+  let quotedPostsMap = /* @__PURE__ */ new Map();
+  if (quotedPostIds.length > 0) {
+    const quotedPostsData = await db.select({
+      id: posts.id,
+      content: posts.content,
+      createdAt: posts.createdAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl
+      }
+    }).from(posts).innerJoin(users, (0, import_drizzle_orm15.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm15.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm15.inArray)(posts.id, quotedPostIds));
+    const quotedMedia = await db.select().from(postMedia).where((0, import_drizzle_orm15.inArray)(postMedia.postId, quotedPostIds));
+    const qMediaMap = /* @__PURE__ */ new Map();
+    quotedMedia.forEach((m) => {
+      if (!qMediaMap.has(m.postId)) qMediaMap.set(m.postId, []);
+      qMediaMap.get(m.postId).push(m);
+    });
+    quotedPostsData.forEach((qp) => {
+      quotedPostsMap.set(qp.id, {
+        ...qp,
+        media: (qMediaMap.get(qp.id) || []).sort((a, b) => a.sortOrder - b.sortOrder)
+      });
+    });
+  }
   const isFollowingMap = /* @__PURE__ */ new Map();
   const followsMeMap = /* @__PURE__ */ new Map();
   followStats.forEach((f) => {
@@ -5790,6 +5817,7 @@ async function populatePostStats(postsList, currentUserId) {
     return {
       ...p,
       user: postUser,
+      quotedPost: p.quotedPostId ? quotedPostsMap.get(p.quotedPostId) : void 0,
       pollData: pPollOptions,
       media: pMedia,
       repostCount: rStat.count,
@@ -6177,13 +6205,23 @@ var init_userPosts = __esm({
             return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Kullan\u0131c\u0131ya eri\u015Fiminiz yok." } });
           }
         }
+        const targetUserInfo = await db.select({
+          username: users.username,
+          displayName: profiles.displayName
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.eq)(users.id, targetUserId)).limit(1);
         const visiblePosts = userPosts.filter((p) => {
           if (p.visibility === "PUBLIC") return true;
           if (isSelf) return true;
           if (p.visibility === "FOLLOWERS" && isFollowing) return true;
           return false;
         });
-        const formattedPosts = await populatePostStats(visiblePosts, currentUserId ?? void 0);
+        const populatedPosts = await populatePostStats(visiblePosts, currentUserId ?? void 0);
+        const formattedPosts = populatedPosts.map((p) => {
+          if (p.__repostUserId === targetUserId && targetUserInfo.length > 0) {
+            p.repostedBy = targetUserInfo[0];
+          }
+          return p;
+        });
         let nextCursor = void 0;
         if (visiblePosts.length === limit) {
           const last = visiblePosts[visiblePosts.length - 1];

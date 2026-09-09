@@ -48,6 +48,14 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
   const currentUserStories = usersWithStories[currentUserIndex];
   const currentStory = currentUserStories?.stories[currentStoryIndex];
 
+  // Body scroll locking
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
   // Close on Escape key, arrows navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -158,7 +166,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/90  flex items-center justify-center select-none"
+        className="fixed top-0 left-0 w-full h-[100dvh] z-50 bg-black/90 flex items-center justify-center select-none"
         role="dialog"
         aria-modal="true"
         aria-label="Hikaye Görüntüleyici"
@@ -285,7 +293,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
           </div>
 
           {/* Main Media Content */}
-          <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden">
+          <div className="relative flex-1 min-h-0 bg-slate-950 flex items-center justify-center overflow-hidden">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-950">
                 <Loader2 className="w-8 h-8 animate-spin text-white/80" />
@@ -299,7 +307,7 @@ export function StoryViewer({ usersWithStories, initialUserIndex, onClose, onSto
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="w-full h-full flex items-center justify-center"
+                className="w-full h-full min-h-0 flex items-center justify-center"
               >
                 {currentStory.mediaType === "video" ? (
                   <video

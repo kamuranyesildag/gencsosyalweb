@@ -126,6 +126,11 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
       }
     }
 
+    const targetUserInfo = await db.select({
+      username: users.username,
+      displayName: profiles.displayName
+    }).from(users).leftJoin(profiles, eq(users.id, profiles.userId)).where(eq(users.id, targetUserId)).limit(1);
+
     const visiblePosts = userPosts.filter((p: any) => {
         if (p.visibility === 'PUBLIC') return true;
         if (isSelf) return true;
@@ -133,7 +138,14 @@ userPostsRouter.get("/:id/posts", optionalAuth, async (req, res) => {
         return false;
     });
 
-    const formattedPosts = await populatePostStats(visiblePosts, currentUserId ?? undefined);
+    const populatedPosts = await populatePostStats(visiblePosts, currentUserId ?? undefined);
+    const formattedPosts = populatedPosts.map((p: any) => {
+      if (p.__repostUserId === targetUserId && targetUserInfo.length > 0) {
+        p.repostedBy = targetUserInfo[0];
+      }
+      return p;
+    });
+
     let nextCursor: string | undefined = undefined;
     if (visiblePosts.length === limit) {
       const last = visiblePosts[visiblePosts.length - 1];

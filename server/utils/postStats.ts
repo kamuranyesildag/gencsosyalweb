@@ -1,5 +1,5 @@
 import { db } from "../../src/db/index.js";
-import { postMedia, reposts, likes, reactions, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes, follows } from "../../src/db/schema.js";
+import { postMedia, reposts, likes, reactions, bookmarks, comments, postCollaborators, users, profiles, pollOptions, pollVotes, follows, posts } from "../../src/db/schema.js";
 import { eq, and, inArray, sql, or } from "drizzle-orm";
 
 export async function populatePostStats(postsList: any[], currentUserId?: number | null) {
@@ -80,6 +80,42 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
     );
   }
 
+  // Fetch Quoted Posts
+  const quotedPostIds = Array.from(new Set(postsList.map(p => p.quotedPostId).filter(Boolean)));
+  let quotedPostsMap = new Map();
+
+  if (quotedPostIds.length > 0) {
+    const quotedPostsData = await db.select({
+      id: posts.id,
+      content: posts.content,
+      createdAt: posts.createdAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+      }
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(inArray(posts.id, quotedPostIds));
+
+    const quotedMedia = await db.select().from(postMedia).where(inArray(postMedia.postId, quotedPostIds));
+    const qMediaMap = new Map();
+    quotedMedia.forEach(m => {
+      if (!qMediaMap.has(m.postId)) qMediaMap.set(m.postId, []);
+      qMediaMap.get(m.postId).push(m);
+    });
+
+    quotedPostsData.forEach(qp => {
+      quotedPostsMap.set(qp.id, {
+        ...qp,
+        media: (qMediaMap.get(qp.id) || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+      });
+    });
+  }
+
   // Create maps for O(1) lookup
   const isFollowingMap = new Map();
   const followsMeMap = new Map();
@@ -154,6 +190,7 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
     return {
       ...p,
       user: postUser,
+      quotedPost: p.quotedPostId ? quotedPostsMap.get(p.quotedPostId) : undefined,
       pollData: pPollOptions,
       media: pMedia,
       repostCount: rStat.count,
