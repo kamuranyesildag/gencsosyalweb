@@ -39,7 +39,7 @@ export function AppLayout() {
         {/* Main Content Area */}
         <main
           id="main-content"
-          className="flex-1 min-w-0 bg-transparent border-r border-slate-200/80 dark:border-white/[0.08] pb-[calc(68px+var(--sab,0px))] md:pb-10 min-h-[calc(100vh-60px)] transition-colors"
+          className="flex-1 min-w-0 bg-transparent border-r border-slate-200/80 dark:border-white/[0.08] pb-[calc(90px+env(safe-area-inset-bottom,0px))] md:pb-10 min-h-[calc(100vh-60px)] transition-colors"
         >
           <PageTransition>
             <Outlet />

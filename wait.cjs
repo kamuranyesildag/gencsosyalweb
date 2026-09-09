@@ -1,1 +1,1 @@
-setTimeout(() => console.log('done'), 5000);
+setTimeout(() => console.log('done'), 2000);

@@ -20,7 +20,7 @@ export const strictLimiter = rateLimit({
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 10,
   validate: { xForwardedForHeader: false },
   message: {
     success: false,
@@ -35,7 +35,7 @@ export const authRateLimiter = rateLimit({
 
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
   validate: { xForwardedForHeader: false },
   message: {
     success: false,

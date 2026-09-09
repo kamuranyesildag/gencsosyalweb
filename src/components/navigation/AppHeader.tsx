@@ -33,7 +33,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <header
-      className="sticky top-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#070A10]/95 border-b border-slate-200/80 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
+      className="sticky top-0 left-0 right-0 z-30 bg-white dark:bg-[#070A10] border-b border-slate-200/80 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
     >
       <div className="w-full max-w-7xl px-3 md:px-6 flex justify-between items-center h-full">
         {/* MOBILE VIEW (Hidden on md+) */}
@@ -90,7 +90,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-blue-600 p-0.5 flex items-center justify-center text-white shadow-xs group-hover:bg-slate-800 dark:group-hover:bg-blue-500 transition-colors">
               <Hexagon className="w-5 h-5 fill-transparent stroke-white stroke-[2]" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-tight">
+            <span className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-tight">
               Genç Sosyal
             </span>
           </Link>

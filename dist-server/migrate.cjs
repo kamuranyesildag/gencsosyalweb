@@ -1105,16 +1105,8 @@ async function runMigration(isStandalone = false) {
     }
     console.log("\u2705 Database migrations completed successfully.");
   } catch (error) {
-    const errorCode = error?.code || error?.cause?.code;
-    const errorMsg = String(error?.message || error?.cause?.message || "");
-    if (errorCode === "42P07" || errorCode === "42710" || errorCode === "42701" || errorMsg.includes("already exists")) {
-      console.warn("\u26A0\uFE0F Veritaban\u0131 tablolar\u0131 veya \u015Fema nesneleri zaten mevcut (" + (errorCode || "already exists") + ").");
-      console.log("\u2139\uFE0F Mevcut veritaban\u0131 \u015Femas\u0131 korunarak devam ediliyor.");
-      exitCode = 0;
-    } else {
-      console.error("\u274C Database migration failed:", error);
-      exitCode = 1;
-    }
+    console.error("\u274C Database migration failed:", error);
+    exitCode = 1;
   } finally {
     if (isStandalone) {
       try {
@@ -1137,4 +1129,3 @@ if (process.argv[1] && process.argv[1].includes("migrate")) {
 0 && (module.exports = {
   runMigration
 });
-//# sourceMappingURL=migrate.cjs.map

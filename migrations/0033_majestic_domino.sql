@@ -1,0 +1,2 @@
+ALTER TABLE "posts" ADD COLUMN "quoted_post_id" integer;--> statement-breakpoint
+ALTER TABLE "posts" ADD CONSTRAINT "posts_quoted_post_id_posts_id_fk" FOREIGN KEY ("quoted_post_id") REFERENCES "public"."posts"("id") ON DELETE set null ON UPDATE no action;

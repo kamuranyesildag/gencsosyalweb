@@ -28,7 +28,6 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Landing } from "./pages/Landing";
-import { Setup } from "./pages/setup/Setup";
 import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { AuthWrapper } from "./components/AuthWrapper";
@@ -75,7 +74,6 @@ export default function App() {
                 <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
-                <Route path="/setup" element={<Setup />} />
               </Route>
 
               {/* Logged In Routes using AppLayout (Sidebars) */}

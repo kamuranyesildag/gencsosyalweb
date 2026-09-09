@@ -23,9 +23,37 @@ async function startServer() {
   // Trust reverse proxies (Nginx / Cloudflare) to get real IPs
   // We set it to trust the loopback / internal docker network IPs, or just 'loopback, linklocal, uniquelocal'
   app.set("trust proxy", 1);
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Security and utilities middlewares
+  app.use((req, res, next) => {
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    next();
+  });
+
+  if (isProd) {
+    app.use((req, res, next) => {
+      const host = req.headers.host || '';
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      
+      let redirectRequired = false;
+      let newHost = host;
+
+      if (host.startsWith('www.')) {
+        newHost = host.slice(4);
+        redirectRequired = true;
+      }
+      if (protocol !== 'https') {
+        redirectRequired = true;
+      }
+
+      if (redirectRequired) {
+        return res.redirect(301, `https://${newHost}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+
   app.use(helmet({
     contentSecurityPolicy: isProd ? {
       directives: {
@@ -42,6 +70,11 @@ async function startServer() {
       },
     } : false,
     crossOriginEmbedderPolicy: false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
   }));
   const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:3000").split(',');
   app.use(cors({
@@ -77,9 +110,6 @@ async function startServer() {
   }
   
   // --- API Routes Start ---
-  const { setupRouter } = await import("./server/routes/setup.js");
-  app.use("/api/setup", setupRouter);
-  app.use("/api/v1/setup", setupRouter);
 
   const { healthRouter } = await import("./server/routes/health.js");
   app.use("/api/v1/health", healthRouter);
@@ -173,6 +203,14 @@ async function startServer() {
     // API 404 handler - prevents API calls from returning index.html
     app.use('/api', (req, res) => {
       res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
+    });
+
+    // SPA fallback masking: Prevent sensitive routes and unhandled extensions from returning 200 OK index.html
+    app.use((req, res, next) => {
+      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
+        return res.status(404).send("Not Found");
+      }
+      next();
     });
 
     // SPA fallback
