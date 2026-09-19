@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Avatar } from "./ui/Avatar";
-import { Plus, Loader2, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { fetchApi } from "../lib/api";
 import { StoryViewer } from "./StoryViewer";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
-import { toast } from "./ui/Toast";
-import { motion } from "motion/react";
+import { useStoryCreateModalStore } from "../context/useStoryCreateModal";
 
 export interface Story {
   id: number;
@@ -32,10 +31,9 @@ export function StoriesBar() {
   const [usersWithStories, setUsersWithStories] = useState<UserStories[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user: currentUser, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
+  const { openStoryCreate } = useStoryCreateModalStore();
 
   const loadStories = async () => {
     try {
@@ -51,8 +49,16 @@ export function StoriesBar() {
           return acc;
         }, {});
 
-        // Ensure current user is first if they have stories
         const storiesArray = Object.values(grouped) as UserStories[];
+
+        // Sort stories within each user chronologically (oldest to newest)
+        storiesArray.forEach((u) => {
+          u.stories.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+
+        // Ensure current user is first if they have stories
         storiesArray.sort((a, b) => {
           if (a.userId === currentUser?.id) return -1;
           if (b.userId === currentUser?.id) return 1;
@@ -70,49 +76,16 @@ export function StoriesBar() {
 
   useEffect(() => {
     loadStories();
-  }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error("Dosya boyutu en fazla 25MB olabilir");
-      return;
-    }
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const mediaRes = await fetchApi("/media/upload", {
-        method: "POST",
-        data: formData,
-        headers: {},
-      });
-      const mediaJson = await mediaRes.json();
-
-      if (!mediaRes.ok || !mediaJson.success) {
-        throw new Error(mediaJson?.error?.message || "Yükleme başarısız");
-      }
-
-      const { url, type } = mediaJson.data;
-
-      await fetchApi("/stories", {
-        method: "POST",
-        data: { mediaUrl: url, mediaType: type },
-      });
-
-      toast.success("Hikayen başarıyla paylaşıldı!");
-      await loadStories();
-    } catch (err: any) {
-      toast.error(err.message || "Hikaye paylaşılırken bir hata oluştu");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+    // Listen for story updates (e.g. from StoryCreateModal)
+    const handleStoriesUpdated = () => {
+      loadStories();
+    };
+    window.addEventListener("stories_updated", handleStoriesUpdated);
+    return () => {
+      window.removeEventListener("stories_updated", handleStoriesUpdated);
+    };
+  }, [currentUser?.id]);
 
   const currentUserHasStory = usersWithStories.some((u) => u.userId === currentUser?.id);
 
@@ -138,9 +111,10 @@ export function StoriesBar() {
         aria-label="Hikayeler"
       >
         <div className="flex gap-3.5 items-center overflow-x-auto scrollbar-none py-0.5 px-0.5">
-          {/* 1. Current User Story / Add Story Item */}
+          {/* 1. Current User Story Item */}
           <div className="flex flex-col items-center gap-1 shrink-0">
             <div className="relative">
+              {/* Profile Avatar button */}
               <button
                 type="button"
                 onClick={() => {
@@ -149,14 +123,14 @@ export function StoriesBar() {
                     setViewerIndex(idx);
                   } else {
                     if (!isAuthenticated) return openModal();
-                    fileInputRef.current?.click();
+                    openStoryCreate();
                   }
                 }}
-                aria-label={currentUserHasStory ? "Hikayeni görüntüle" : "Yeni hikaye ekle"}
+                aria-label={currentUserHasStory ? "Hikayeni görüntüle" : "Modern hikaye oluştur"}
                 className={`relative rounded-full p-[2px] transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${
                   currentUserHasStory
-                    ? "ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-[#0D121D]"
-                    : ""
+                    ? "ring-2 ring-gradient ring-blue-500 ring-offset-2 dark:ring-offset-[#0D121D] hover:scale-105"
+                    : "hover:opacity-90 active:scale-95"
                 }`}
               >
                 <div className="rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
@@ -169,33 +143,20 @@ export function StoriesBar() {
                 </div>
               </button>
 
-              {!currentUserHasStory && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isAuthenticated) return openModal();
-                    fileInputRef.current?.click();
-                  }}
-                  disabled={isUploading}
-                  aria-label="Hikaye Yükle"
-                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0D121D] shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  {isUploading ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  )}
-                </button>
-              )}
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,video/mp4"
-                onChange={handleUpload}
-              />
+              {/* Hikaye Ekle (+) Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isAuthenticated) return openModal();
+                  openStoryCreate();
+                }}
+                aria-label="Hikayeye Yeni Ekle"
+                title={currentUserHasStory ? "Başka Hikaye Ekle" : "Hikaye Oluştur"}
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0D121D] shadow-xs active:scale-95 transition-all cursor-pointer z-10"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
             </div>
             <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate w-14 text-center">
               {currentUserHasStory ? "Hikayen" : "Sen"}
@@ -249,7 +210,6 @@ export function StoriesBar() {
           initialUserIndex={viewerIndex}
           onClose={() => setViewerIndex(null)}
           onStoryDeleted={() => {
-            setViewerIndex(null);
             loadStories();
           }}
         />

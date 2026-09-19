@@ -9,6 +9,7 @@ import { LoginBottomSheet } from "../components/auth/LoginBottomSheet";
 import { LoadingState } from "../components/ui/LoadingState";
 import { PageTransition } from "../components/ui/PageTransition";
 import { MobileSidebarDrawer } from "../components/navigation/MobileSidebarDrawer";
+import { StoryCreateModal } from "../components/StoryCreateModal";
 
 export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -60,6 +61,9 @@ export function AppLayout() {
 
       {/* Auth Modal / Bottom Sheet */}
       <LoginBottomSheet />
+
+      {/* Modern Story Create Modal */}
+      <StoryCreateModal />
     </div>
   );
 }

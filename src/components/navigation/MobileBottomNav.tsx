@@ -7,6 +7,7 @@ import { Avatar } from '../ui/Avatar';
 import { CreateMenu } from './CreateMenu';
 import { motion, AnimatePresence } from 'motion/react';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { useStoryViewerStore } from '../../context/useStoryViewerStore';
 
 export function MobileBottomNav() {
   const { user, isAuthenticated } = useAuthStore();
@@ -14,6 +15,7 @@ export function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
+  const isStoryViewerOpen = useStoryViewerStore((s) => s.isOpen);
   
   // Custom hook to detect scroll direction
   const isVisible = useScrollDirection();
@@ -27,7 +29,7 @@ export function MobileBottomNav() {
   return (
     <>
       <AnimatePresence>
-        {isVisible && (
+        {isVisible && !isStoryViewerOpen && (
           <motion.nav
             role="navigation"
             aria-label="Mobil Gezinme Çubuğu"

@@ -1,12 +1,18 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
-import { PenTool, Rocket, Users, X } from 'lucide-react';
+import { PenTool, Rocket, Users, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { backdropVariants, sheetVariants } from '../../lib/motion';
+import { useAuthStore } from '../../context/useAuth';
+import { useAuthModalStore } from '../../context/useAuthModal';
+import { useStoryCreateModalStore } from '../../context/useStoryCreateModal';
 
 export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const { openModal } = useAuthModalStore();
+  const { openStoryCreate } = useStoryCreateModalStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,7 +86,36 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   </div>
 
                   <div className="grid grid-cols-1 gap-2.5">
-                    {/* Option 1: New Post */}
+                    {/* Option 1: New Story */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        if (!isAuthenticated) {
+                          openModal();
+                        } else {
+                          openStoryCreate();
+                        }
+                      }}
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-5 h-5 stroke-[2]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors flex items-center gap-1.5">
+                          <span>Hikaye Oluştur</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300">
+                            24s
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          24 saat sonra kaybolacak fotoğraf, video veya düşünceni paylaş
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: New Post */}
                     <button
                       type="button"
                       onClick={() => handleNavigate('/create')}
