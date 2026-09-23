@@ -1,13 +1,14 @@
-import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { useSEO } from "../hooks/useSEO";
 import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
+import { HomeCreatePost } from "../components/HomeCreatePost";
 import { FeedSuggestedUsers } from "../components/FeedSuggestedUsers";
 import { fetchApi } from "../lib/api";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
-import { Sparkles, Users, ArrowUp, RefreshCw } from "lucide-react";
+import { Sparkles, Users, ArrowUp, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../components/ui/Button";
@@ -38,13 +39,17 @@ interface Post {
 }
 
 export function Feed() {
-  useSEO({ title: "Akış | Genç Sosyal", description: "Genç Sosyal akışınızda en güncel gönderileri görün." });
-  useSEO({ title: "Akış | Genç Sosyal", description: "Genç Sosyal akışınızda en güncel gönderileri görün." });
+  useSEO({
+    title: "Akış | Genç Sosyal",
+    description: "Genç Sosyal akışınızda en güncel projeleri, fikirleri ve gönderileri keşfedin.",
+  });
+
   const navigate = useNavigate();
   const [feedType, setFeedType] = useState<"for_you" | "following">("for_you");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
@@ -64,6 +69,7 @@ export function Feed() {
 
       if (reset) {
         setLoading(true);
+        setError(null);
       } else {
         setLoadingMore(true);
       }
@@ -81,6 +87,9 @@ export function Feed() {
         }
 
         if (!res.ok) {
+          if (reset) {
+            setError("Gönderiler alınırken bir sorun oluştu.");
+          }
           setHasMore(false);
           return;
         }
@@ -104,7 +113,6 @@ export function Feed() {
             }
           } else {
             setPosts((prev) => {
-              // Deduplicate by post id
               const existingIds = new Set(prev.map((p) => p.id));
               const uniqueNew = fetchedPosts.filter((p) => !existingIds.has(p.id));
               return [...prev, ...uniqueNew];
@@ -119,10 +127,16 @@ export function Feed() {
               : fetchedPosts.length >= 10;
           setHasMore(backendHasMore);
         } else {
+          if (reset) {
+            setError(json.error?.message || "Gönderiler yüklenemedi.");
+          }
           setHasMore(false);
         }
       } catch (err) {
         console.error("Feed fetch error:", err);
+        if (reset) {
+          setError("Sunucuya bağlanırken bir hata oluştu.");
+        }
         setHasMore(false);
       } finally {
         isFetchingRef.current = false;
@@ -154,7 +168,7 @@ export function Feed() {
           });
         }
       },
-      { threshold: 0.1, rootMargin: "200px" }
+      { threshold: 0.1, rootMargin: "250px" }
     );
 
     const currentRef = loadMoreRef.current;
@@ -169,6 +183,10 @@ export function Feed() {
     setPosts((prev) => prev.filter((p) => p.id !== deletedId));
   };
 
+  const handlePostCreated = (newPost: any) => {
+    setPosts((prev) => [newPost, ...prev]);
+  };
+
   const handleRefreshToNewPosts = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setNewPostsAvailable(false);
@@ -177,21 +195,21 @@ export function Feed() {
   };
 
   return (
-    <main className="w-full min-h-screen pb-16">
-      {/* 1. STICKY FEED HEADER (60px high, blurred liquid glass) */}
-      <header className="sticky top-[60px] z-20 bg-white/85 dark:bg-[#0D121D]/85  border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
-        <div className="flex h-12 w-full max-w-2xl mx-auto">
+    <section aria-label="Sosyal Akış" className="w-full min-h-screen">
+      {/* 1. STICKY FEED HEADER (Clean, Soft, Blurred Tabs) */}
+      <header className="sticky top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+        <div className="flex h-12 w-full max-w-2xl mx-auto px-2 sm:px-4">
           {/* For You Tab */}
           <button
             type="button"
             onClick={() => setFeedType("for_you")}
-            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
           >
             <span
               className={
                 feedType === "for_you"
-                  ? "text-slate-900 dark:text-slate-100"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "text-slate-900 dark:text-slate-100 font-bold"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium"
               }
             >
               Sana Özel
@@ -212,13 +230,13 @@ export function Feed() {
               if (!isAuthenticated) return openModal();
               setFeedType("following");
             }}
-            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex-1 relative flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
           >
             <span
               className={
                 feedType === "following"
-                  ? "text-slate-900 dark:text-slate-100"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "text-slate-900 dark:text-slate-100 font-bold"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium"
               }
             >
               Takip Edilenler
@@ -246,7 +264,7 @@ export function Feed() {
             <button
               type="button"
               onClick={handleRefreshToNewPosts}
-              className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-full shadow-lg transition-all cursor-pointer"
+              className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-full shadow-md transition-all cursor-pointer"
             >
               <ArrowUp className="w-3.5 h-3.5" />
               <span>Yeni Gönderiler Var</span>
@@ -256,19 +274,22 @@ export function Feed() {
       </AnimatePresence>
 
       {/* 2. FEED CONTENT FLOW */}
-      <div className="w-full max-w-2xl mx-auto pt-3">
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-3 flex flex-col gap-3">
         {/* Stories Bar */}
         <StoriesBar />
 
+        {/* Inline Create Post Quick Composer */}
+        <HomeCreatePost onPostCreated={handlePostCreated} />
+
         {/* 3. POSTS STREAM */}
-        <div role="feed" aria-label="Sosyal akış" className="w-full">
+        <div role="feed" aria-label="Sosyal akış" className="w-full flex flex-col gap-3">
           {loading ? (
-            /* Skeleton Loading State */
-            <div className="space-y-3 px-2 sm:px-4">
+            /* Soft Skeleton Loading State */
+            <div className="w-full flex flex-col gap-3">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex gap-3.5"
+                  className="w-full bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-xs"
                 >
                   <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2.5">
@@ -278,14 +299,36 @@ export function Feed() {
                     </div>
                     <Skeleton className="h-4 w-full rounded-md" />
                     <Skeleton className="h-4 w-4/5 rounded-md" />
-                    <Skeleton className="h-48 w-full rounded-xl mt-2" />
+                    <Skeleton className="h-44 sm:h-56 w-full rounded-xl mt-2" />
                   </div>
                 </div>
               ))}
             </div>
+          ) : error ? (
+            /* Error State with Retry Button */
+            <div className="w-full bg-white dark:bg-[#0D121D] border border-rose-200/80 dark:border-rose-900/40 rounded-2xl p-6 sm:p-8 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+                <AlertCircle className="w-6 h-6 stroke-[1.75]" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
+                Akış yüklenemedi
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal max-w-sm mx-auto mb-4 leading-relaxed">
+                {error}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadPosts(1, feedType, true)}
+                className="rounded-xl font-semibold inline-flex items-center gap-2"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Tekrar Dene</span>
+              </Button>
+            </div>
           ) : posts.length === 0 ? (
-            /* Empty State */
-            <div className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl mx-2 sm:mx-4 p-8 text-center my-4 shadow-2xs">
+            /* Soft Empty State */
+            <div className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-6 sm:p-8 text-center shadow-xs">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3.5">
                 {feedType === "following" ? (
                   <Users className="w-6 h-6 stroke-[1.75]" />
@@ -346,10 +389,10 @@ export function Feed() {
 
               {/* End of Feed Discovery / Suggested Users */}
               {!hasMore && (
-                <div className="pt-3 pb-6">
+                <div className="pt-2 pb-6 flex flex-col gap-3">
                   <FeedSuggestedUsers />
-                  <div className="text-center py-6 text-xs text-slate-400 dark:text-slate-500 font-medium">
-                    Tüm gönderileri gördün ✨
+                  <div className="text-center py-4 text-xs text-slate-400 dark:text-slate-500 font-medium select-none">
+                    Tüm güncel gönderileri gördün ✨
                   </div>
                 </div>
               )}
@@ -369,6 +412,6 @@ export function Feed() {
           )}
         </div>
       </div>
-    </main>
+    </section>
   );
 }

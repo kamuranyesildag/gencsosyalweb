@@ -5,7 +5,7 @@ import { Avatar } from './ui/Avatar';
 interface Props {
   text: string;
   onSelect: (newText: string) => void;
-  inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
 }
 
 export function MentionAutocomplete({ text, onSelect, inputRef }: Props) {

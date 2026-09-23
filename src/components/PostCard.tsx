@@ -40,11 +40,12 @@ import { confirmDialog } from "./ui/ConfirmDialog";
 interface PostCardProps {
   post: any;
   key?: React.Key;
+  className?: string;
   onPostDeleted?: (id: number) => void;
   onBookmarkToggled?: (id: number, isSaved: boolean) => void;
 }
 
-export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardProps) {
+export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: PostCardProps) {
   const navigate = useNavigate();
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [liked, setLiked] = useState(post.isLiked || false);
@@ -431,13 +432,14 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
         }
       }}
       className={cn(
-        "group relative flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-5 mb-2.5 mx-2 sm:mx-4",
+        "group relative flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-5 w-full",
         "bg-white dark:bg-[#0D121D]",
         "border border-slate-200/80 dark:border-white/[0.08]",
-        "rounded-2xl sm:rounded-2xl",
-        "shadow-2xs hover:shadow-xs hover:border-slate-300 dark:hover:border-white/[0.14]",
-        "cursor-pointer transition-all duration-200",
-        post.postType === "SENSITIVE" && !isRevealed && "opacity-95"
+        "rounded-2xl",
+        "shadow-xs hover:shadow-sm hover:border-slate-300 dark:hover:border-white/[0.14]",
+        "cursor-pointer transition-all duration-150",
+        post.postType === "SENSITIVE" && !isRevealed && "opacity-95",
+        className
       )}
     >
       {/* 1. LEFT COLUMN: Author Avatar (Desktop) */}
@@ -473,20 +475,21 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
       {/* 2. RIGHT COLUMN: Main Post Structure */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Header: Author info, Metadata, Options Menu */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
             {/* Mobile Avatar */}
-            <div className="sm:hidden shrink-0 relative">
+            <div className="sm:hidden shrink-0 pt-0.5 relative">
               <Link
                 to={`/profile/${post.user?.username}`}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`${post.user?.displayName || post.user?.username} profili`}
-                className="relative z-0 block"
+                className="relative z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full"
               >
                 <Avatar
                   url={post.user?.avatarUrl}
                   name={post.user?.displayName || post.user?.username}
                   size="sm"
+                  className="w-9 h-9"
                 />
               </Link>
               {post.collaborators && post.collaborators.length > 0 && (
@@ -504,84 +507,68 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
               )}
             </div>
 
-            {/* Display Name & Verified Badge */}
-            <Link
-              to={`/profile/${post.user?.username}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 min-w-0 truncate group/author"
-            >
-              <span className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] group-hover/author:underline truncate">
-                {post.user?.displayName || post.user?.username}
-              </span>
-              {post.user?.isVerified && (
-                <VerifiedBadge
-                  iconClassName="w-4 h-4 text-blue-500"
-                  targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }}
-                />
-              )}
-            </Link>
-
-            {post.collaborators && post.collaborators.length > 0 && (
-              <>
-                <span className="text-slate-400 dark:text-slate-500 text-sm font-normal -mx-1">ve</span>
+            {/* Author info & metadata */}
+            <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <Link
-                  to={`/profile/${post.collaborators[0].username}`}
+                  to={`/profile/${post.user?.username}`}
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-1.5 min-w-0 truncate group/author"
                 >
-                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-[15px] group-hover/author:underline truncate">
-                    {post.collaborators[0].displayName || post.collaborators[0].username}
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-[14px] sm:text-[15px] group-hover/author:underline truncate leading-snug">
+                    {post.user?.displayName || post.user?.username}
                   </span>
+                  {post.user?.isVerified && (
+                    <VerifiedBadge
+                      iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
+                      targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }}
+                    />
+                  )}
                 </Link>
-              </>
-            )}
 
-            {/* Follow Button */}
-            {currentUser?.id !== post.user?.id && !isFollowingUser && (
-              <>
-                <span className="text-slate-400 dark:text-slate-500 font-normal hidden sm:inline">&middot;</span>
-                <button
-                  type="button"
-                  onClick={handleFollow}
-                  disabled={isFollowLoading}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-[14px] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
-                </button>
-              </>
-            )}
+                {post.collaborators && post.collaborators.length > 0 && (
+                  <span className="text-slate-400 dark:text-slate-500 text-xs font-normal shrink-0 truncate max-w-[120px]">
+                    + @{post.collaborators[0].username}
+                  </span>
+                )}
 
-            {/* Handle & Timestamp */}
-            <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs sm:text-[13px] shrink-0 font-normal">
-              <span className="hidden sm:inline">@{post.user?.username}</span>
-              <span className="hidden sm:inline opacity-60">&middot;</span>
-              <time dateTime={post.createdAt} className="hover:underline">
-                {formatTimeAgo(post.createdAt)}
-              </time>
-              {post.visibility && (
-                <span
-                  className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 select-none ml-0.5"
-                  title={
-                    post.visibility === "PUBLIC"
-                      ? "Herkese Açık"
-                      : post.visibility === "FOLLOWERS"
-                      ? "Sadece Takipçiler"
-                      : "Yalnızca Ben"
-                  }
-                  aria-label={
-                    post.visibility === "PUBLIC"
-                      ? "Görünürlük: Herkese Açık"
-                      : post.visibility === "FOLLOWERS"
-                      ? "Görünürlük: Sadece Takipçiler"
-                      : "Görünürlük: Yalnızca Ben"
-                  }
-                >
-                  <span className="opacity-40">&middot;</span>
-                  {post.visibility === "PUBLIC" && <Globe className="w-3.5 h-3.5 opacity-70" />}
-                  {post.visibility === "FOLLOWERS" && <Users className="w-3.5 h-3.5 opacity-70" />}
-                  {post.visibility === "PRIVATE" && <Lock className="w-3.5 h-3.5 opacity-70" />}
-                </span>
-              )}
+                {currentUser?.id !== post.user?.id && !isFollowingUser && (
+                  <button
+                    type="button"
+                    onClick={handleFollow}
+                    disabled={isFollowLoading}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0 ml-1"
+                  >
+                    {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
+                  </button>
+                )}
+              </div>
+
+              {/* Handle & Timestamp */}
+              <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-normal shrink-0">
+                <span className="truncate max-w-[110px] sm:max-w-none">@{post.user?.username}</span>
+                <span className="opacity-40">&middot;</span>
+                <time dateTime={post.createdAt} className="hover:underline shrink-0">
+                  {formatTimeAgo(post.createdAt)}
+                </time>
+                {post.visibility && (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-slate-400 dark:text-slate-500 select-none ml-0.5"
+                    title={
+                      post.visibility === "PUBLIC"
+                        ? "Herkese Açık"
+                        : post.visibility === "FOLLOWERS"
+                        ? "Sadece Takipçiler"
+                        : "Yalnızca Ben"
+                    }
+                  >
+                    <span className="opacity-40">&middot;</span>
+                    {post.visibility === "PUBLIC" && <Globe className="w-3 h-3 opacity-70" />}
+                    {post.visibility === "FOLLOWERS" && <Users className="w-3 h-3 opacity-70" />}
+                    {post.visibility === "PRIVATE" && <Lock className="w-3 h-3 opacity-70" />}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -690,7 +677,7 @@ export function PostCard({ post, onPostDeleted, onBookmarkToggled }: PostCardPro
             ) : (
               <>
                 {currentContent && (
-                  <div className="mb-2">
+                  <div className="mb-2.5 text-[14px] sm:text-[15px] text-slate-800 dark:text-slate-200 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] select-text">
                     <RichText text={currentContent} />
                   </div>
                 )}

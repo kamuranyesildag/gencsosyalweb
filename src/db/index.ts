@@ -32,14 +32,47 @@ export const createPool = () => {
   }
   
   if (!global._postgresPool) {
-    const isProduction = process.env.NODE_ENV === "production";
-    const useSsl = isProduction && !connectionString.includes("sslmode=disable");
+    const sslEnv = process.env.DATABASE_SSL?.toLowerCase();
+    
+    let useSsl = false;
+    if (sslEnv === "false" || sslEnv === "0" || sslEnv === "off" || sslEnv === "no") {
+      useSsl = false;
+    } else if (sslEnv === "true" || sslEnv === "1" || sslEnv === "on" || sslEnv === "yes") {
+      useSsl = true;
+    } else {
+      const hasSslDisable =
+        connectionString.includes("sslmode=disable") ||
+        process.env.PGSSLMODE === "disable";
+
+      const hasExplicitSslEnable =
+        connectionString.includes("sslmode=require") ||
+        connectionString.includes("sslmode=verify-ca") ||
+        connectionString.includes("sslmode=verify-full") ||
+        connectionString.includes("ssl=true");
+
+      const isLocalOrDockerHost =
+        connectionString.includes("localhost") ||
+        connectionString.includes("127.0.0.1") ||
+        connectionString.includes("gencsosyal-postgres") ||
+        connectionString.includes("@postgres:") ||
+        connectionString.includes("@db:");
+
+      if (hasSslDisable || isLocalOrDockerHost) {
+        useSsl = false;
+      } else if (hasExplicitSslEnable) {
+        useSsl = true;
+      } else {
+        useSsl = false;
+      }
+    }
     
     global._postgresPool = new Pool({
       connectionString: connectionString,
       max: 10,
       connectionTimeoutMillis: 15000,
-      ...(useSsl ? { ssl: { rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED !== "false" } } : {})
+      ssl: useSsl
+        ? { rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === "true" }
+        : false
     });
     global._postgresPool.on('error', (err) => {
       console.error('Unexpected error on idle SQL pool client:', err);

@@ -44,7 +44,8 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}}
+      - DATABASE_SSL=false
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
     command: ["node", "dist-server/migrate.cjs"]
     depends_on:
       gencsosyal-postgres:
@@ -64,7 +65,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}}
+      - DATABASE_SSL=false
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
       - UPLOAD_DIR=/app/uploads
     volumes:
       - uploads_data:/app/uploads

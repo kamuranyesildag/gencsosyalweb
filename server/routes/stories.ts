@@ -38,18 +38,22 @@ storiesRouter.post("/", requireAuth, async (req, res) => {
   }
 });
 
-storiesRouter.get("/", requireAuth, async (req, res) => {
+storiesRouter.get("/", async (req, res) => {
   try {
-    const currentUserId = requireAuthContext(req);
-    const blockedIds = await getBlockedIds(currentUserId);
-    
-    const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId));
-    let targetIds = followingRecords.map((f: any) => f.followingId);
-    targetIds.push(currentUserId);
-    
-    // Filter out blocked
-    targetIds = targetIds.filter((id: any) => !blockedIds.includes(id));
-    if (targetIds.length === 0) targetIds = [-1]; // empty array fallback for inArray
+    const currentUserId = optionalAuthContext(req);
+    let targetIds: number[] = [];
+
+    if (currentUserId) {
+      const blockedIds = await getBlockedIds(currentUserId);
+      const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, currentUserId));
+      targetIds = followingRecords.map((f: any) => f.followingId);
+      targetIds.push(currentUserId);
+      targetIds = targetIds.filter((id: any) => !blockedIds.includes(id));
+    }
+
+    const queryCondition = targetIds.length > 0
+      ? and(inArray(stories.userId, targetIds), gt(stories.expiresAt, new Date()))
+      : gt(stories.expiresAt, new Date());
 
     const activeStories = await db.select({
       id: stories.id,
@@ -67,13 +71,9 @@ storiesRouter.get("/", requireAuth, async (req, res) => {
     .from(stories)
     .innerJoin(users, eq(stories.userId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId))
-    .where(
-      and(
-        inArray(stories.userId, targetIds),
-        gt(stories.expiresAt, new Date())
-      )
-    )
-    .orderBy(desc(stories.createdAt));
+    .where(queryCondition)
+    .orderBy(desc(stories.createdAt))
+    .limit(30);
     
     res.json({ success: true, data: activeStories });
   } catch (error) {

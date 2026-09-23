@@ -91,11 +91,11 @@ export function StoriesBar() {
 
   if (loading) {
     return (
-      <div className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl py-3 px-4 mb-2.5 mx-2 sm:mx-4 max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] overflow-hidden">
+      <div className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl py-3 px-4 shadow-xs overflow-hidden">
         <div className="flex gap-4 items-center">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800/60" />
+              <div className="w-13 h-13 rounded-full bg-slate-100 dark:bg-slate-800/60" />
               <div className="w-12 h-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-full" />
             </div>
           ))}
@@ -107,10 +107,10 @@ export function StoriesBar() {
   return (
     <>
       <section
-        className="w-full max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] mx-2 sm:mx-4 bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-2xs py-3 px-3.5 mb-2.5 overflow-hidden select-none"
+        className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs py-3 px-3.5 overflow-hidden select-none"
         aria-label="Hikayeler"
       >
-        <div className="flex gap-3.5 items-center overflow-x-auto scrollbar-none py-0.5 px-0.5">
+        <div className="flex gap-3.5 items-center overflow-x-auto scrollbar-none py-0.5 px-0.5 overscroll-x-contain touch-pan-x">
           {/* 1. Current User Story Item */}
           <div className="flex flex-col items-center gap-1 shrink-0">
             <div className="relative">

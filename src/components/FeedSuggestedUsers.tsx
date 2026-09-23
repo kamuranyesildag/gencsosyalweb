@@ -162,7 +162,7 @@ export function FeedSuggestedUsers() {
   return (
     <section
       aria-label="Takip Önerileri"
-      className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 my-2.5 mx-2 sm:mx-4 max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] shadow-2xs relative overflow-hidden transition-colors"
+      className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden transition-colors"
     >
       {/* Section Header */}
       <div className="flex items-center justify-between mb-3 px-0.5">
