@@ -54,6 +54,7 @@ export function CommunityDetail() {
   useSEO({
     title: community ? `${community.name} - Genç Sosyal Topluluğu` : undefined,
     description: community?.description ? community.description.substring(0, 150) : undefined,
+    canonicalPath: slug ? `/communities/${slug}` : undefined,
   });
 
   useEffect(() => {

@@ -7,11 +7,18 @@ import { usePagination } from "../hooks/usePagination";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCard } from "../components/ui/Skeleton";
+import { useSEO } from "../hooks/useSEO";
 
 export function HashtagDetail() {
   const { name } = useParams();
   const navigate = useNavigate();
   const [hashtagInfo, setHashtagInfo] = useState<any>(null);
+
+  useSEO({
+    title: name ? `#${name} | Genç Sosyal` : "Hashtag | Genç Sosyal",
+    description: name ? `#${name} etiketi altındaki popüler gönderileri, projeleri ve genç yazılımcı tartışmalarını keşfedin.` : undefined,
+    canonicalPath: name ? `/hashtags/${encodeURIComponent(name)}` : undefined,
+  });
 
   const { data: posts, setData: setPosts, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination(`/hashtags/${name}`);
 

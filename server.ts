@@ -119,6 +119,21 @@ async function startServer() {
   
   // --- API Routes Start ---
 
+  // SEO URL Normalization: Redirect trailing slash (except root) to clean canonical URL
+  app.use((req, res, next) => {
+    if (req.method === "GET" && req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/api/")) {
+      const query = req.url.slice(req.path.length);
+      const safePath = req.path.slice(0, -1);
+      return res.redirect(301, safePath + query);
+    }
+    next();
+  });
+
+  // SEO 301 Permanent Redirect: singular /hashtag/:name -> plural /hashtags/:name
+  app.get("/hashtag/:name", (req, res) => {
+    return res.redirect(301, `/hashtags/${encodeURIComponent(req.params.name)}`);
+  });
+
   const { healthRouter } = await import("./server/routes/health.js");
   app.use("/api/v1/health", healthRouter);
   app.use("/api/health", healthRouter);

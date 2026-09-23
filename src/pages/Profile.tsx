@@ -62,9 +62,10 @@ export function Profile() {
   const [showReportDialog, setShowReportDialog] = useState(false);
 
   useSEO({
-    allowIndexing: profile?.allowIndexing ?? true,
+    allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
     title: profile ? `${profile.displayName || profile.username} (@${profile.username}) - Genç Sosyal` : undefined,
     description: profile?.bio ? profile.bio.substring(0, 150) : undefined,
+    canonicalPath: profile?.username ? `/profile/${profile.username}` : undefined,
   });
 
   const postsQuery = usePagination(profile ? `/users/${profile.id}/posts` : "");

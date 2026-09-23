@@ -42,6 +42,7 @@ export function Feed() {
   useSEO({
     title: "Akış | Genç Sosyal",
     description: "Genç Sosyal akışınızda en güncel projeleri, fikirleri ve gönderileri keşfedin.",
+    canonicalPath: "/home",
   });
 
   const navigate = useNavigate();

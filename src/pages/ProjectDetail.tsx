@@ -40,6 +40,7 @@ import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCard, SkeletonCircle } from "../components/ui/Skeleton";
 import { Avatar } from "../components/ui/Avatar";
+import { useSEO } from "../hooks/useSEO";
 
 const getStatusText = (status: string) => {
   const s = (status || "").toLowerCase();
@@ -75,6 +76,13 @@ export function ProjectDetail() {
   const [collabUserId, setCollabUserId] = useState("");
   const [addingCollab, setAddingCollab] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useSEO({
+    title: project ? `${project.title} - Genç Sosyal Projeleri` : undefined,
+    description: project?.description ? project.description.substring(0, 150) : undefined,
+    canonicalPath: id ? `/projects/${id}` : undefined,
+    allowIndexing: !error && !!project,
+  });
 
   useEffect(() => {
     if (id) {

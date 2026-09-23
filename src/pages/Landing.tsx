@@ -16,7 +16,11 @@ import {
 } from 'lucide-react';
 
 export function Landing() {
-  useSEO({ title: "Genç Sosyal | Türkiye'nin Gençler İçin Sosyal Medya Platformu", description: "Gençlerin buluşma noktası: Genç Sosyal. Fikirlerini paylaş, topluluklara katıl ve projelere destek ol." });
+  useSEO({ 
+    title: "Genç Sosyal | Türkiye'nin Gençler İçin Sosyal Medya Platformu", 
+    description: "Gençlerin buluşma noktası: Genç Sosyal. Fikirlerini paylaş, topluluklara katıl ve projelere destek ol.",
+    canonicalPath: "/"
+  });
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 

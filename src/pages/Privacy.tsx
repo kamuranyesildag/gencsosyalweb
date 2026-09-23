@@ -1,12 +1,18 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Shield } from "lucide-react";
+import { useSEO } from "../hooks/useSEO";
 
 export function Privacy() {
   const navigate = useNavigate();
 
+  useSEO({
+    title: "Gizlilik Politikası | Genç Sosyal",
+    description: "Genç Sosyal gizlilik politikası ve kişisel verilerin korunması hakkında bilgilendirme.",
+    canonicalPath: "/privacy",
+  });
+
   useEffect(() => {
-    document.title = "Gizlilik Politikası | Genç Sosyal";
     window.scrollTo(0, 0);
   }, []);
 

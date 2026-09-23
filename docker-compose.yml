@@ -22,16 +22,17 @@ services:
       - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-gencsosyal}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gencsosyal_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gencsosyal_db_pass}
       POSTGRES_DB: ${POSTGRES_DB:-genc_sosyal}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gencsosyal} -d ${POSTGRES_DB:-genc_sosyal}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 15s
     networks:
       - gencsosyal_net
 
@@ -45,7 +46,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_SSL=false
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_db_pass}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
     command: ["node", "dist-server/migrate.cjs"]
     depends_on:
       gencsosyal-postgres:
@@ -66,7 +67,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_SSL=false
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_secret}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-gencsosyal}:${POSTGRES_PASSWORD:-gencsosyal_db_pass}@gencsosyal-postgres:5432/${POSTGRES_DB:-genc_sosyal}?sslmode=disable}
       - UPLOAD_DIR=/app/uploads
     volumes:
       - uploads_data:/app/uploads

@@ -2,12 +2,18 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Shield, FileText } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { useSEO } from "../hooks/useSEO";
 
 export function Terms() {
   const navigate = useNavigate();
 
+  useSEO({
+    title: "Kullanım Şartları | Genç Sosyal",
+    description: "Genç Sosyal kullanım ve üyelik şartları sözleşmesi.",
+    canonicalPath: "/terms",
+  });
+
   useEffect(() => {
-    document.title = "Hizmet Şartları | Genç Sosyal";
     window.scrollTo(0, 0);
   }, []);
 

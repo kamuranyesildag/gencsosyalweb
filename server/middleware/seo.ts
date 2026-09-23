@@ -53,11 +53,14 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
   }
 
   try {
+    const rawDomain = process.env.APP_URL || process.env.VITE_PUBLIC_URL || "https://gencsosyal.com";
+    const domain = rawDomain.replace(/\/+$/, "");
     let title = "Genç Sosyal | Türkiye'nin Gençler İçin Sosyal Medya Platformu";
     let description = "Gençlerin buluşma noktası: Genç Sosyal. Fikirlerini paylaş, topluluklara katıl ve projelere destek ol.";
-    let imageUrl = "https://gencsosyal.com/icon-512.png";
-    const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+    let imageUrl = `${domain}/icon-512.png`;
     let url = domain + req.path;
+    let shouldNoIndex = false;
+    let isNotFound = false;
     
     // Default JSON-LD
     const jsonLd: any[] = [
@@ -80,6 +83,7 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     const profileMatch = req.path.match(/^\/profile\/([a-zA-Z0-9_]{3,30})$/);
     const communityMatch = req.path.match(/^\/communities\/([a-zA-Z0-9_-]+)$/);
     const projectMatch = req.path.match(/^\/projects\/(\d+)$/);
+    const hashtagMatch = req.path.match(/^\/hashtags\/([a-zA-Z0-9_\u00C0-\u017F]+)$/);
 
     if (postMatch) {
       const postId = parseInt(postMatch[1]);
@@ -87,18 +91,31 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
         content: posts.content,
         postType: posts.postType,
         visibility: posts.visibility,
+        moderationStatus: posts.moderationStatus,
         createdAt: posts.createdAt,
         displayName: profiles.displayName,
         username: users.username,
-        avatarUrl: profiles.avatarUrl
+        avatarUrl: profiles.avatarUrl,
+        userIsActive: users.isActive,
+        allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+        userIsPrivate: profiles.isPrivate
       }).from(posts)
         .innerJoin(users, eq(posts.userId, users.id))
         .leftJoin(profiles, eq(users.id, profiles.userId))
         .where(eq(posts.id, postId)).limit(1);
 
-      if (postRecord.length > 0 && postRecord[0].visibility === 'PUBLIC') {
+      if (postRecord.length === 0 || postRecord[0].visibility !== 'PUBLIC' || postRecord[0].moderationStatus !== 'APPROVED' || !postRecord[0].userIsActive) {
+        // Post not found, deleted or private -> Return 404 + noindex to prevent Soft 404
+        isNotFound = true;
+        shouldNoIndex = true;
+        title = "Gönderi Bulunamadı | Genç Sosyal";
+        description = "Aradığınız gönderi silinmiş veya gizli olabilir.";
+      } else {
         const p = postRecord[0];
-        title = `${p.displayName}'nin Gönderisi | Genç Sosyal`;
+        if (!p.allowSearchEngineIndexing || p.userIsPrivate) {
+          shouldNoIndex = true;
+        }
+        title = `${p.displayName || p.username}'nin Gönderisi | Genç Sosyal`;
         description = p.content ? (p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "")) : "Gönderiye göz at.";
         
         jsonLd.push({
@@ -106,7 +123,7 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
           "@type": "SocialMediaPosting",
           "author": {
             "@type": "Person",
-            "name": p.displayName,
+            "name": p.displayName || p.username,
             "url": `${domain}/profile/${p.username}`,
             "image": p.avatarUrl || `${domain}/default-avatar.png`
           },
@@ -120,9 +137,14 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
       const communitySlug = communityMatch[1];
       const commRecord = await db.select().from(communities).where(eq(communities.slug, communitySlug)).limit(1);
       
-      if (commRecord.length > 0 && !commRecord[0].isPrivate) {
+      if (commRecord.length === 0) {
+        isNotFound = true;
+        shouldNoIndex = true;
+        title = "Topluluk Bulunamadı | Genç Sosyal";
+        description = "Aradığınız topluluk mevcut değil.";
+      } else {
         const c = commRecord[0];
-        title = `${c.name} | Genç Sosyal`;
+        title = `${c.name} | Genç Sosyal Topluluğu`;
         description = c.description ? c.description.substring(0, 150) : "Bu topluluğa katıl ve tartışmalara başla.";
         if (c.avatarUrl) imageUrl = c.avatarUrl;
         
@@ -137,18 +159,28 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     } else if (profileMatch) {
       const username = profileMatch[1];
       const userRecord = await db.select({
+        isActive: users.isActive,
         displayName: profiles.displayName,
         bio: profiles.bio,
         avatarUrl: profiles.avatarUrl,
+        isPrivate: profiles.isPrivate,
         allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
       }).from(users)
         .leftJoin(profiles, eq(users.id, profiles.userId))
         .where(eq(users.username, username)).limit(1);
         
-      if (userRecord.length > 0 && userRecord[0].allowSearchEngineIndexing) {
+      if (userRecord.length === 0 || !userRecord[0].isActive) {
+        isNotFound = true;
+        shouldNoIndex = true;
+        title = "Kullanıcı Bulunamadı | Genç Sosyal";
+        description = "Aradığınız profil mevcut değil veya silinmiş.";
+      } else {
         const u = userRecord[0];
-        title = `${u.displayName} (@${username}) | Genç Sosyal`;
-        description = u.bio ? u.bio.substring(0, 150) : `${u.displayName} profilini Genç Sosyal'de incele.`;
+        if (!u.allowSearchEngineIndexing || u.isPrivate) {
+          shouldNoIndex = true;
+        }
+        title = `${u.displayName || username} (@${username}) | Genç Sosyal`;
+        description = u.bio ? u.bio.substring(0, 150) : `${u.displayName || username} profilini Genç Sosyal'de incele.`;
         if (u.avatarUrl) imageUrl = u.avatarUrl;
         
         jsonLd.push({
@@ -156,24 +188,27 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
           "@type": "ProfilePage",
           "mainEntity": {
             "@type": "Person",
-            "name": u.displayName,
+            "name": u.displayName || username,
             "alternateName": username,
             "description": description,
             "image": imageUrl
           }
         });
-      } else {
-        // If profile doesn't allow indexing, add noindex meta
-        template = template.replace('</head>', '<meta name="robots" content="noindex, nofollow" />\n</head>');
       }
     } else if (projectMatch) {
       const projectId = parseInt(projectMatch[1]);
       const projectRecord = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
       
-      if (projectRecord.length > 0 && true) {
+      if (projectRecord.length === 0) {
+        isNotFound = true;
+        shouldNoIndex = true;
+        title = "Proje Bulunamadı | Genç Sosyal";
+        description = "Aradığınız proje silinmiş veya yayından kaldırılmış olabilir.";
+      } else {
         const p = projectRecord[0];
-        title = `${p.title} | Genç Sosyal`;
-        description = p.description ? p.description.substring(0, 150) : "Genç Sosyal'de bir proje.";
+        title = `${p.title} | Genç Sosyal Projeleri`;
+        description = p.description ? p.description.substring(0, 150) : "Genç Sosyal'de geliştirilen yenilikçi proje.";
+        if (p.imageUrl) imageUrl = p.imageUrl;
         
         jsonLd.push({
           "@context": "https://schema.org",
@@ -183,12 +218,29 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
           "url": url
         });
       }
+    } else if (hashtagMatch) {
+      const tagName = decodeURIComponent(hashtagMatch[1]);
+      title = `#${tagName} — Trend Gönderiler ve Tartışmalar | Genç Sosyal`;
+      description = `#${tagName} etiketi altındaki en son paylaşımları, projeleri ve genç yazılımcı tartışmalarını keşfedin.`;
+      url = `${domain}/hashtags/${encodeURIComponent(tagName)}`;
+      
+      jsonLd.push({
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": title,
+        "description": description,
+        "url": url
+      });
     }
 
     // Add private routes noindex
-    const privateRoutes = ['/messages', '/settings', '/admin', '/notifications', '/bookmarks', '/onboarding'];
+    const privateRoutes = [
+      '/messages', '/settings', '/admin', '/notifications', 
+      '/bookmarks', '/onboarding', '/create', '/login', 
+      '/register', '/forgot-password', '/reset-password', '/verify-email'
+    ];
     if (privateRoutes.some(r => req.path.startsWith(r))) {
-      template = template.replace('</head>', '<meta name="robots" content="noindex, nofollow" />\n</head>');
+      shouldNoIndex = true;
     }
 
     const safeTitle = escapeHtml(title);
@@ -196,10 +248,15 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     const safeImageUrl = escapeHtml(imageUrl);
     const safeUrl = escapeHtml(url);
 
+    const robotsTag = shouldNoIndex 
+      ? '<meta name="robots" content="noindex, nofollow" />' 
+      : '<meta name="robots" content="index, follow" />';
+
     // Build the replacement meta tags
     const metaTags = `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}" />
+    ${robotsTag}
     <link rel="canonical" href="${safeUrl}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${safeUrl}" />
@@ -217,22 +274,23 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     </script>
     `;
 
-    // Replace the default title and meta tags with the dynamic ones
-    // We replace the <title> block completely, and inject our new tags.
-    const regex = /<title>.*?<\/title>(\s*<meta name="description".*?>)?(\s*<meta property="og:.*?>)*(\s*<meta property="twitter:.*?>)*/g;
-    
-    // Strip old OG tags and replace title
+    // Strip old OG tags, description, canonical and title
     let finalHtml = template.replace(/<title>.*?<\/title>/g, '');
     finalHtml = finalHtml.replace(/<meta name="description" content=".*?" \/>/g, '');
+    finalHtml = finalHtml.replace(/<link rel="canonical" href=".*?" \/>/g, '');
     finalHtml = finalHtml.replace(/<!-- Open Graph.*?-->[\s\S]*?<meta property="og:image".*?\/>/g, '');
     finalHtml = finalHtml.replace(/<!-- Twitter.*?-->[\s\S]*?<meta property="twitter:image".*?\/>/g, '');
     
     finalHtml = finalHtml.replace('</head>', `${metaTags}</head>`);
 
-    res.status(200).send(finalHtml);
+    const statusCode = isNotFound ? 404 : 200;
+    res.status(statusCode).send(finalHtml);
   } catch (error) {
     console.error("SEO Middleware error:", error);
-    // Fallback on error
-    res.status(500).send("Server Error");
+    // CRITICAL: NEVER return 500 error to search engine crawlers on SEO parsing errors
+    if (template) {
+      return res.status(200).send(template);
+    }
+    return next();
   }
 };
