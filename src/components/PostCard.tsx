@@ -80,6 +80,19 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
 
   const isOwner = currentUser?.id === post.userId;
 
+  // Filter out any collaborator that matches author id or username to be 100% immune to duplicates
+  const validCollaborators = (post.collaborators || []).filter((c: any) => {
+    if (!c) return false;
+    const authorId = post.user?.id || post.userId;
+    const authorUsername = (post.user?.username || "").toLowerCase();
+    const cUsername = (c.username || "").toLowerCase();
+    if (c.userId && authorId && c.userId === authorId) return false;
+    if (cUsername && authorUsername && cUsername === authorUsername) return false;
+    return true;
+  });
+  const hasCollab = validCollaborators.length > 0;
+  const firstCollab = hasCollab ? validCollaborators[0] : null;
+
   // View tracking observer
   const articleRef = useRef<HTMLElement>(null);
   const hasViewed = useRef(false);
@@ -405,172 +418,255 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
   };
 
   return (
-    
-    <div>
-    {post.repostedBy && (
-      <div className="flex items-center gap-2 px-6 pt-3 pb-0 -mb-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-        <Repeat2 className="w-3.5 h-3.5" />
-        <Link to={`/${post.repostedBy?.username}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
-          {post.repostedBy?.displayName || post.repostedBy?.username} repostladı
-        </Link>
-      </div>
-    )}
-    {!post.repostedBy && post.quotedPost && (
-      <div className="flex items-center gap-2 px-6 pt-3 pb-0 -mb-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-        <span>
-          {post.user?.displayName || post.user?.username} alıntıladı
-        </span>
-      </div>
-    )}
-    <article ref={articleRef}
-      id={`post-${post.id}`}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (!target.closest("button") && !target.closest("a") && !target.closest("textarea")) {
-          navigate(`/post/${post.id}`);
-        }
-      }}
-      className={cn(
-        "group relative flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-5 w-full",
-        "bg-white dark:bg-[#0D121D]",
-        "border border-slate-200/80 dark:border-white/[0.08]",
-        "rounded-2xl",
-        "shadow-xs hover:shadow-sm hover:border-slate-300 dark:hover:border-white/[0.14]",
-        "cursor-pointer transition-all duration-150",
-        post.postType === "SENSITIVE" && !isRevealed && "opacity-95",
-        className
-      )}
-    >
-      {/* 1. LEFT COLUMN: Author Avatar (Desktop) */}
-      <div className="hidden sm:block shrink-0 relative">
-        <Link
-          to={`/profile/${post.user?.username}`}
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`${post.user?.displayName || post.user?.username} profili`}
-          className="block rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 relative z-0"
-        >
-          <Avatar
-            url={post.user?.avatarUrl}
-            name={post.user?.displayName || post.user?.username}
-            size="md"
-            className="hover:opacity-90 transition-opacity"
-          />
-        </Link>
-        {post.collaborators && post.collaborators.length > 0 && (
-          <Link
-            to={`/profile/${post.collaborators[0].username}`}
-            onClick={(e) => e.stopPropagation()}
-            className="block rounded-full -mt-4 ml-4 border-2 border-white dark:border-[#0D121D] relative z-10"
-          >
-            <Avatar
-              url={post.collaborators[0].avatarUrl}
-              name={post.collaborators[0].displayName || post.collaborators[0].username}
-              size="sm"
-            />
+    <div className="w-full">
+      {/* 1. TOP BANNER: Repost, Quote, or Collaboration */}
+      {post.repostedBy && (
+        <div className="flex items-center gap-2 px-4 sm:px-5 pt-2.5 pb-1 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">
+          <Repeat2 className="w-3.5 h-3.5" />
+          <Link to={`/profile/${post.repostedBy?.username}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
+            {post.repostedBy?.displayName || post.repostedBy?.username}
           </Link>
-        )}
-      </div>
+          <span className="text-slate-400 dark:text-slate-500 font-normal">yeniden paylaştı</span>
+        </div>
+      )}
+      {!post.repostedBy && post.quotedPost && (
+        <div className="flex items-center gap-2 px-4 sm:px-5 pt-2.5 pb-1 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          <span>
+            {post.user?.displayName || post.user?.username} alıntıladı
+          </span>
+        </div>
+      )}
+      {!post.repostedBy && hasCollab && firstCollab && (
+        <div className="flex items-center gap-1.5 px-4 sm:px-5 pt-2.5 pb-1 text-[12px] font-medium text-blue-600 dark:text-blue-400">
+          <Users className="w-3.5 h-3.5 shrink-0" />
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Ortak Yayın:</span>
+          <Link
+            to={`/profile/${post.user?.username}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline font-semibold"
+          >
+            {post.user?.displayName || post.user?.username}
+          </Link>
+          <span className="text-slate-400 dark:text-slate-500">ve</span>
+          <Link
+            to={`/profile/${firstCollab.username}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline font-semibold"
+          >
+            {firstCollab.displayName || firstCollab.username}
+          </Link>
+        </div>
+      )}
 
-      {/* 2. RIGHT COLUMN: Main Post Structure */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Header: Author info, Metadata, Options Menu */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
-            {/* Mobile Avatar */}
-            <div className="sm:hidden shrink-0 pt-0.5 relative">
+      <article
+        ref={articleRef}
+        id={`post-${post.id}`}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (!target.closest("button") && !target.closest("a") && !target.closest("textarea")) {
+            navigate(`/post/${post.id}`);
+          }
+        }}
+        className={cn(
+          "group relative flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-5 w-full",
+          "bg-white dark:bg-[#0D121D]",
+          "border border-slate-200/90 dark:border-white/[0.08]",
+          "rounded-2xl",
+          "shadow-xs hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-black/40 hover:border-slate-300/90 dark:hover:border-white/[0.14]",
+          "cursor-pointer transition-all duration-200",
+          post.postType === "SENSITIVE" && !isRevealed && "opacity-95",
+          className
+        )}
+      >
+        {/* 1. LEFT COLUMN: Author Avatar(s) (Desktop) */}
+        <div className="hidden sm:block shrink-0 relative">
+          {hasCollab && firstCollab ? (
+            <div className="relative w-11 h-11">
               <Link
                 to={`/profile/${post.user?.username}`}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`${post.user?.displayName || post.user?.username} profili`}
-                className="relative z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full"
+                className="absolute top-0 left-0 z-10 transition-transform duration-150 hover:scale-105"
+                title={post.user?.displayName || post.user?.username}
               >
                 <Avatar
                   url={post.user?.avatarUrl}
                   name={post.user?.displayName || post.user?.username}
                   size="sm"
-                  className="w-9 h-9"
+                  className="w-7.5 h-7.5 rounded-full ring-2 ring-white dark:ring-[#0D121D] shadow-xs"
                 />
               </Link>
-              {post.collaborators && post.collaborators.length > 0 && (
-                <Link
-                  to={`/profile/${post.collaborators[0].username}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="block rounded-full -mt-3 ml-3 border-2 border-white dark:border-[#0D121D] relative z-10"
-                >
-                  <Avatar
-                    url={post.collaborators[0].avatarUrl}
-                    name={post.collaborators[0].displayName || post.collaborators[0].username}
-                    size="xs"
-                  />
-                </Link>
-              )}
+              <Link
+                to={`/profile/${firstCollab.username}`}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`${firstCollab.displayName || firstCollab.username} profili`}
+                className="absolute bottom-0 right-0 z-20 transition-transform duration-150 hover:scale-105"
+                title={firstCollab.displayName || firstCollab.username}
+              >
+                <Avatar
+                  url={firstCollab.avatarUrl}
+                  name={firstCollab.displayName || firstCollab.username}
+                  size="sm"
+                  className="w-7.5 h-7.5 rounded-full ring-2 ring-white dark:ring-[#0D121D] shadow-xs"
+                />
+              </Link>
             </div>
+          ) : (
+            <Link
+              to={`/profile/${post.user?.username}`}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`${post.user?.displayName || post.user?.username} profili`}
+              className="block rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 relative z-0 transition-transform duration-150 hover:scale-105"
+            >
+              <Avatar
+                url={post.user?.avatarUrl}
+                name={post.user?.displayName || post.user?.username}
+                size="md"
+                className="hover:opacity-95 transition-opacity"
+              />
+            </Link>
+          )}
+        </div>
 
-            {/* Author info & metadata */}
-            <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Link
-                  to={`/profile/${post.user?.username}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 min-w-0 truncate group/author"
-                >
-                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-[14px] sm:text-[15px] group-hover/author:underline truncate leading-snug">
-                    {post.user?.displayName || post.user?.username}
-                  </span>
-                  {post.user?.isVerified && (
-                    <VerifiedBadge
-                      iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
-                      targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }}
+        {/* 2. RIGHT COLUMN: Main Post Structure */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Header: Author info, Metadata, Options Menu */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+              {/* Mobile Avatar(s) */}
+              <div className="sm:hidden shrink-0 pt-0.5 relative">
+                {hasCollab && firstCollab ? (
+                  <div className="relative w-9 h-9">
+                    <Link
+                      to={`/profile/${post.user?.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-0 left-0 z-10"
+                      title={post.user?.displayName || post.user?.username}
+                    >
+                      <Avatar
+                        url={post.user?.avatarUrl}
+                        name={post.user?.displayName || post.user?.username}
+                        size="xs"
+                        className="w-6 h-6 rounded-full ring-1.5 ring-white dark:ring-[#0D121D]"
+                      />
+                    </Link>
+                    <Link
+                      to={`/profile/${firstCollab.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute bottom-0 right-0 z-20"
+                      title={firstCollab.displayName || firstCollab.username}
+                    >
+                      <Avatar
+                        url={firstCollab.avatarUrl}
+                        name={firstCollab.displayName || firstCollab.username}
+                        size="xs"
+                        className="w-6 h-6 rounded-full ring-1.5 ring-white dark:ring-[#0D121D]"
+                      />
+                    </Link>
+                  </div>
+                ) : (
+                  <Link
+                    to={`/profile/${post.user?.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`${post.user?.displayName || post.user?.username} profili`}
+                    className="relative z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full"
+                  >
+                    <Avatar
+                      url={post.user?.avatarUrl}
+                      name={post.user?.displayName || post.user?.username}
+                      size="sm"
+                      className="w-9 h-9"
                     />
-                  )}
-                </Link>
-
-                {post.collaborators && post.collaborators.length > 0 && (
-                  <span className="text-slate-400 dark:text-slate-500 text-xs font-normal shrink-0 truncate max-w-[120px]">
-                    + @{post.collaborators[0].username}
-                  </span>
-                )}
-
-                {currentUser?.id !== post.user?.id && !isFollowingUser && (
-                  <button
-                    type="button"
-                    onClick={handleFollow}
-                    disabled={isFollowLoading}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0 ml-1"
-                  >
-                    {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
-                  </button>
+                  </Link>
                 )}
               </div>
 
-              {/* Handle & Timestamp */}
-              <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-normal shrink-0">
-                <span className="truncate max-w-[110px] sm:max-w-none">@{post.user?.username}</span>
-                <span className="opacity-40">&middot;</span>
-                <time dateTime={post.createdAt} className="hover:underline shrink-0">
-                  {formatTimeAgo(post.createdAt)}
-                </time>
-                {post.visibility && (
-                  <span
-                    className="inline-flex items-center gap-0.5 text-slate-400 dark:text-slate-500 select-none ml-0.5"
-                    title={
-                      post.visibility === "PUBLIC"
-                        ? "Herkese Açık"
-                        : post.visibility === "FOLLOWERS"
-                        ? "Sadece Takipçiler"
-                        : "Yalnızca Ben"
-                    }
+              {/* Author info & metadata */}
+              <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                  {/* Primary Author */}
+                  <Link
+                    to={`/profile/${post.user?.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 min-w-0 group/author"
                   >
-                    <span className="opacity-40">&middot;</span>
-                    {post.visibility === "PUBLIC" && <Globe className="w-3 h-3 opacity-70" />}
-                    {post.visibility === "FOLLOWERS" && <Users className="w-3 h-3 opacity-70" />}
-                    {post.visibility === "PRIVATE" && <Lock className="w-3 h-3 opacity-70" />}
-                  </span>
-                )}
+                    <span className="font-bold text-slate-900 dark:text-slate-100 text-[14px] sm:text-[15px] group-hover/author:underline truncate leading-snug">
+                      {post.user?.displayName || post.user?.username}
+                    </span>
+                    {post.user?.isVerified && (
+                      <VerifiedBadge
+                        iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
+                        targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }}
+                      />
+                    )}
+                  </Link>
+
+                  {/* Collaborator (only if distinct and valid) */}
+                  {hasCollab && firstCollab && (
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-slate-400 dark:text-slate-500 text-xs font-normal">ile</span>
+                      <Link
+                        to={`/profile/${firstCollab.username}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 min-w-0 group/collab"
+                      >
+                        <span className="font-bold text-slate-900 dark:text-slate-100 text-[14px] sm:text-[15px] group-hover/collab:underline truncate leading-snug">
+                          {firstCollab.displayName || firstCollab.username}
+                        </span>
+                        {firstCollab.isVerified && (
+                          <VerifiedBadge
+                            iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
+                            targetUser={{ username: firstCollab.username, isVerified: !!firstCollab.isVerified }}
+                          />
+                        )}
+                      </Link>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 shrink-0 ml-0.5">
+                        <Users className="w-2.5 h-2.5" />
+                        <span>Ortak</span>
+                      </span>
+                    </div>
+                  )}
+
+                  {currentUser?.id !== post.user?.id && !isFollowingUser && !hasCollab && (
+                    <button
+                      type="button"
+                      onClick={handleFollow}
+                      disabled={isFollowLoading}
+                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0 ml-1"
+                    >
+                      {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Handle & Timestamp */}
+                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-normal shrink-0">
+                  <span className="truncate max-w-[110px] sm:max-w-none">@{post.user?.username}</span>
+                  <span className="opacity-40">&middot;</span>
+                  <time dateTime={post.createdAt} className="hover:underline shrink-0">
+                    {formatTimeAgo(post.createdAt)}
+                  </time>
+                  {post.visibility && (
+                    <span
+                      className="inline-flex items-center gap-0.5 text-slate-400 dark:text-slate-500 select-none ml-0.5"
+                      title={
+                        post.visibility === "PUBLIC"
+                          ? "Herkese Açık"
+                          : post.visibility === "FOLLOWERS"
+                          ? "Sadece Takipçiler"
+                          : "Yalnızca Ben"
+                      }
+                    >
+                      <span className="opacity-40">&middot;</span>
+                      {post.visibility === "PUBLIC" && <Globe className="w-3 h-3 opacity-70" />}
+                      {post.visibility === "FOLLOWERS" && <Users className="w-3 h-3 opacity-70" />}
+                      {post.visibility === "PRIVATE" && <Lock className="w-3 h-3 opacity-70" />}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Post Options Dropdown Menu */}
           <div className="shrink-0 -mr-1" onClick={(e) => e.stopPropagation()}>

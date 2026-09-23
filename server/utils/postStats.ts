@@ -154,7 +154,7 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
 
   return postsList.map(p => {
     const pMedia = (mediaMap.get(p.id) || []).sort((a: any, b: any) => a.sortOrder - b.sortOrder);
-    const pCollabs = collabsMap.get(p.id) || [];
+    const pCollabs = (collabsMap.get(p.id) || []).filter((c: any) => c.userId !== p.userId && c.userId !== p.user?.id);
     
     const rStat = repostsMap.get(p.id) || { count: 0, isReposted: false };
     const rStat2 = reactionsMap.get(p.id) || { count: 0, myReaction: null };

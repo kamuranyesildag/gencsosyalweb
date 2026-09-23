@@ -667,7 +667,13 @@ export function Profile() {
               hasMore={postsQuery.hasMore}
               isLoading={postsQuery.loadingMore}
               onLoadMore={postsQuery.loadMore}
-              renderItem={(post) => <PostCard key={post.id} post={{ ...post, user: profile }} onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))} />}
+              renderItem={(post) => (
+                <PostCard
+                  key={post.id}
+                  post={post.user ? post : { ...post, user: profile }}
+                  onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))}
+                />
+              )}
             />
           ) : (
             <div className="px-4 py-12 max-w-md mx-auto text-center">
