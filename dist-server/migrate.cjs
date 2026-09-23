@@ -49,6 +49,10 @@ var schema_exports = {};
 __export(schema_exports, {
   adminAuditLogs: () => adminAuditLogs,
   adminAuditLogsRelations: () => adminAuditLogsRelations,
+  announcementViews: () => announcementViews,
+  announcementViewsRelations: () => announcementViewsRelations,
+  announcements: () => announcements,
+  announcementsRelations: () => announcementsRelations,
   badges: () => badges,
   badgesRelations: () => badgesRelations,
   blocks: () => blocks,
@@ -624,7 +628,9 @@ var usersRelations = (0, import_drizzle_orm.relations)(users, ({ one, many }) =>
   verificationReviews: many(verificationRequests, { relationName: "reviewer" }),
   adminAuditLogs: many(adminAuditLogs),
   projectCollaborators: many(projectCollaborators),
-  postCollaborators: many(postCollaborators)
+  postCollaborators: many(postCollaborators),
+  announcementsCreated: many(announcements),
+  announcementViews: many(announcementViews)
 }));
 var postsRelations = (0, import_drizzle_orm.relations)(posts, ({ one, many }) => ({
   community: one(communities, {
@@ -999,6 +1005,60 @@ var feedbacksRelations = (0, import_drizzle_orm.relations)(feedbacks, ({ one }) 
     references: [users.id]
   })
 }));
+var announcements = (0, import_pg_core.pgTable)("announcements", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  title: (0, import_pg_core.varchar)("title", { length: 255 }).notNull(),
+  content: (0, import_pg_core.text)("content").notNull(),
+  imageUrl: (0, import_pg_core.text)("image_url"),
+  buttonText: (0, import_pg_core.varchar)("button_text", { length: 100 }),
+  buttonUrl: (0, import_pg_core.text)("button_url"),
+  status: (0, import_pg_core.varchar)("status", { length: 30 }).default("draft").notNull(),
+  // 'draft' | 'scheduled' | 'published' | 'archived'
+  targetType: (0, import_pg_core.varchar)("target_type", { length: 30 }).default("all").notNull(),
+  // 'all' | 'authenticated' | 'specific_role'
+  targetRole: (0, import_pg_core.varchar)("target_role", { length: 50 }),
+  // 'USER' | 'ADMIN' | 'MODERATOR'
+  priority: (0, import_pg_core.integer)("priority").default(0).notNull(),
+  // higher integer = higher priority
+  startsAt: (0, import_pg_core.timestamp)("starts_at"),
+  endsAt: (0, import_pg_core.timestamp)("ends_at"),
+  createdBy: (0, import_pg_core.integer)("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
+  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+}, (t) => ({
+  statusIdx: (0, import_pg_core.index)("announcements_status_idx").on(t.status),
+  startsEndsIdx: (0, import_pg_core.index)("announcements_starts_ends_idx").on(t.startsAt, t.endsAt),
+  createdAtIdx: (0, import_pg_core.index)("announcements_created_at_idx").on(t.createdAt)
+}));
+var announcementViews = (0, import_pg_core.pgTable)("announcement_views", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  announcementId: (0, import_pg_core.integer)("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" }),
+  userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  seenAt: (0, import_pg_core.timestamp)("seen_at").defaultNow().notNull(),
+  dismissedAt: (0, import_pg_core.timestamp)("dismissed_at"),
+  clickedCta: (0, import_pg_core.boolean)("clicked_cta").default(false).notNull()
+}, (t) => ({
+  unqUserAnnouncement: (0, import_pg_core.unique)("announcement_views_user_announcement_unq").on(t.announcementId, t.userId),
+  announcementIdx: (0, import_pg_core.index)("announcement_views_announcement_idx").on(t.announcementId),
+  userIdx: (0, import_pg_core.index)("announcement_views_user_idx").on(t.userId)
+}));
+var announcementsRelations = (0, import_drizzle_orm.relations)(announcements, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [announcements.createdBy],
+    references: [users.id]
+  }),
+  views: many(announcementViews)
+}));
+var announcementViewsRelations = (0, import_drizzle_orm.relations)(announcementViews, ({ one }) => ({
+  announcement: one(announcements, {
+    fields: [announcementViews.announcementId],
+    references: [announcements.id]
+  }),
+  user: one(users, {
+    fields: [announcementViews.userId],
+    references: [users.id]
+  })
+}));
 
 // src/db/index.ts
 var import_path = __toESM(require("path"), 1);
@@ -1011,10 +1071,29 @@ var createPool = () => {
     return null;
   }
   if (!global._postgresPool) {
+    const sslEnv = process.env.DATABASE_SSL?.toLowerCase();
+    let useSsl = false;
+    if (sslEnv === "false" || sslEnv === "0" || sslEnv === "off" || sslEnv === "no") {
+      useSsl = false;
+    } else if (sslEnv === "true" || sslEnv === "1" || sslEnv === "on" || sslEnv === "yes") {
+      useSsl = true;
+    } else {
+      const hasSslDisable = connectionString.includes("sslmode=disable") || process.env.PGSSLMODE === "disable";
+      const hasExplicitSslEnable = connectionString.includes("sslmode=require") || connectionString.includes("sslmode=verify-ca") || connectionString.includes("sslmode=verify-full") || connectionString.includes("ssl=true");
+      const isLocalOrDockerHost = connectionString.includes("localhost") || connectionString.includes("127.0.0.1") || connectionString.includes("gencsosyal-postgres") || connectionString.includes("@postgres:") || connectionString.includes("@db:");
+      if (hasSslDisable || isLocalOrDockerHost) {
+        useSsl = false;
+      } else if (hasExplicitSslEnable) {
+        useSsl = true;
+      } else {
+        useSsl = false;
+      }
+    }
     global._postgresPool = new import_pg.Pool({
       connectionString,
       max: 10,
-      connectionTimeoutMillis: 15e3
+      connectionTimeoutMillis: 15e3,
+      ssl: useSsl ? { rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === "true" } : false
     });
     global._postgresPool.on("error", (err) => {
       console.error("Unexpected error on idle SQL pool client:", err);

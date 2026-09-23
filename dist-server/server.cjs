@@ -12,11 +12,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc20) => {
+var __copyProps = (to, from, except, desc21) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc20 = __getOwnPropDesc(from, key)) || desc20.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc21 = __getOwnPropDesc(from, key)) || desc21.enumerable });
   }
   return to;
 };
@@ -256,6 +256,10 @@ var schema_exports = {};
 __export(schema_exports, {
   adminAuditLogs: () => adminAuditLogs,
   adminAuditLogsRelations: () => adminAuditLogsRelations,
+  announcementViews: () => announcementViews,
+  announcementViewsRelations: () => announcementViewsRelations,
+  announcements: () => announcements,
+  announcementsRelations: () => announcementsRelations,
   badges: () => badges,
   badgesRelations: () => badgesRelations,
   blocks: () => blocks,
@@ -333,7 +337,7 @@ __export(schema_exports, {
   weeklyLeaderboards: () => weeklyLeaderboards,
   weeklyLeaderboardsRelations: () => weeklyLeaderboardsRelations
 });
-var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, notificationPreferences, notificationPreferencesRelations, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations, supportTickets, supportTicketMessages, feedbacks, supportTicketsRelations, supportTicketMessagesRelations, feedbacksRelations;
+var import_drizzle_orm, import_pg_core, users, profiles, recoveryCodes, projects, projectLikes, projectComments, posts, pollOptions, pollVotes, postMedia, comments, likes, reactions, bookmarks, postViews, reposts, follows, blocks, postMentions, commentMentions, hashtags, postHashtags, notifications, stories, storyViews, conversations, conversationMembers, messages, communities, communityMembers, reports, refreshTokens, otpVerifications, verificationRequests, systemSettings, securityAuditLogs, notificationPreferences, notificationPreferencesRelations, adminAuditLogs, projectCollaborators, postCollaborators, usersRelations, postsRelations, pollOptionsRelations, pollVotesRelations, commentsRelations, hashtagsRelations, postHashtagsRelations, conversationsRelations, conversationMembersRelations, messagesRelations, followsRelations, postViewsRelations, repostsRelations, projectsRelations, projectLikesRelations, projectCommentsRelations, verificationRequestsRelations, adminAuditLogsRelations, communitiesRelations, communityMembersRelations, projectCollaboratorsRelations, postCollaboratorsRelations, postMentionsRelations, commentMentionsRelations, moderationLogs, weeklyLeaderboards, badges, userBadges, weeklyLeaderboardsRelations, userBadgesRelations, badgesRelations, supportTickets, supportTicketMessages, feedbacks, supportTicketsRelations, supportTicketMessagesRelations, feedbacksRelations, announcements, announcementViews, announcementsRelations, announcementViewsRelations;
 var init_schema = __esm({
   "src/db/schema.ts"() {
     "use strict";
@@ -835,7 +839,9 @@ var init_schema = __esm({
       verificationReviews: many(verificationRequests, { relationName: "reviewer" }),
       adminAuditLogs: many(adminAuditLogs),
       projectCollaborators: many(projectCollaborators),
-      postCollaborators: many(postCollaborators)
+      postCollaborators: many(postCollaborators),
+      announcementsCreated: many(announcements),
+      announcementViews: many(announcementViews)
     }));
     postsRelations = (0, import_drizzle_orm.relations)(posts, ({ one, many }) => ({
       community: one(communities, {
@@ -1210,6 +1216,60 @@ var init_schema = __esm({
         references: [users.id]
       })
     }));
+    announcements = (0, import_pg_core.pgTable)("announcements", {
+      id: (0, import_pg_core.serial)("id").primaryKey(),
+      title: (0, import_pg_core.varchar)("title", { length: 255 }).notNull(),
+      content: (0, import_pg_core.text)("content").notNull(),
+      imageUrl: (0, import_pg_core.text)("image_url"),
+      buttonText: (0, import_pg_core.varchar)("button_text", { length: 100 }),
+      buttonUrl: (0, import_pg_core.text)("button_url"),
+      status: (0, import_pg_core.varchar)("status", { length: 30 }).default("draft").notNull(),
+      // 'draft' | 'scheduled' | 'published' | 'archived'
+      targetType: (0, import_pg_core.varchar)("target_type", { length: 30 }).default("all").notNull(),
+      // 'all' | 'authenticated' | 'specific_role'
+      targetRole: (0, import_pg_core.varchar)("target_role", { length: 50 }),
+      // 'USER' | 'ADMIN' | 'MODERATOR'
+      priority: (0, import_pg_core.integer)("priority").default(0).notNull(),
+      // higher integer = higher priority
+      startsAt: (0, import_pg_core.timestamp)("starts_at"),
+      endsAt: (0, import_pg_core.timestamp)("ends_at"),
+      createdBy: (0, import_pg_core.integer)("created_by").references(() => users.id, { onDelete: "set null" }),
+      createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
+      updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+    }, (t) => ({
+      statusIdx: (0, import_pg_core.index)("announcements_status_idx").on(t.status),
+      startsEndsIdx: (0, import_pg_core.index)("announcements_starts_ends_idx").on(t.startsAt, t.endsAt),
+      createdAtIdx: (0, import_pg_core.index)("announcements_created_at_idx").on(t.createdAt)
+    }));
+    announcementViews = (0, import_pg_core.pgTable)("announcement_views", {
+      id: (0, import_pg_core.serial)("id").primaryKey(),
+      announcementId: (0, import_pg_core.integer)("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" }),
+      userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+      seenAt: (0, import_pg_core.timestamp)("seen_at").defaultNow().notNull(),
+      dismissedAt: (0, import_pg_core.timestamp)("dismissed_at"),
+      clickedCta: (0, import_pg_core.boolean)("clicked_cta").default(false).notNull()
+    }, (t) => ({
+      unqUserAnnouncement: (0, import_pg_core.unique)("announcement_views_user_announcement_unq").on(t.announcementId, t.userId),
+      announcementIdx: (0, import_pg_core.index)("announcement_views_announcement_idx").on(t.announcementId),
+      userIdx: (0, import_pg_core.index)("announcement_views_user_idx").on(t.userId)
+    }));
+    announcementsRelations = (0, import_drizzle_orm.relations)(announcements, ({ one, many }) => ({
+      creator: one(users, {
+        fields: [announcements.createdBy],
+        references: [users.id]
+      }),
+      views: many(announcementViews)
+    }));
+    announcementViewsRelations = (0, import_drizzle_orm.relations)(announcementViews, ({ one }) => ({
+      announcement: one(announcements, {
+        fields: [announcementViews.announcementId],
+        references: [announcements.id]
+      }),
+      user: one(users, {
+        fields: [announcementViews.userId],
+        references: [users.id]
+      })
+    }));
   }
 });
 
@@ -1234,10 +1294,29 @@ var init_db = __esm({
         return null;
       }
       if (!global._postgresPool) {
+        const sslEnv = process.env.DATABASE_SSL?.toLowerCase();
+        let useSsl = false;
+        if (sslEnv === "false" || sslEnv === "0" || sslEnv === "off" || sslEnv === "no") {
+          useSsl = false;
+        } else if (sslEnv === "true" || sslEnv === "1" || sslEnv === "on" || sslEnv === "yes") {
+          useSsl = true;
+        } else {
+          const hasSslDisable = connectionString.includes("sslmode=disable") || process.env.PGSSLMODE === "disable";
+          const hasExplicitSslEnable = connectionString.includes("sslmode=require") || connectionString.includes("sslmode=verify-ca") || connectionString.includes("sslmode=verify-full") || connectionString.includes("ssl=true");
+          const isLocalOrDockerHost = connectionString.includes("localhost") || connectionString.includes("127.0.0.1") || connectionString.includes("gencsosyal-postgres") || connectionString.includes("@postgres:") || connectionString.includes("@db:");
+          if (hasSslDisable || isLocalOrDockerHost) {
+            useSsl = false;
+          } else if (hasExplicitSslEnable) {
+            useSsl = true;
+          } else {
+            useSsl = false;
+          }
+        }
         global._postgresPool = new import_pg.Pool({
           connectionString,
           max: 10,
-          connectionTimeoutMillis: 15e3
+          connectionTimeoutMillis: 15e3,
+          ssl: useSsl ? { rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED === "true" } : false
         });
         global._postgresPool.on("error", (err) => {
           console.error("Unexpected error on idle SQL pool client:", err);
@@ -1561,9 +1640,32 @@ var init_migrate = __esm({
 // server/seed.ts
 var seed_exports = {};
 __export(seed_exports, {
+  seedAnnouncementsIfNeeded: () => seedAnnouncementsIfNeeded,
   seedBadgesIfNeeded: () => seedBadgesIfNeeded,
   seedInitialDataIfNeeded: () => seedInitialDataIfNeeded
 });
+async function seedAnnouncementsIfNeeded() {
+  try {
+    const existing = await db.select({ id: announcements.id }).from(announcements).limit(1);
+    if (existing.length > 0) return;
+    console.log("\u{1F4E2} Seeding initial welcome announcement...");
+    await db.insert(announcements).values({
+      title: "Gen\xE7 Sosyal'e Ho\u015F Geldin! \u{1F389}",
+      content: "Yenilenen Gen\xE7 Sosyal platformunda projelerini sergileyebilir, etkinliklere kat\u0131labilir ve topluluklarla anl\u0131k ba\u011Flant\u0131 kurabilirsin.",
+      imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80",
+      buttonText: "Ke\u015Ffetmeye Ba\u015Fla",
+      buttonUrl: "/explore",
+      status: "published",
+      targetType: "all",
+      priority: 10,
+      startsAt: /* @__PURE__ */ new Date(),
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    });
+  } catch (err) {
+    console.error("Error seeding initial announcement:", err);
+  }
+}
 async function seedBadgesIfNeeded() {
   try {
     const existingBadges = await db.select({ id: badges.id }).from(badges).limit(1);
@@ -1602,6 +1704,7 @@ async function seedBadgesIfNeeded() {
 async function seedInitialDataIfNeeded() {
   try {
     await seedBadgesIfNeeded();
+    await seedAnnouncementsIfNeeded();
     const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
     if (existingUsers.length > 0) {
       return;
@@ -1734,21 +1837,27 @@ var init_robots = __esm({
     import_express4 = require("express");
     robotsRouter = (0, import_express4.Router)();
     robotsRouter.get("/robots.txt", (req, res) => {
-      const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+      const rawDomain = process.env.APP_URL || process.env.VITE_PUBLIC_URL || "https://gencsosyal.com";
+      const domain = rawDomain.replace(/\/+$/, "");
       const content = `User-agent: *
-Disallow: /messages
-Disallow: /settings
-Disallow: /admin
 Disallow: /api/
+Disallow: /admin
+Disallow: /settings
+Disallow: /messages
 Disallow: /notifications
 Disallow: /bookmarks
-Disallow: /search
 Disallow: /onboarding
+Disallow: /create
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 Allow: /
 
 Sitemap: ${domain}/sitemap.xml
 `;
-      res.header("Content-Type", "text/plain");
+      res.header("Content-Type", "text/plain; charset=utf-8");
       res.send(content);
     });
   }
@@ -1770,73 +1879,117 @@ var init_sitemap = __esm({
     sitemapRouter = (0, import_express5.Router)();
     sitemapRouter.get("/sitemap.xml", async (req, res) => {
       try {
-        const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
-        const publicProfiles = await db.select({ username: users.username }).from(profiles).innerJoin(users, (0, import_drizzle_orm7.eq)(profiles.userId, users.id)).where((0, import_drizzle_orm7.eq)(profiles.allowSearchEngineIndexing, true)).limit(5e3);
-        const publicPosts = await db.select({ id: posts.id }).from(posts).where(
+        const rawDomain = process.env.APP_URL || process.env.VITE_PUBLIC_URL || "https://gencsosyal.com";
+        const domain = rawDomain.replace(/\/+$/, "");
+        const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+        const publicProfiles = await db.select({
+          username: users.username,
+          updatedAt: users.updatedAt
+        }).from(profiles).innerJoin(users, (0, import_drizzle_orm7.eq)(profiles.userId, users.id)).where(
+          (0, import_drizzle_orm7.and)(
+            (0, import_drizzle_orm7.eq)(users.isActive, true),
+            (0, import_drizzle_orm7.eq)(profiles.allowSearchEngineIndexing, true),
+            (0, import_drizzle_orm7.eq)(profiles.isPrivate, false)
+          )
+        ).limit(5e3);
+        const publicPosts = await db.select({
+          id: posts.id,
+          updatedAt: posts.updatedAt
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm7.eq)(posts.userId, users.id)).innerJoin(profiles, (0, import_drizzle_orm7.eq)(users.id, profiles.userId)).where(
           (0, import_drizzle_orm7.and)(
             (0, import_drizzle_orm7.eq)(posts.visibility, "PUBLIC"),
             (0, import_drizzle_orm7.eq)(posts.moderationStatus, "APPROVED"),
-            (0, import_drizzle_orm7.isNull)(posts.communityId)
+            (0, import_drizzle_orm7.isNull)(posts.communityId),
+            (0, import_drizzle_orm7.eq)(users.isActive, true),
+            (0, import_drizzle_orm7.eq)(profiles.allowSearchEngineIndexing, true),
+            (0, import_drizzle_orm7.eq)(profiles.isPrivate, false)
           )
         ).orderBy((0, import_drizzle_orm7.desc)(posts.createdAt)).limit(5e3);
-        const publicCommunities = await db.select({ slug: communities.slug }).from(communities).limit(1e3);
-        const publicProjects = await db.select({ id: projects.id }).from(projects).limit(1e3);
-        const publicHashtags = await db.select({ name: hashtags.name }).from(hashtags).orderBy((0, import_drizzle_orm7.desc)(hashtags.usageCount)).limit(1e3);
+        const publicCommunities = await db.select({
+          slug: communities.slug,
+          updatedAt: communities.updatedAt
+        }).from(communities).limit(1e3);
+        const publicProjects = await db.select({
+          id: projects.id,
+          updatedAt: projects.updatedAt
+        }).from(projects).orderBy((0, import_drizzle_orm7.desc)(projects.createdAt)).limit(1e3);
+        const publicHashtags = await db.select({
+          name: hashtags.name,
+          createdAt: hashtags.createdAt
+        }).from(hashtags).where((0, import_drizzle_orm7.gt)(hashtags.usageCount, 0)).orderBy((0, import_drizzle_orm7.desc)(hashtags.usageCount)).limit(1e3);
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 `;
         xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 `;
-        const statics = ["/", "/explore", "/projects", "/communities"];
-        statics.forEach((path9) => {
+        const statics = [
+          { path: "", priority: "1.0", changefreq: "daily" },
+          { path: "/explore", priority: "0.9", changefreq: "hourly" },
+          { path: "/projects", priority: "0.8", changefreq: "daily" },
+          { path: "/communities", priority: "0.8", changefreq: "daily" },
+          { path: "/privacy", priority: "0.3", changefreq: "monthly" },
+          { path: "/terms", priority: "0.3", changefreq: "monthly" }
+        ];
+        statics.forEach((s) => {
           xml += `  <url>
-    <loc>${domain}${path9}</loc>
-    <changefreq>always</changefreq>
-    <priority>1.0</priority>
+    <loc>${domain}${s.path || "/"}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${s.changefreq}</changefreq>
+    <priority>${s.priority}</priority>
   </url>
 `;
         });
         publicProfiles.forEach((p) => {
+          const lastmod = p.updatedAt ? new Date(p.updatedAt).toISOString().split("T")[0] : today;
           xml += `  <url>
-    <loc>${domain}/profile/${p.username}</loc>
+    <loc>${domain}/profile/${encodeURIComponent(p.username)}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 `;
         });
         publicPosts.forEach((p) => {
+          const lastmod = p.updatedAt ? new Date(p.updatedAt).toISOString().split("T")[0] : today;
           xml += `  <url>
     <loc>${domain}/post/${p.id}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 `;
         });
         publicCommunities.forEach((c) => {
+          const lastmod = c.updatedAt ? new Date(c.updatedAt).toISOString().split("T")[0] : today;
           xml += `  <url>
-    <loc>${domain}/communities/${c.slug}</loc>
+    <loc>${domain}/communities/${encodeURIComponent(c.slug)}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 `;
         });
         publicProjects.forEach((p) => {
+          const lastmod = p.updatedAt ? new Date(p.updatedAt).toISOString().split("T")[0] : today;
           xml += `  <url>
     <loc>${domain}/projects/${p.id}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 `;
         });
         publicHashtags.forEach((h) => {
+          const lastmod = h.createdAt ? new Date(h.createdAt).toISOString().split("T")[0] : today;
           xml += `  <url>
-    <loc>${domain}/hashtag/${encodeURIComponent(h.name)}</loc>
+    <loc>${domain}/hashtags/${encodeURIComponent(h.name)}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
   </url>
 `;
         });
         xml += `</urlset>`;
-        res.header("Content-Type", "application/xml");
+        res.header("Content-Type", "application/xml; charset=utf-8");
         res.send(xml);
       } catch (error) {
         console.error("Sitemap generation error:", error);
@@ -3404,12 +3557,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
   }
   const { accessToken, refreshToken } = newUser;
   newUser = newUser.createdUser;
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.APP_URL?.startsWith("https") ?? false,
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1e3
-  });
+  res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
   res.status(201).json({
     success: true,
     data: {
@@ -3426,7 +3574,7 @@ async function handleVerifyOtpAndCreateUser(req, res, parsedData) {
     }
   });
 }
-var import_express7, jwt2, import_argon22, import_crypto2, import_drizzle_orm11, import_otplib, authRouter;
+var import_express7, jwt2, import_argon22, import_crypto2, import_drizzle_orm11, import_otplib, authRouter, getRefreshTokenCookieOptions, getClearCookieOptions;
 var init_auth3 = __esm({
   "server/routes/auth.ts"() {
     "use strict";
@@ -3445,24 +3593,30 @@ var init_auth3 = __esm({
     init_rateLimiter();
     init_auth();
     authRouter = (0, import_express7.Router)();
-    authRouter.get("/setup-admin-secure", async (req, res) => {
-      try {
-        const { key, email } = req.query;
-        if (key !== "GencSosyalAdmin2026") {
-          return res.status(403).json({ success: false, message: "Ge\xE7ersiz anahtar." });
-        }
-        const targetEmail = email || "imranyesildag123@gmail.com";
-        const result = await db.update(users).set({ role: "ADMIN" }).where((0, import_drizzle_orm11.eq)(users.email, targetEmail)).returning();
-        if (result.length > 0) {
-          return res.json({ success: true, message: `${result[0].username} kullan\u0131c\u0131s\u0131 ADMIN yap\u0131ld\u0131! L\xFCtfen hesaba \xE7\u0131k\u0131\u015F-giri\u015F yap\u0131n.` });
-        } else {
-          return res.status(404).json({ success: false, message: "Kullan\u0131c\u0131 bulunamad\u0131. L\xFCtfen \xF6nce uygulamaya bu e-posta ile kay\u0131t olun." });
-        }
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Sunucu hatas\u0131" });
-      }
-    });
+    getRefreshTokenCookieOptions = (req) => {
+      const isHttps = Boolean(
+        req.secure || req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production" || process.env.APP_URL?.startsWith("https")
+      );
+      return {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1e3,
+        // 7 days
+        path: "/"
+      };
+    };
+    getClearCookieOptions = (req) => {
+      const isHttps = Boolean(
+        req.secure || req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production" || process.env.APP_URL?.startsWith("https")
+      );
+      return {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: "strict",
+        path: "/"
+      };
+    };
     authRouter.post("/register/send-otp", otpSendRateLimiter, async (req, res) => {
       try {
         const parsed = sendOtpSchema.safeParse(req.body);
@@ -3713,13 +3867,7 @@ var init_auth3 = __esm({
           ipAddress: ipAddress.substring(0, 45),
           lastActiveAt: /* @__PURE__ */ new Date()
         });
-        res.cookie("refreshToken", refreshToken, {
-          httpOnly: true,
-          secure: process.env.APP_URL?.startsWith("https") ?? false,
-          sameSite: "lax",
-          maxAge: 7 * 24 * 60 * 60 * 1e3
-          // 7 days
-        });
+        res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
         sendSecurityAlertEmail(user.email, user.username, "Yeni Giri\u015F \u0130\u015Flemi", (/* @__PURE__ */ new Date()).toLocaleString("tr-TR"), ua.substring(0, 50), os, browser, ipAddress).catch(console.error);
         res.json({
           success: true,
@@ -3856,13 +4004,7 @@ var init_auth3 = __esm({
           ipAddress: ipAddress.substring(0, 45),
           lastActiveAt: /* @__PURE__ */ new Date()
         });
-        res.cookie("refreshToken", refreshToken, {
-          httpOnly: true,
-          secure: process.env.APP_URL?.startsWith("https") ?? false,
-          sameSite: "lax",
-          maxAge: 7 * 24 * 60 * 60 * 1e3
-          // 7 days
-        });
+        res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
         sendSecurityAlertEmail(user.email, user.username, "Yeni Giri\u015F \u0130\u015Flemi (2FA Onayl\u0131)", (/* @__PURE__ */ new Date()).toLocaleString("tr-TR"), ua.substring(0, 50), os, browser, ipAddress).catch(console.error);
         res.json({
           success: true,
@@ -4035,7 +4177,7 @@ var init_auth3 = __esm({
         try {
           decoded = verifyRefreshToken(refreshToken);
         } catch (e) {
-          res.clearCookie("refreshToken");
+          res.clearCookie("refreshToken", getClearCookieOptions(req));
           res.status(401).json({
             success: false,
             error: { code: "UNAUTHORIZED", message: "Ge\xE7ersiz oturum." }
@@ -4067,7 +4209,7 @@ var init_auth3 = __esm({
               ipAddress: (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim().substring(0, 45)
             }
           }).catch(console.error);
-          res.clearCookie("refreshToken");
+          res.clearCookie("refreshToken", getClearCookieOptions(req));
           res.status(401).json({
             success: false,
             error: { code: "UNAUTHORIZED", message: "\u015E\xFCpheli oturum hareketi alg\u0131land\u0131. T\xFCm oturumlar\u0131n\u0131z g\xFCvenlik amac\u0131yla sonland\u0131r\u0131ld\u0131, l\xFCtfen tekrar giri\u015F yap\u0131n." }
@@ -4075,7 +4217,7 @@ var init_auth3 = __esm({
           return;
         }
         if (!matchedTokenId) {
-          res.clearCookie("refreshToken");
+          res.clearCookie("refreshToken", getClearCookieOptions(req));
           res.status(401).json({
             success: false,
             error: { code: "UNAUTHORIZED", message: "Ge\xE7ersiz oturum." }
@@ -4116,7 +4258,7 @@ var init_auth3 = __esm({
           return;
         }
         if (txResult.error === "inactive") {
-          res.clearCookie("refreshToken");
+          res.clearCookie("refreshToken", getClearCookieOptions(req));
           res.status(401).json({
             success: false,
             error: { code: "UNAUTHORIZED", message: "Hesap pasif." }
@@ -4124,12 +4266,7 @@ var init_auth3 = __esm({
           return;
         }
         const { newAccessToken, newRefreshToken } = txResult;
-        res.cookie("refreshToken", newRefreshToken, {
-          httpOnly: true,
-          secure: process.env.APP_URL?.startsWith("https") ?? false,
-          sameSite: "lax",
-          maxAge: 7 * 24 * 60 * 60 * 1e3
-        });
+        res.cookie("refreshToken", newRefreshToken, getRefreshTokenCookieOptions(req));
         res.json({
           success: true,
           data: {
@@ -4163,7 +4300,7 @@ var init_auth3 = __esm({
           } catch (e) {
           }
         }
-        res.clearCookie("refreshToken");
+        res.clearCookie("refreshToken", getClearCookieOptions(req));
         res.json({ success: true, data: {} });
       } catch (error) {
         console.error("Logout error:", error);
@@ -5274,12 +5411,12 @@ var init_posts = __esm({
         }
         (async () => {
           try {
-            const { users: users3, follows: follows2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+            const { users: users4, follows: follows2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
             const { notify: notify2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
             const author = await db.select({
-              isOfficialAccount: users3.isOfficialAccount,
-              officialNotifyEnabled: users3.officialNotifyEnabled
-            }).from(users3).where((0, import_drizzle_orm14.eq)(users3.id, currentUserId)).limit(1);
+              isOfficialAccount: users4.isOfficialAccount,
+              officialNotifyEnabled: users4.officialNotifyEnabled
+            }).from(users4).where((0, import_drizzle_orm14.eq)(users4.id, currentUserId)).limit(1);
             if (author.length > 0 && author[0].isOfficialAccount && author[0].officialNotifyEnabled) {
               const followers = await db.select({ followerId: follows2.followerId, preference: follows2.notificationPreference }).from(follows2).where((0, import_drizzle_orm14.eq)(follows2.followingId, currentUserId));
               const { notifications: notifications3 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
@@ -7063,15 +7200,18 @@ var init_stories = __esm({
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
       }
     });
-    storiesRouter.get("/", requireAuth, async (req, res) => {
+    storiesRouter.get("/", async (req, res) => {
       try {
-        const currentUserId = requireAuthContext(req);
-        const blockedIds = await getBlockedIds(currentUserId);
-        const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm24.eq)(follows.followerId, currentUserId));
-        let targetIds = followingRecords.map((f) => f.followingId);
-        targetIds.push(currentUserId);
-        targetIds = targetIds.filter((id) => !blockedIds.includes(id));
-        if (targetIds.length === 0) targetIds = [-1];
+        const currentUserId = optionalAuthContext(req);
+        let targetIds = [];
+        if (currentUserId) {
+          const blockedIds = await getBlockedIds(currentUserId);
+          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm24.eq)(follows.followerId, currentUserId));
+          targetIds = followingRecords.map((f) => f.followingId);
+          targetIds.push(currentUserId);
+          targetIds = targetIds.filter((id) => !blockedIds.includes(id));
+        }
+        const queryCondition = targetIds.length > 0 ? (0, import_drizzle_orm24.and)((0, import_drizzle_orm24.inArray)(stories.userId, targetIds), (0, import_drizzle_orm24.gt)(stories.expiresAt, /* @__PURE__ */ new Date())) : (0, import_drizzle_orm24.gt)(stories.expiresAt, /* @__PURE__ */ new Date());
         const activeStories = await db.select({
           id: stories.id,
           mediaUrl: stories.mediaUrl,
@@ -7084,12 +7224,7 @@ var init_stories = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(stories).innerJoin(users, (0, import_drizzle_orm24.eq)(stories.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where(
-          (0, import_drizzle_orm24.and)(
-            (0, import_drizzle_orm24.inArray)(stories.userId, targetIds),
-            (0, import_drizzle_orm24.gt)(stories.expiresAt, /* @__PURE__ */ new Date())
-          )
-        ).orderBy((0, import_drizzle_orm24.desc)(stories.createdAt));
+        }).from(stories).innerJoin(users, (0, import_drizzle_orm24.eq)(stories.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where(queryCondition).orderBy((0, import_drizzle_orm24.desc)(stories.createdAt)).limit(30);
         res.json({ success: true, data: activeStories });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7148,37 +7283,175 @@ var init_stories = __esm({
   }
 });
 
-// server/routes/messages.ts
-var messages_exports = {};
-__export(messages_exports, {
-  messagesRouter: () => messagesRouter
+// server/routes/announcements.ts
+var announcements_exports = {};
+__export(announcements_exports, {
+  announcementsRouter: () => announcementsRouter
 });
-var import_express19, import_drizzle_orm25, import_zod6, messagesRouter, createMessageSchema;
-var init_messages = __esm({
-  "server/routes/messages.ts"() {
+var import_express19, import_drizzle_orm25, announcementsRouter;
+var init_announcements = __esm({
+  "server/routes/announcements.ts"() {
     "use strict";
     import_express19 = require("express");
     init_db();
     init_schema();
     import_drizzle_orm25 = require("drizzle-orm");
     init_auth();
+    announcementsRouter = (0, import_express19.Router)();
+    announcementsRouter.get("/active", optionalAuth, async (req, res) => {
+      try {
+        const now = /* @__PURE__ */ new Date();
+        const currentUserId = req.user?.userId;
+        const currentUserRole = req.user?.role?.toUpperCase();
+        const activeTimeCondition = (0, import_drizzle_orm25.and)(
+          (0, import_drizzle_orm25.eq)(announcements.status, "published"),
+          (0, import_drizzle_orm25.or)((0, import_drizzle_orm25.isNull)(announcements.startsAt), (0, import_drizzle_orm25.lte)(announcements.startsAt, now)),
+          (0, import_drizzle_orm25.or)((0, import_drizzle_orm25.isNull)(announcements.endsAt), (0, import_drizzle_orm25.gt)(announcements.endsAt, now))
+        );
+        let targetCondition;
+        if (currentUserId) {
+          targetCondition = (0, import_drizzle_orm25.or)(
+            (0, import_drizzle_orm25.eq)(announcements.targetType, "all"),
+            (0, import_drizzle_orm25.eq)(announcements.targetType, "authenticated"),
+            (0, import_drizzle_orm25.and)(
+              (0, import_drizzle_orm25.eq)(announcements.targetType, "specific_role"),
+              currentUserRole ? (0, import_drizzle_orm25.eq)(import_drizzle_orm25.sql`UPPER(${announcements.targetRole})`, currentUserRole) : import_drizzle_orm25.sql`false`
+            )
+          );
+        } else {
+          targetCondition = (0, import_drizzle_orm25.eq)(announcements.targetType, "all");
+        }
+        let dismissedIds = [];
+        if (currentUserId) {
+          const dismissedViews = await db.select({ announcementId: announcementViews.announcementId }).from(announcementViews).where(
+            (0, import_drizzle_orm25.and)(
+              (0, import_drizzle_orm25.eq)(announcementViews.userId, currentUserId),
+              import_drizzle_orm25.sql`${announcementViews.dismissedAt} IS NOT NULL`
+            )
+          );
+          dismissedIds = dismissedViews.map((v) => v.announcementId);
+        }
+        const whereConditions = [activeTimeCondition, targetCondition];
+        if (dismissedIds.length > 0) {
+          whereConditions.push((0, import_drizzle_orm25.notInArray)(announcements.id, dismissedIds));
+        }
+        const items = await db.select({
+          id: announcements.id,
+          title: announcements.title,
+          content: announcements.content,
+          imageUrl: announcements.imageUrl,
+          buttonText: announcements.buttonText,
+          buttonUrl: announcements.buttonUrl,
+          priority: announcements.priority,
+          startsAt: announcements.startsAt,
+          endsAt: announcements.endsAt,
+          createdAt: announcements.createdAt
+        }).from(announcements).where((0, import_drizzle_orm25.and)(...whereConditions)).orderBy((0, import_drizzle_orm25.desc)(announcements.priority), (0, import_drizzle_orm25.desc)(announcements.createdAt)).limit(5);
+        res.json({
+          success: true,
+          data: items
+        });
+      } catch (error) {
+        console.error("Fetch active announcements error:", error);
+        res.status(500).json({
+          success: false,
+          error: { message: "Duyurular y\xFCklenirken hata olu\u015Ftu." }
+        });
+      }
+    });
+    announcementsRouter.post("/:id/seen", optionalAuth, async (req, res) => {
+      try {
+        const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const announcementId = parseInt(rawId, 10);
+        if (isNaN(announcementId)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const currentUserId = req.user?.userId;
+        const clickedCta = Boolean(req.body.clickedCta);
+        if (currentUserId) {
+          await db.insert(announcementViews).values({
+            announcementId,
+            userId: currentUserId,
+            seenAt: /* @__PURE__ */ new Date(),
+            dismissedAt: /* @__PURE__ */ new Date(),
+            clickedCta
+          }).onConflictDoUpdate({
+            target: [announcementViews.announcementId, announcementViews.userId],
+            set: {
+              dismissedAt: /* @__PURE__ */ new Date(),
+              ...clickedCta ? { clickedCta: true } : {}
+            }
+          });
+        }
+        res.json({ success: true, data: { message: "Duyuru g\xF6r\xFCld\xFC olarak i\u015Faretlendi." } });
+      } catch (error) {
+        console.error("Mark announcement seen error:", error);
+        res.json({ success: false, error: { message: "G\xF6r\xFCld\xFC kaydedilemedi ancak UI g\xFCncellendi." } });
+      }
+    });
+    announcementsRouter.post("/:id/click", optionalAuth, async (req, res) => {
+      try {
+        const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const announcementId = parseInt(rawId, 10);
+        if (isNaN(announcementId)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const currentUserId = req.user?.userId;
+        if (currentUserId) {
+          await db.insert(announcementViews).values({
+            announcementId,
+            userId: currentUserId,
+            seenAt: /* @__PURE__ */ new Date(),
+            clickedCta: true
+          }).onConflictDoUpdate({
+            target: [announcementViews.announcementId, announcementViews.userId],
+            set: {
+              clickedCta: true
+            }
+          });
+        }
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Track announcement click error:", error);
+        res.json({ success: false });
+      }
+    });
+  }
+});
+
+// server/routes/messages.ts
+var messages_exports = {};
+__export(messages_exports, {
+  messagesRouter: () => messagesRouter
+});
+var import_express20, import_drizzle_orm26, import_zod6, messagesRouter, createMessageSchema;
+var init_messages = __esm({
+  "server/routes/messages.ts"() {
+    "use strict";
+    import_express20 = require("express");
+    init_db();
+    init_schema();
+    import_drizzle_orm26 = require("drizzle-orm");
+    init_auth();
     init_rateLimiter();
     init_blocks();
     init_api();
     import_zod6 = require("zod");
-    messagesRouter = (0, import_express19.Router)();
+    messagesRouter = (0, import_express20.Router)();
     messagesRouter.get("/conversations", requireAuth, async (req, res) => {
       try {
         const currentUserId = requireAuthContext(req);
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
         const offset = (page - 1) * limit;
-        const memberships = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId));
+        const memberships = await db.select().from(conversationMembers).where((0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId));
         const convIds = memberships.map((m) => m.conversationId);
         if (convIds.length === 0) {
           return res.json({ success: true, data: [] });
         }
-        const convs = await db.select().from(conversations).where((0, import_drizzle_orm25.inArray)(conversations.id, convIds)).orderBy((0, import_drizzle_orm25.desc)(conversations.updatedAt)).limit(limit).offset(offset);
+        const convs = await db.select().from(conversations).where((0, import_drizzle_orm26.inArray)(conversations.id, convIds)).orderBy((0, import_drizzle_orm26.desc)(conversations.updatedAt)).limit(limit).offset(offset);
         if (convs.length === 0) {
           return res.json({ success: true, data: [] });
         }
@@ -7189,17 +7462,17 @@ var init_messages = __esm({
           username: users.username,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(conversationMembers).innerJoin(users, (0, import_drizzle_orm25.eq)(conversationMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.inArray)(conversationMembers.conversationId, fetchedConvIds), (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))));
+        }).from(conversationMembers).innerJoin(users, (0, import_drizzle_orm26.eq)(conversationMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.inArray)(conversationMembers.conversationId, fetchedConvIds), (0, import_drizzle_orm26.not)((0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId))));
         const unreadCounts = await db.select({
           conversationId: messages.conversationId,
-          count: import_drizzle_orm25.sql`cast(count(*) as integer)`
-        }).from(messages).where((0, import_drizzle_orm25.and)(
-          (0, import_drizzle_orm25.inArray)(messages.conversationId, fetchedConvIds),
-          (0, import_drizzle_orm25.eq)(messages.isRead, false),
-          (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(messages.senderId, currentUserId))
+          count: import_drizzle_orm26.sql`cast(count(*) as integer)`
+        }).from(messages).where((0, import_drizzle_orm26.and)(
+          (0, import_drizzle_orm26.inArray)(messages.conversationId, fetchedConvIds),
+          (0, import_drizzle_orm26.eq)(messages.isRead, false),
+          (0, import_drizzle_orm26.not)((0, import_drizzle_orm26.eq)(messages.senderId, currentUserId))
         )).groupBy(messages.conversationId);
-        const convIdsSql = import_drizzle_orm25.sql.join(fetchedConvIds.map((id) => import_drizzle_orm25.sql`${id}`), import_drizzle_orm25.sql`, `);
-        const lastMessagesResult = await db.execute(import_drizzle_orm25.sql`
+        const convIdsSql = import_drizzle_orm26.sql.join(fetchedConvIds.map((id) => import_drizzle_orm26.sql`${id}`), import_drizzle_orm26.sql`, `);
+        const lastMessagesResult = await db.execute(import_drizzle_orm26.sql`
       SELECT DISTINCT ON (conversation_id)
         id, conversation_id as "conversationId", sender_id as "senderId", content, media_url as "mediaUrl", is_read as "isRead", created_at as "createdAt"
       FROM messages
@@ -7240,24 +7513,24 @@ var init_messages = __esm({
         if (blockedIds.includes(targetUserId)) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Engelli kullan\u0131c\u0131." } });
         }
-        const targetProfile = await db.select({ messagePreference: profiles.messagePreference }).from(profiles).where((0, import_drizzle_orm25.eq)(profiles.userId, targetUserId)).limit(1);
+        const targetProfile = await db.select({ messagePreference: profiles.messagePreference }).from(profiles).where((0, import_drizzle_orm26.eq)(profiles.userId, targetUserId)).limit(1);
         if (targetProfile.length > 0) {
           const pref = targetProfile[0].messagePreference;
           if (pref === "NONE") {
             return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu kullan\u0131c\u0131ya mesaj g\xF6nderilemiyor." } });
           } else if (pref === "FOLLOWERS") {
-            const isFollowedByTarget = await db.select().from(follows).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm25.eq)(follows.followingId, currentUserId))).limit(1);
+            const isFollowedByTarget = await db.select().from(follows).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(follows.followerId, targetUserId), (0, import_drizzle_orm26.eq)(follows.followingId, currentUserId))).limit(1);
             if (isFollowedByTarget.length === 0) {
               return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Kullan\u0131c\u0131 sadece takip etti\u011Fi ki\u015Filerden mesaj kabul ediyor." } });
             }
           }
         }
-        const userConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId));
+        const userConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId));
         const userConvIds = userConvs.map((c) => c.convId);
         if (userConvIds.length > 0) {
-          const targetConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.userId, targetUserId), (0, import_drizzle_orm25.inArray)(conversationMembers.conversationId, userConvIds))).limit(1);
+          const targetConvs = await db.select({ convId: conversationMembers.conversationId }).from(conversationMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(conversationMembers.userId, targetUserId), (0, import_drizzle_orm26.inArray)(conversationMembers.conversationId, userConvIds))).limit(1);
           if (targetConvs.length > 0) {
-            const [existing] = await db.select().from(conversations).where((0, import_drizzle_orm25.eq)(conversations.id, targetConvs[0].convId)).limit(1);
+            const [existing] = await db.select().from(conversations).where((0, import_drizzle_orm26.eq)(conversations.id, targetConvs[0].convId)).limit(1);
             return res.json({ success: true, data: existing });
           }
         }
@@ -7278,7 +7551,7 @@ var init_messages = __esm({
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
         const offset = (page - 1) * limit;
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
         const msgs = await db.select({
           id: messages.id,
@@ -7292,7 +7565,7 @@ var init_messages = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(messages).innerJoin(users, (0, import_drizzle_orm25.eq)(messages.senderId, users.id)).leftJoin(profiles, (0, import_drizzle_orm25.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm25.eq)(messages.conversationId, conversationId)).orderBy((0, import_drizzle_orm25.desc)(messages.createdAt)).limit(limit).offset(offset);
+        }).from(messages).innerJoin(users, (0, import_drizzle_orm26.eq)(messages.senderId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.eq)(messages.conversationId, conversationId)).orderBy((0, import_drizzle_orm26.desc)(messages.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: msgs });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7310,7 +7583,7 @@ var init_messages = __esm({
         if (!parsed.success || !parsed.data.content && !parsed.data.mediaUrl) {
           return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Mesaj i\xE7eri\u011Fi gerekli." } });
         }
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
         const [msg] = await db.insert(messages).values({
           conversationId,
@@ -7318,7 +7591,7 @@ var init_messages = __esm({
           content: parsed.data.content || null,
           mediaUrl: parsed.data.mediaUrl || null
         }).returning();
-        await db.update(conversations).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm25.eq)(conversations.id, conversationId));
+        await db.update(conversations).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm26.eq)(conversations.id, conversationId));
         res.status(201).json({ success: true, data: msg });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7328,12 +7601,12 @@ var init_messages = __esm({
       try {
         const currentUserId = requireAuthContext(req);
         const conversationId = parseInt(req.params.id);
-        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm25.and)((0, import_drizzle_orm25.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm25.eq)(conversationMembers.userId, currentUserId))).limit(1);
+        const membership = await db.select().from(conversationMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(conversationMembers.conversationId, conversationId), (0, import_drizzle_orm26.eq)(conversationMembers.userId, currentUserId))).limit(1);
         if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." } });
-        await db.update(messages).set({ isRead: true }).where((0, import_drizzle_orm25.and)(
-          (0, import_drizzle_orm25.eq)(messages.conversationId, conversationId),
-          (0, import_drizzle_orm25.not)((0, import_drizzle_orm25.eq)(messages.senderId, currentUserId)),
-          (0, import_drizzle_orm25.eq)(messages.isRead, false)
+        await db.update(messages).set({ isRead: true }).where((0, import_drizzle_orm26.and)(
+          (0, import_drizzle_orm26.eq)(messages.conversationId, conversationId),
+          (0, import_drizzle_orm26.not)((0, import_drizzle_orm26.eq)(messages.senderId, currentUserId)),
+          (0, import_drizzle_orm26.eq)(messages.isRead, false)
         ));
         res.json({ success: true, data: { message: "Okundu olarak i\u015Faretlendi." } });
       } catch (error) {
@@ -7348,18 +7621,18 @@ var communities_exports = {};
 __export(communities_exports, {
   communitiesRouter: () => communitiesRouter
 });
-var import_express20, import_drizzle_orm26, communitiesRouter;
+var import_express21, import_drizzle_orm27, communitiesRouter;
 var init_communities = __esm({
   "server/routes/communities.ts"() {
     "use strict";
-    import_express20 = require("express");
+    import_express21 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm26 = require("drizzle-orm");
+    import_drizzle_orm27 = require("drizzle-orm");
     init_auth();
     init_api();
     init_postStats();
-    communitiesRouter = (0, import_express20.Router)();
+    communitiesRouter = (0, import_express21.Router)();
     communitiesRouter.get("/", optionalAuth, async (req, res) => {
       try {
         const list = await db.select().from(communities).limit(20);
@@ -7391,10 +7664,10 @@ var init_communities = __esm({
     communitiesRouter.get("/:slug", optionalAuth, async (req, res) => {
       try {
         const slug = req.params.slug;
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.slug, slug)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm27.eq)(communities.slug, slug)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         const currentUserId = requireAuthContext(req);
-        const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, community.id), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId))).limit(1);
+        const memberRecord = await db.select().from(communityMembers).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(communityMembers.communityId, community.id), (0, import_drizzle_orm27.eq)(communityMembers.userId, currentUserId))).limit(1);
         const isMember = memberRecord.length > 0 || community.ownerId === currentUserId;
         const isModerator = community.ownerId === currentUserId || memberRecord.length > 0 && ["admin", "OWNER", "MODERATOR"].includes(memberRecord[0].role);
         res.json({ success: true, data: { ...community, isMember, isModerator } });
@@ -7406,7 +7679,7 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm27.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         await db.insert(communityMembers).values({ communityId, userId: currentUserId, role: "MEMBER" }).onConflictDoNothing();
         res.json({ success: true, data: { message: "Kat\u0131ld\u0131n\u0131z." } });
@@ -7418,12 +7691,12 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm27.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         if (community.ownerId === currentUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Topluluk sahibi ayr\u0131lamaz." } });
         }
-        await db.delete(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId)));
+        await db.delete(communityMembers).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm27.eq)(communityMembers.userId, currentUserId)));
         res.json({ success: true, data: { message: "Ayr\u0131ld\u0131n\u0131z." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7445,7 +7718,7 @@ var init_communities = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(communityMembers).innerJoin(users, (0, import_drizzle_orm26.eq)(communityMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId)).orderBy((0, import_drizzle_orm26.desc)(communityMembers.createdAt)).limit(limit).offset(offset);
+        }).from(communityMembers).innerJoin(users, (0, import_drizzle_orm27.eq)(communityMembers.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm27.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm27.eq)(communityMembers.communityId, communityId)).orderBy((0, import_drizzle_orm27.desc)(communityMembers.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: members });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7462,22 +7735,22 @@ var init_communities = __esm({
         if (currentUserId === targetUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi bu b\xF6l\xFCmden \xE7\u0131karamazs\u0131n\u0131z, l\xFCtfen ayr\u0131lma se\xE7ene\u011Fini kullan\u0131n." } });
         }
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm27.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         if (community.ownerId === targetUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Topluluk sahibi \xE7\u0131kar\u0131lamaz." } });
         }
-        const currentUserMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, currentUserId))).limit(1);
+        const currentUserMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm27.eq)(communityMembers.userId, currentUserId))).limit(1);
         const isOwner = community.ownerId === currentUserId;
         const isModerator = currentUserMembership.length > 0 && ["admin", "OWNER", "MODERATOR"].includes(currentUserMembership[0].role);
         if (!isOwner && !isModerator) {
           return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu i\u015Flemi yapmak i\xE7in yetkiniz yok." } });
         }
-        const targetMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, targetUserId))).limit(1);
+        const targetMembership = await db.select().from(communityMembers).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm27.eq)(communityMembers.userId, targetUserId))).limit(1);
         if (targetMembership.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullan\u0131c\u0131 bu toplulu\u011Fun \xFCyesi de\u011Fil." } });
         }
-        await db.delete(communityMembers).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm26.eq)(communityMembers.userId, targetUserId)));
+        await db.delete(communityMembers).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(communityMembers.communityId, communityId), (0, import_drizzle_orm27.eq)(communityMembers.userId, targetUserId)));
         res.json({ success: true, data: { message: "\xDCye ba\u015Far\u0131yla \xE7\u0131kar\u0131ld\u0131." } });
       } catch (error) {
         res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatas\u0131." } });
@@ -7487,7 +7760,7 @@ var init_communities = __esm({
       try {
         const communityId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
-        const [community] = await db.select().from(communities).where((0, import_drizzle_orm26.eq)(communities.id, communityId)).limit(1);
+        const [community] = await db.select().from(communities).where((0, import_drizzle_orm27.eq)(communities.id, communityId)).limit(1);
         if (!community) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamad\u0131." } });
         const parsed = paginationSchema.safeParse(req.query);
         const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
@@ -7505,7 +7778,7 @@ var init_communities = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(posts).innerJoin(users, (0, import_drizzle_orm26.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm26.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm26.and)((0, import_drizzle_orm26.eq)(posts.communityId, communityId), (0, import_drizzle_orm26.eq)(posts.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm26.desc)(posts.createdAt)).limit(limit).offset(offset);
+        }).from(posts).innerJoin(users, (0, import_drizzle_orm27.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm27.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(posts.communityId, communityId), (0, import_drizzle_orm27.eq)(posts.moderationStatus, "APPROVED"))).orderBy((0, import_drizzle_orm27.desc)(posts.createdAt)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(communityPosts, currentUserId);
         res.json({ success: true, data: formattedPosts });
       } catch (error) {
@@ -7520,20 +7793,20 @@ var reactions_exports = {};
 __export(reactions_exports, {
   reactionsRouter: () => reactionsRouter
 });
-var import_express21, import_drizzle_orm27, import_zod7, reactionsRouter, reactionSchema;
+var import_express22, import_drizzle_orm28, import_zod7, reactionsRouter, reactionSchema;
 var init_reactions = __esm({
   "server/routes/reactions.ts"() {
     "use strict";
-    import_express21 = require("express");
+    import_express22 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm27 = require("drizzle-orm");
+    import_drizzle_orm28 = require("drizzle-orm");
     init_auth();
     init_notifications();
     init_rateLimiter();
     init_visibility();
     import_zod7 = require("zod");
-    reactionsRouter = (0, import_express21.Router)();
+    reactionsRouter = (0, import_express22.Router)();
     reactionSchema = import_zod7.z.object({
       type: import_zod7.z.enum(["like", "love", "haha", "wow", "sad", "angry"])
     });
@@ -7544,7 +7817,7 @@ var init_reactions = __esm({
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
         const parsed = reactionSchema.safeParse(req.body);
         if (!parsed.success) return res.status(400).json({ success: false, error: { code: "VALIDATION_ERROR", message: "Ge\xE7ersiz veri." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm27.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm28.eq)(posts.id, postId)).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         if (postRecord[0].userId === currentUserId) {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendi g\xF6nderinize tepki veremezsiniz." } });
@@ -7555,12 +7828,12 @@ var init_reactions = __esm({
         let isNew = false;
         try {
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId))).limit(1);
+            const existing = await tx.select().from(reactions).where((0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(reactions.postId, postId), (0, import_drizzle_orm28.eq)(reactions.userId, currentUserId))).limit(1);
             if (existing.length > 0) {
-              await tx.update(reactions).set({ type: parsed.data.type }).where((0, import_drizzle_orm27.eq)(reactions.id, existing[0].id));
+              await tx.update(reactions).set({ type: parsed.data.type }).where((0, import_drizzle_orm28.eq)(reactions.id, existing[0].id));
             } else {
               await tx.insert(reactions).values({ postId, userId: currentUserId, type: parsed.data.type });
-              await tx.update(posts).set({ baseScore: import_drizzle_orm27.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm27.eq)(posts.id, postId));
+              await tx.update(posts).set({ baseScore: import_drizzle_orm28.sql`GREATEST(${posts.baseScore} + 1, 0)` }).where((0, import_drizzle_orm28.eq)(posts.id, postId));
               isNew = true;
             }
           });
@@ -7580,13 +7853,13 @@ var init_reactions = __esm({
         const postId = parseInt(req.params.id);
         const currentUserId = requireAuthContext(req);
         if (!await verifyPostAccess(postId, currentUserId)) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Bu g\xF6nderiye eri\u015Fiminiz yok." } });
-        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm27.eq)(posts.id, postId)).limit(1);
+        const postRecord = await db.select().from(posts).where((0, import_drizzle_orm28.eq)(posts.id, postId)).limit(1);
         if (postRecord.length === 0) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "G\xF6nderi bulunamad\u0131." } });
         await db.transaction(async (tx) => {
-          const existing = await tx.select().from(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId))).limit(1);
+          const existing = await tx.select().from(reactions).where((0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(reactions.postId, postId), (0, import_drizzle_orm28.eq)(reactions.userId, currentUserId))).limit(1);
           if (existing.length > 0) {
-            await tx.delete(reactions).where((0, import_drizzle_orm27.and)((0, import_drizzle_orm27.eq)(reactions.postId, postId), (0, import_drizzle_orm27.eq)(reactions.userId, currentUserId)));
-            await tx.update(posts).set({ baseScore: import_drizzle_orm27.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm27.eq)(posts.id, postId));
+            await tx.delete(reactions).where((0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(reactions.postId, postId), (0, import_drizzle_orm28.eq)(reactions.userId, currentUserId)));
+            await tx.update(posts).set({ baseScore: import_drizzle_orm28.sql`GREATEST(${posts.baseScore} - 1, 0)` }).where((0, import_drizzle_orm28.eq)(posts.id, postId));
           }
         });
         res.json({ success: true, data: { message: "Tepki kald\u0131r\u0131ld\u0131." } });
@@ -7602,19 +7875,19 @@ var comments_exports = {};
 __export(comments_exports, {
   commentsRouter: () => commentsRouter
 });
-var import_express22, import_drizzle_orm28, commentsRouter;
+var import_express23, import_drizzle_orm29, commentsRouter;
 var init_comments = __esm({
   "server/routes/comments.ts"() {
     "use strict";
-    import_express22 = require("express");
+    import_express23 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm28 = require("drizzle-orm");
+    import_drizzle_orm29 = require("drizzle-orm");
     init_cursor();
     init_auth();
     init_api();
     init_visibility();
-    commentsRouter = (0, import_express22.Router)();
+    commentsRouter = (0, import_express23.Router)();
     commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
       try {
         const postId = parseInt(req.params.id);
@@ -7626,7 +7899,7 @@ var init_comments = __esm({
         if (cursor) {
           const decoded = decodeCursor(cursor);
           if (decoded) {
-            cursorCondition = (0, import_drizzle_orm28.or)((0, import_drizzle_orm28.lt)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm28.lt)(comments.id, decoded.id)));
+            cursorCondition = (0, import_drizzle_orm29.or)((0, import_drizzle_orm29.lt)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm29.and)((0, import_drizzle_orm29.eq)(comments.createdAt, decoded.createdAt), (0, import_drizzle_orm29.lt)(comments.id, decoded.id)));
           }
         }
         const list = await db.select({
@@ -7640,7 +7913,7 @@ var init_comments = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(comments).innerJoin(users, (0, import_drizzle_orm28.eq)(comments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm28.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm28.and)((0, import_drizzle_orm28.eq)(comments.postId, postId), (0, import_drizzle_orm28.eq)(comments.moderationStatus, "APPROVED"), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm28.desc)(comments.createdAt), (0, import_drizzle_orm28.desc)(comments.id)).limit(limit);
+        }).from(comments).innerJoin(users, (0, import_drizzle_orm29.eq)(comments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm29.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm29.and)((0, import_drizzle_orm29.eq)(comments.postId, postId), (0, import_drizzle_orm29.eq)(comments.moderationStatus, "APPROVED"), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm29.desc)(comments.createdAt), (0, import_drizzle_orm29.desc)(comments.id)).limit(limit);
         let nextCursor = void 0;
         if (list.length === limit) {
           const last = list[list.length - 1];
@@ -7659,18 +7932,18 @@ var reports_exports = {};
 __export(reports_exports, {
   reportsRouter: () => reportsRouter
 });
-var import_express23, import_drizzle_orm29, import_zod8, reportsRouter, reportSchema;
+var import_express24, import_drizzle_orm30, import_zod8, reportsRouter, reportSchema;
 var init_reports = __esm({
   "server/routes/reports.ts"() {
     "use strict";
-    import_express23 = require("express");
+    import_express24 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm29 = require("drizzle-orm");
+    import_drizzle_orm30 = require("drizzle-orm");
     init_auth();
     init_rateLimiter();
     import_zod8 = require("zod");
-    reportsRouter = (0, import_express23.Router)();
+    reportsRouter = (0, import_express24.Router)();
     reportSchema = import_zod8.z.object({
       targetType: import_zod8.z.enum(["user", "post", "comment", "community"]),
       targetId: import_zod8.z.number(),
@@ -7685,11 +7958,11 @@ var init_reports = __esm({
         }
         const { targetType, targetId, reason } = parsed.data;
         const existing = await db.select().from(reports).where(
-          (0, import_drizzle_orm29.and)(
-            (0, import_drizzle_orm29.eq)(reports.reporterId, currentUserId),
-            (0, import_drizzle_orm29.eq)(reports.targetType, targetType),
-            (0, import_drizzle_orm29.eq)(reports.targetId, targetId),
-            (0, import_drizzle_orm29.eq)(reports.status, "PENDING")
+          (0, import_drizzle_orm30.and)(
+            (0, import_drizzle_orm30.eq)(reports.reporterId, currentUserId),
+            (0, import_drizzle_orm30.eq)(reports.targetType, targetType),
+            (0, import_drizzle_orm30.eq)(reports.targetId, targetId),
+            (0, import_drizzle_orm30.eq)(reports.status, "PENDING")
           )
         ).limit(1);
         if (existing.length > 0) {
@@ -7714,19 +7987,19 @@ var admin_exports = {};
 __export(admin_exports, {
   adminRouter: () => adminRouter
 });
-var import_express24, import_drizzle_orm30, import_argon24, adminRouter, getPagination;
+var import_express25, import_drizzle_orm31, import_argon24, adminRouter, getPagination, parseParamId;
 var init_admin = __esm({
   "server/routes/admin.ts"() {
     "use strict";
     init_encryption();
-    import_express24 = require("express");
+    import_express25 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm30 = require("drizzle-orm");
+    import_drizzle_orm31 = require("drizzle-orm");
     init_auth();
     init_mailer();
     import_argon24 = __toESM(require("argon2"), 1);
-    adminRouter = (0, import_express24.Router)();
+    adminRouter = (0, import_express25.Router)();
     getPagination = (req) => {
       const page = Math.max(1, parseInt(req.query.page) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
@@ -7735,10 +8008,10 @@ var init_admin = __esm({
     adminRouter.use(requireAuth, requireRole("ADMIN"));
     adminRouter.get("/stats", async (req, res) => {
       try {
-        const totalUsers = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(users);
-        const bannedUsers = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm30.eq)(users.isActive, false));
-        const pendingVerifications = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.status, "pending"));
-        const pendingReports = await db.select({ count: import_drizzle_orm30.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm30.eq)(reports.status, "PENDING"));
+        const totalUsers = await db.select({ count: import_drizzle_orm31.sql`cast(count(*) as integer)` }).from(users);
+        const bannedUsers = await db.select({ count: import_drizzle_orm31.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm31.eq)(users.isActive, false));
+        const pendingVerifications = await db.select({ count: import_drizzle_orm31.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.status, "pending"));
+        const pendingReports = await db.select({ count: import_drizzle_orm31.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm31.eq)(reports.status, "PENDING"));
         res.json({
           success: true,
           data: {
@@ -7771,27 +8044,27 @@ var init_admin = __esm({
           createdAt: users.createdAt,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId));
         const conditions = [];
         if (q && q.trim().length > 0) {
           const qTerm = `%${q.trim()}%`;
           conditions.push(
-            (0, import_drizzle_orm30.or)(
-              (0, import_drizzle_orm30.ilike)(users.username, qTerm),
-              (0, import_drizzle_orm30.ilike)(profiles.displayName, qTerm),
-              (0, import_drizzle_orm30.ilike)(users.email, qTerm)
+            (0, import_drizzle_orm31.or)(
+              (0, import_drizzle_orm31.ilike)(users.username, qTerm),
+              (0, import_drizzle_orm31.ilike)(profiles.displayName, qTerm),
+              (0, import_drizzle_orm31.ilike)(users.email, qTerm)
             )
           );
         }
         if (statusFilter === "ACTIVE") {
-          conditions.push((0, import_drizzle_orm30.eq)(users.isActive, true));
+          conditions.push((0, import_drizzle_orm31.eq)(users.isActive, true));
         } else if (statusFilter === "BANNED") {
-          conditions.push((0, import_drizzle_orm30.eq)(users.isActive, false));
+          conditions.push((0, import_drizzle_orm31.eq)(users.isActive, false));
         }
         if (conditions.length > 0) {
-          query = query.where((0, import_drizzle_orm30.and)(...conditions));
+          query = query.where((0, import_drizzle_orm31.and)(...conditions));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(users.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm31.desc)(users.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin users error:", error);
@@ -7815,11 +8088,11 @@ var init_admin = __esm({
           email: users.email,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm30.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
+        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm31.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId));
         if (status && ["pending", "under_review", "approved", "rejected"].includes(status)) {
-          query = query.where((0, import_drizzle_orm30.eq)(verificationRequests.status, status));
+          query = query.where((0, import_drizzle_orm31.eq)(verificationRequests.status, status));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(verificationRequests.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm31.desc)(verificationRequests.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin verifications error:", error);
@@ -7839,7 +8112,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz durum." } });
           return;
         }
-        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm30.eq)(verificationRequests.id, requestId)).limit(1);
+        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.id, requestId)).limit(1);
         if (vReq.length === 0) {
           res.status(404).json({ success: false, error: { message: "Ba\u015Fvuru bulunamad\u0131." } });
           return;
@@ -7852,17 +8125,17 @@ var init_admin = __esm({
           reviewedBy: adminId,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm30.eq)(verificationRequests.id, requestId));
+        }).where((0, import_drizzle_orm31.eq)(verificationRequests.id, requestId));
         if (status === "approved" || status === "rejected") {
-          const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId)).limit(1);
+          const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, currentReq.userId)).limit(1);
           if (userRecord.length > 0) {
             sendVerificationStatusEmail(userRecord[0].email, userRecord[0].username, status).catch(console.error);
           }
         }
         if (status === "approved" && currentReq.status !== "approved") {
-          await db.update(users).set({ isVerified: true }).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId));
+          await db.update(users).set({ isVerified: true }).where((0, import_drizzle_orm31.eq)(users.id, currentReq.userId));
         } else if (status !== "approved" && currentReq.status === "approved") {
-          await db.update(users).set({ isVerified: false }).where((0, import_drizzle_orm30.eq)(users.id, currentReq.userId));
+          await db.update(users).set({ isVerified: false }).where((0, import_drizzle_orm31.eq)(users.id, currentReq.userId));
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
@@ -7890,12 +8163,12 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz veri." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        await db.update(users).set({ isVerified }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+        await db.update(users).set({ isVerified }).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
           action: `user_verify_toggle`,
@@ -7917,14 +8190,14 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         await db.transaction(async (tx) => {
-          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
-          await tx.delete(recoveryCodes).where((0, import_drizzle_orm30.eq)(recoveryCodes.userId, targetUserId));
+          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
+          await tx.delete(recoveryCodes).where((0, import_drizzle_orm31.eq)(recoveryCodes.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_2fa_reset",
@@ -7956,7 +8229,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi hesab\u0131n\u0131z\u0131 yasaklayamazs\u0131n\u0131z." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -7970,9 +8243,9 @@ var init_admin = __esm({
           await tx.update(users).set({
             isActive,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
           if (!isActive) {
-            await tx.delete(refreshTokens).where((0, import_drizzle_orm30.eq)(refreshTokens.userId, targetUserId));
+            await tx.delete(refreshTokens).where((0, import_drizzle_orm31.eq)(refreshTokens.userId, targetUserId));
           }
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
@@ -8016,7 +8289,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici rol\xFCn\xFCz\xFC d\xFC\u015F\xFCremezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -8027,7 +8300,7 @@ var init_admin = __esm({
           await tx.update(users).set({
             role,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_role_change",
@@ -8065,7 +8338,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Yeni parola en az 8 karakter uzunlu\u011Funda olmal\u0131d\u0131r." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -8076,8 +8349,8 @@ var init_admin = __esm({
           await tx.update(users).set({
             passwordHash,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
-          await tx.delete(refreshTokens).where((0, import_drizzle_orm30.eq)(refreshTokens.userId, targetUserId));
+          }).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
+          await tx.delete(refreshTokens).where((0, import_drizzle_orm31.eq)(refreshTokens.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_password_reset",
@@ -8109,15 +8382,15 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(posts).where((0, import_drizzle_orm30.eq)(posts.userId, targetUserId));
-          await tx.delete(comments).where((0, import_drizzle_orm30.eq)(comments.userId, targetUserId));
+          await tx.delete(posts).where((0, import_drizzle_orm31.eq)(posts.userId, targetUserId));
+          await tx.delete(comments).where((0, import_drizzle_orm31.eq)(comments.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_content_purged",
@@ -8152,14 +8425,14 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici hesab\u0131n\u0131z\u0131 silemezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(users).where((0, import_drizzle_orm30.eq)(users.id, targetUserId));
+          await tx.delete(users).where((0, import_drizzle_orm31.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_deleted_permanently",
@@ -8191,7 +8464,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Duyuru mesaj\u0131 bo\u015F olamaz." } });
           return;
         }
-        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm30.eq)(users.isActive, true));
+        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm31.eq)(users.isActive, true));
         if (allActiveUsers.length > 0) {
           const notificationRows = allActiveUsers.map((u) => ({
             recipientId: u.id,
@@ -8234,7 +8507,7 @@ var init_admin = __esm({
           status: reports.status,
           createdAt: reports.createdAt,
           reporterUsername: users.username
-        }).from(reports).leftJoin(users, (0, import_drizzle_orm30.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm30.eq)(reports.status, status)).orderBy((0, import_drizzle_orm30.desc)(reports.createdAt)).limit(limit).offset(offset);
+        }).from(reports).leftJoin(users, (0, import_drizzle_orm31.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm31.eq)(reports.status, status)).orderBy((0, import_drizzle_orm31.desc)(reports.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin reports error:", error);
@@ -8246,7 +8519,7 @@ var init_admin = __esm({
         const reportId = parseInt(req.params.id);
         const { status, action } = req.body;
         const adminId = requireAuthContext(req);
-        const r = await db.select().from(reports).where((0, import_drizzle_orm30.eq)(reports.id, reportId)).limit(1);
+        const r = await db.select().from(reports).where((0, import_drizzle_orm31.eq)(reports.id, reportId)).limit(1);
         if (r.length === 0) {
           res.status(404).json({ success: false, error: { message: "Rapor bulunamad\u0131." } });
           return;
@@ -8254,28 +8527,28 @@ var init_admin = __esm({
         const report = r[0];
         if (action === "remove_content") {
           if (report.targetType === "post") {
-            await db.delete(posts).where((0, import_drizzle_orm30.eq)(posts.id, report.targetId));
+            await db.delete(posts).where((0, import_drizzle_orm31.eq)(posts.id, report.targetId));
           } else if (report.targetType === "comment") {
-            await db.delete(comments).where((0, import_drizzle_orm30.eq)(comments.id, report.targetId));
+            await db.delete(comments).where((0, import_drizzle_orm31.eq)(comments.id, report.targetId));
           } else if (report.targetType === "community") {
-            await db.delete(communities).where((0, import_drizzle_orm30.eq)(communities.id, report.targetId));
+            await db.delete(communities).where((0, import_drizzle_orm31.eq)(communities.id, report.targetId));
           }
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm31.eq)(reports.id, reportId));
         } else if (action === "suspend_user") {
           let uId = report.targetId;
           if (report.targetType !== "user") {
             if (report.targetType === "post") {
-              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm30.eq)(posts.id, report.targetId)).limit(1);
+              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm31.eq)(posts.id, report.targetId)).limit(1);
               if (p.length > 0) uId = p[0].userId;
             } else if (report.targetType === "comment") {
-              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm30.eq)(comments.id, report.targetId)).limit(1);
+              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm31.eq)(comments.id, report.targetId)).limit(1);
               if (c.length > 0) uId = c[0].userId;
             }
           }
-          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm30.eq)(users.id, uId));
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
+          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm31.eq)(users.id, uId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm31.eq)(reports.id, reportId));
         } else if (status) {
-          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(reports.id, reportId));
+          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm31.eq)(reports.id, reportId));
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
@@ -8383,7 +8656,7 @@ var init_admin = __esm({
           officialPriority: users.officialPriority,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm30.desc)(users.createdAt));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm31.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm31.desc)(users.createdAt));
         res.json({ success: true, data });
       } catch (error) {
         console.error("GET /official-accounts error:", error);
@@ -8402,7 +8675,7 @@ var init_admin = __esm({
           officialNotifyEnabled: !!officialNotifyEnabled,
           officialPriority: officialPriority || "normal",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm30.eq)(users.id, targetId));
+        }).where((0, import_drizzle_orm31.eq)(users.id, targetId));
         res.json({ success: true, message: "Resmi hesap ayarlar\u0131 g\xFCncellendi." });
       } catch (error) {
         console.error("PUT /official-accounts/:id error:", error);
@@ -8411,7 +8684,7 @@ var init_admin = __esm({
     });
     adminRouter.get("/auto-follow", async (req, res) => {
       try {
-        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm30.eq)(systemSettings.key, "auto_follow_users")).limit(1);
+        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm31.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         let userIds = [];
         if (setting.length > 0 && setting[0].value) {
           try {
@@ -8443,7 +8716,7 @@ var init_admin = __esm({
             isVerified: users.isVerified,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.inArray)(users.id, userIds));
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm31.inArray)(users.id, userIds));
         }
         res.json({ success: true, data: autoFollowUsers });
       } catch (error) {
@@ -8473,7 +8746,7 @@ var init_admin = __esm({
         try {
           const callerId = optionalAuthContext(req) || requireAuthContext(req);
           if (callerId) {
-            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm30.eq)(users.id, callerId)).limit(1);
+            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm31.eq)(users.id, callerId)).limit(1);
             if (check.length > 0) {
               adminUserId = callerId;
             }
@@ -8515,11 +8788,11 @@ var init_admin = __esm({
           adminUsername: users.username,
           adminDisplayName: profiles.displayName,
           adminAvatarUrl: profiles.avatarUrl
-        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm30.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId));
+        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm31.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId));
         if (action && action.trim().length > 0) {
-          query = query.where((0, import_drizzle_orm30.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
+          query = query.where((0, import_drizzle_orm31.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm30.desc)(adminAuditLogs.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm31.desc)(adminAuditLogs.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin audit logs error:", error);
@@ -8541,23 +8814,23 @@ var init_admin = __esm({
             username: users.username,
             displayName: profiles.displayName
           }
-        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm30.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm30.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm30.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm30.desc)(moderationLogs.createdAt)).limit(50);
+        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm31.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm31.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm31.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm31.desc)(moderationLogs.createdAt)).limit(50);
         const result = await Promise.all(pendingLogs.map(async (log) => {
           let content = "";
           if (log.entityType === "POST") {
-            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm30.eq)(posts.id, log.entityId)).limit(1);
+            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm31.eq)(posts.id, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].content || "";
           } else if (log.entityType === "COMMENT") {
-            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm30.eq)(comments.id, log.entityId)).limit(1);
+            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm31.eq)(comments.id, log.entityId)).limit(1);
             if (c.length > 0) content = c[0].content || "";
           } else if (log.entityType === "PROFILE") {
-            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm30.eq)(profiles.userId, log.entityId)).limit(1);
+            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm31.eq)(profiles.userId, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].bio || "";
           } else if (log.entityType === "PROJECT_COMMENT") {
-            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm30.eq)(projectComments.id, log.entityId)).limit(1);
+            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm31.eq)(projectComments.id, log.entityId)).limit(1);
             if (pc.length > 0) content = pc[0].content || "";
           } else if (log.entityType === "PROJECT") {
-            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm30.eq)(projects.id, log.entityId)).limit(1);
+            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm31.eq)(projects.id, log.entityId)).limit(1);
             if (pj.length > 0) content = pj[0].description || "";
           }
           return { ...log, content };
@@ -8576,20 +8849,20 @@ var init_admin = __esm({
         if (action !== "APPROVE" && action !== "REJECT") {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz aksiyon." } });
         }
-        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm30.eq)(moderationLogs.id, logId)).limit(1);
+        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm31.eq)(moderationLogs.id, logId)).limit(1);
         if (logRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Log bulunamad\u0131." } });
         }
         const log = logRecord[0];
         await db.transaction(async (tx) => {
-          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm30.eq)(moderationLogs.id, logId));
+          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm31.eq)(moderationLogs.id, logId));
           const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
           if (log.entityType === "POST") {
-            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(posts.id, log.entityId));
+            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm31.eq)(posts.id, log.entityId));
           } else if (log.entityType === "COMMENT") {
-            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(comments.id, log.entityId));
+            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm31.eq)(comments.id, log.entityId));
           } else if (log.entityType === "PROJECT_COMMENT") {
-            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm30.eq)(projectComments.id, log.entityId));
+            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm31.eq)(projectComments.id, log.entityId));
           } else if (log.entityType === "PROFILE" || log.entityType === "PROJECT") {
           }
           await tx.insert(adminAuditLogs).values({
@@ -8606,6 +8879,360 @@ var init_admin = __esm({
         res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Sunucu hatas\u0131." } });
       }
     });
+    parseParamId = (param) => parseInt(Array.isArray(param) ? param[0] : param, 10);
+    adminRouter.get("/announcements", async (req, res) => {
+      try {
+        const { status, q } = req.query;
+        const { limit, offset, page } = getPagination(req);
+        const now = /* @__PURE__ */ new Date();
+        await db.update(announcements).set({ status: "published", updatedAt: now }).where(
+          (0, import_drizzle_orm31.and)(
+            (0, import_drizzle_orm31.eq)(announcements.status, "scheduled"),
+            import_drizzle_orm31.sql`${announcements.startsAt} <= ${now}`
+          )
+        ).catch(() => {
+        });
+        let whereClause = void 0;
+        const conditions = [];
+        if (status && typeof status === "string" && status !== "ALL") {
+          conditions.push((0, import_drizzle_orm31.eq)(announcements.status, status));
+        }
+        if (q && typeof q === "string" && q.trim()) {
+          const keyword = `%${q.trim()}%`;
+          conditions.push(
+            (0, import_drizzle_orm31.or)(
+              (0, import_drizzle_orm31.ilike)(announcements.title, keyword),
+              (0, import_drizzle_orm31.ilike)(announcements.content, keyword)
+            )
+          );
+        }
+        if (conditions.length > 0) {
+          whereClause = (0, import_drizzle_orm31.and)(...conditions);
+        }
+        const countRes = await db.select({ count: import_drizzle_orm31.sql`cast(count(*) as integer)` }).from(announcements).where(whereClause);
+        const total = countRes[0]?.count || 0;
+        const items = await db.select({
+          id: announcements.id,
+          title: announcements.title,
+          content: announcements.content,
+          imageUrl: announcements.imageUrl,
+          buttonText: announcements.buttonText,
+          buttonUrl: announcements.buttonUrl,
+          status: announcements.status,
+          targetType: announcements.targetType,
+          targetRole: announcements.targetRole,
+          priority: announcements.priority,
+          startsAt: announcements.startsAt,
+          endsAt: announcements.endsAt,
+          createdBy: announcements.createdBy,
+          createdAt: announcements.createdAt,
+          updatedAt: announcements.updatedAt,
+          viewsCount: import_drizzle_orm31.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
+          clicksCount: import_drizzle_orm31.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
+        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm31.eq)(announcementViews.announcementId, announcements.id)).where(whereClause).groupBy(announcements.id).orderBy((0, import_drizzle_orm31.desc)(announcements.createdAt)).limit(limit).offset(offset);
+        res.json({
+          success: true,
+          data: {
+            items,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
+        });
+      } catch (error) {
+        console.error("Admin get announcements error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyurular listelenemedi." } });
+      }
+    });
+    adminRouter.get("/announcements/:id", async (req, res) => {
+      try {
+        const id = parseParamId(req.params.id);
+        if (isNaN(id)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const item = await db.select({
+          id: announcements.id,
+          title: announcements.title,
+          content: announcements.content,
+          imageUrl: announcements.imageUrl,
+          buttonText: announcements.buttonText,
+          buttonUrl: announcements.buttonUrl,
+          status: announcements.status,
+          targetType: announcements.targetType,
+          targetRole: announcements.targetRole,
+          priority: announcements.priority,
+          startsAt: announcements.startsAt,
+          endsAt: announcements.endsAt,
+          createdBy: announcements.createdBy,
+          createdAt: announcements.createdAt,
+          updatedAt: announcements.updatedAt,
+          viewsCount: import_drizzle_orm31.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
+          clicksCount: import_drizzle_orm31.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
+        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm31.eq)(announcementViews.announcementId, announcements.id)).where((0, import_drizzle_orm31.eq)(announcements.id, id)).groupBy(announcements.id).limit(1);
+        if (!item || item.length === 0) {
+          res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
+          return;
+        }
+        res.json({ success: true, data: item[0] });
+      } catch (error) {
+        console.error("Admin get announcement detail error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru detay\u0131 al\u0131namad\u0131." } });
+      }
+    });
+    adminRouter.post("/announcements", async (req, res) => {
+      try {
+        const adminId = requireAuthContext(req);
+        const {
+          title,
+          content,
+          imageUrl,
+          buttonText,
+          buttonUrl,
+          status = "draft",
+          targetType = "all",
+          targetRole,
+          priority = 0,
+          startsAt,
+          endsAt
+        } = req.body;
+        if (!title || typeof title !== "string" || !title.trim()) {
+          res.status(400).json({ success: false, error: { message: "Duyuru ba\u015Fl\u0131\u011F\u0131 zorunludur." } });
+          return;
+        }
+        if (!content || typeof content !== "string" || !content.trim()) {
+          res.status(400).json({ success: false, error: { message: "Duyuru a\xE7\u0131klamas\u0131 zorunludur." } });
+          return;
+        }
+        const trimmedTitle = title.trim().substring(0, 255);
+        const trimmedContent = content.trim();
+        const validStatus = ["draft", "scheduled", "published", "archived"].includes(status) ? status : "draft";
+        const validTargetType = ["all", "authenticated", "specific_role"].includes(targetType) ? targetType : "all";
+        let parsedStartsAt = startsAt ? new Date(startsAt) : null;
+        let parsedEndsAt = endsAt ? new Date(endsAt) : null;
+        if (validStatus === "published" && !parsedStartsAt) {
+          parsedStartsAt = /* @__PURE__ */ new Date();
+        }
+        const [created] = await db.insert(announcements).values({
+          title: trimmedTitle,
+          content: trimmedContent,
+          imageUrl: imageUrl && typeof imageUrl === "string" ? imageUrl.trim() : null,
+          buttonText: buttonText && typeof buttonText === "string" ? buttonText.trim().substring(0, 100) : null,
+          buttonUrl: buttonUrl && typeof buttonUrl === "string" ? buttonUrl.trim() : null,
+          status: validStatus,
+          targetType: validTargetType,
+          targetRole: validTargetType === "specific_role" && targetRole ? targetRole.trim() : null,
+          priority: typeof priority === "number" ? priority : 0,
+          startsAt: parsedStartsAt,
+          endsAt: parsedEndsAt,
+          createdBy: adminId,
+          createdAt: /* @__PURE__ */ new Date(),
+          updatedAt: /* @__PURE__ */ new Date()
+        }).returning();
+        await db.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "ANNOUNCEMENT_CREATE",
+          targetType: "ANNOUNCEMENT",
+          targetId: created.id.toString(),
+          metadata: {
+            title: trimmedTitle,
+            status: validStatus,
+            targetType: validTargetType
+          }
+        }).catch(console.error);
+        res.status(201).json({
+          success: true,
+          data: created
+        });
+      } catch (error) {
+        console.error("Admin create announcement error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru olu\u015Fturulamad\u0131." } });
+      }
+    });
+    adminRouter.put("/announcements/:id", async (req, res) => {
+      try {
+        const adminId = requireAuthContext(req);
+        const id = parseParamId(req.params.id);
+        if (isNaN(id)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const {
+          title,
+          content,
+          imageUrl,
+          buttonText,
+          buttonUrl,
+          status,
+          targetType,
+          targetRole,
+          priority,
+          startsAt,
+          endsAt
+        } = req.body;
+        const existing = await db.select().from(announcements).where((0, import_drizzle_orm31.eq)(announcements.id, id)).limit(1);
+        if (!existing || existing.length === 0) {
+          res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
+          return;
+        }
+        const updateData = {
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        if (title !== void 0) {
+          if (!title || typeof title !== "string" || !title.trim()) {
+            res.status(400).json({ success: false, error: { message: "Duyuru ba\u015Fl\u0131\u011F\u0131 bo\u015F olamaz." } });
+            return;
+          }
+          updateData.title = title.trim().substring(0, 255);
+        }
+        if (content !== void 0) {
+          if (!content || typeof content !== "string" || !content.trim()) {
+            res.status(400).json({ success: false, error: { message: "Duyuru a\xE7\u0131klamas\u0131 bo\u015F olamaz." } });
+            return;
+          }
+          updateData.content = content.trim();
+        }
+        if (imageUrl !== void 0) {
+          updateData.imageUrl = imageUrl && typeof imageUrl === "string" ? imageUrl.trim() : null;
+        }
+        if (buttonText !== void 0) {
+          updateData.buttonText = buttonText && typeof buttonText === "string" ? buttonText.trim().substring(0, 100) : null;
+        }
+        if (buttonUrl !== void 0) {
+          updateData.buttonUrl = buttonUrl && typeof buttonUrl === "string" ? buttonUrl.trim() : null;
+        }
+        if (status !== void 0) {
+          if (["draft", "scheduled", "published", "archived"].includes(status)) {
+            updateData.status = status;
+            if (status === "published" && !startsAt && !existing[0].startsAt) {
+              updateData.startsAt = /* @__PURE__ */ new Date();
+            }
+          }
+        }
+        if (targetType !== void 0) {
+          if (["all", "authenticated", "specific_role"].includes(targetType)) {
+            updateData.targetType = targetType;
+          }
+        }
+        if (targetRole !== void 0) {
+          updateData.targetRole = targetRole ? targetRole.trim() : null;
+        }
+        if (priority !== void 0) {
+          updateData.priority = typeof priority === "number" ? priority : 0;
+        }
+        if (startsAt !== void 0) {
+          updateData.startsAt = startsAt ? new Date(startsAt) : null;
+        }
+        if (endsAt !== void 0) {
+          updateData.endsAt = endsAt ? new Date(endsAt) : null;
+        }
+        const [updated] = await db.update(announcements).set(updateData).where((0, import_drizzle_orm31.eq)(announcements.id, id)).returning();
+        await db.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "ANNOUNCEMENT_UPDATE",
+          targetType: "ANNOUNCEMENT",
+          targetId: id.toString(),
+          metadata: {
+            updatedFields: Object.keys(updateData)
+          }
+        }).catch(console.error);
+        res.json({
+          success: true,
+          data: updated
+        });
+      } catch (error) {
+        console.error("Admin update announcement error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru g\xFCncellenemedi." } });
+      }
+    });
+    adminRouter.post("/announcements/:id/publish", async (req, res) => {
+      try {
+        const adminId = requireAuthContext(req);
+        const id = parseParamId(req.params.id);
+        if (isNaN(id)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const now = /* @__PURE__ */ new Date();
+        const [updated] = await db.update(announcements).set({
+          status: "published",
+          startsAt: import_drizzle_orm31.sql`COALESCE(${announcements.startsAt}, ${now})`,
+          updatedAt: now
+        }).where((0, import_drizzle_orm31.eq)(announcements.id, id)).returning();
+        if (!updated) {
+          res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
+          return;
+        }
+        await db.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "ANNOUNCEMENT_PUBLISH",
+          targetType: "ANNOUNCEMENT",
+          targetId: id.toString(),
+          metadata: { title: updated.title }
+        }).catch(console.error);
+        res.json({ success: true, data: updated, message: "Duyuru yay\u0131na al\u0131nd\u0131." });
+      } catch (error) {
+        console.error("Admin publish announcement error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru yay\u0131nlanamad\u0131." } });
+      }
+    });
+    adminRouter.post("/announcements/:id/archive", async (req, res) => {
+      try {
+        const adminId = requireAuthContext(req);
+        const id = parseParamId(req.params.id);
+        if (isNaN(id)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const now = /* @__PURE__ */ new Date();
+        const [updated] = await db.update(announcements).set({
+          status: "archived",
+          updatedAt: now
+        }).where((0, import_drizzle_orm31.eq)(announcements.id, id)).returning();
+        if (!updated) {
+          res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
+          return;
+        }
+        await db.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "ANNOUNCEMENT_ARCHIVE",
+          targetType: "ANNOUNCEMENT",
+          targetId: id.toString(),
+          metadata: { title: updated.title }
+        }).catch(console.error);
+        res.json({ success: true, data: updated, message: "Duyuru ar\u015Fivlendi." });
+      } catch (error) {
+        console.error("Admin archive announcement error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru ar\u015Fivlenemedi." } });
+      }
+    });
+    adminRouter.delete("/announcements/:id", async (req, res) => {
+      try {
+        const adminId = requireAuthContext(req);
+        const id = parseParamId(req.params.id);
+        if (isNaN(id)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
+          return;
+        }
+        const [deleted] = await db.delete(announcements).where((0, import_drizzle_orm31.eq)(announcements.id, id)).returning();
+        if (!deleted) {
+          res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
+          return;
+        }
+        await db.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "ANNOUNCEMENT_DELETE",
+          targetType: "ANNOUNCEMENT",
+          targetId: id.toString(),
+          metadata: { title: deleted.title }
+        }).catch(console.error);
+        res.json({ success: true, data: { message: "Duyuru ba\u015Far\u0131yla silindi." } });
+      } catch (error) {
+        console.error("Admin delete announcement error:", error);
+        res.status(500).json({ success: false, error: { message: "Duyuru silinemedi." } });
+      }
+    });
   }
 });
 
@@ -8614,21 +9241,21 @@ var verification_exports = {};
 __export(verification_exports, {
   verificationRouter: () => verificationRouter
 });
-var import_express25, import_drizzle_orm31, verificationRouter;
+var import_express26, import_drizzle_orm32, verificationRouter;
 var init_verification = __esm({
   "server/routes/verification.ts"() {
     "use strict";
-    import_express25 = require("express");
+    import_express26 = require("express");
     init_db();
     init_schema();
     init_auth();
-    import_drizzle_orm31 = require("drizzle-orm");
-    verificationRouter = (0, import_express25.Router)();
+    import_drizzle_orm32 = require("drizzle-orm");
+    verificationRouter = (0, import_express26.Router)();
     verificationRouter.use(requireAuth);
     verificationRouter.get("/me", async (req, res) => {
       try {
         const userId = requireAuthContext(req);
-        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm31.desc)(verificationRequests.createdAt)).limit(10);
+        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm32.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm32.desc)(verificationRequests.createdAt)).limit(10);
         res.json({ success: true, data: requests });
       } catch (error) {
         console.error("Error fetching verification requests:", error);
@@ -8647,7 +9274,7 @@ var init_verification = __esm({
           res.status(400).json({ success: false, error: { message: "Ba\u015Fvuru sebebi en fazla 1000 karakter olabilir." } });
           return;
         }
-        const existingActive = await db.select().from(verificationRequests).where((0, import_drizzle_orm31.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm31.desc)(verificationRequests.createdAt)).limit(5);
+        const existingActive = await db.select().from(verificationRequests).where((0, import_drizzle_orm32.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm32.desc)(verificationRequests.createdAt)).limit(5);
         const hasActive = existingActive.some((r) => r.status === "pending" || r.status === "under_review");
         if (hasActive) {
           res.status(400).json({ success: false, error: { message: "Hali haz\u0131rda devam eden bir ba\u015Fvurunuz bulunmaktad\u0131r." } });
@@ -8672,27 +9299,27 @@ var hashtags_exports = {};
 __export(hashtags_exports, {
   hashtagsRouter: () => hashtagsRouter
 });
-var import_express26, import_drizzle_orm32, hashtagsRouter;
+var import_express27, import_drizzle_orm33, hashtagsRouter;
 var init_hashtags2 = __esm({
   "server/routes/hashtags.ts"() {
     "use strict";
-    import_express26 = require("express");
+    import_express27 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm32 = require("drizzle-orm");
+    import_drizzle_orm33 = require("drizzle-orm");
     init_blocks();
     init_hashtags();
     init_auth();
     init_api();
     init_postStats();
-    hashtagsRouter = (0, import_express26.Router)();
+    hashtagsRouter = (0, import_express27.Router)();
     hashtagsRouter.get("/trending/top", optionalAuth, async (req, res) => {
       try {
         const trending = await db.select({
           name: hashtags.name,
           normalizedName: hashtags.normalizedName,
           count: hashtags.usageCount
-        }).from(hashtags).orderBy((0, import_drizzle_orm32.desc)(hashtags.usageCount)).limit(5);
+        }).from(hashtags).orderBy((0, import_drizzle_orm33.desc)(hashtags.usageCount)).limit(5);
         res.json({ success: true, data: trending });
       } catch (error) {
         console.error("Trending hashtags error:", error);
@@ -8712,33 +9339,33 @@ var init_hashtags2 = __esm({
         }
         const blockedIds = await getBlockedIds(currentUserId);
         const ignoreIds = blockedIds.length > 0 ? blockedIds : [-1];
-        const tagRecord = await db.select().from(hashtags).where((0, import_drizzle_orm32.eq)(hashtags.normalizedName, normalizedName)).limit(1);
+        const tagRecord = await db.select().from(hashtags).where((0, import_drizzle_orm33.eq)(hashtags.normalizedName, normalizedName)).limit(1);
         if (tagRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Hashtag bulunamad\u0131." } });
         }
         const hashtag = tagRecord[0];
         let visibilityCondition;
         if (currentUserId !== -1) {
-          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm32.eq)(follows.status, "accepted")));
+          const followingRecords = await db.select({ followingId: follows.followingId }).from(follows).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(follows.followerId, currentUserId), (0, import_drizzle_orm33.eq)(follows.status, "accepted")));
           const followingIds = followingRecords.map((f) => f.followingId);
           const followingIdsWithSelf = followingIds.length > 0 ? followingIds : [-1];
-          visibilityCondition = (0, import_drizzle_orm32.or)(
-            (0, import_drizzle_orm32.eq)(posts.userId, currentUserId),
-            (0, import_drizzle_orm32.and)(
-              (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm32.eq)(posts.visibility, "FOLLOWERS")),
-              (0, import_drizzle_orm32.or)(
-                (0, import_drizzle_orm32.and)(
-                  (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(profiles.isPrivate, false), import_drizzle_orm32.sql`${profiles.isPrivate} IS NULL`),
-                  (0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC")
+          visibilityCondition = (0, import_drizzle_orm33.or)(
+            (0, import_drizzle_orm33.eq)(posts.userId, currentUserId),
+            (0, import_drizzle_orm33.and)(
+              (0, import_drizzle_orm33.or)((0, import_drizzle_orm33.eq)(posts.visibility, "PUBLIC"), (0, import_drizzle_orm33.eq)(posts.visibility, "FOLLOWERS")),
+              (0, import_drizzle_orm33.or)(
+                (0, import_drizzle_orm33.and)(
+                  (0, import_drizzle_orm33.or)((0, import_drizzle_orm33.eq)(profiles.isPrivate, false), import_drizzle_orm33.sql`${profiles.isPrivate} IS NULL`),
+                  (0, import_drizzle_orm33.eq)(posts.visibility, "PUBLIC")
                 ),
-                (0, import_drizzle_orm32.inArray)(posts.userId, followingIdsWithSelf)
+                (0, import_drizzle_orm33.inArray)(posts.userId, followingIdsWithSelf)
               )
             )
           );
         } else {
-          visibilityCondition = (0, import_drizzle_orm32.and)(
-            (0, import_drizzle_orm32.eq)(posts.visibility, "PUBLIC"),
-            (0, import_drizzle_orm32.or)((0, import_drizzle_orm32.eq)(profiles.isPrivate, false), import_drizzle_orm32.sql`${profiles.isPrivate} IS NULL`)
+          visibilityCondition = (0, import_drizzle_orm33.and)(
+            (0, import_drizzle_orm33.eq)(posts.visibility, "PUBLIC"),
+            (0, import_drizzle_orm33.or)((0, import_drizzle_orm33.eq)(profiles.isPrivate, false), import_drizzle_orm33.sql`${profiles.isPrivate} IS NULL`)
           );
         }
         const postsResult = await db.select({
@@ -8755,17 +9382,17 @@ var init_hashtags2 = __esm({
             avatarUrl: profiles.avatarUrl,
             isVerified: users.isVerified
           }
-        }).from(posts).innerJoin(postHashtags, (0, import_drizzle_orm32.eq)(posts.id, postHashtags.postId)).innerJoin(users, (0, import_drizzle_orm32.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm32.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm32.and)(
-          (0, import_drizzle_orm32.eq)(postHashtags.hashtagId, hashtag.id),
-          (0, import_drizzle_orm32.notInArray)(posts.userId, ignoreIds),
+        }).from(posts).innerJoin(postHashtags, (0, import_drizzle_orm33.eq)(posts.id, postHashtags.postId)).innerJoin(users, (0, import_drizzle_orm33.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.and)(
+          (0, import_drizzle_orm33.eq)(postHashtags.hashtagId, hashtag.id),
+          (0, import_drizzle_orm33.notInArray)(posts.userId, ignoreIds),
           visibilityCondition
-        )).orderBy((0, import_drizzle_orm32.desc)(posts.createdAt)).limit(limit).offset(offset);
+        )).orderBy((0, import_drizzle_orm33.desc)(posts.createdAt)).limit(limit).offset(offset);
         if (postsResult.length === 0) {
           return res.json({ success: true, data: { hashtag, posts: [] } });
         }
         const populatedPosts = await populatePostStats(postsResult, currentUserId);
         const fetchedPostIds = populatedPosts.map((p) => p.id);
-        const allMedia = await db.select().from(postMedia).where((0, import_drizzle_orm32.inArray)(postMedia.postId, fetchedPostIds));
+        const allMedia = await db.select().from(postMedia).where((0, import_drizzle_orm33.inArray)(postMedia.postId, fetchedPostIds));
         const mediaByPost = allMedia.reduce((acc, media) => {
           if (!acc[media.postId]) acc[media.postId] = [];
           acc[media.postId].push(media);
@@ -8788,18 +9415,18 @@ var collaborators_exports = {};
 __export(collaborators_exports, {
   collaboratorsRouter: () => collaboratorsRouter
 });
-var import_express27, import_drizzle_orm33, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
+var import_express28, import_drizzle_orm34, import_express_rate_limit3, collaboratorsRouter, actionLimiter;
 var init_collaborators = __esm({
   "server/routes/collaborators.ts"() {
     "use strict";
-    import_express27 = require("express");
+    import_express28 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm33 = require("drizzle-orm");
+    import_drizzle_orm34 = require("drizzle-orm");
     init_auth();
     init_notifications();
     import_express_rate_limit3 = __toESM(require("express-rate-limit"), 1);
-    collaboratorsRouter = (0, import_express27.Router)();
+    collaboratorsRouter = (0, import_express28.Router)();
     actionLimiter = (0, import_express_rate_limit3.default)({
       windowMs: 1 * 60 * 1e3,
       max: 30,
@@ -8814,7 +9441,7 @@ var init_collaborators = __esm({
         const currentUserId = requireAuthContext(req);
         const projectInvites = await db.select({
           id: projectCollaborators.id,
-          type: import_drizzle_orm33.sql`'project'`,
+          type: import_drizzle_orm34.sql`'project'`,
           projectId: projects.id,
           title: projects.title,
           status: projectCollaborators.status,
@@ -8823,10 +9450,10 @@ var init_collaborators = __esm({
           inviterUsername: users.username,
           inviterDisplayName: profiles.displayName,
           inviterAvatarUrl: profiles.avatarUrl
-        }).from(projectCollaborators).innerJoin(projects, (0, import_drizzle_orm33.eq)(projectCollaborators.projectId, projects.id)).innerJoin(users, (0, import_drizzle_orm33.eq)(projects.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(projectCollaborators.userId, currentUserId), (0, import_drizzle_orm33.eq)(projectCollaborators.status, "pending")));
+        }).from(projectCollaborators).innerJoin(projects, (0, import_drizzle_orm34.eq)(projectCollaborators.projectId, projects.id)).innerJoin(users, (0, import_drizzle_orm34.eq)(projects.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.and)((0, import_drizzle_orm34.eq)(projectCollaborators.userId, currentUserId), (0, import_drizzle_orm34.eq)(projectCollaborators.status, "pending")));
         const postInvites = await db.select({
           id: postCollaborators.id,
-          type: import_drizzle_orm33.sql`'post'`,
+          type: import_drizzle_orm34.sql`'post'`,
           postId: posts.id,
           content: posts.content,
           postType: posts.postType,
@@ -8837,7 +9464,7 @@ var init_collaborators = __esm({
           inviterUsername: users.username,
           inviterDisplayName: profiles.displayName,
           inviterAvatarUrl: profiles.avatarUrl
-        }).from(postCollaborators).innerJoin(posts, (0, import_drizzle_orm33.eq)(postCollaborators.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm33.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm33.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(postCollaborators.userId, currentUserId), (0, import_drizzle_orm33.eq)(postCollaborators.status, "pending")));
+        }).from(postCollaborators).innerJoin(posts, (0, import_drizzle_orm34.eq)(postCollaborators.postId, posts.id)).innerJoin(users, (0, import_drizzle_orm34.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.and)((0, import_drizzle_orm34.eq)(postCollaborators.userId, currentUserId), (0, import_drizzle_orm34.eq)(postCollaborators.status, "pending")));
         res.json({
           success: true,
           data: {
@@ -8865,7 +9492,7 @@ var init_collaborators = __esm({
           return;
         }
         if (type === "project") {
-          const invite = await db.select().from(projectCollaborators).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(projectCollaborators.id, inviteId), (0, import_drizzle_orm33.eq)(projectCollaborators.userId, currentUserId))).limit(1);
+          const invite = await db.select().from(projectCollaborators).where((0, import_drizzle_orm34.and)((0, import_drizzle_orm34.eq)(projectCollaborators.id, inviteId), (0, import_drizzle_orm34.eq)(projectCollaborators.userId, currentUserId))).limit(1);
           if (invite.length === 0) {
             res.status(404).json({ success: false, error: { message: "Davet bulunamad\u0131." } });
             return;
@@ -8874,15 +9501,15 @@ var init_collaborators = __esm({
             res.status(400).json({ success: false, error: { message: "Bu davet zaten yan\u0131tlanm\u0131\u015F." } });
             return;
           }
-          await db.update(projectCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(projectCollaborators.id, inviteId));
-          const project = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm33.eq)(projects.id, invite[0].projectId)).limit(1);
+          await db.update(projectCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(projectCollaborators.id, inviteId));
+          const project = await db.select({ userId: projects.userId }).from(projects).where((0, import_drizzle_orm34.eq)(projects.id, invite[0].projectId)).limit(1);
           if (project.length > 0) {
             await notify(currentUserId, project[0].userId, `project_collaborator_${status}`, void 0, void 0, invite[0].projectId);
           }
           res.json({ success: true, data: { status } });
           return;
         } else if (type === "post") {
-          const invite = await db.select().from(postCollaborators).where((0, import_drizzle_orm33.and)((0, import_drizzle_orm33.eq)(postCollaborators.id, inviteId), (0, import_drizzle_orm33.eq)(postCollaborators.userId, currentUserId))).limit(1);
+          const invite = await db.select().from(postCollaborators).where((0, import_drizzle_orm34.and)((0, import_drizzle_orm34.eq)(postCollaborators.id, inviteId), (0, import_drizzle_orm34.eq)(postCollaborators.userId, currentUserId))).limit(1);
           if (invite.length === 0) {
             res.status(404).json({ success: false, error: { message: "Davet bulunamad\u0131." } });
             return;
@@ -8891,8 +9518,8 @@ var init_collaborators = __esm({
             res.status(400).json({ success: false, error: { message: "Bu davet zaten yan\u0131tlanm\u0131\u015F." } });
             return;
           }
-          await db.update(postCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm33.eq)(postCollaborators.id, inviteId));
-          const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm33.eq)(posts.id, invite[0].postId)).limit(1);
+          await db.update(postCollaborators).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(postCollaborators.id, inviteId));
+          const post = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm34.eq)(posts.id, invite[0].postId)).limit(1);
           if (post.length > 0) {
             await notify(currentUserId, post[0].userId, `post_collaborator_${status}`, invite[0].postId);
           }
@@ -8915,17 +9542,17 @@ var support_exports = {};
 __export(support_exports, {
   supportRouter: () => supportRouter
 });
-var import_express28, import_drizzle_orm34, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
+var import_express29, import_drizzle_orm35, import_zod9, supportRouter, createTicketSchema, createMessageSchema2;
 var init_support = __esm({
   "server/routes/support.ts"() {
     "use strict";
-    import_express28 = require("express");
+    import_express29 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm34 = require("drizzle-orm");
+    import_drizzle_orm35 = require("drizzle-orm");
     init_auth();
     import_zod9 = require("zod");
-    supportRouter = (0, import_express28.Router)();
+    supportRouter = (0, import_express29.Router)();
     createTicketSchema = import_zod9.z.object({
       category: import_zod9.z.string().min(1).max(50),
       subject: import_zod9.z.string().min(5, "Konu en az 5 karakter olmal\u0131d\u0131r.").max(255),
@@ -8960,7 +9587,7 @@ var init_support = __esm({
     supportRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = req.user.userId;
-        const tickets = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.userId, currentUserId)).orderBy((0, import_drizzle_orm34.desc)(supportTickets.createdAt));
+        const tickets = await db.select().from(supportTickets).where((0, import_drizzle_orm35.eq)(supportTickets.userId, currentUserId)).orderBy((0, import_drizzle_orm35.desc)(supportTickets.createdAt));
         res.json({ success: true, data: tickets });
       } catch (error) {
         console.error("Get tickets error:", error);
@@ -8972,7 +9599,7 @@ var init_support = __esm({
         const currentUserId = req.user.userId;
         const ticketId = parseInt(req.params.id);
         if (isNaN(ticketId)) return res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID" } });
-        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm35.eq)(supportTickets.id, ticketId));
         if (!ticket) {
           return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
         }
@@ -8990,7 +9617,7 @@ var init_support = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(supportTicketMessages).innerJoin(users, (0, import_drizzle_orm34.eq)(users.id, supportTicketMessages.userId)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.eq)(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
+        }).from(supportTicketMessages).innerJoin(users, (0, import_drizzle_orm35.eq)(users.id, supportTicketMessages.userId)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(supportTicketMessages.ticketId, ticketId)).orderBy(supportTicketMessages.createdAt);
         res.json({ success: true, data: { ...ticket, messages: messages2 } });
       } catch (error) {
         console.error("Get ticket error:", error);
@@ -9006,7 +9633,7 @@ var init_support = __esm({
         if (!parsed.success) {
           return res.status(400).json({ success: false, error: { message: parsed.error.issues[0].message } });
         }
-        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
+        const [ticket] = await db.select().from(supportTickets).where((0, import_drizzle_orm35.eq)(supportTickets.id, ticketId));
         if (!ticket) return res.status(404).json({ success: false, error: { message: "Talep bulunamad\u0131" } });
         if (ticket.userId !== currentUserId) {
           return res.status(403).json({ success: false, error: { message: "Yetkisiz eri\u015Fim" } });
@@ -9020,7 +9647,7 @@ var init_support = __esm({
           message: parsed.data.message,
           isAdmin: false
         }).returning();
-        await db.update(supportTickets).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(supportTickets.id, ticketId));
+        await db.update(supportTickets).set({ updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm35.eq)(supportTickets.id, ticketId));
         res.json({ success: true, data: message });
       } catch (error) {
         console.error("Create ticket message error:", error);
@@ -9035,17 +9662,17 @@ var feedbacks_exports = {};
 __export(feedbacks_exports, {
   feedbacksRouter: () => feedbacksRouter
 });
-var import_express29, import_drizzle_orm35, import_zod10, feedbacksRouter, createFeedbackSchema;
+var import_express30, import_drizzle_orm36, import_zod10, feedbacksRouter, createFeedbackSchema;
 var init_feedbacks = __esm({
   "server/routes/feedbacks.ts"() {
     "use strict";
-    import_express29 = require("express");
+    import_express30 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm35 = require("drizzle-orm");
+    import_drizzle_orm36 = require("drizzle-orm");
     init_auth();
     import_zod10 = require("zod");
-    feedbacksRouter = (0, import_express29.Router)();
+    feedbacksRouter = (0, import_express30.Router)();
     createFeedbackSchema = import_zod10.z.object({
       type: import_zod10.z.string().min(1).max(50),
       title: import_zod10.z.string().min(5, "Ba\u015Fl\u0131k en az 5 karakter olmal\u0131d\u0131r.").max(255),
@@ -9077,7 +9704,7 @@ var init_feedbacks = __esm({
     feedbacksRouter.get("/", requireAuth, async (req, res) => {
       try {
         const currentUserId = req.user.userId;
-        const results = await db.select().from(feedbacks).where((0, import_drizzle_orm35.eq)(feedbacks.userId, currentUserId)).orderBy((0, import_drizzle_orm35.desc)(feedbacks.createdAt));
+        const results = await db.select().from(feedbacks).where((0, import_drizzle_orm36.eq)(feedbacks.userId, currentUserId)).orderBy((0, import_drizzle_orm36.desc)(feedbacks.createdAt));
         res.json({ success: true, data: results });
       } catch (error) {
         console.error("Get feedbacks error:", error);
@@ -9109,7 +9736,7 @@ function escapeHtml2(unsafe) {
   if (!unsafe) return "";
   return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-var import_fs6, import_path7, import_drizzle_orm36, indexHtmlCache, seoMiddleware;
+var import_fs6, import_path7, import_drizzle_orm37, indexHtmlCache, seoMiddleware;
 var init_seo = __esm({
   "server/middleware/seo.ts"() {
     "use strict";
@@ -9117,7 +9744,7 @@ var init_seo = __esm({
     import_path7 = __toESM(require("path"), 1);
     init_db();
     init_schema();
-    import_drizzle_orm36 = require("drizzle-orm");
+    import_drizzle_orm37 = require("drizzle-orm");
     indexHtmlCache = "";
     seoMiddleware = async (req, res, next) => {
       if (req.method !== "GET") return next();
@@ -9132,11 +9759,14 @@ var init_seo = __esm({
         return next();
       }
       try {
+        const rawDomain = process.env.APP_URL || process.env.VITE_PUBLIC_URL || "https://gencsosyal.com";
+        const domain = rawDomain.replace(/\/+$/, "");
         let title = "Gen\xE7 Sosyal | T\xFCrkiye'nin Gen\xE7ler \u0130\xE7in Sosyal Medya Platformu";
         let description = "Gen\xE7lerin bulu\u015Fma noktas\u0131: Gen\xE7 Sosyal. Fikirlerini payla\u015F, topluluklara kat\u0131l ve projelere destek ol.";
-        let imageUrl = "https://gencsosyal.com/icon-512.png";
-        const domain = process.env.VITE_PUBLIC_URL || process.env.APP_URL || "https://gencsosyal.com";
+        let imageUrl = `${domain}/icon-512.png`;
         let url = domain + req.path;
+        let shouldNoIndex = false;
+        let isNotFound = false;
         const jsonLd = [
           {
             "@context": "https://schema.org",
@@ -9156,27 +9786,40 @@ var init_seo = __esm({
         const profileMatch = req.path.match(/^\/profile\/([a-zA-Z0-9_]{3,30})$/);
         const communityMatch = req.path.match(/^\/communities\/([a-zA-Z0-9_-]+)$/);
         const projectMatch = req.path.match(/^\/projects\/(\d+)$/);
+        const hashtagMatch = req.path.match(/^\/hashtags\/([a-zA-Z0-9_\u00C0-\u017F]+)$/);
         if (postMatch) {
           const postId = parseInt(postMatch[1]);
           const postRecord = await db.select({
             content: posts.content,
             postType: posts.postType,
             visibility: posts.visibility,
+            moderationStatus: posts.moderationStatus,
             createdAt: posts.createdAt,
             displayName: profiles.displayName,
             username: users.username,
-            avatarUrl: profiles.avatarUrl
-          }).from(posts).innerJoin(users, (0, import_drizzle_orm36.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(posts.id, postId)).limit(1);
-          if (postRecord.length > 0 && postRecord[0].visibility === "PUBLIC") {
+            avatarUrl: profiles.avatarUrl,
+            userIsActive: users.isActive,
+            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+            userIsPrivate: profiles.isPrivate
+          }).from(posts).innerJoin(users, (0, import_drizzle_orm37.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm37.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm37.eq)(posts.id, postId)).limit(1);
+          if (postRecord.length === 0 || postRecord[0].visibility !== "PUBLIC" || postRecord[0].moderationStatus !== "APPROVED" || !postRecord[0].userIsActive) {
+            isNotFound = true;
+            shouldNoIndex = true;
+            title = "G\xF6nderi Bulunamad\u0131 | Gen\xE7 Sosyal";
+            description = "Arad\u0131\u011F\u0131n\u0131z g\xF6nderi silinmi\u015F veya gizli olabilir.";
+          } else {
             const p = postRecord[0];
-            title = `${p.displayName}'nin G\xF6nderisi | Gen\xE7 Sosyal`;
+            if (!p.allowSearchEngineIndexing || p.userIsPrivate) {
+              shouldNoIndex = true;
+            }
+            title = `${p.displayName || p.username}'nin G\xF6nderisi | Gen\xE7 Sosyal`;
             description = p.content ? p.content.substring(0, 150) + (p.content.length > 150 ? "..." : "") : "G\xF6nderiye g\xF6z at.";
             jsonLd.push({
               "@context": "https://schema.org",
               "@type": "SocialMediaPosting",
               "author": {
                 "@type": "Person",
-                "name": p.displayName,
+                "name": p.displayName || p.username,
                 "url": `${domain}/profile/${p.username}`,
                 "image": p.avatarUrl || `${domain}/default-avatar.png`
               },
@@ -9188,10 +9831,15 @@ var init_seo = __esm({
           }
         } else if (communityMatch) {
           const communitySlug = communityMatch[1];
-          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm36.eq)(communities.slug, communitySlug)).limit(1);
-          if (commRecord.length > 0 && !commRecord[0].isPrivate) {
+          const commRecord = await db.select().from(communities).where((0, import_drizzle_orm37.eq)(communities.slug, communitySlug)).limit(1);
+          if (commRecord.length === 0) {
+            isNotFound = true;
+            shouldNoIndex = true;
+            title = "Topluluk Bulunamad\u0131 | Gen\xE7 Sosyal";
+            description = "Arad\u0131\u011F\u0131n\u0131z topluluk mevcut de\u011Fil.";
+          } else {
             const c = commRecord[0];
-            title = `${c.name} | Gen\xE7 Sosyal`;
+            title = `${c.name} | Gen\xE7 Sosyal Toplulu\u011Fu`;
             description = c.description ? c.description.substring(0, 150) : "Bu toplulu\u011Fa kat\u0131l ve tart\u0131\u015Fmalara ba\u015Fla.";
             if (c.avatarUrl) imageUrl = c.avatarUrl;
             jsonLd.push({
@@ -9205,37 +9853,51 @@ var init_seo = __esm({
         } else if (profileMatch) {
           const username = profileMatch[1];
           const userRecord = await db.select({
+            isActive: users.isActive,
             displayName: profiles.displayName,
             bio: profiles.bio,
             avatarUrl: profiles.avatarUrl,
+            isPrivate: profiles.isPrivate,
             allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm36.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm36.eq)(users.username, username)).limit(1);
-          if (userRecord.length > 0 && userRecord[0].allowSearchEngineIndexing) {
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm37.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm37.eq)(users.username, username)).limit(1);
+          if (userRecord.length === 0 || !userRecord[0].isActive) {
+            isNotFound = true;
+            shouldNoIndex = true;
+            title = "Kullan\u0131c\u0131 Bulunamad\u0131 | Gen\xE7 Sosyal";
+            description = "Arad\u0131\u011F\u0131n\u0131z profil mevcut de\u011Fil veya silinmi\u015F.";
+          } else {
             const u = userRecord[0];
-            title = `${u.displayName} (@${username}) | Gen\xE7 Sosyal`;
-            description = u.bio ? u.bio.substring(0, 150) : `${u.displayName} profilini Gen\xE7 Sosyal'de incele.`;
+            if (!u.allowSearchEngineIndexing || u.isPrivate) {
+              shouldNoIndex = true;
+            }
+            title = `${u.displayName || username} (@${username}) | Gen\xE7 Sosyal`;
+            description = u.bio ? u.bio.substring(0, 150) : `${u.displayName || username} profilini Gen\xE7 Sosyal'de incele.`;
             if (u.avatarUrl) imageUrl = u.avatarUrl;
             jsonLd.push({
               "@context": "https://schema.org",
               "@type": "ProfilePage",
               "mainEntity": {
                 "@type": "Person",
-                "name": u.displayName,
+                "name": u.displayName || username,
                 "alternateName": username,
                 "description": description,
                 "image": imageUrl
               }
             });
-          } else {
-            template = template.replace("</head>", '<meta name="robots" content="noindex, nofollow" />\n</head>');
           }
         } else if (projectMatch) {
           const projectId = parseInt(projectMatch[1]);
-          const projectRecord = await db.select().from(projects).where((0, import_drizzle_orm36.eq)(projects.id, projectId)).limit(1);
-          if (projectRecord.length > 0 && projectRecord[0].visibility === "PUBLIC") {
+          const projectRecord = await db.select().from(projects).where((0, import_drizzle_orm37.eq)(projects.id, projectId)).limit(1);
+          if (projectRecord.length === 0) {
+            isNotFound = true;
+            shouldNoIndex = true;
+            title = "Proje Bulunamad\u0131 | Gen\xE7 Sosyal";
+            description = "Arad\u0131\u011F\u0131n\u0131z proje silinmi\u015F veya yay\u0131ndan kald\u0131r\u0131lm\u0131\u015F olabilir.";
+          } else {
             const p = projectRecord[0];
-            title = `${p.title} | Gen\xE7 Sosyal`;
-            description = p.description ? p.description.substring(0, 150) : "Gen\xE7 Sosyal'de bir proje.";
+            title = `${p.title} | Gen\xE7 Sosyal Projeleri`;
+            description = p.description ? p.description.substring(0, 150) : "Gen\xE7 Sosyal'de geli\u015Ftirilen yenilik\xE7i proje.";
+            if (p.imageUrl) imageUrl = p.imageUrl;
             jsonLd.push({
               "@context": "https://schema.org",
               "@type": "Project",
@@ -9244,18 +9906,45 @@ var init_seo = __esm({
               "url": url
             });
           }
+        } else if (hashtagMatch) {
+          const tagName = decodeURIComponent(hashtagMatch[1]);
+          title = `#${tagName} \u2014 Trend G\xF6nderiler ve Tart\u0131\u015Fmalar | Gen\xE7 Sosyal`;
+          description = `#${tagName} etiketi alt\u0131ndaki en son payla\u015F\u0131mlar\u0131, projeleri ve gen\xE7 yaz\u0131l\u0131mc\u0131 tart\u0131\u015Fmalar\u0131n\u0131 ke\u015Ffedin.`;
+          url = `${domain}/hashtags/${encodeURIComponent(tagName)}`;
+          jsonLd.push({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": title,
+            "description": description,
+            "url": url
+          });
         }
-        const privateRoutes = ["/messages", "/settings", "/admin", "/notifications", "/bookmarks", "/onboarding"];
+        const privateRoutes = [
+          "/messages",
+          "/settings",
+          "/admin",
+          "/notifications",
+          "/bookmarks",
+          "/onboarding",
+          "/create",
+          "/login",
+          "/register",
+          "/forgot-password",
+          "/reset-password",
+          "/verify-email"
+        ];
         if (privateRoutes.some((r) => req.path.startsWith(r))) {
-          template = template.replace("</head>", '<meta name="robots" content="noindex, nofollow" />\n</head>');
+          shouldNoIndex = true;
         }
         const safeTitle = escapeHtml2(title);
         const safeDescription = escapeHtml2(description);
         const safeImageUrl = escapeHtml2(imageUrl);
         const safeUrl = escapeHtml2(url);
+        const robotsTag = shouldNoIndex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow" />';
         const metaTags = `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}" />
+    ${robotsTag}
     <link rel="canonical" href="${safeUrl}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${safeUrl}" />
@@ -9272,16 +9961,20 @@ var init_seo = __esm({
       ${JSON.stringify(jsonLd)}
     </script>
     `;
-        const regex = /<title>.*?<\/title>(\s*<meta name="description".*?>)?(\s*<meta property="og:.*?>)*(\s*<meta property="twitter:.*?>)*/g;
         let finalHtml = template.replace(/<title>.*?<\/title>/g, "");
         finalHtml = finalHtml.replace(/<meta name="description" content=".*?" \/>/g, "");
+        finalHtml = finalHtml.replace(/<link rel="canonical" href=".*?" \/>/g, "");
         finalHtml = finalHtml.replace(/<!-- Open Graph.*?-->[\s\S]*?<meta property="og:image".*?\/>/g, "");
         finalHtml = finalHtml.replace(/<!-- Twitter.*?-->[\s\S]*?<meta property="twitter:image".*?\/>/g, "");
         finalHtml = finalHtml.replace("</head>", `${metaTags}</head>`);
-        res.status(200).send(finalHtml);
+        const statusCode = isNotFound ? 404 : 200;
+        res.status(statusCode).send(finalHtml);
       } catch (error) {
         console.error("SEO Middleware error:", error);
-        res.status(500).send("Server Error");
+        if (template) {
+          return res.status(200).send(template);
+        }
+        return next();
       }
     };
   }
@@ -9347,7 +10040,7 @@ onboardingRouter.get("/suggested-users", requireAuth, async (req, res) => {
 });
 
 // server.ts
-var import_express30 = __toESM(require("express"), 1);
+var import_express31 = __toESM(require("express"), 1);
 var import_path8 = __toESM(require("path"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_helmet = __toESM(require("helmet"), 1);
@@ -9541,9 +10234,15 @@ gamificationRouter.post("/daily-quest/claim", requireAuth, async (req, res) => {
 if (process.env.NODE_ENV !== "production") {
   import("dotenv").then((dotenv) => dotenv.config());
 }
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception thrown:", error);
+});
 async function startServer() {
   const isProd = process.env.NODE_ENV === "production";
-  const app = (0, import_express30.default)();
+  const app = (0, import_express31.default)();
   app.set("trust proxy", 1);
   const PORT = Number(process.env.PORT) || 3e3;
   app.use((req, res, next) => {
@@ -9590,11 +10289,23 @@ async function startServer() {
     },
     credentials: true
   }));
-  app.use(import_express30.default.json());
-  app.use(import_express30.default.urlencoded({ extended: true }));
+  app.use(import_express31.default.json());
+  app.use(import_express31.default.urlencoded({ extended: true }));
   app.use((0, import_cookie_parser.default)());
+  app.use((req, res, next) => {
+    if (req.originalUrl.startsWith("/api")) {
+      const start = Date.now();
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        const rawIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+        const maskedIp = rawIp.replace(/\.\d+$/, ".xxx");
+        console.log(`[API] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms) [${maskedIp}]`);
+      });
+    }
+    next();
+  });
   ensureUploadDir();
-  app.use("/uploads", import_express30.default.static(getUploadDir(), { dotfiles: "deny" }));
+  app.use("/uploads", import_express31.default.static(getUploadDir(), { dotfiles: "deny" }));
   try {
     const { runMigration: runMigration2 } = await Promise.resolve().then(() => (init_migrate(), migrate_exports));
     await runMigration2(false);
@@ -9603,6 +10314,17 @@ async function startServer() {
   } catch (migErr) {
     console.error("Database migration/seed check failed on startup:", migErr);
   }
+  app.use((req, res, next) => {
+    if (req.method === "GET" && req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/api/")) {
+      const query = req.url.slice(req.path.length);
+      const safePath = req.path.slice(0, -1);
+      return res.redirect(301, safePath + query);
+    }
+    next();
+  });
+  app.get("/hashtag/:name", (req, res) => {
+    return res.redirect(301, `/hashtags/${encodeURIComponent(req.params.name)}`);
+  });
   const { healthRouter: healthRouter2 } = await Promise.resolve().then(() => (init_health(), health_exports));
   app.use("/api/v1/health", healthRouter2);
   app.use("/api/health", healthRouter2);
@@ -9636,6 +10358,8 @@ async function startServer() {
   app.use("/api/v1/media", mediaRouter2);
   const { storiesRouter: storiesRouter2 } = await Promise.resolve().then(() => (init_stories(), stories_exports));
   app.use("/api/v1/stories", storiesRouter2);
+  const { announcementsRouter: announcementsRouter2 } = await Promise.resolve().then(() => (init_announcements(), announcements_exports));
+  app.use("/api/v1/announcements", announcementsRouter2);
   const { messagesRouter: messagesRouter2 } = await Promise.resolve().then(() => (init_messages(), messages_exports));
   app.use("/api/v1/messages", messagesRouter2);
   const { communitiesRouter: communitiesRouter2 } = await Promise.resolve().then(() => (init_communities(), communities_exports));
@@ -9662,6 +10386,23 @@ async function startServer() {
   app.use("/api/v1/feedbacks", feedbacksRouter2);
   const { seoMiddleware: seoMiddleware2 } = await Promise.resolve().then(() => (init_seo(), seo_exports));
   app.use(seoMiddleware2);
+  app.use("/api", (err, req, res, next) => {
+    console.error(`[API Error] ${req.method} ${req.originalUrl}:`, err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    const statusCode = typeof err.status === "number" ? err.status : err.statusCode || 500;
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        code: err.code || "INTERNAL_SERVER_ERROR",
+        message: process.env.NODE_ENV === "production" ? "Bir sunucu hatas\u0131 olu\u015Ftu." : err.message || "Sunucu hatas\u0131 olu\u015Ftu."
+      }
+    });
+  });
+  app.use("/api", (req, res) => {
+    res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "API endpoint not found." } });
+  });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
@@ -9670,10 +10411,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = import_path8.default.join(process.cwd(), "dist");
-    app.use(import_express30.default.static(distPath, { dotfiles: "deny" }));
-    app.use("/api", (req, res) => {
-      res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
-    });
+    app.use(import_express31.default.static(distPath, { dotfiles: "deny" }));
     app.use((req, res, next) => {
       if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map|log)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
         return res.status(403).json({ success: false, error: { message: "403 Forbidden: Access is denied." } });
