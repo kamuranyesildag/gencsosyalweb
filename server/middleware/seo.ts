@@ -57,6 +57,7 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     const domain = rawDomain.replace(/\/+$/, "");
     let title = "Genç Sosyal | Türkiye'nin Gençler İçin Sosyal Medya Platformu";
     let description = "Gençlerin buluşma noktası: Genç Sosyal. Fikirlerini paylaş, topluluklara katıl ve projelere destek ol.";
+    let keywords = "genç sosyal, gençlik platformu, sosyal medya, yazılımcı gençlik, açık kaynak projeler, teknoloji topluluğu, genç geliştiriciler, öğrenci projeleri, portföy paylaşımı, yazılım projeleri, türk sosyal medya, dijital topluluk, kodlama";
     let imageUrl = `${domain}/icon-512.png`;
     let url = domain + req.path;
     let shouldNoIndex = false;
@@ -245,6 +246,7 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
 
     const safeTitle = escapeHtml(title);
     const safeDescription = escapeHtml(description);
+    const safeKeywords = escapeHtml(keywords);
     const safeImageUrl = escapeHtml(imageUrl);
     const safeUrl = escapeHtml(url);
 
@@ -256,6 +258,7 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     const metaTags = `
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}" />
+    <meta name="keywords" content="${safeKeywords}" />
     ${robotsTag}
     <link rel="canonical" href="${safeUrl}" />
     <meta property="og:type" content="website" />
@@ -274,9 +277,10 @@ export const seoMiddleware = async (req: Request, res: Response, next: NextFunct
     </script>
     `;
 
-    // Strip old OG tags, description, canonical and title
+    // Strip old OG tags, description, keywords, canonical and title
     let finalHtml = template.replace(/<title>.*?<\/title>/g, '');
     finalHtml = finalHtml.replace(/<meta name="description" content=".*?" \/>/g, '');
+    finalHtml = finalHtml.replace(/<meta name="keywords" content=".*?" \/>/g, '');
     finalHtml = finalHtml.replace(/<link rel="canonical" href=".*?" \/>/g, '');
     finalHtml = finalHtml.replace(/<!-- Open Graph.*?-->[\s\S]*?<meta property="og:image".*?\/>/g, '');
     finalHtml = finalHtml.replace(/<!-- Twitter.*?-->[\s\S]*?<meta property="twitter:image".*?\/>/g, '');

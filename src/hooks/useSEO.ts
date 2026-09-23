@@ -4,6 +4,7 @@ interface SEOProps {
   allowIndexing?: boolean;
   title?: string;
   description?: string;
+  keywords?: string;
   canonicalPath?: string;
   ogImage?: string;
 }
@@ -12,6 +13,7 @@ export function useSEO({
   allowIndexing = true,
   title,
   description,
+  keywords,
   canonicalPath,
   ogImage,
 }: SEOProps = {}) {
@@ -46,10 +48,12 @@ export function useSEO({
     let twitterUrl = document.querySelector('meta[property="twitter:url"]');
     if (twitterUrl) twitterUrl.setAttribute("content", fullCanonicalUrl);
 
-    // 3. Title & Description
+    // 3. Title, Description & Keywords
     const originalTitle = document.title;
     const metaDesc = document.querySelector('meta[name="description"]');
     const originalDesc = metaDesc ? metaDesc.getAttribute("content") : null;
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    const originalKeywords = metaKeywords ? metaKeywords.getAttribute("content") : null;
     const ogTitle = document.querySelector('meta[property="og:title"]');
     const originalOgTitle = ogTitle ? ogTitle.getAttribute("content") : null;
     const ogDesc = document.querySelector('meta[property="og:description"]');
@@ -69,6 +73,16 @@ export function useSEO({
       const twitterDesc = document.querySelector('meta[property="twitter:description"]');
       if (twitterDesc) twitterDesc.setAttribute("content", description);
     }
+    if (keywords) {
+      if (metaKeywords) {
+        metaKeywords.setAttribute("content", keywords);
+      } else {
+        const newKeywords = document.createElement("meta");
+        newKeywords.setAttribute("name", "keywords");
+        newKeywords.setAttribute("content", keywords);
+        document.head.appendChild(newKeywords);
+      }
+    }
     if (ogImage) {
       if (ogImg) ogImg.setAttribute("content", ogImage);
       if (twitterImg) twitterImg.setAttribute("content", ogImage);
@@ -85,6 +99,9 @@ export function useSEO({
         if (metaDesc && originalDesc !== null) metaDesc.setAttribute("content", originalDesc);
         if (ogDesc && originalOgDesc !== null) ogDesc.setAttribute("content", originalOgDesc);
       }
+      if (keywords && metaKeywords && originalKeywords !== null) {
+        metaKeywords.setAttribute("content", originalKeywords);
+      }
     };
-  }, [allowIndexing, title, description, canonicalPath, ogImage]);
+  }, [allowIndexing, title, description, keywords, canonicalPath, ogImage]);
 }
