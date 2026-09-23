@@ -10,6 +10,7 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { PageTransition } from "../components/ui/PageTransition";
 import { MobileSidebarDrawer } from "../components/navigation/MobileSidebarDrawer";
 import { StoryCreateModal } from "../components/StoryCreateModal";
+import { AnnouncementPopup } from "../components/announcement/AnnouncementPopup";
 
 export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -64,6 +65,9 @@ export function AppLayout() {
 
       {/* Modern Story Create Modal */}
       <StoryCreateModal />
+
+      {/* Modern Announcement Popup System */}
+      <AnnouncementPopup />
     </div>
   );
 }

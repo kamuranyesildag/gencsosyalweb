@@ -32,10 +32,14 @@ export const createPool = () => {
   }
   
   if (!global._postgresPool) {
+    const isProduction = process.env.NODE_ENV === "production";
+    const useSsl = isProduction && !connectionString.includes("sslmode=disable");
+    
     global._postgresPool = new Pool({
       connectionString: connectionString,
       max: 10,
       connectionTimeoutMillis: 15000,
+      ...(useSsl ? { ssl: { rejectUnauthorized: process.env.DATABASE_REJECT_UNAUTHORIZED !== "false" } } : {})
     });
     global._postgresPool.on('error', (err) => {
       console.error('Unexpected error on idle SQL pool client:', err);

@@ -561,6 +561,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   adminAuditLogs: many(adminAuditLogs),
   projectCollaborators: many(projectCollaborators),
   postCollaborators: many(postCollaborators),
+  announcementsCreated: many(announcements),
+  announcementViews: many(announcementViews),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -971,4 +973,61 @@ export const feedbacksRelations = relations(feedbacks, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// --- ANNOUNCEMENTS & POPUP SYSTEM ---
+
+export const announcements = pgTable('announcements', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  imageUrl: text('image_url'),
+  buttonText: varchar('button_text', { length: 100 }),
+  buttonUrl: text('button_url'),
+  status: varchar('status', { length: 30 }).default('draft').notNull(), // 'draft' | 'scheduled' | 'published' | 'archived'
+  targetType: varchar('target_type', { length: 30 }).default('all').notNull(), // 'all' | 'authenticated' | 'specific_role'
+  targetRole: varchar('target_role', { length: 50 }), // 'USER' | 'ADMIN' | 'MODERATOR'
+  priority: integer('priority').default(0).notNull(), // higher integer = higher priority
+  startsAt: timestamp('starts_at'),
+  endsAt: timestamp('ends_at'),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  statusIdx: index('announcements_status_idx').on(t.status),
+  startsEndsIdx: index('announcements_starts_ends_idx').on(t.startsAt, t.endsAt),
+  createdAtIdx: index('announcements_created_at_idx').on(t.createdAt),
+}));
+
+export const announcementViews = pgTable('announcement_views', {
+  id: serial('id').primaryKey(),
+  announcementId: integer('announcement_id').notNull().references(() => announcements.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  seenAt: timestamp('seen_at').defaultNow().notNull(),
+  dismissedAt: timestamp('dismissed_at'),
+  clickedCta: boolean('clicked_cta').default(false).notNull(),
+}, (t) => ({
+  unqUserAnnouncement: unique('announcement_views_user_announcement_unq').on(t.announcementId, t.userId),
+  announcementIdx: index('announcement_views_announcement_idx').on(t.announcementId),
+  userIdx: index('announcement_views_user_idx').on(t.userId),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [announcements.createdBy],
+    references: [users.id],
+  }),
+  views: many(announcementViews),
+}));
+
+export const announcementViewsRelations = relations(announcementViews, ({ one }) => ({
+  announcement: one(announcements, {
+    fields: [announcementViews.announcementId],
+    references: [announcements.id],
+  }),
+  user: one(users, {
+    fields: [announcementViews.userId],
+    references: [users.id],
+  }),
+}));
+
 

@@ -26,7 +26,7 @@ import { fadeInVariants, pageInVariants } from '../../lib/motion';
 import { Link } from 'react-router';
 
 interface AdminDashboardProps {
-  onNavigateTab: (tab: 'stats' | 'users' | 'official' | 'autofollow' | 'verifications' | 'reports' | 'smtp' | 'audit') => void;
+  onNavigateTab: (tab: 'stats' | 'users' | 'announcements' | 'official' | 'autofollow' | 'verifications' | 'reports' | 'smtp' | 'audit') => void;
 }
 
 interface StatsData {
@@ -270,6 +270,22 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
                   <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Doğrulama taleplerini incele ve onayla</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => onNavigateTab('announcements')}
+              className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 hover:bg-blue-50/60 border border-slate-200 dark:border-slate-800/70 hover:border-blue-200 text-left transition-all group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100/80 text-blue-700 flex items-center justify-center shrink-0">
+                <Megaphone className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-700 flex items-center justify-between">
+                  <span>Duyurular & Popup</span>
+                  <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Yeni platform duyurusu yayınla veya düzenle</p>
               </div>
             </button>
 

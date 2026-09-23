@@ -13,6 +13,15 @@ if (process.env.NODE_ENV !== "production") {
   import("dotenv").then((dotenv) => dotenv.config());
 }
 
+// Global process error handlers to prevent unhandled crashes
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception thrown:", error);
+});
+
 import { gamificationRouter } from "./server/routes/gamification.js";
 
 async function startServer() {
@@ -79,6 +88,20 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  // Structured privacy-safe API request logging
+  app.use((req, res, next) => {
+    if (req.originalUrl.startsWith("/api")) {
+      const start = Date.now();
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        const rawIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+        const maskedIp = rawIp.replace(/\.\d+$/, ".xxx");
+        console.log(`[API] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms) [${maskedIp}]`);
+      });
+    }
+    next();
+  });
+
   // Ensure upload directory exists
   ensureUploadDir();
   // Serve uploads statically with dotfiles denied (returns 403)
@@ -142,6 +165,9 @@ async function startServer() {
     const { storiesRouter } = await import("./server/routes/stories.js");
     app.use("/api/v1/stories", storiesRouter);
 
+    const { announcementsRouter } = await import("./server/routes/announcements.js");
+    app.use("/api/v1/announcements", announcementsRouter);
+
     const { messagesRouter } = await import("./server/routes/messages.js");
     app.use("/api/v1/messages", messagesRouter);
 
@@ -176,6 +202,27 @@ async function startServer() {
   
 // --- API Routes End ---
 
+  // Global API Error Handler - Catches unhandled exceptions and prevents information leakage
+  app.use("/api", (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(`[API Error] ${req.method} ${req.originalUrl}:`, err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    const statusCode = typeof err.status === "number" ? err.status : (err.statusCode || 500);
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        code: err.code || "INTERNAL_SERVER_ERROR",
+        message: process.env.NODE_ENV === "production" ? "Bir sunucu hatası oluştu." : (err.message || "Sunucu hatası oluştu.")
+      }
+    });
+  });
+
+  // Universal API 404 Handler - prevents unmatched /api calls from returning index.html in dev or prod
+  app.use("/api", (req, res) => {
+    res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "API endpoint not found." } });
+  });
+
   // Vite middleware for development or static serving for production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -187,11 +234,6 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     // Serve static files with dotfiles denied (returns 403 Forbidden)
     app.use(express.static(distPath, { dotfiles: 'deny' }));
-    
-    // API 404 handler - prevents API calls from returning index.html
-    app.use('/api', (req, res) => {
-      res.status(404).json({ success: false, error: { message: "API endpoint not found." } });
-    });
 
     // SPA fallback masking: Prevent sensitive routes and unhandled extensions from returning 200 OK index.html
     // Return 403 Forbidden for security scanning tools

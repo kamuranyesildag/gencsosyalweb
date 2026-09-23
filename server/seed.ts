@@ -1,7 +1,31 @@
 import { db } from "../src/db/index.js";
-import { users, profiles, posts, systemSettings, badges } from "../src/db/schema.js";
+import { users, profiles, posts, systemSettings, badges, announcements } from "../src/db/schema.js";
 import argon2 from "argon2";
 import { eq } from "drizzle-orm";
+
+export async function seedAnnouncementsIfNeeded() {
+  try {
+    const existing = await db.select({ id: announcements.id }).from(announcements).limit(1);
+    if (existing.length > 0) return;
+
+    console.log("📢 Seeding initial welcome announcement...");
+    await db.insert(announcements).values({
+      title: "Genç Sosyal'e Hoş Geldin! 🎉",
+      content: "Yenilenen Genç Sosyal platformunda projelerini sergileyebilir, etkinliklere katılabilir ve topluluklarla anlık bağlantı kurabilirsin.",
+      imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80",
+      buttonText: "Keşfetmeye Başla",
+      buttonUrl: "/explore",
+      status: "published",
+      targetType: "all",
+      priority: 10,
+      startsAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  } catch (err) {
+    console.error("Error seeding initial announcement:", err);
+  }
+}
 
 export async function seedBadgesIfNeeded() {
   try {
@@ -43,6 +67,7 @@ export async function seedBadgesIfNeeded() {
 export async function seedInitialDataIfNeeded() {
   try {
     await seedBadgesIfNeeded();
+    await seedAnnouncementsIfNeeded();
 
     const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
     if (existingUsers.length > 0) {

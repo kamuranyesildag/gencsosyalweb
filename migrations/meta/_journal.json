@@ -239,6 +239,13 @@
       "when": 1788948208875,
       "tag": "0033_majestic_domino",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790176814835,
+      "tag": "0034_chilly_clea",
+      "breakpoints": true
     }
   ]
 }

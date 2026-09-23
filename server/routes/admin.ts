@@ -2,7 +2,7 @@ import { encryptString } from "../utils/encryption.js";
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications } from "../../src/db/schema.js";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications, announcements, announcementViews } from "../../src/db/schema.js";
 import { eq, ilike, or, desc, sql, and, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
 import { sendVerificationStatusEmail, sendSmtpTestEmail } from "../utils/mailer.js";
@@ -1111,4 +1111,469 @@ adminRouter.post("/moderation/:id/action", async (req, res) => {
     res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Sunucu hatası." }});
   }
 });
+
+// ==========================================
+// ADMIN ANNOUNCEMENTS SYSTEM (FAZ 58)
+// ==========================================
+
+const parseParamId = (param: string | string[]): number => parseInt(Array.isArray(param) ? param[0] : param, 10);
+
+// GET /api/v1/admin/announcements - List announcements with view/click metrics
+adminRouter.get("/announcements", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, q } = req.query;
+    const { limit, offset, page } = getPagination(req);
+
+    // Auto-update scheduled items to published if startsAt has passed
+    const now = new Date();
+    await db
+      .update(announcements)
+      .set({ status: 'published', updatedAt: now })
+      .where(
+        and(
+          eq(announcements.status, 'scheduled'),
+          sql`${announcements.startsAt} <= ${now}`
+        )
+      )
+      .catch(() => {});
+
+    let whereClause = undefined;
+    const conditions = [];
+
+    if (status && typeof status === 'string' && status !== 'ALL') {
+      conditions.push(eq(announcements.status, status));
+    }
+
+    if (q && typeof q === 'string' && q.trim()) {
+      const keyword = `%${q.trim()}%`;
+      conditions.push(
+        or(
+          ilike(announcements.title, keyword),
+          ilike(announcements.content, keyword)
+        )
+      );
+    }
+
+    if (conditions.length > 0) {
+      whereClause = and(...conditions);
+    }
+
+    // Get total count
+    const countRes = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(announcements)
+      .where(whereClause);
+    const total = countRes[0]?.count || 0;
+
+    // Get items with metrics
+    const items = await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        imageUrl: announcements.imageUrl,
+        buttonText: announcements.buttonText,
+        buttonUrl: announcements.buttonUrl,
+        status: announcements.status,
+        targetType: announcements.targetType,
+        targetRole: announcements.targetRole,
+        priority: announcements.priority,
+        startsAt: announcements.startsAt,
+        endsAt: announcements.endsAt,
+        createdBy: announcements.createdBy,
+        createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt,
+        viewsCount: sql<number>`cast(count(distinct ${announcementViews.userId}) as integer)`,
+        clicksCount: sql<number>`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`,
+      })
+      .from(announcements)
+      .leftJoin(announcementViews, eq(announcementViews.announcementId, announcements.id))
+      .where(whereClause)
+      .groupBy(announcements.id)
+      .orderBy(desc(announcements.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Admin get announcements error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyurular listelenemedi." } });
+  }
+});
+
+// GET /api/v1/admin/announcements/:id - Single announcement detail
+adminRouter.get("/announcements/:id", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseParamId(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz duyuru ID." } });
+      return;
+    }
+
+    const item = await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        imageUrl: announcements.imageUrl,
+        buttonText: announcements.buttonText,
+        buttonUrl: announcements.buttonUrl,
+        status: announcements.status,
+        targetType: announcements.targetType,
+        targetRole: announcements.targetRole,
+        priority: announcements.priority,
+        startsAt: announcements.startsAt,
+        endsAt: announcements.endsAt,
+        createdBy: announcements.createdBy,
+        createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt,
+        viewsCount: sql<number>`cast(count(distinct ${announcementViews.userId}) as integer)`,
+        clicksCount: sql<number>`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`,
+      })
+      .from(announcements)
+      .leftJoin(announcementViews, eq(announcementViews.announcementId, announcements.id))
+      .where(eq(announcements.id, id))
+      .groupBy(announcements.id)
+      .limit(1);
+
+    if (!item || item.length === 0) {
+      res.status(404).json({ success: false, error: { message: "Duyuru bulunamadı." } });
+      return;
+    }
+
+    res.json({ success: true, data: item[0] });
+  } catch (error) {
+    console.error("Admin get announcement detail error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru detayı alınamadı." } });
+  }
+});
+
+// POST /api/v1/admin/announcements - Create new announcement
+adminRouter.post("/announcements", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminId = requireAuthContext(req);
+    const {
+      title,
+      content,
+      imageUrl,
+      buttonText,
+      buttonUrl,
+      status = 'draft',
+      targetType = 'all',
+      targetRole,
+      priority = 0,
+      startsAt,
+      endsAt,
+    } = req.body;
+
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      res.status(400).json({ success: false, error: { message: "Duyuru başlığı zorunludur." } });
+      return;
+    }
+
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      res.status(400).json({ success: false, error: { message: "Duyuru açıklaması zorunludur." } });
+      return;
+    }
+
+    const trimmedTitle = title.trim().substring(0, 255);
+    const trimmedContent = content.trim();
+    const validStatus = ['draft', 'scheduled', 'published', 'archived'].includes(status) ? status : 'draft';
+    const validTargetType = ['all', 'authenticated', 'specific_role'].includes(targetType) ? targetType : 'all';
+
+    let parsedStartsAt: Date | null = startsAt ? new Date(startsAt) : null;
+    let parsedEndsAt: Date | null = endsAt ? new Date(endsAt) : null;
+
+    if (validStatus === 'published' && !parsedStartsAt) {
+      parsedStartsAt = new Date();
+    }
+
+    const [created] = await db
+      .insert(announcements)
+      .values({
+        title: trimmedTitle,
+        content: trimmedContent,
+        imageUrl: imageUrl && typeof imageUrl === 'string' ? imageUrl.trim() : null,
+        buttonText: buttonText && typeof buttonText === 'string' ? buttonText.trim().substring(0, 100) : null,
+        buttonUrl: buttonUrl && typeof buttonUrl === 'string' ? buttonUrl.trim() : null,
+        status: validStatus,
+        targetType: validTargetType,
+        targetRole: validTargetType === 'specific_role' && targetRole ? targetRole.trim() : null,
+        priority: typeof priority === 'number' ? priority : 0,
+        startsAt: parsedStartsAt,
+        endsAt: parsedEndsAt,
+        createdBy: adminId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    // Log admin action
+    await db.insert(adminAuditLogs).values({
+      adminUserId: adminId,
+      action: 'ANNOUNCEMENT_CREATE',
+      targetType: 'ANNOUNCEMENT',
+      targetId: created.id.toString(),
+      metadata: {
+        title: trimmedTitle,
+        status: validStatus,
+        targetType: validTargetType,
+      },
+    }).catch(console.error);
+
+    res.status(201).json({
+      success: true,
+      data: created,
+    });
+  } catch (error) {
+    console.error("Admin create announcement error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru oluşturulamadı." } });
+  }
+});
+
+// PUT /api/v1/admin/announcements/:id - Update announcement
+adminRouter.put("/announcements/:id", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminId = requireAuthContext(req);
+    const id = parseParamId(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz duyuru ID." } });
+      return;
+    }
+
+    const {
+      title,
+      content,
+      imageUrl,
+      buttonText,
+      buttonUrl,
+      status,
+      targetType,
+      targetRole,
+      priority,
+      startsAt,
+      endsAt,
+    } = req.body;
+
+    const existing = await db.select().from(announcements).where(eq(announcements.id, id)).limit(1);
+    if (!existing || existing.length === 0) {
+      res.status(404).json({ success: false, error: { message: "Duyuru bulunamadı." } });
+      return;
+    }
+
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (title !== undefined) {
+      if (!title || typeof title !== 'string' || !title.trim()) {
+        res.status(400).json({ success: false, error: { message: "Duyuru başlığı boş olamaz." } });
+        return;
+      }
+      updateData.title = title.trim().substring(0, 255);
+    }
+
+    if (content !== undefined) {
+      if (!content || typeof content !== 'string' || !content.trim()) {
+        res.status(400).json({ success: false, error: { message: "Duyuru açıklaması boş olamaz." } });
+        return;
+      }
+      updateData.content = content.trim();
+    }
+
+    if (imageUrl !== undefined) {
+      updateData.imageUrl = imageUrl && typeof imageUrl === 'string' ? imageUrl.trim() : null;
+    }
+
+    if (buttonText !== undefined) {
+      updateData.buttonText = buttonText && typeof buttonText === 'string' ? buttonText.trim().substring(0, 100) : null;
+    }
+
+    if (buttonUrl !== undefined) {
+      updateData.buttonUrl = buttonUrl && typeof buttonUrl === 'string' ? buttonUrl.trim() : null;
+    }
+
+    if (status !== undefined) {
+      if (['draft', 'scheduled', 'published', 'archived'].includes(status)) {
+        updateData.status = status;
+        if (status === 'published' && !startsAt && !existing[0].startsAt) {
+          updateData.startsAt = new Date();
+        }
+      }
+    }
+
+    if (targetType !== undefined) {
+      if (['all', 'authenticated', 'specific_role'].includes(targetType)) {
+        updateData.targetType = targetType;
+      }
+    }
+
+    if (targetRole !== undefined) {
+      updateData.targetRole = targetRole ? targetRole.trim() : null;
+    }
+
+    if (priority !== undefined) {
+      updateData.priority = typeof priority === 'number' ? priority : 0;
+    }
+
+    if (startsAt !== undefined) {
+      updateData.startsAt = startsAt ? new Date(startsAt) : null;
+    }
+
+    if (endsAt !== undefined) {
+      updateData.endsAt = endsAt ? new Date(endsAt) : null;
+    }
+
+    const [updated] = await db
+      .update(announcements)
+      .set(updateData)
+      .where(eq(announcements.id, id))
+      .returning();
+
+    // Log admin action
+    await db.insert(adminAuditLogs).values({
+      adminUserId: adminId,
+      action: 'ANNOUNCEMENT_UPDATE',
+      targetType: 'ANNOUNCEMENT',
+      targetId: id.toString(),
+      metadata: {
+        updatedFields: Object.keys(updateData),
+      },
+    }).catch(console.error);
+
+    res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Admin update announcement error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru güncellenemedi." } });
+  }
+});
+
+// POST /api/v1/admin/announcements/:id/publish - Quick publish
+adminRouter.post("/announcements/:id/publish", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminId = requireAuthContext(req);
+    const id = parseParamId(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz duyuru ID." } });
+      return;
+    }
+
+    const now = new Date();
+    const [updated] = await db
+      .update(announcements)
+      .set({
+        status: 'published',
+        startsAt: sql`COALESCE(${announcements.startsAt}, ${now})`,
+        updatedAt: now,
+      })
+      .where(eq(announcements.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ success: false, error: { message: "Duyuru bulunamadı." } });
+      return;
+    }
+
+    await db.insert(adminAuditLogs).values({
+      adminUserId: adminId,
+      action: 'ANNOUNCEMENT_PUBLISH',
+      targetType: 'ANNOUNCEMENT',
+      targetId: id.toString(),
+      metadata: { title: updated.title },
+    }).catch(console.error);
+
+    res.json({ success: true, data: updated, message: "Duyuru yayına alındı." });
+  } catch (error) {
+    console.error("Admin publish announcement error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru yayınlanamadı." } });
+  }
+});
+
+// POST /api/v1/admin/announcements/:id/archive - Quick archive
+adminRouter.post("/announcements/:id/archive", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminId = requireAuthContext(req);
+    const id = parseParamId(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz duyuru ID." } });
+      return;
+    }
+
+    const now = new Date();
+    const [updated] = await db
+      .update(announcements)
+      .set({
+        status: 'archived',
+        updatedAt: now,
+      })
+      .where(eq(announcements.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ success: false, error: { message: "Duyuru bulunamadı." } });
+      return;
+    }
+
+    await db.insert(adminAuditLogs).values({
+      adminUserId: adminId,
+      action: 'ANNOUNCEMENT_ARCHIVE',
+      targetType: 'ANNOUNCEMENT',
+      targetId: id.toString(),
+      metadata: { title: updated.title },
+    }).catch(console.error);
+
+    res.json({ success: true, data: updated, message: "Duyuru arşivlendi." });
+  } catch (error) {
+    console.error("Admin archive announcement error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru arşivlenemedi." } });
+  }
+});
+
+// DELETE /api/v1/admin/announcements/:id - Delete announcement
+adminRouter.delete("/announcements/:id", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminId = requireAuthContext(req);
+    const id = parseParamId(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz duyuru ID." } });
+      return;
+    }
+
+    const [deleted] = await db
+      .delete(announcements)
+      .where(eq(announcements.id, id))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ success: false, error: { message: "Duyuru bulunamadı." } });
+      return;
+    }
+
+    await db.insert(adminAuditLogs).values({
+      adminUserId: adminId,
+      action: 'ANNOUNCEMENT_DELETE',
+      targetType: 'ANNOUNCEMENT',
+      targetId: id.toString(),
+      metadata: { title: deleted.title },
+    }).catch(console.error);
+
+    res.json({ success: true, data: { message: "Duyuru başarıyla silindi." } });
+  } catch (error) {
+    console.error("Admin delete announcement error:", error);
+    res.status(500).json({ success: false, error: { message: "Duyuru silinemedi." } });
+  }
+});
+
 

@@ -27,29 +27,39 @@ import { requireAuth, requireAuthContext, optionalAuthContext } from "../middlew
 
 export const authRouter = Router();
 
-authRouter.get("/setup-admin-secure", async (req, res) => {
-  try {
-    const { key, email } = req.query;
-    if (key !== "GencSosyalAdmin2026") {
-      return res.status(403).json({ success: false, message: "Geçersiz anahtar." });
-    }
-    
-    const targetEmail = email || 'imranyesildag123@gmail.com';
-    const result = await db.update(users)
-      .set({ role: 'ADMIN' })
-      .where(eq(users.email, targetEmail as string))
-      .returning();
-      
-    if (result.length > 0) {
-      return res.json({ success: true, message: `${result[0].username} kullanıcısı ADMIN yapıldı! Lütfen hesaba çıkış-giriş yapın.` });
-    } else {
-      return res.status(404).json({ success: false, message: "Kullanıcı bulunamadı. Lütfen önce uygulamaya bu e-posta ile kayıt olun." });
-    }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Sunucu hatası" });
-  }
-});
+// Helper to determine secure cookie options dynamically based on environment and request protocol
+const getRefreshTokenCookieOptions = (req: Request) => {
+  const isHttps = Boolean(
+    req.secure ||
+    req.headers["x-forwarded-proto"] === "https" ||
+    process.env.NODE_ENV === "production" ||
+    process.env.APP_URL?.startsWith("https")
+  );
+
+  return {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: "strict" as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/"
+  };
+};
+
+const getClearCookieOptions = (req: Request) => {
+  const isHttps = Boolean(
+    req.secure ||
+    req.headers["x-forwarded-proto"] === "https" ||
+    process.env.NODE_ENV === "production" ||
+    process.env.APP_URL?.startsWith("https")
+  );
+
+  return {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: "strict" as const,
+    path: "/"
+  };
+};
 
 
 // Helper to handle OTP generation and dispatch
@@ -439,12 +449,7 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
   const { accessToken, refreshToken } = newUser;
   newUser = newUser.createdUser;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.APP_URL?.startsWith("https") ?? false,
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
 
   res.status(201).json({
     success: true,
@@ -640,12 +645,7 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
     });
 
     // Send refresh token as HttpOnly cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.APP_URL?.startsWith("https") ?? false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
 
     sendSecurityAlertEmail(user.email, user.username, "Yeni Giriş İşlemi", new Date().toLocaleString('tr-TR'), ua.substring(0,50), os, browser, ipAddress).catch(console.error);
     res.json({
@@ -813,12 +813,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
       lastActiveAt: new Date()
     });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.APP_URL?.startsWith("https") ?? false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
 
     sendSecurityAlertEmail(user.email, user.username, "Yeni Giriş İşlemi (2FA Onaylı)", new Date().toLocaleString('tr-TR'), ua.substring(0,50), os, browser, ipAddress).catch(console.error);
 
@@ -1024,7 +1019,7 @@ authRouter.post("/refresh", async (req, res) => {
     try {
       decoded = verifyRefreshToken(refreshToken);
     } catch (e) {
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,
         error: { code: "UNAUTHORIZED", message: "Geçersiz oturum." }
@@ -1065,7 +1060,7 @@ authRouter.post("/refresh", async (req, res) => {
         }
       }).catch(console.error);
 
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,
         error: { code: "UNAUTHORIZED", message: "Şüpheli oturum hareketi algılandı. Tüm oturumlarınız güvenlik amacıyla sonlandırıldı, lütfen tekrar giriş yapın." }
@@ -1074,7 +1069,7 @@ authRouter.post("/refresh", async (req, res) => {
     }
 
     if (!matchedTokenId) {
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,
         error: { code: "UNAUTHORIZED", message: "Geçersiz oturum." }
@@ -1128,7 +1123,7 @@ authRouter.post("/refresh", async (req, res) => {
     }
 
     if (txResult.error === 'inactive') {
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,
         error: { code: "UNAUTHORIZED", message: "Hesap pasif." }
@@ -1138,12 +1133,7 @@ authRouter.post("/refresh", async (req, res) => {
 
     const { newAccessToken, newRefreshToken } = txResult;
 
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.APP_URL?.startsWith("https") ?? false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.cookie("refreshToken", newRefreshToken, getRefreshTokenCookieOptions(req));
 
     res.json({
       success: true,
@@ -1183,7 +1173,7 @@ authRouter.post("/logout", async (req, res) => {
       }
     }
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", getClearCookieOptions(req));
     res.json({ success: true, data: {} });
   } catch (error) {
     console.error("Logout error:", error);
