@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { EyeOff, Save, Shield, UserX, UserCheck } from "lucide-react";
+import { EyeOff, Save, Shield, UserX, UserCheck, Lock, Globe } from "lucide-react";
 import { fetchApi } from "../../lib/api";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -90,28 +90,80 @@ export function SettingsPrivacy({
           </p>
         </div>
 
-        <div className="space-y-5 divide-y divide-slate-100">
-          {/* Gizli Hesap Toggle */}
-          <div className="flex items-center justify-between gap-4 pt-2">
-            <div>
-              <div className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
-                Gizli Hesap
+        <div className="space-y-5 divide-y divide-slate-100 dark:divide-white/[0.06]">
+          {/* Gizli Hesap Toggle & Status */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                    Gizli Hesap
+                  </span>
+                  {profileData.isPrivate ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60">
+                      <Lock className="w-3 h-3" /> Açık
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.08]">
+                      <Globe className="w-3 h-3" /> Herkese Açık
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  Hesabınızı gizliye aldığınızda yalnızca onayladığınız takipçileriniz gönderilerinizi, projelerinizi ve profil detaylarınızı görebilir.
+                </div>
               </div>
-              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-relaxed">
-                Sadece onayladığınız takipçileriniz gönderilerinizi ve profil detaylarınızı görebilir.
+
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={profileData.isPrivate}
+                  onChange={(e) =>
+                    setProfileData({ ...profileData, isPrivate: e.target.checked })
+                  }
+                />
+                <div className="w-12 h-6.5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-slate-950 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Explanatory Soft Status Box */}
+            <div
+              className={`p-3.5 rounded-2xl border text-xs sm:text-sm leading-relaxed transition-all ${
+                profileData.isPrivate
+                  ? "bg-blue-50/60 dark:bg-blue-950/20 border-blue-200/70 dark:border-blue-900/40 text-blue-950 dark:text-blue-200"
+                  : "bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/[0.05] text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {profileData.isPrivate ? (
+                  <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                ) : (
+                  <Globe className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  {profileData.isPrivate ? (
+                    <>
+                      <p className="font-bold text-blue-900 dark:text-blue-300">
+                        🔒 Gizli hesap aktif
+                      </p>
+                      <p className="text-xs mt-0.5 opacity-90">
+                        Seni takip etmeyen kişiler gönderilerini, projelerini ve profilindeki özel içerikleri göremez. Yeni takipçilerin senin onayına sunulur. Profilin arama motorlarında dizine eklenmez.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-bold text-slate-800 dark:text-slate-300">
+                        🌐 Herkese açık profil
+                      </p>
+                      <p className="text-xs mt-0.5 opacity-90">
+                        Profilin, gönderilerin ve projelerin platformdaki tüm kullanıcılar tarafından görüntülenebilir ve herkes seni anında takip edebilir.
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={profileData.isPrivate}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, isPrivate: e.target.checked })
-                }
-              />
-              <div className="w-12 h-6.5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white dark:bg-slate-950 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
-            </label>
           </div>
 
           {/* Arama Motoru İndeksleme Toggle */}

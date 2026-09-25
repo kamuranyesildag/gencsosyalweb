@@ -175,7 +175,7 @@ export function Projects() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Rocket className="w-4 h-4" />
             </div>
             Projeler & Üretimler
@@ -193,14 +193,14 @@ export function Projects() {
             if (!isAuthenticated) openModal();
             else navigate("/settings?tab=projects");
           }}
-          className="rounded-full shadow-xs shadow-slate-500/20 self-start sm:self-auto"
+          className="rounded-xl shadow-xs self-start sm:self-auto font-semibold"
         >
           Proje Paylaş
         </Button>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
+      <div className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -211,14 +211,14 @@ export function Projects() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Proje adı, açıklama veya etiket ara..."
               aria-label="Projelerde ara"
-              className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 outline-none transition-all"
+              className="w-full bg-slate-100/70 dark:bg-[#161E2E]/70 border border-slate-200/80 dark:border-white/[0.08] rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-[#0D121D] focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
                 aria-label="Aramayı temizle"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-400 p-1 rounded-full hover:bg-slate-200 dark:bg-slate-800/50"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-slate-200/80 dark:hover:bg-white/[0.08]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -231,11 +231,11 @@ export function Projects() {
             size="md"
             leftIcon={<SlidersHorizontal className="w-4 h-4" />}
             onClick={() => setShowFilters(!showFilters)}
-            className="rounded-2xl"
+            className="rounded-xl font-semibold"
           >
             <span>Filtreler</span>
             {activeFilterCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-slate-700 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="w-5 h-5 rounded-full bg-white/20 text-white text-[10px] flex items-center justify-center font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -410,11 +410,11 @@ export function Projects() {
             <div
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-2xl hover:border-slate-200 dark:border-slate-800 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
+              className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl hover:border-slate-300 dark:hover:border-white/[0.14] hover:shadow-sm transition-all flex flex-col group overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (
-                <div className="w-full aspect-[16/9] bg-slate-100 dark:bg-slate-900 overflow-hidden relative border-b border-slate-200 dark:border-slate-800">
+                <div className="w-full aspect-[16/9] bg-slate-100 dark:bg-[#161E2E] overflow-hidden relative border-b border-slate-200/80 dark:border-white/[0.08]">
                   <img
                     src={project.imageUrl}
                     alt={project.title}
@@ -424,8 +424,8 @@ export function Projects() {
                   />
                 </div>
               ) : (
-                <div className="w-full h-32 bg-gradient-to-br from-slate-50/60 to-slate-50 flex items-center justify-center border-b border-slate-200 dark:border-slate-800">
-                  <Rocket className="w-8 h-8 text-slate-400 group-hover:scale-110 transition-transform" />
+                <div className="w-full h-32 bg-slate-50 dark:bg-[#161E2E]/50 flex items-center justify-center border-b border-slate-200/80 dark:border-white/[0.08]">
+                  <Rocket className="w-8 h-8 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                 </div>
               )}
 
@@ -433,15 +433,15 @@ export function Projects() {
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-slate-700 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-blue-900/40">
                       {project.category}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.06] px-2 py-0.5 rounded-lg">
                       {getStatusText(project.status)}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-slate-900 dark:text-slate-100 transition-colors line-clamp-2 mb-1.5">
+                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 mb-1.5">
                     {project.title}
                   </h3>
 
@@ -450,11 +450,11 @@ export function Projects() {
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-medium truncate">@{project.username}</span>
+                <div className="pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-medium truncate text-slate-600 dark:text-slate-400">@{project.username}</span>
                   <div className="flex items-center gap-2.5">
-                    {project.githubUrl && <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
-                    {project.projectUrl && <LinkIcon className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />}
+                    {project.githubUrl && <Github className="w-4 h-4 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" />}
+                    {project.projectUrl && <LinkIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 hover:underline transition-colors" />}
                   </div>
                 </div>
               </div>

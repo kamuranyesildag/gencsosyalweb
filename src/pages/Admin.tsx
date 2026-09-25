@@ -16,7 +16,8 @@ import {
   ArrowLeft, 
   ShieldAlert,
   SlidersHorizontal,
-  ChevronRight
+  ChevronRight,
+  Scale
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -27,6 +28,7 @@ import { AdminOfficialAccounts } from '../components/admin/AdminOfficialAccounts
 import { AdminAutoFollow } from '../components/admin/AdminAutoFollow';
 import { AdminVerification } from '../components/admin/AdminVerification';
 import { AdminReports } from '../components/admin/AdminReports';
+import { AdminAppeals } from '../components/admin/AdminAppeals';
 import { AdminModeration } from '../components/admin/AdminModeration';
 import { AdminSmtp } from '../components/admin/AdminSmtp';
 import { AdminAuditLogs } from '../components/admin/AdminAuditLogs';
@@ -41,7 +43,8 @@ export type AdminTab =
   | 'autofollow' 
   | 'verifications' 
   | 'reports'
-   | 'moderation' 
+  | 'appeals'
+  | 'moderation' 
   | 'smtp' 
   | 'audit';
 
@@ -95,6 +98,7 @@ export function Admin() {
     { id: 'verifications', label: 'Mavi Tik Başvuruları', shortLabel: 'Mavi Tik', icon: <FileCheck2 className="w-4 h-4" /> },
     { id: 'moderation', label: 'Otomatik Moderasyon', shortLabel: 'Mod', icon: <ShieldAlert className="w-4 h-4" /> },
     { id: 'reports', label: 'Kullanıcı Şikayetleri', shortLabel: 'Şikayet', icon: <AlertTriangle className="w-4 h-4" /> },
+    { id: 'appeals', label: 'Hesap İtirazları', shortLabel: 'İtirazlar', icon: <Scale className="w-4 h-4" /> },
     { id: 'official', label: 'Resmi Hesaplar', shortLabel: 'Resmi', icon: <Megaphone className="w-4 h-4" /> },
     { id: 'autofollow', label: 'Otomatik Takip', shortLabel: 'Oto-Takip', icon: <UserCheck className="w-4 h-4" /> },
     { id: 'smtp', label: 'SMTP Yapılandırması', shortLabel: 'SMTP', icon: <Mail className="w-4 h-4" /> },
@@ -102,36 +106,34 @@ export function Admin() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900/50 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070A10] pb-16 transition-colors">
       {/* Top Header / Bar */}
-      <div className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/80 sticky top-0 z-30 shadow-xs">
+      <div className="bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] sticky top-[60px] z-20 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <Link
-                to="/"
-                className="p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-100 rounded-xl hover:bg-slate-100 dark:bg-slate-900 transition-colors"
+                to="/home"
+                className="p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-[#161E2E] transition-colors"
                 title="Ana Sayfaya Dön"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-slate-900 dark:text-slate-100 text-base tracking-tight">
-                      Genç Sosyal Admin
-                    </span>
-                    <Badge variant="danger" size="sm">YÖNETİCİ</Badge>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base tracking-tight">
+                    Admin Yönetim Merkezi
+                  </span>
+                  <Badge variant="danger" size="sm">YÖNETİCİ</Badge>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link to="/">
+            <div className="flex items-center gap-2">
+              <Link to="/home">
                 <Button variant="ghost" size="sm" leftIcon={<ArrowLeft className="w-3.5 h-3.5" />}>
                   Uygulamaya Dön
                 </Button>
@@ -140,30 +142,23 @@ export function Admin() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-slate-100 dark:border-slate-800 py-1.5 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-slate-200/60 dark:border-white/[0.06] py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                  className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                     isActive
-                      ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-900/90 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:bg-slate-900/70'
+                      ? 'text-white bg-blue-600 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#161E2E]'
                   }`}
                 >
-                  <span className={`${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
+                  <span className={isActive ? 'text-white' : 'text-slate-400'}>
                     {tab.icon}
                   </span>
                   <span>{tab.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="admin-active-pill"
-                      className="absolute inset-0 bg-slate-100 dark:bg-slate-900 rounded-xl -z-10 border border-slate-200 dark:border-slate-800/60"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
                 </button>
               );
             })}
@@ -186,6 +181,7 @@ export function Admin() {
             {activeTab === 'announcements' && <AdminAnnouncements />}
             {activeTab === 'verifications' && <AdminVerification />}
             {activeTab === 'reports' && <AdminReports />}
+            {activeTab === 'appeals' && <AdminAppeals />}
             {activeTab === 'moderation' && <AdminModeration />}
             {activeTab === 'official' && <AdminOfficialAccounts />}
             {activeTab === 'autofollow' && <AdminAutoFollow />}

@@ -35,6 +35,15 @@ async function requestTokenRefresh(): Promise<string | null> {
           useAuthStore.getState().setAccessToken(newToken);
           return newToken;
         }
+      } else if (refreshResponse.status === 403) {
+        const refreshResult = await refreshResponse.json().catch(() => null);
+        if (refreshResult?.error?.code === "ACCOUNT_SUSPENDED") {
+          useAuthStore.getState().setSuspension(refreshResult.error.suspension);
+          if (window.location.pathname !== "/account-suspended") {
+            window.location.href = "/account-suspended";
+          }
+          return null;
+        }
       }
       return null;
     } catch {
@@ -91,6 +100,19 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
       }
       return response; // Return the 401 response
     }
+  }
+
+  if (response.status === 403) {
+    try {
+      const cloned = response.clone();
+      const body = await cloned.json();
+      if (body?.error?.code === "ACCOUNT_SUSPENDED") {
+        useAuthStore.getState().setSuspension(body.error.suspension);
+        if (window.location.pathname !== "/account-suspended") {
+          window.location.href = "/account-suspended";
+        }
+      }
+    } catch {}
   }
 
   return response;

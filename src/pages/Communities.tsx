@@ -83,13 +83,13 @@ export function Communities() {
   return (
     <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
       {/* Sticky Header */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90  border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Topluluklar
             </h1>
           </div>
@@ -103,14 +103,14 @@ export function Communities() {
             if (!isAuthenticated) openModal();
             else setShowCreate(true);
           }}
-          className="rounded-full font-bold shadow-xs shadow-slate-500/20"
+          className="rounded-xl font-semibold shadow-xs"
         >
           Topluluk Kur
         </Button>
       </header>
 
       {/* Search Bar */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#0D121D]/50">
         <div className="relative flex items-center">
           <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
@@ -120,7 +120,7 @@ export function Communities() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Topluluklarda ara..."
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
           />
         </div>
       </div>
@@ -135,22 +135,22 @@ export function Communities() {
               <div
                 key={c.id}
                 onClick={() => navigate(`/communities/${c.slug}`)}
-                className="p-5 border border-slate-200 dark:border-slate-800/80 rounded-2xl bg-white dark:bg-slate-950 hover:border-slate-200 dark:border-slate-800 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl bg-white dark:bg-[#0D121D] hover:border-slate-300 dark:hover:border-white/[0.14] hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center gap-3.5 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
                       {c.avatarUrl ? (
                         <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
-                        <Users className="text-slate-400 w-6 h-6" />
+                        <Users className="text-blue-600 dark:text-blue-400 w-6 h-6" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base group-hover:text-slate-900 dark:text-slate-100 transition-colors truncate">
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                         {c.name}
                       </h3>
-                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                         {c.memberCount || 0} Üye
                       </div>
                     </div>
@@ -161,7 +161,7 @@ export function Communities() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-semibold text-slate-600 group-hover:text-slate-900 dark:text-slate-100">
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/[0.06] text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   <span>Topluluğu Görüntüle</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>

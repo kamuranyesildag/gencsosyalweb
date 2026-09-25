@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
-import { projects, users, profiles, projectLikes, projectComments, notifications, projectCollaborators, moderationLogs } from "../../src/db/schema.js";
+import { projects, users, profiles, projectLikes, projectComments, notifications, projectCollaborators, moderationLogs, follows } from "../../src/db/schema.js";
 import { eq, desc, and, ilike, or, asc, sql } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter, strictLimiter } from "../middleware/rateLimiter.js";
@@ -103,12 +103,34 @@ projectsRouter.get("/", optionalAuth, async (req: Request, res: Response): Promi
 
 // GET /api/v1/projects/:userId
 // Get a user's projects
-projectsRouter.get("/user/:userId", async (req: Request, res: Response): Promise<void> => {
+projectsRouter.get("/user/:userId", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = parseInt(req.params.userId as string, 10);
     if (isNaN(userId)) {
       res.status(400).json({ error: { message: "Geçersiz kullanıcı ID'si." } });
       return;
+    }
+
+    const currentUserId = optionalAuthContext(req);
+
+    // Profile privacy check
+    const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+    const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+
+    if (isPrivate && currentUserId !== userId) {
+      let isFollowing = false;
+      if (currentUserId) {
+        const f = await db.select().from(follows).where(and(
+          eq(follows.followerId, currentUserId), 
+          eq(follows.followingId, userId),
+          eq(follows.status, 'accepted')
+        )).limit(1);
+        isFollowing = f.length > 0;
+      }
+      if (!isFollowing) {
+        res.json({ success: true, data: { projects: [] } });
+        return;
+      }
     }
 
     const userProjects = await db.select({

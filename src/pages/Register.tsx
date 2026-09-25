@@ -314,13 +314,13 @@ export function Register() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="w-full max-w-lg"
       >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950 relative overflow-hidden">
+        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 dark:border-white/[0.08] rounded-3xl bg-white dark:bg-slate-950 relative overflow-hidden">
           {/* Header Brand */}
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md shadow-slate-500/25 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center shadow-xs mb-3">
               <Hexagon className="w-6 h-6 fill-current" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Genç Sosyal'e Katıl
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -331,9 +331,9 @@ export function Register() {
           {/* Stepper Progress Bar */}
           <div className="mb-8">
             <div className="relative flex items-center justify-between px-1">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-slate-900 rounded-full" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-white/[0.08] rounded-full" />
               <motion.div
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-slate-900 rounded-full origin-left"
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 rounded-full origin-left"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: (step - 1) / (STEPS.length - 1) }}
                 transition={{ duration: 0.35, ease: 'easeInOut' }}
@@ -346,10 +346,10 @@ export function Register() {
                     <motion.div
                       className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-xs font-bold transition-all duration-200 ${
                         isActive
-                          ? 'bg-slate-900 text-white shadow-md shadow-slate-500/30 scale-110'
+                          ? 'bg-blue-600 text-white shadow-xs scale-105'
                           : isCompleted
-                          ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                          : 'bg-white border-2 border-slate-200 text-slate-400'
+                          ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40'
+                          : 'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.1] text-slate-400'
                       }`}
                     >
                       {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : <s.icon className="w-4 h-4" />}

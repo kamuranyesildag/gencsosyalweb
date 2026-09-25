@@ -4,7 +4,7 @@ import argon2 from "argon2";
 import crypto from "crypto";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows } from "../../src/db/schema.js";
+import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows, appeals } from "../../src/db/schema.js";
 import { eq, or, and, sql, desc, isNull, inArray } from "drizzle-orm";
 import { 
   registerSchema, 
@@ -18,7 +18,7 @@ import {
   enableTwoFactorSchema,
   disableTwoFactorSchema
 } from "../validators/auth.js";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, getEmailTokenSecret } from "../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, generateSuspensionToken, verifySuspensionToken, getEmailTokenSecret } from "../utils/jwt.js";
 import { encryptString, decryptString } from "../utils/encryption.js";
 import { authenticator } from "otplib";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail } from "../utils/mailer.js";
@@ -586,11 +586,40 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
     }
 
     if (!user.isActive) {
-      res.status(403).json({
-        success: false,
-        error: { code: "FORBIDDEN", message: "Hesabınız pasif durumdadır." }
-      });
-      return;
+      // Check if a temporary ban has expired
+      if (user.banExpiresAt && new Date(user.banExpiresAt) <= new Date()) {
+        await db.update(users).set({
+          isActive: true,
+          banReason: null,
+          bannedAt: null,
+          banExpiresAt: null,
+          updatedAt: new Date()
+        }).where(eq(users.id, user.id));
+        user.isActive = true;
+        user.banReason = null;
+        user.bannedAt = null;
+        user.banExpiresAt = null;
+      } else {
+        const suspensionToken = generateSuspensionToken(user.id, user.username);
+        res.status(403).json({
+          success: false,
+          error: {
+            code: "ACCOUNT_SUSPENDED",
+            message: "Hesabınız askıya alınmıştır.",
+            suspension: {
+              userId: user.id,
+              username: user.username,
+              email: user.email,
+              isPermanent: !user.banExpiresAt,
+              banReason: user.banReason || "Topluluk kurallarının ihlali",
+              bannedAt: user.bannedAt,
+              banExpiresAt: user.banExpiresAt,
+              suspensionToken
+            }
+          }
+        });
+        return;
+      }
     }
 
     if (user.twoFactorEnabled) {
@@ -1092,8 +1121,34 @@ authRouter.post("/refresh", async (req, res) => {
       }
 
       const user = await tx.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
-      if (user.length === 0 || !user[0].isActive) {
-        return { error: 'inactive' };
+      if (user.length === 0) {
+        return { error: 'not_found' };
+      }
+
+      if (!user[0].isActive) {
+        if (user[0].banExpiresAt && new Date(user[0].banExpiresAt) <= new Date()) {
+          // Auto unban expired temporary ban
+          await tx.update(users).set({
+            isActive: true,
+            banReason: null,
+            bannedAt: null,
+            banExpiresAt: null,
+            updatedAt: new Date()
+          }).where(eq(users.id, user[0].id));
+        } else {
+          return {
+            error: 'inactive',
+            suspension: {
+              userId: user[0].id,
+              username: user[0].username,
+              email: user[0].email,
+              isPermanent: !user[0].banExpiresAt,
+              banReason: user[0].banReason || "Topluluk kurallarının ihlali",
+              bannedAt: user[0].bannedAt,
+              banExpiresAt: user[0].banExpiresAt
+            }
+          };
+        }
       }
 
       const newAccessToken = generateAccessToken(user[0].id, user[0].role);
@@ -1124,9 +1179,17 @@ authRouter.post("/refresh", async (req, res) => {
 
     if (txResult.error === 'inactive') {
       res.clearCookie("refreshToken", getClearCookieOptions(req));
-      res.status(401).json({
+      const suspensionToken = generateSuspensionToken(txResult.suspension.userId, txResult.suspension.username);
+      res.status(403).json({
         success: false,
-        error: { code: "UNAUTHORIZED", message: "Hesap pasif." }
+        error: {
+          code: "ACCOUNT_SUSPENDED",
+          message: "Hesabınız askıya alınmıştır.",
+          suspension: {
+            ...txResult.suspension,
+            suspensionToken
+          }
+        }
       });
       return;
     }
@@ -1192,6 +1255,10 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       username: users.username,
       email: users.email,
       role: users.role,
+      isActive: users.isActive,
+      bannedAt: users.bannedAt,
+      banReason: users.banReason,
+      banExpiresAt: users.banExpiresAt,
       isVerified: users.isVerified,
       createdAt: users.createdAt,
       displayName: profiles.displayName,
@@ -1221,15 +1288,156 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       return;
     }
 
+    const u = userRecord[0];
+
+    // Check if account is suspended
+    if (!u.isActive) {
+      if (u.banExpiresAt && new Date(u.banExpiresAt) <= new Date()) {
+        // Auto-unban expired temporary ban
+        await db.update(users).set({
+          isActive: true,
+          banReason: null,
+          bannedAt: null,
+          banExpiresAt: null,
+          updatedAt: new Date()
+        }).where(eq(users.id, u.id));
+        u.isActive = true;
+        u.banReason = null;
+        u.bannedAt = null;
+        u.banExpiresAt = null;
+      } else {
+        const suspensionToken = generateSuspensionToken(u.id, u.username);
+        res.status(403).json({
+          success: false,
+          error: {
+            code: "ACCOUNT_SUSPENDED",
+            message: "Hesabınız askıya alınmıştır.",
+            suspension: {
+              userId: u.id,
+              username: u.username,
+              email: u.email,
+              isPermanent: !u.banExpiresAt,
+              banReason: u.banReason || "Topluluk kurallarının ihlali",
+              bannedAt: u.bannedAt,
+              banExpiresAt: u.banExpiresAt,
+              suspensionToken
+            }
+          }
+        });
+        return;
+      }
+    }
+
     res.json({
       success: true,
-      data: userRecord[0]
+      data: u
     });
   } catch (error) {
     console.error("Me error:", error);
     res.status(500).json({
       success: false,
       error: { code: "INTERNAL_SERVER_ERROR", message: "Bilgiler alınırken hata oluştu." }
+    });
+  }
+});
+
+// GET /api/v1/auth/suspension-status - Check status of suspended account and latest appeal
+authRouter.get("/suspension-status", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    let token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    if (!token && typeof req.query.token === "string") {
+      token = req.query.token;
+    }
+
+    if (!token && req.cookies?.refreshToken) {
+      try {
+        const refDecoded = verifyRefreshToken(req.cookies.refreshToken);
+        if (refDecoded && refDecoded.userId) {
+          token = generateSuspensionToken(refDecoded.userId, "");
+        }
+      } catch {}
+    }
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Yetkilendirme anahtarı bulunamadı." }
+      });
+      return;
+    }
+
+    let decoded: any;
+    try {
+      decoded = verifySuspensionToken(token);
+    } catch {
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Geçersiz veya süresi dolmuş anahtar." }
+      });
+      return;
+    }
+
+    const userRec = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      isActive: users.isActive,
+      banReason: users.banReason,
+      bannedAt: users.bannedAt,
+      banExpiresAt: users.banExpiresAt
+    }).from(users).where(eq(users.id, decoded.userId)).limit(1);
+
+    if (userRec.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }
+      });
+      return;
+    }
+
+    const u = userRec[0];
+
+    // Check if temporary ban has expired
+    if (!u.isActive && u.banExpiresAt && new Date(u.banExpiresAt) <= new Date()) {
+      await db.update(users).set({
+        isActive: true,
+        banReason: null,
+        bannedAt: null,
+        banExpiresAt: null,
+        updatedAt: new Date()
+      }).where(eq(users.id, u.id));
+      u.isActive = true;
+      u.banReason = null;
+      u.bannedAt = null;
+      u.banExpiresAt = null;
+    }
+
+    // Fetch latest appeal for this user
+    const latestAppeal = await db.select().from(appeals)
+      .where(eq(appeals.userId, u.id))
+      .orderBy(desc(appeals.createdAt))
+      .limit(1);
+
+    res.json({
+      success: true,
+      data: {
+        userId: u.id,
+        username: u.username,
+        email: u.email,
+        isActive: u.isActive,
+        isPermanent: !u.banExpiresAt,
+        banReason: u.banReason || "Topluluk kurallarının ihlali",
+        bannedAt: u.bannedAt,
+        banExpiresAt: u.banExpiresAt,
+        appeal: latestAppeal.length > 0 ? latestAppeal[0] : null
+      }
+    });
+  } catch (err) {
+    console.error("Suspension status error:", err);
+    res.status(500).json({
+      success: false,
+      error: { code: "INTERNAL_SERVER_ERROR", message: "Hesap durumu kontrol edilirken hata oluştu." }
     });
   }
 });

@@ -2,7 +2,7 @@ import { encryptString } from "../utils/encryption.js";
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications, announcements, announcementViews } from "../../src/db/schema.js";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications, announcements, announcementViews, appeals } from "../../src/db/schema.js";
 import { eq, ilike, or, desc, sql, and, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
 import { sendVerificationStatusEmail, sendSmtpTestEmail } from "../utils/mailer.js";
@@ -67,6 +67,9 @@ adminRouter.get("/users", async (req: Request, res: Response): Promise<void> => 
       emailVerified: users.emailVerified,
       twoFactorEnabled: users.twoFactorEnabled,
       createdAt: users.createdAt,
+      bannedAt: users.bannedAt,
+      banReason: users.banReason,
+      banExpiresAt: users.banExpiresAt,
       displayName: profiles.displayName,
       avatarUrl: profiles.avatarUrl
     })
@@ -285,7 +288,7 @@ adminRouter.patch("/users/:id/ban", async (req: Request, res: Response): Promise
       return;
     }
     const adminId = requireAuthContext(req);
-    const { isActive, reason } = req.body;
+    const { isActive, reason, isPermanent, banExpiresAt } = req.body;
 
     if (typeof isActive !== 'boolean') {
       res.status(400).json({ success: false, error: { message: "Geçersiz veri. 'isActive' boolean olmalıdır." } });
@@ -311,9 +314,15 @@ adminRouter.patch("/users/:id/ban", async (req: Request, res: Response): Promise
       return;
     }
 
+    const expiresAt = !isActive && !isPermanent && banExpiresAt ? new Date(banExpiresAt) : null;
+    const finalReason = reason?.trim() || (isActive ? 'Yönetici tarafından yasak kaldırıldı' : 'Topluluk kurallarının ihlali');
+
     await db.transaction(async (tx: DbTransaction) => {
       await tx.update(users).set({
         isActive,
+        bannedAt: isActive ? null : new Date(),
+        banReason: isActive ? null : finalReason,
+        banExpiresAt: isActive ? null : expiresAt,
         updatedAt: new Date()
       }).where(eq(users.id, targetUserId));
 
@@ -330,7 +339,9 @@ adminRouter.patch("/users/:id/ban", async (req: Request, res: Response): Promise
         metadata: {
           username: targetUser.username,
           email: targetUser.email,
-          reason: reason || (isActive ? 'Yönetici tarafından yasak kaldırıldı' : 'Yönetici tarafından yasaklandı')
+          reason: finalReason,
+          isPermanent: !expiresAt,
+          banExpiresAt: expiresAt ? expiresAt.toISOString() : null
         }
       });
     });
@@ -339,9 +350,12 @@ adminRouter.patch("/users/:id/ban", async (req: Request, res: Response): Promise
       success: true,
       data: {
         isActive,
+        isPermanent: !expiresAt,
+        banReason: finalReason,
+        banExpiresAt: expiresAt,
         message: isActive
           ? `@${targetUser.username} kullanıcısının yasağı kaldırıldı ve hesabı aktifleştirildi.`
-          : `@${targetUser.username} kullanıcısı yasaklandı ve tüm oturumları sonlandırıldı.`
+          : `@${targetUser.username} kullanıcısı ${expiresAt ? 'geçici olarak' : 'kalıcı olarak'} yasaklandı ve tüm oturumları sonlandırıldı.`
       }
     });
   } catch (error) {
@@ -703,6 +717,182 @@ adminRouter.patch("/reports/:id", async (req: Request, res: Response): Promise<v
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });
   }
 });
+
+// --- ACCOUNT APPEALS (HESAP İTİRAZLARI) MANAGEMENT ---
+
+// GET /api/v1/admin/appeals - List all appeals with optional status filter
+adminRouter.get("/appeals", requireAuth, requireRole("ADMIN"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status } = req.query;
+    let query = db.select({
+      id: appeals.id,
+      userId: appeals.userId,
+      banReason: appeals.banReason,
+      reason: appeals.reason,
+      status: appeals.status,
+      adminResponse: appeals.adminResponse,
+      reviewedBy: appeals.reviewedBy,
+      reviewedAt: appeals.reviewedAt,
+      createdAt: appeals.createdAt,
+      updatedAt: appeals.updatedAt,
+      user: {
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        isActive: users.isActive,
+        bannedAt: users.bannedAt,
+        banReason: users.banReason,
+        banExpiresAt: users.banExpiresAt,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+      }
+    })
+    .from(appeals)
+    .innerJoin(users, eq(appeals.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .orderBy(desc(appeals.createdAt));
+
+    const appealsList = typeof status === "string" && status !== "ALL"
+      ? await query.where(eq(appeals.status, status))
+      : await query;
+
+    res.json({
+      success: true,
+      data: appealsList
+    });
+  } catch (error) {
+    console.error("Admin appeals list error:", error);
+    res.status(500).json({ success: false, error: { message: "İtirazlar alınırken bir sunucu hatası oluştu." } });
+  }
+});
+
+// PATCH /api/v1/admin/appeals/:id - Review and resolve an appeal (APPROVE or REJECT)
+adminRouter.patch("/appeals/:id", requireAuth, requireRole("ADMIN"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const appealId = parseInt(req.params.id as string);
+    if (isNaN(appealId)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz itiraz ID." } });
+      return;
+    }
+
+    const adminId = requireAuthContext(req);
+    const { action, adminResponse } = req.body;
+
+    if (action !== "APPROVE" && action !== "REJECT") {
+      res.status(400).json({ success: false, error: { message: "Geçersiz işlem. 'action' parametresi 'APPROVE' veya 'REJECT' olmalıdır." } });
+      return;
+    }
+
+    const existingAppeal = await db.select().from(appeals).where(eq(appeals.id, appealId)).limit(1);
+    if (existingAppeal.length === 0) {
+      res.status(404).json({ success: false, error: { message: "İtiraz kaydı bulunamadı." } });
+      return;
+    }
+
+    const appeal = existingAppeal[0];
+    const targetUserId = appeal.userId;
+    const sanitizedResponse = typeof adminResponse === "string" ? adminResponse.trim() : null;
+
+    if (action === "APPROVE") {
+      await db.transaction(async (tx: DbTransaction) => {
+        // 1. Update appeal status
+        await tx.update(appeals).set({
+          status: "APPROVED",
+          adminResponse: sanitizedResponse || "İtirazınız onaylandı ve hesabınız yeniden aktifleştirildi.",
+          reviewedBy: adminId,
+          reviewedAt: new Date(),
+          updatedAt: new Date()
+        }).where(eq(appeals.id, appealId));
+
+        // 2. Reactivate target user
+        await tx.update(users).set({
+          isActive: true,
+          banReason: null,
+          bannedAt: null,
+          banExpiresAt: null,
+          updatedAt: new Date()
+        }).where(eq(users.id, targetUserId));
+
+        // 3. Log admin audit action
+        await tx.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "appeal_approved",
+          targetType: "appeal",
+          targetId: appealId.toString(),
+          metadata: {
+            userId: targetUserId,
+            appealId,
+            adminResponse: sanitizedResponse
+          }
+        });
+
+        // 4. Create in-app notification for the user
+        await tx.insert(notifications).values({
+          recipientId: targetUserId,
+          actorId: adminId,
+          type: "system",
+          isRead: false,
+          createdAt: new Date()
+        });
+      });
+
+      res.json({
+        success: true,
+        data: {
+          message: "İtiraz kabul edildi, kısıtlama kaldırıldı ve hesap aktifleştirildi."
+        }
+      });
+      return;
+    }
+
+    if (action === "REJECT") {
+      await db.transaction(async (tx: DbTransaction) => {
+        // 1. Update appeal status
+        await tx.update(appeals).set({
+          status: "REJECTED",
+          adminResponse: sanitizedResponse || "İtirazınız değerlendirildi ancak kural ihlali nedeniyle reddedildi.",
+          reviewedBy: adminId,
+          reviewedAt: new Date(),
+          updatedAt: new Date()
+        }).where(eq(appeals.id, appealId));
+
+        // 2. Log admin audit action
+        await tx.insert(adminAuditLogs).values({
+          adminUserId: adminId,
+          action: "appeal_rejected",
+          targetType: "appeal",
+          targetId: appealId.toString(),
+          metadata: {
+            userId: targetUserId,
+            appealId,
+            adminResponse: sanitizedResponse
+          }
+        });
+
+        // 3. Create notification
+        await tx.insert(notifications).values({
+          recipientId: targetUserId,
+          actorId: adminId,
+          type: "system",
+          isRead: false,
+          createdAt: new Date()
+        });
+      });
+
+      res.json({
+        success: true,
+        data: {
+          message: "İtiraz reddedildi."
+        }
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("Admin appeal action error:", error);
+    res.status(500).json({ success: false, error: { message: "İtiraz işlemi gerçekleştirilirken hata oluştu." } });
+  }
+});
+
 
 
 // --- SMTP SETTINGS ---

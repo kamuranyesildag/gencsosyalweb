@@ -204,7 +204,7 @@ export function Notifications() {
             {filter === "all" && (
               <motion.div
                 layoutId="notifActiveTab"
-                className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 dark:bg-blue-500 rounded-full"
+                className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -225,7 +225,7 @@ export function Notifications() {
             {filter === "unread" && (
               <motion.div
                 layoutId="notifActiveTab"
-                className="absolute bottom-0 inset-x-4 h-0.5 bg-slate-900 dark:bg-blue-500 rounded-full"
+                className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -330,27 +330,31 @@ export function Notifications() {
                       {notif.type === "follow_request" && (
                         <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <button 
-                            className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-xs"
                             onClick={async () => {
                               try {
                                 const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/accept`, { method: "POST" });
                                 if (res.ok) {
-                                  window.location.reload();
+                                  setData((prev) => prev.filter((n) => n.id !== notif.id));
                                 }
                               } catch(e) {}
                             }}
-                          >Kabul Et</button>
+                          >
+                            Kabul Et
+                          </button>
                           <button 
-                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.05] dark:text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-200 dark:border-white/[0.1] hover:bg-slate-200 dark:hover:bg-white/[0.1] transition-colors"
+                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-slate-200 px-4 py-1.5 rounded-xl text-xs font-semibold border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-200/80 dark:hover:bg-white/[0.12] active:scale-95 transition-all"
                             onClick={async () => {
                               try {
                                 const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/reject`, { method: "POST" });
                                 if (res.ok) {
-                                  window.location.reload();
+                                  setData((prev) => prev.filter((n) => n.id !== notif.id));
                                 }
                               } catch(e) {}
                             }}
-                          >Reddet</button>
+                          >
+                            Reddet
+                          </button>
                         </div>
                       )}
 

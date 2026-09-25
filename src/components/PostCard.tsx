@@ -963,9 +963,9 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
               navigate(`/post/${post.id}`);
             }}
             aria-label={`${post.commentCount || 0} yorum. Yorum yap.`}
-            className="group/btn flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-[0.97] py-1.5 px-2 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+            className="group/btn flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90 py-1.5 px-2 rounded-lg hover:bg-blue-50/60 dark:hover:bg-blue-950/30 min-h-[36px]"
           >
-            <MessageCircle className="w-4.5 h-4.5 stroke-[1.75]" />
+            <MessageCircle className="w-4.5 h-4.5 stroke-[1.75] transition-transform group-hover/btn:scale-110" />
             <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
               {post.commentCount || 0}
             </span>
@@ -979,13 +979,13 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                   type="button"
                   aria-label={`${repostCount} yeniden paylaşım.`}
                   className={cn(
-                    "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-[0.97]",
+                    "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-90 min-h-[36px]",
                     reposted
                       ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30"
                       : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30"
                   )}
                 >
-                  <Repeat2 className={cn("w-4.5 h-4.5", reposted ? "stroke-[2.2]" : "stroke-[1.75]")} />
+                  <Repeat2 className={cn("w-4.5 h-4.5 transition-transform group-hover/btn:rotate-45", reposted ? "stroke-[2.2]" : "stroke-[1.75]")} />
                   <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
                     {repostCount}
                   </span>
@@ -1019,7 +1019,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] shadow-lg rounded-full z-50"
+                className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white dark:bg-[#131927] border border-slate-200/90 dark:border-white/[0.12] shadow-xl rounded-full z-50 backdrop-blur-md"
               >
                 {[
                   { type: 'like', icon: '👍', color: 'text-blue-500' },
@@ -1032,7 +1032,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                   <button
                     key={r.type}
                     onClick={(e) => handleReaction(e, r.type)}
-                    className="p-2 hover:scale-125 transition-transform origin-bottom text-xl leading-none"
+                    className="p-2 hover:scale-130 transition-transform origin-bottom text-xl leading-none active:scale-95"
                     title={r.type}
                   >
                     {r.icon}
@@ -1046,26 +1046,26 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
               onClick={(e) => handleReaction(e, reactionType || 'like')}
               aria-label={`${likeCount} tepki.`}
               className={cn(
-                "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-[0.97]",
+                "group/btn flex items-center gap-1.5 py-1.5 px-2 rounded-lg transition-all active:scale-90 min-h-[36px]",
                 reactionType
                   ? "text-rose-600 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/30"
                   : "text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/60 dark:hover:bg-rose-950/30"
               )}
             >
               {reactionType === 'love' ? (
-                <Heart className="w-4.5 h-4.5 fill-rose-600 stroke-rose-600 dark:fill-rose-500 dark:stroke-rose-500" />
+                <Heart className="w-4.5 h-4.5 fill-rose-600 stroke-rose-600 dark:fill-rose-500 dark:stroke-rose-500 transition-transform group-hover/btn:scale-110" />
               ) : reactionType === 'haha' ? (
-                <span className="text-[17px] leading-none">😂</span>
+                <span className="text-[17px] leading-none transition-transform group-hover/btn:scale-110">😂</span>
               ) : reactionType === 'wow' ? (
-                <span className="text-[17px] leading-none">😮</span>
+                <span className="text-[17px] leading-none transition-transform group-hover/btn:scale-110">😮</span>
               ) : reactionType === 'sad' ? (
-                <span className="text-[17px] leading-none">😢</span>
+                <span className="text-[17px] leading-none transition-transform group-hover/btn:scale-110">😢</span>
               ) : reactionType === 'angry' ? (
-                <span className="text-[17px] leading-none">😡</span>
+                <span className="text-[17px] leading-none transition-transform group-hover/btn:scale-110">😡</span>
               ) : reactionType === 'like' ? (
-                <span className="text-[17px] leading-none">👍</span>
+                <span className="text-[17px] leading-none transition-transform group-hover/btn:scale-110">👍</span>
               ) : (
-                <Heart className="w-4.5 h-4.5 stroke-[1.75]" />
+                <Heart className="w-4.5 h-4.5 stroke-[1.75] transition-transform group-hover/btn:scale-110" />
               )}
               <span className="text-xs sm:text-[13px] font-medium min-w-[16px]">
                 {likeCount}
@@ -1089,7 +1089,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
               onClick={handleBookmark}
               aria-label={saved ? "Kaydedilenlerden kaldır" : "Kaydet"}
               className={cn(
-                "group/btn p-1.5 rounded-lg transition-all active:scale-[0.97]",
+                "group/btn p-1.5 rounded-lg transition-all active:scale-90 min-h-[36px] min-w-[36px] flex items-center justify-center",
                 saved
                   ? "text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30"
                   : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
@@ -1097,7 +1097,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
             >
               <Bookmark
                 className={cn(
-                  "w-4.5 h-4.5",
+                  "w-4.5 h-4.5 transition-transform group-hover/btn:scale-110",
                   saved ? "fill-blue-600 dark:fill-blue-400 stroke-blue-600 dark:stroke-blue-400" : "stroke-[1.75]"
                 )}
               />
@@ -1107,9 +1107,9 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
               type="button"
               onClick={handleShare}
               aria-label="Paylaş"
-              className="group/btn p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition-all active:scale-[0.97]"
+              className="group/btn p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition-all active:scale-90 min-h-[36px] min-w-[36px] flex items-center justify-center"
             >
-              <Share2 className="w-4.5 h-4.5 stroke-[1.75]" />
+              <Share2 className="w-4.5 h-4.5 stroke-[1.75] transition-transform group-hover/btn:scale-110" />
             </button>
           </div>
         </div>

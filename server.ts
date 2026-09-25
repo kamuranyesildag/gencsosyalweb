@@ -55,7 +55,7 @@ async function startServer() {
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: ["'self'", process.env.FRONTEND_URL || "http://localhost:3000", "wss:"],
+        connectSrc: ["'self'", "https:", "wss:", process.env.FRONTEND_URL || "http://localhost:3000"],
         fontSrc: ["'self'", "data:", "https:"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'", "https:"],
@@ -212,6 +212,9 @@ async function startServer() {
     const { feedbacksRouter } = await import("./server/routes/feedbacks.js");
     app.use("/api/v1/feedbacks", feedbacksRouter);
 
+    const { appealsRouter } = await import("./server/routes/appeals.js");
+    app.use("/api/v1/appeals", appealsRouter);
+
     const { seoMiddleware } = await import("./server/middleware/seo.js");
     app.use(seoMiddleware);
   
@@ -253,7 +256,7 @@ async function startServer() {
     // SPA fallback masking: Prevent sensitive routes and unhandled extensions from returning 200 OK index.html
     // Return 403 Forbidden for security scanning tools
     app.use((req, res, next) => {
-      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map|log)$/i) || req.path.match(/^\/(admin|wp-admin|graphql|\.git)/i)) {
+      if (req.path.match(/\.(env|php|git|map|bak|sql|config|yml|yaml|js\.map|log)$/i) || req.path.match(/^\/(wp-admin|graphql|\.git|admin\.php)/i)) {
         return res.status(403).json({ success: false, error: { message: "403 Forbidden: Access is denied." } });
       }
       next();

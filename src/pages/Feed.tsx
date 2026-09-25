@@ -275,7 +275,7 @@ export function Feed() {
       </AnimatePresence>
 
       {/* 2. FEED CONTENT FLOW */}
-      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-3 flex flex-col gap-3">
+      <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 pt-2.5 sm:pt-3 flex flex-col gap-2.5 sm:gap-3">
         {/* Stories Bar */}
         <StoriesBar />
 

@@ -39,6 +39,7 @@ import {
   FolderGit2, 
   ExternalLink,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -423,6 +424,15 @@ export function Profile() {
                 targetUser={{ username: profile.username, isVerified: !!profile.isVerified }}
               />
             )}
+            {profile.isPrivate && (
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 shadow-xs"
+                title={isMe ? "Hesabınız gizli. Yalnızca takipçileriniz içeriklerinizi görebilir." : "Bu hesap gizlidir."}
+              >
+                <Lock className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                <span>Gizli Hesap</span>
+              </span>
+            )}
           </div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">@{profile.username}</p>
         </div>
@@ -564,12 +574,44 @@ export function Profile() {
         )}
       </div>
 
-      {/* PROFILE TABS */}
-      <div
-        className="sticky top-[56px] md:top-[120px] z-10 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
-        role="tablist"
-        aria-label="Profil Sekmeleri"
-      >
+      {/* PRIVATE ACCOUNT LOCK OR PROFILE TABS */}
+      {profile.isPrivate && !isMe && followStatus !== 'accepted' ? (
+        <div className="my-12 sm:my-16 px-4 max-w-md mx-auto text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 shadow-xs">
+            <Lock className="w-8 h-8 stroke-[2]" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+              Bu Hesap Gizli
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto leading-relaxed">
+              {followStatus === 'pending'
+                ? "Takip isteğin iletildi. Hesap sahibi onayladığında gönderilerini ve projelerini görebileceksin."
+                : "Fotoğraflarını, videolarını ve projelerini görmek için bu hesabı takip et."}
+            </p>
+          </div>
+          {followStatus === 'none' && (
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                isLoading={isFollowLoading}
+                onClick={handleFollow}
+                className="rounded-full px-6 font-bold"
+              >
+                Takip İsteği Gönder
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* PROFILE TABS */}
+          <div
+            className="sticky top-0 md:top-[60px] z-10 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
+            role="tablist"
+            aria-label="Profil Sekmeleri"
+          >
         <button
           type="button"
           role="tab"
@@ -585,7 +627,7 @@ export function Profile() {
           {activeTab === "posts" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-slate-900 dark:bg-blue-500 rounded-t-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -606,7 +648,7 @@ export function Profile() {
           {activeTab === "projects" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-slate-900 dark:bg-blue-500 rounded-t-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -627,7 +669,7 @@ export function Profile() {
           {activeTab === "followers" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-slate-900 dark:bg-blue-500 rounded-t-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -648,7 +690,7 @@ export function Profile() {
           {activeTab === "following" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-slate-900 dark:bg-blue-500 rounded-t-full"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 450, damping: 35 }}
             />
           )}
@@ -788,6 +830,8 @@ export function Profile() {
           )
         )}
       </div>
+      </>
+      )}
 
       {/* MODALS AND SHEETS */}
       <ProfileShareSheet

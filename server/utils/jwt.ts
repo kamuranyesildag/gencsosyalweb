@@ -108,3 +108,20 @@ export const verifyTwoFactorToken = (token: string) => {
   return decoded;
 };
 
+export const generateSuspensionToken = (userId: number, username: string) => {
+  return jwt.sign(
+    { userId, username, type: "suspension" },
+    getAccessTokenSecret(),
+    { expiresIn: "7d" }
+  );
+};
+
+export const verifySuspensionToken = (token: string) => {
+  const decoded = jwt.verify(token, getAccessTokenSecret(), { algorithms: ["HS256"] }) as any;
+  if (decoded.type !== "suspension" && decoded.type !== "access") {
+    throw new Error("Invalid token type");
+  }
+  return decoded;
+};
+
+

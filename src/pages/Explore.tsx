@@ -126,7 +126,7 @@ export function Explore() {
             {activeTab === "users" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 dark:bg-blue-500 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -150,7 +150,7 @@ export function Explore() {
             {activeTab === "posts" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 dark:bg-blue-500 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
@@ -174,7 +174,7 @@ export function Explore() {
             {activeTab === "tags" && (
               <motion.div
                 layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-slate-900 dark:bg-blue-500 rounded-full"
+                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}

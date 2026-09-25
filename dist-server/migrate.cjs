@@ -53,6 +53,8 @@ __export(schema_exports, {
   announcementViewsRelations: () => announcementViewsRelations,
   announcements: () => announcements,
   announcementsRelations: () => announcementsRelations,
+  appeals: () => appeals,
+  appealsRelations: () => appealsRelations,
   badges: () => badges,
   badgesRelations: () => badgesRelations,
   blocks: () => blocks,
@@ -147,6 +149,9 @@ var users = (0, import_pg_core.pgTable)("users", {
   officialPriority: (0, import_pg_core.varchar)("official_priority", { length: 20 }).default("normal").notNull(),
   twoFactorEnabled: (0, import_pg_core.boolean)("two_factor_enabled").default(false).notNull(),
   twoFactorSecret: (0, import_pg_core.text)("two_factor_secret"),
+  bannedAt: (0, import_pg_core.timestamp)("banned_at"),
+  banReason: (0, import_pg_core.text)("ban_reason"),
+  banExpiresAt: (0, import_pg_core.timestamp)("ban_expires_at"),
   createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
   updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
 });
@@ -630,7 +635,9 @@ var usersRelations = (0, import_drizzle_orm.relations)(users, ({ one, many }) =>
   projectCollaborators: many(projectCollaborators),
   postCollaborators: many(postCollaborators),
   announcementsCreated: many(announcements),
-  announcementViews: many(announcementViews)
+  announcementViews: many(announcementViews),
+  appeals: many(appeals, { relationName: "appealingUser" }),
+  appealsReviewed: many(appeals, { relationName: "appealReviewer" })
 }));
 var postsRelations = (0, import_drizzle_orm.relations)(posts, ({ one, many }) => ({
   community: one(communities, {
@@ -1057,6 +1064,35 @@ var announcementViewsRelations = (0, import_drizzle_orm.relations)(announcementV
   user: one(users, {
     fields: [announcementViews.userId],
     references: [users.id]
+  })
+}));
+var appeals = (0, import_pg_core.pgTable)("appeals", {
+  id: (0, import_pg_core.serial)("id").primaryKey(),
+  userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  banReason: (0, import_pg_core.text)("ban_reason"),
+  reason: (0, import_pg_core.text)("reason").notNull(),
+  status: (0, import_pg_core.varchar)("status", { length: 20 }).default("PENDING").notNull(),
+  // 'PENDING', 'APPROVED', 'REJECTED'
+  adminResponse: (0, import_pg_core.text)("admin_response"),
+  reviewedBy: (0, import_pg_core.integer)("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: (0, import_pg_core.timestamp)("reviewed_at"),
+  createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
+  updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
+}, (t) => ({
+  userIdIdx: (0, import_pg_core.index)("appeals_user_id_idx").on(t.userId),
+  statusIdx: (0, import_pg_core.index)("appeals_status_idx").on(t.status),
+  createdAtIdx: (0, import_pg_core.index)("appeals_created_at_idx").on(t.createdAt)
+}));
+var appealsRelations = (0, import_drizzle_orm.relations)(appeals, ({ one }) => ({
+  user: one(users, {
+    fields: [appeals.userId],
+    references: [users.id],
+    relationName: "appealingUser"
+  }),
+  reviewer: one(users, {
+    fields: [appeals.reviewedBy],
+    references: [users.id],
+    relationName: "appealReviewer"
   })
 }));
 

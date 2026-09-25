@@ -119,16 +119,16 @@ export function MessageDetail() {
   const otherUser = messages.find((m) => m.sender?.id !== user?.id)?.sender;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#070A10] transition-all active:scale-[0.97]">
+    <div className="flex flex-col h-[calc(100vh-60px)] w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#070A10] transition-colors">
       {/* STICKY CHAT HEADER */}
-      <header className="sticky top-0 z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-all active:scale-[0.97]">
+      <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5 min-w-0">
           <IconButton
             aria-label="Geri Dön"
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            className="rounded-full -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shrink-0 min-w-[44px] min-h-[44px]"
+            className="rounded-xl -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shrink-0 min-w-[40px] min-h-[40px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </IconButton>
@@ -146,7 +146,7 @@ export function MessageDetail() {
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all active:scale-[0.97] text-sm sm:text-base truncate">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm sm:text-base truncate">
                     {otherUser.displayName || otherUser.username}
                   </span>
                   {otherUser.isVerified && (
@@ -200,8 +200,8 @@ export function MessageDetail() {
                   <div
                     className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm sm:text-[15px] shadow-xs leading-relaxed ${
                       isMe
-                        ? "bg-slate-900 dark:bg-blue-600 text-white rounded-br-xs"
-                        : "bg-white dark:bg-[#0E131F] border border-slate-200/80 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 rounded-bl-xs"
+                        ? "bg-blue-600 text-white rounded-br-xs shadow-blue-500/10"
+                        : "bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 rounded-bl-xs"
                     }`}
                   >
                     <div className="whitespace-pre-wrap break-words">{msg.content}</div>

@@ -378,35 +378,35 @@ export function PostDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 sm:top-16 z-20 bg-white dark:bg-slate-950/80  border-b border-slate-200 dark:border-slate-800/60 px-4 sm:px-6 py-4 flex items-center gap-4 transition-all">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center gap-3 transition-colors">
         <button
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Geri"
-          className="w-9 h-9 flex items-center justify-center -ml-1 rounded-full bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:bg-slate-900 text-slate-700 transition-colors shadow-sm border border-slate-200 dark:border-slate-800/50"
+          className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100 dark:bg-[#161E2E] hover:bg-slate-200/80 dark:hover:bg-[#1f293d] text-slate-700 dark:text-slate-200 transition-colors active:scale-95"
         >
           <ArrowLeft className="w-5 h-5 stroke-[2]" />
         </button>
-        <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+        <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           Gönderi
         </h1>
       </header>
 
       {/* Main Post Card */}
-      <div className="border-b border-slate-200 dark:border-slate-800/80">
+      <div className="border-b border-slate-200/80 dark:border-white/[0.08] p-2 sm:p-4">
         <PostCard post={post} onPostDeleted={() => navigate("/home")} />
 
         {/* Collaborators Card */}
         {collaborators.length > 0 || user?.id === post.userId ? (
-          <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-900/70 border-t border-slate-200 dark:border-slate-800">
+          <div className="mt-3 p-4 sm:p-5 bg-slate-50/80 dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]">
             <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-slate-900 dark:text-slate-100" />
+              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               Ortak Üreticiler
             </h3>
 
             <div className="space-y-2.5">
               {collaborators.map((collab) => (
-                <div key={collab.userId} className="flex items-center justify-between bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800/70">
+                <div key={collab.userId} className="flex items-center justify-between bg-white dark:bg-[#131927] p-3 rounded-xl border border-slate-200/60 dark:border-white/[0.06]">
                   <div className="flex items-center gap-2.5">
                     <Avatar url={collab.avatarUrl} name={collab.displayName || collab.username} size="sm" />
                     <div>
@@ -439,7 +439,7 @@ export function PostDetail() {
                   placeholder="Kullanıcı adı ile davet et..."
                   value={collabUserId}
                   onChange={(e) => setCollabUserId(e.target.value)}
-                  className="flex-1 text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none"
+                  className="flex-1 text-xs sm:text-sm border border-slate-200/80 dark:border-white/[0.08] rounded-xl px-3 py-2 bg-white dark:bg-[#0D121D] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 />
                 <Button
                   type="submit"
@@ -447,6 +447,7 @@ export function PostDetail() {
                   size="sm"
                   disabled={addingCollab || !collabUserId.trim()}
                   isLoading={addingCollab}
+                  className="rounded-xl font-semibold shadow-xs"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -457,14 +458,14 @@ export function PostDetail() {
       </div>
 
       {/* Comment Input */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+      <div className="p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-[#0D121D]/50">
         <div className="flex gap-2.5 items-center">
           <div className="relative flex-1">
             <input
               ref={inputRef as any}
               type="text"
               placeholder="Düşünceni veya yanıtını yaz..."
-              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full px-4 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all min-h-[44px]"
+              className="w-full bg-white dark:bg-[#070A10] border border-slate-200/80 dark:border-white/[0.08] rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all min-h-[44px]"
               value={commentText}
               onClick={() => {
                 if (!isAuthenticated) openModal();

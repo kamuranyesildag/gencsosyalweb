@@ -213,20 +213,20 @@ export function Settings() {
   const currentItem = allItems.find((item) => item.id === activeTab) || allItems[0];
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 pt-20 pb-24 transition-colors">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#070A10] pt-4 sm:pt-6 pb-24 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Page Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+        <div className="mb-5 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Ayarlar
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm sm:text-base mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-xs sm:text-sm mt-1">
             Hesabınızı özelleştirin, gizlilik tercihlerinizi ve portföyünüzü yönetin.
           </p>
         </div>
 
         {/* MOBILE HORIZONTAL TABS */}
-        <div className="md:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+        <div className="md:hidden mb-6 -mx-4 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-slate-200/80 dark:border-white/[0.08] pb-3">
           {allItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -237,8 +237,8 @@ export function Settings() {
                 onClick={() => handleTabChange(item.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
                   isActive
-                    ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    ? "bg-blue-600 dark:bg-blue-600 text-white shadow-xs"
+                    : "bg-white dark:bg-[#0D121D] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-[#161E2E]"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -249,13 +249,13 @@ export function Settings() {
         </div>
 
         {/* MAIN SETTINGS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* DESKTOP SIDEBAR NAV */}
-          <aside className="hidden md:block md:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-3.5 shadow-xs sticky top-24 transition-colors">
+          <aside className="hidden md:block md:col-span-4 bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-3.5 shadow-xs sticky top-[76px] transition-colors">
             <nav className="space-y-4" aria-label="Ayarlar Gezintisi">
               {navGroups.map((group, gIdx) => (
-                <div key={group.title} className={gIdx > 0 ? "pt-2 border-t border-slate-100 dark:border-slate-800" : ""}>
-                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <div key={group.title} className={gIdx > 0 ? "pt-2 border-t border-slate-100 dark:border-white/[0.06]" : ""}>
+                  <div className="px-3 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {group.title}
                   </div>
                   <div className="space-y-1 mt-1">
@@ -267,17 +267,17 @@ export function Settings() {
                           key={item.id}
                           type="button"
                           onClick={() => handleTabChange(item.id)}
-                          className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-2xl font-bold transition-all text-left group ${
+                          className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl font-bold transition-all text-left group ${
                             isActive
-                              ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-xs shadow-slate-500/20"
-                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white"
+                              ? "bg-blue-600 text-white shadow-xs shadow-blue-500/20"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#161E2E] hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
                           <div
-                            className={`p-1.5 rounded-xl transition-colors ${
+                            className={`p-1.5 rounded-lg transition-colors ${
                               isActive
                                 ? "bg-white/20 text-white"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-slate-800"
+                                : "bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                             }`}
                           >
                             <Icon className="w-4 h-4" />

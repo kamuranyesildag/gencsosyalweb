@@ -20,6 +20,9 @@ export const users = pgTable('users', {
   officialPriority: varchar('official_priority', { length: 20 }).default('normal').notNull(),
   twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
   twoFactorSecret: text('two_factor_secret'),
+  bannedAt: timestamp('banned_at'),
+  banReason: text('ban_reason'),
+  banExpiresAt: timestamp('ban_expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -563,6 +566,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   postCollaborators: many(postCollaborators),
   announcementsCreated: many(announcements),
   announcementViews: many(announcementViews),
+  appeals: many(appeals, { relationName: 'appealingUser' }),
+  appealsReviewed: many(appeals, { relationName: 'appealReviewer' }),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -1029,5 +1034,38 @@ export const announcementViewsRelations = relations(announcementViews, ({ one })
     references: [users.id],
   }),
 }));
+
+// --- ACCOUNT APPEALS (HESAP İTİRAZLARI) ---
+
+export const appeals = pgTable('appeals', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  banReason: text('ban_reason'),
+  reason: text('reason').notNull(),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // 'PENDING', 'APPROVED', 'REJECTED'
+  adminResponse: text('admin_response'),
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdIdx: index('appeals_user_id_idx').on(t.userId),
+  statusIdx: index('appeals_status_idx').on(t.status),
+  createdAtIdx: index('appeals_created_at_idx').on(t.createdAt),
+}));
+
+export const appealsRelations = relations(appeals, ({ one }) => ({
+  user: one(users, {
+    fields: [appeals.userId],
+    references: [users.id],
+    relationName: 'appealingUser',
+  }),
+  reviewer: one(users, {
+    fields: [appeals.reviewedBy],
+    references: [users.id],
+    relationName: 'appealReviewer',
+  }),
+}));
+
 
 

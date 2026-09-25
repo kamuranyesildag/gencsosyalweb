@@ -61,6 +61,9 @@ export function AdminUsers() {
 
   // Modals visibility
   const [banModalOpen, setBanModalOpen] = useState(false);
+  const [banType, setBanType] = useState<'permanent' | 'temporary'>('permanent');
+  const [banDurationDays, setBanDurationDays] = useState(7);
+  const [banCustomDate, setBanCustomDate] = useState('');
   const [banReason, setBanReason] = useState('Spam veya Sahte Hesap');
   const [banCustomNote, setBanCustomNote] = useState('');
   const [banSubmitting, setBanSubmitting] = useState(false);
@@ -164,16 +167,33 @@ export function AdminUsers() {
         ? `${banReason}: ${banCustomNote.trim()}` 
         : banReason;
 
+      let expiresAt: string | null = null;
+      const isPermanent = banType === 'permanent';
+      if (!isPermanent) {
+        if (banDurationDays > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + banDurationDays);
+          expiresAt = d.toISOString();
+        } else if (banCustomDate) {
+          expiresAt = new Date(banCustomDate).toISOString();
+        }
+      }
+
       const res = await fetchApi(`/admin/users/${selectedUser.id}/ban`, {
         method: 'PATCH',
-        data: { isActive: false, reason: fullReason },
+        data: {
+          isActive: false,
+          reason: fullReason,
+          isPermanent,
+          banExpiresAt: expiresAt
+        },
       });
       const json = await res.json();
       if (json.success) {
         setUsers((prev) =>
-          prev.map((u) => (u.id === selectedUser.id ? { ...u, isActive: false } : u))
+          prev.map((u) => (u.id === selectedUser.id ? { ...u, isActive: false, banReason: fullReason, banExpiresAt: expiresAt } : u))
         );
-        toast.success(`@${selectedUser.username} başarıyla yasaklandı ve oturumları sonlandırıldı.`);
+        toast.success(`@${selectedUser.username} başarıyla ${isPermanent ? 'kalıcı' : 'geçici'} olarak yasaklandı.`);
         setBanModalOpen(false);
       } else {
         toast.error(json.error?.message || 'Yasaklama işlemi başarısız oldu.');
@@ -656,9 +676,24 @@ export function AdminUsers() {
                           {/* Durum */}
                           <td className="py-4 px-4">
                             {isBanned ? (
-                              <Badge variant="danger" size="sm" dot>
-                                Yasaklı / Askıda
-                              </Badge>
+                              <div className="space-y-1">
+                                <Badge variant="danger" size="sm" dot>
+                                  {u.banExpiresAt ? 'Geçici Yasaklı' : 'Kalıcı Yasaklı'}
+                                </Badge>
+                                {u.banExpiresAt && (
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                    Bitiş: {new Date(u.banExpiresAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  </div>
+                                )}
+                                {u.banReason && (
+                                  <div
+                                    className="text-[11px] text-rose-600 dark:text-rose-400 max-w-[170px] truncate"
+                                    title={u.banReason}
+                                  >
+                                    {u.banReason}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <Badge variant="success" size="sm" dot>
                                 Aktif
@@ -1008,6 +1043,71 @@ export function AdminUsers() {
                 <p className="text-xs text-slate-500">@{selectedUser.username} • {selectedUser.email}</p>
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Yasaklama Türü
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBanType('permanent')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer text-center ${
+                    banType === 'permanent'
+                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  Kalıcı Yasaklama
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBanType('temporary')}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors cursor-pointer text-center ${
+                    banType === 'temporary'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  Geçici Askıya Alma
+                </button>
+              </div>
+            </div>
+
+            {banType === 'temporary' && (
+              <div className="space-y-2 p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/30 rounded-xl">
+                <label className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                  Askı Süresi
+                </label>
+                <Select
+                  value={banDurationDays.toString()}
+                  onChange={(e) => setBanDurationDays(parseInt(e.target.value))}
+                  options={[
+                    { value: '1', label: '1 Gün' },
+                    { value: '3', label: '3 Gün' },
+                    { value: '7', label: '7 Gün (1 Hafta)' },
+                    { value: '14', label: '14 Gün (2 Hafta)' },
+                    { value: '30', label: '30 Gün (1 Ay)' },
+                    { value: '90', label: '90 Gün (3 Ay)' },
+                    { value: '0', label: 'Özel Tarih Belirle' },
+                  ]}
+                />
+                {banDurationDays === 0 && (
+                  <div className="pt-1.5 space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Bitiş Tarihi ve Saati
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={banCustomDate}
+                      onChange={(e) => setBanCustomDate(e.target.value)}
+                      className="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                      required={banDurationDays === 0}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">

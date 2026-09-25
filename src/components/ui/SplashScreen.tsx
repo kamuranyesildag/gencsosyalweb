@@ -1,12 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
-export function SplashScreen({ onComplete }: { onComplete: () => void }) {
+export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
   const shouldReduceMotion = useReducedMotion();
-  const [isVisible, setIsVisible] = useState(true);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  // Only show splash once per session to prevent repeated delay on in-app refreshes
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return !sessionStorage.getItem('gencsosyal_splash_shown');
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
-    // Check setup mode
+    if (!isVisible) {
+      onCompleteRef.current?.();
+      return;
+    }
+
+    try {
+      sessionStorage.setItem('gencsosyal_splash_shown', 'true');
+    } catch {}
+
+    // Check setup mode silently without blocking
     if (window.location.pathname !== '/setup') {
       fetch('/api/health')
         .then(res => res.json())
@@ -20,18 +40,22 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
     if (shouldReduceMotion) {
       setIsVisible(false);
-      onComplete();
+      onCompleteRef.current?.();
       return;
     }
 
-    // Total duration around 800ms
+    // Dismiss splash screen smoothly after 600ms
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 300); // Allow exit animation to finish
-    }, 800);
+      setTimeout(() => {
+        onCompleteRef.current?.();
+      }, 250);
+    }, 600);
 
     return () => clearTimeout(timer);
-  }, [shouldReduceMotion, onComplete]);
+  }, [shouldReduceMotion, isVisible]);
+
+  if (!isVisible) return null;
 
   return (
     <AnimatePresence>
@@ -40,17 +64,17 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
           key="splash"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="fixed inset-0 z-[9999] bg-[#09090b] flex items-center justify-center overflow-hidden"
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="fixed inset-0 z-[9999] bg-[#09090b] flex items-center justify-center overflow-hidden pointer-events-auto"
         >
-          {/* Glow effect using purely radial-gradient (no blur filter) for performance */}
+          {/* Glow effect using radial-gradient */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: [0, 0.6, 0.4], scale: [0.8, 1.2, 1] }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
             className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] rounded-full pointer-events-none"
             style={{ 
-              background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0) 70%)',
+              background: 'radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0) 70%)',
               willChange: 'opacity, transform' 
             }}
           />
@@ -59,13 +83,13 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4, ease: 'easeOut' }}
+            transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
             className="relative text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-2"
           >
             <motion.span
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
+              transition={{ delay: 0.1, duration: 0.35 }}
               style={{ willChange: 'opacity, transform' }}
             >
               Genç
@@ -73,8 +97,8 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
             <motion.span
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25, duration: 0.4 }}
-              className="text-slate-400"
+              transition={{ delay: 0.2, duration: 0.35 }}
+              className="text-blue-500"
               style={{ willChange: 'opacity, transform' }}
             >
               Sosyal

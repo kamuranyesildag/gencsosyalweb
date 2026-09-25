@@ -30,6 +30,7 @@ import { VerifyEmail } from "./pages/VerifyEmail";
 import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
+import { AccountSuspended } from "./pages/AccountSuspended";
 import { AuthWrapper } from "./components/AuthWrapper";
 import { useAuthStore } from "./context/useAuth";
 import { BaseLayout } from "./layouts/BaseLayout";
@@ -61,7 +62,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <ErrorBoundary>
-          <SplashScreen onComplete={() => {}} />
+          <SplashScreen />
           <AuthWrapper>
             <Routes>
               {/* Logged Out Routes using simple BaseLayout */}
@@ -74,6 +75,7 @@ export default function App() {
                 <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/account-suspended" element={<AccountSuspended />} />
               </Route>
 
               {/* Logged In Routes using AppLayout (Sidebars) */}

@@ -104,7 +104,7 @@ export function DesktopSidebar() {
               <button
                 type="button"
                 onClick={handleCreateClick}
-                className="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 dark:bg-white dark:hover:bg-slate-100 dark:active:bg-slate-200 text-white dark:text-slate-900 shadow-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="flex items-center justify-center w-11 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs shadow-blue-500/20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95"
                 aria-label="Gönderi Oluştur"
               >
                 <Plus className="w-5 h-5 stroke-[2.4]" />
@@ -115,7 +115,7 @@ export function DesktopSidebar() {
             <button
               type="button"
               onClick={handleCreateClick}
-              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 dark:bg-white dark:hover:bg-slate-100 dark:active:bg-slate-200 text-white dark:text-slate-900 shadow-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-sm font-semibold tracking-tight min-h-[44px]"
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs shadow-blue-500/20 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 text-sm font-semibold tracking-tight min-h-[44px] active:scale-[0.98]"
             >
               <Plus className="w-4.5 h-4.5 stroke-[2.4]" />
               <span>Gönderi Oluştur</span>
