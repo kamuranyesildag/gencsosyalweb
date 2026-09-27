@@ -210,7 +210,7 @@ export function Profile() {
     return (
       <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
         {/* Sticky Header Skeleton */}
-        <div className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
           <Skeleton variant="circular" className="w-9 h-9" />
           <div className="space-y-1.5 flex-1">
             <Skeleton className="h-4 w-32 rounded-md" />
@@ -265,18 +265,20 @@ export function Profile() {
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
-      {/* STICKY TOP APP BAR */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] h-[56px] md:h-[60px] px-4 flex items-center justify-between transition-colors">
+      {/* STICKY TOP APP BAR (Native Profile Header) */}
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[56px] sm:h-[60px] px-4 sm:px-6 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3 min-w-0">
-          <IconButton
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/home");
+            }}
             aria-label="Geri Dön"
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="rounded-full shrink-0 -ml-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer"
           >
-            <ArrowLeft className="w-5 h-5" />
-          </IconButton>
+            <ArrowLeft className="w-5 h-5 stroke-[2]" />
+          </button>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate tracking-tight">
@@ -284,7 +286,7 @@ export function Profile() {
               </h1>
               {profile.isVerified && (
                 <VerifiedBadge
-                  iconClassName="w-4 h-4"
+                  iconClassName="w-4 h-4 text-blue-500"
                   targetUser={{ username: profile.username, isVerified: !!profile.isVerified }}
                 />
               )}
@@ -296,16 +298,27 @@ export function Profile() {
         </div>
 
         {/* Top Right Quick Actions */}
-        <div className="flex items-center gap-1">
-          <IconButton
-            aria-label="Profili Paylaş"
-            variant="ghost"
-            size="sm"
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
             onClick={() => setShowShare(true)}
-            className="rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            aria-label="Profili Paylaş"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer"
           >
-            <Share2 className="w-4.5 h-4.5" />
-          </IconButton>
+            <Share2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="hidden sm:inline">Paylaş</span>
+          </button>
+
+          {isMe && (
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              aria-label="Ayarlar"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -608,7 +621,7 @@ export function Profile() {
         <>
           {/* PROFILE TABS */}
           <div
-            className="sticky top-0 md:top-[60px] z-10 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
+            className="sticky top-[56px] sm:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
             role="tablist"
             aria-label="Profil Sekmeleri"
           >

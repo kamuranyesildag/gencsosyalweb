@@ -8,10 +8,12 @@ import { CreateMenu } from './CreateMenu';
 import { motion, AnimatePresence } from 'motion/react';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { useStoryViewerStore } from '../../context/useStoryViewerStore';
+import { useUnreadStore } from '../../context/useUnreadStore';
 
 export function MobileBottomNav() {
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
+  const { unreadNotifications } = useUnreadStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
@@ -137,6 +139,9 @@ export function MobileBottomNav() {
                       isNotificationsActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.75]'
                     }`}
                   />
+                  {unreadNotifications > 0 && !isNotificationsActive && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white dark:ring-[#0D121D]" />
+                  )}
                   {isNotificationsActive && (
                     <motion.span
                       layoutId="bottomNavDot"

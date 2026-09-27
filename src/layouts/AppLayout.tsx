@@ -27,10 +27,13 @@ export function AppLayout() {
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/messages");
 
+  // Profile page has its own dedicated top bar, so global AppHeader is hidden
+  const isProfilePage = location.pathname.startsWith("/profile");
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070A10] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors">
-      {/* 1. Global Header */}
-      <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
+      {/* 1. Global Header (Hidden on Profile pages) */}
+      {!isProfilePage && <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />}
 
       {/* 2. Mobile Drawer Navigation */}
       <MobileSidebarDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
@@ -40,7 +43,9 @@ export function AppLayout() {
         {/* Left Navigation Sidebar (Desktop & Tablet) */}
         <aside
           aria-label="Sol Gezinme Menüsü"
-          className="hidden md:flex flex-col w-20 xl:w-64 sticky top-[60px] h-[calc(100vh-60px)] border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80 z-20 shrink-0 transition-colors"
+          className={`hidden md:flex flex-col w-20 xl:w-64 sticky ${
+            isProfilePage ? "top-0 h-screen" : "top-[60px] h-[calc(100vh-60px)]"
+          } border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80 z-20 shrink-0 transition-colors`}
         >
           <DesktopSidebar />
         </aside>
@@ -48,7 +53,9 @@ export function AppLayout() {
         {/* Main Content Area */}
         <main
           id="main-content"
-          className={`flex-1 min-w-0 bg-transparent pb-[calc(90px+env(safe-area-inset-bottom,0px))] md:pb-10 min-h-[calc(100vh-60px)] transition-colors ${
+          className={`flex-1 min-w-0 bg-transparent pb-[calc(90px+env(safe-area-inset-bottom,0px))] md:pb-10 ${
+            isProfilePage ? "min-h-screen" : "min-h-[calc(100vh-60px)]"
+          } transition-colors ${
             !isWidePage ? "border-r border-slate-200/80 dark:border-white/[0.08]" : ""
           }`}
         >
@@ -61,7 +68,9 @@ export function AppLayout() {
         {!isWidePage && (
           <aside
             aria-label="Sağ Bilgi ve Keşif Paneli"
-            className="hidden lg:block w-72 xl:w-80 sticky top-[60px] h-[calc(100vh-60px)] p-4 xl:p-5 shrink-0 bg-transparent overflow-y-auto no-scrollbar transition-colors"
+            className={`hidden lg:block w-72 xl:w-80 sticky ${
+              isProfilePage ? "top-0 h-screen" : "top-[60px] h-[calc(100vh-60px)]"
+            } p-4 xl:p-5 shrink-0 bg-transparent overflow-y-auto no-scrollbar transition-colors`}
           >
             <RightSidebar />
           </aside>

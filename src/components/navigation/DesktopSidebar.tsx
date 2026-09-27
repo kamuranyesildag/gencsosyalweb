@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
+import { useUnreadStore } from '../../context/useUnreadStore';
 import {
   Home,
   Plus,
@@ -29,14 +30,15 @@ interface NavItem {
 export function DesktopSidebar() {
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
+  const { unreadNotifications, unreadMessages } = useUnreadStore();
   const location = useLocation();
   const navigate = useNavigate();
 
   const primaryGroup: NavItem[] = [
     { name: 'Ana Sayfa', path: '/home', icon: Home, protected: false },
     { name: 'Keşfet', path: '/explore', icon: Search, protected: false },
-    { name: 'Bildirimler', path: '/notifications', icon: Bell, protected: true },
-    { name: 'Mesajlar', path: '/messages', icon: Mail, protected: true },
+    { name: 'Bildirimler', path: '/notifications', icon: Bell, protected: true, badge: unreadNotifications },
+    { name: 'Mesajlar', path: '/messages', icon: Mail, protected: true, badge: unreadMessages },
   ];
 
   const produceGroup: NavItem[] = [
@@ -82,17 +84,24 @@ export function DesktopSidebar() {
             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-slate-100 font-medium'
         }`}
       >
-        <div className="flex items-center justify-center shrink-0 w-5 h-5">
+        <div className="relative flex items-center justify-center shrink-0 w-5 h-5">
           <Icon
             className={`w-4.5 h-4.5 transition-transform duration-150 group-hover:scale-105 ${
               isActive ? 'stroke-[2.2]' : 'stroke-[1.75]'
             }`}
           />
+          {item.badge && item.badge > 0 ? (
+            <span className="xl:hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#070A10]" />
+          ) : null}
         </div>
         <span className="hidden xl:inline text-[13.5px] tracking-tight truncate">{item.name}</span>
-        {isActive && (
+        {item.badge && item.badge > 0 ? (
+          <span className="hidden xl:inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-600 text-white ml-auto">
+            {item.badge > 99 ? '99+' : item.badge}
+          </span>
+        ) : isActive ? (
           <div className="hidden xl:block absolute right-2 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-        )}
+        ) : null}
       </NavLink>
     );
 
