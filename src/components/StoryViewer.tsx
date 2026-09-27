@@ -428,7 +428,7 @@ export function StoryViewer({
                       e.stopPropagation();
                       setShowViewers(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/60 hover:bg-black/80 border border-white/15 text-white shadow-lg backdrop-blur-md transition-all active:scale-95 pointer-events-auto cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/15 text-white shadow-lg backdrop-blur-md transition-all active:scale-95 pointer-events-auto cursor-pointer"
                   >
                     <Eye className="w-4 h-4 text-blue-400" />
                     <span className="text-xs font-semibold tracking-wide">

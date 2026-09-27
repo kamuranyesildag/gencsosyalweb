@@ -621,10 +621,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                           />
                         )}
                       </Link>
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 shrink-0 ml-0.5">
-                        <Users className="w-2.5 h-2.5" />
-                        <span>Ortak</span>
-                      </span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs font-normal">· ortak</span>
                     </div>
                   )}
 
@@ -633,7 +630,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                       type="button"
                       onClick={handleFollow}
                       disabled={isFollowLoading}
-                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0 ml-1"
+                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold text-xs active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0 ml-1 hover:underline"
                     >
                       {post.user?.followsMe ? "Sende Takip Et" : "Takip Et"}
                     </button>
@@ -857,7 +854,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                 {post.quotedPost && (
                    <div 
                      onClick={(e) => { e.stopPropagation(); navigate(`/post/${post.quotedPost.id}`); }}
-                     className="mt-3 mb-1 border border-slate-200 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-white hover:bg-slate-50 dark:bg-slate-950/50 dark:hover:bg-slate-900/60 cursor-pointer transition-all active:scale-[0.97] shadow-sm"
+                     className="mt-3 mb-1 border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-slate-50/70 hover:bg-slate-100/70 dark:bg-white/[0.03] dark:hover:bg-white/[0.06] cursor-pointer transition-all active:scale-[0.99]"
                    >
                       <div className="flex items-center gap-2 mb-2">
                          <Avatar url={post.quotedPost.user?.avatarUrl} name={post.quotedPost.user?.displayName || post.quotedPost.user?.username} size="sm" />

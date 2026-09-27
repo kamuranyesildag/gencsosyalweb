@@ -52,20 +52,20 @@ export function MobileBottomNav() {
                 aria-current={isHomeActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
                   isHomeActive
-                    ? 'text-slate-900 dark:text-white'
+                    ? 'text-blue-600 dark:text-blue-400'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
                 <div className="relative flex flex-col items-center">
                   <Home
-                    className={`w-6 h-6 transition-transform ${
-                      isHomeActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.8]'
+                    className={`w-5.5 h-5.5 transition-transform ${
+                      isHomeActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.75]'
                     }`}
                   />
                   {isHomeActive && (
                     <motion.span
                       layoutId="bottomNavDot"
-                      className="absolute -bottom-2 w-1 h-1 rounded-full bg-slate-900 dark:bg-white"
+                      className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -79,20 +79,20 @@ export function MobileBottomNav() {
                 aria-current={isExploreActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
                   isExploreActive
-                    ? 'text-slate-900 dark:text-white'
+                    ? 'text-blue-600 dark:text-blue-400'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
                 <div className="relative flex flex-col items-center">
                   <Compass
-                    className={`w-6 h-6 transition-transform ${
-                      isExploreActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.8]'
+                    className={`w-5.5 h-5.5 transition-transform ${
+                      isExploreActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.75]'
                     }`}
                   />
                   {isExploreActive && (
                     <motion.span
                       layoutId="bottomNavDot"
-                      className="absolute -bottom-2 w-1 h-1 rounded-full bg-slate-900 dark:bg-white"
+                      className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -108,9 +108,9 @@ export function MobileBottomNav() {
                     else setShowCreate(true);
                   }}
                   aria-label="İçerik Oluştur"
-                  className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 hover:bg-slate-800 active:bg-slate-950 dark:bg-white dark:hover:bg-slate-200 dark:active:bg-slate-300 text-white dark:text-slate-900 shadow-sm transition-all active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs shadow-blue-500/25 transition-all active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
-                  <Plus className="w-6 h-6 stroke-[2]" />
+                  <Plus className="w-5.5 h-5.5 stroke-[2.2]" />
                 </button>
               </div>
 
@@ -127,20 +127,20 @@ export function MobileBottomNav() {
                 aria-current={isNotificationsActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
                   isNotificationsActive
-                    ? 'text-slate-900 dark:text-white'
+                    ? 'text-blue-600 dark:text-blue-400'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
                 <div className="relative flex flex-col items-center">
                   <Bell
-                    className={`w-6 h-6 transition-transform ${
-                      isNotificationsActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.8]'
+                    className={`w-5.5 h-5.5 transition-transform ${
+                      isNotificationsActive ? 'stroke-[2.2] scale-105' : 'stroke-[1.75]'
                     }`}
                   />
                   {isNotificationsActive && (
                     <motion.span
                       layoutId="bottomNavDot"
-                      className="absolute -bottom-2 w-1 h-1 rounded-full bg-slate-900 dark:bg-white"
+                      className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -160,7 +160,7 @@ export function MobileBottomNav() {
                 aria-current={isProfileActive ? 'page' : undefined}
                 className={`relative flex flex-col items-center justify-center flex-1 h-full min-w-[44px] min-h-[44px] transition-colors ${
                   isProfileActive
-                    ? 'text-slate-900 dark:text-white'
+                    ? 'text-blue-600 dark:text-blue-400'
                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
@@ -172,17 +172,17 @@ export function MobileBottomNav() {
                       size="sm"
                       className={`transition-all ${
                         isProfileActive
-                          ? 'ring-2 ring-slate-900 dark:ring-white scale-105'
+                          ? 'ring-2 ring-blue-600 dark:ring-blue-400 scale-105'
                           : 'ring-transparent'
                       }`}
                     />
                   ) : (
-                    <User className="w-6 h-6 stroke-[1.8]" />
+                    <User className="w-5.5 h-5.5 stroke-[1.75]" />
                   )}
                   {isProfileActive && (
                     <motion.span
                       layoutId="bottomNavDot"
-                      className="absolute -bottom-2 w-1 h-1 rounded-full bg-slate-900 dark:bg-white"
+                      className="absolute -bottom-2 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}

@@ -432,13 +432,10 @@ export function Projects() {
               {/* Content */}
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-blue-900/40">
-                      {project.category}
-                    </span>
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/[0.06] px-2 py-0.5 rounded-lg">
-                      {getStatusText(project.status)}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium mb-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{project.category}</span>
+                    <span aria-hidden="true" className="opacity-40">·</span>
+                    <span>{getStatusText(project.status)}</span>
                   </div>
 
                   <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 mb-1.5">

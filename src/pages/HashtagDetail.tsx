@@ -42,22 +42,22 @@ export function HashtagDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-16 z-20 bg-white dark:bg-slate-950/90  border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center gap-3.5 shadow-xs">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center gap-3 transition-colors">
         <button
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Geri"
-          className="p-1.5 -ml-1.5 rounded-full hover:bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 transition-colors"
+          className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100 dark:bg-[#161E2E] hover:bg-slate-200/80 dark:hover:bg-[#1f293d] text-slate-700 dark:text-slate-200 transition-colors active:scale-95"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 stroke-[2]" />
         </button>
         <div>
-          <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
-            <span className="text-slate-900 dark:text-slate-100">#</span>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
+            <span className="text-blue-600 dark:text-blue-400">#</span>
             {name}
           </h1>
           {hashtagInfo && (
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{hashtagInfo.usageCount} gönderi</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{hashtagInfo.usageCount} gönderi</p>
           )}
         </div>
       </header>
@@ -70,9 +70,9 @@ export function HashtagDetail() {
             <SkeletonCard />
           </div>
         ) : posts.length > 0 ? (
-          <div className="divide-y divide-slate-100">
-<InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={post} onPostDeleted={(id) => setPosts(prev => prev.filter((p: any) => p.id !== id))} />)} />
-</div>
+          <div className="p-2 sm:p-4 flex flex-col gap-3">
+            <InfiniteScroll items={posts} hasMore={hasMore} isLoading={loadingMore} onLoadMore={loadMore} renderItem={(post) => (<PostCard key={post.id} post={post} onPostDeleted={(id) => setPosts(prev => prev.filter((p: any) => p.id !== id))} />)} />
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center p-6">
             <EmptyState

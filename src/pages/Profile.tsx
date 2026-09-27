@@ -426,10 +426,10 @@ export function Profile() {
             )}
             {profile.isPrivate && (
               <span
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 shadow-xs"
+                className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium select-none ml-1"
                 title={isMe ? "Hesabınız gizli. Yalnızca takipçileriniz içeriklerinizi görebilir." : "Bu hesap gizlidir."}
               >
-                <Lock className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                <Lock className="w-3 h-3 text-slate-400" />
                 <span>Gizli Hesap</span>
               </span>
             )}
@@ -449,23 +449,23 @@ export function Profile() {
           </div>
         )}
 
-        {/* Meta Info Rows (Location, Website, Date) */}
-        <div className="flex flex-wrap gap-2.5 mt-4 text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 font-medium">
+        {/* Meta Info Rows (Location, Website, Date) - Clean Unboxed Typography */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
           {profile.location && (
-            <div className="flex items-center gap-1.5 bg-slate-100/70 dark:bg-white/[0.04] px-2.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06]">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>{profile.location}</span>
             </div>
           )}
 
           {profile.website && (
-            <div className="flex items-center gap-1.5 bg-slate-100/70 dark:bg-white/[0.04] px-2.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06]">
-              <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <LinkIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <a
                 href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-900 dark:text-blue-400 font-semibold hover:underline inline-flex items-center gap-1"
+                className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold"
               >
                 <span>{profile.website.replace(/^https?:\/\//, "")}</span>
                 <ExternalLink className="w-3 h-3 opacity-70" />
@@ -473,8 +473,8 @@ export function Profile() {
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 bg-slate-100/70 dark:bg-white/[0.04] px-2.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06]">
-            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>
               {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
                 month: "long",

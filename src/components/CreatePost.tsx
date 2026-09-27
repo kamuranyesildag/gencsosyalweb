@@ -567,16 +567,16 @@ export function CreatePost({
 
           {/* Quote Preview */}
           {quoteId && quotedPost && (
-             <div className="mb-4 border border-slate-200 dark:border-white/[0.08] rounded-xl p-3 bg-white dark:bg-slate-950 shadow-sm opacity-80 pointer-events-none">
+             <div className="mb-4 border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-slate-50/70 dark:bg-white/[0.03]">
                 <div className="flex items-center gap-2 mb-2">
                    <Avatar url={quotedPost.user?.avatarUrl} name={quotedPost.user?.displayName || quotedPost.user?.username} size="sm" />
-                   <div className="flex items-center gap-1.5 text-sm">
+                   <div className="flex items-center gap-1.5 text-xs sm:text-sm">
                       <span className="font-bold text-slate-900 dark:text-slate-100">{quotedPost.user?.displayName || quotedPost.user?.username}</span>
                       <span className="text-slate-500 dark:text-slate-400">@{quotedPost.user?.username}</span>
                       <span className="text-slate-400">&bull; {formatTimeAgo(quotedPost.createdAt)}</span>
                    </div>
                 </div>
-                <div className="text-sm text-slate-800 dark:text-slate-200 line-clamp-3">
+                <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 line-clamp-3">
                    {quotedPost.content}
                 </div>
              </div>
@@ -584,11 +584,14 @@ export function CreatePost({
 
           {/* Media Previews */}
           {mediaFiles.length > 0 && (
-            <div className="flex gap-2.5 mb-3 overflow-x-auto pb-1 scrollbar-none">
+            <div className={cn(
+              "grid gap-2 mb-3.5 rounded-xl overflow-hidden",
+              mediaFiles.length === 1 ? "grid-cols-1" : "grid-cols-2"
+            )}>
               {mediaFiles.map((f, i) => (
                 <div
                   key={i}
-                  className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] group"
+                  className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] group"
                 >
                   <img
                     src={URL.createObjectURL(f)}
@@ -599,7 +602,7 @@ export function CreatePost({
                     type="button"
                     onClick={() => handleRemoveMedia(i)}
                     aria-label="Medyayı kaldır"
-                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5  transition-transform active:scale-95 cursor-pointer"
+                    className="absolute top-2 right-2 bg-slate-900/70 hover:bg-slate-900 text-white rounded-full p-1.5 transition-transform active:scale-95 cursor-pointer backdrop-blur-xs"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>

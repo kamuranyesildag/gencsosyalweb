@@ -92,10 +92,10 @@ const CommentItem = ({ comment, postId, onDeleted, depth = 0, childrenMap = {}, 
   };
 
   return (
-    <div className={`flex flex-col border-b border-slate-200 dark:border-slate-800/80 ${depth > 0 ? 'border-none' : ''}`}>
-      <div className={`p-4 sm:p-5 hover:bg-slate-50 dark:bg-slate-900/80 transition-colors flex gap-3.5 sm:gap-4 group ${depth > 0 ? 'pl-8 sm:pl-12 pt-2 pb-3 border-l-2 border-slate-100 dark:border-slate-800/50 ml-4' : ''}`}>
+    <div className={`flex flex-col border-b border-slate-200/80 dark:border-white/[0.08] ${depth > 0 ? 'border-none' : ''}`}>
+      <div className={`p-4 sm:p-5 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors flex gap-3.5 sm:gap-4 group ${depth > 0 ? 'pl-8 sm:pl-12 pt-2 pb-3 border-l-2 border-slate-100 dark:border-white/[0.08] ml-4' : ''}`}>
       <div className="shrink-0 pt-0.5">
-        <Avatar url={comment.user?.avatarUrl} name={comment.user?.displayName || comment.user?.username} size="sm" className="ring-2 ring-white shadow-xs" />
+        <Avatar url={comment.user?.avatarUrl} name={comment.user?.displayName || comment.user?.username} size="sm" className="ring-2 ring-white dark:ring-[#070A10] shadow-xs" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1.5">
@@ -104,8 +104,8 @@ const CommentItem = ({ comment, postId, onDeleted, depth = 0, childrenMap = {}, 
               {comment.user?.displayName || comment.user?.username}
             </span>
             <span className="text-slate-500 dark:text-slate-400 font-medium truncate">@{comment.user?.username}</span>
-            <span className="text-slate-300">&bull;</span>
-            <span className="text-slate-400 font-medium whitespace-nowrap">{formatTimeAgo(comment.createdAt)}</span>
+            <span className="text-slate-300 dark:text-slate-600">&bull;</span>
+            <span className="text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">{formatTimeAgo(comment.createdAt)}</span>
           </div>
 
           <Dropdown>
@@ -115,21 +115,21 @@ const CommentItem = ({ comment, postId, onDeleted, depth = 0, childrenMap = {}, 
                   <button
                     type="button"
                     onClick={() => onReply(comment)}
-                    className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    className="text-xs font-semibold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100"
                   >
                     Yanıtla
                   </button>
                 )}
                 <button
                   type="button"
-                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:bg-slate-900 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                   aria-label="Yorum seçenekleri"
                 >
                   <MoreHorizontal className="w-[18px] h-[18px]" />
                 </button>
               </div>
             </DropdownTrigger>
-            <DropdownContent align="right" className="w-40 rounded-2xl shadow-lg border-slate-100 dark:border-slate-800">
+            <DropdownContent align="right" className="w-40 rounded-2xl shadow-lg border-slate-200/80 dark:border-white/[0.08]">
               {isOwner ? (
                 <>
                   <DropdownItem
@@ -332,11 +332,15 @@ export function PostDetail() {
     try {
       const res = await fetchApi(`/posts/${id}/comments`, {
         method: "POST",
-        data: { content: commentText.trim() },
+        data: { 
+          content: commentText.trim(),
+          parentId: replyTo?.id || undefined,
+        },
       });
       const json = await res.json();
       if (json.success) {
         setCommentText("");
+        setReplyTo(null);
         addItem(json.data);
         setPost({ ...post, commentCount: (post.commentCount || 0) + 1 });
         toast.success("Yanıtınız paylaşıldı.");
@@ -459,6 +463,22 @@ export function PostDetail() {
 
       {/* Comment Input */}
       <div className="p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-[#0D121D]/50">
+        {replyTo && (
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60 dark:border-white/[0.06] text-xs">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-slate-500 dark:text-slate-400">Yanıtlanan:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">@{replyTo.user?.username}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-md hover:bg-slate-200/50 dark:hover:bg-white/[0.06]"
+              aria-label="Yanıtı iptal et"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex gap-2.5 items-center">
           <div className="relative flex-1">
             <input
@@ -492,7 +512,7 @@ export function PostDetail() {
             disabled={!commentText.trim() || isSubmitting}
             isLoading={isSubmitting}
             onClick={handleComment}
-            className="rounded-full px-5 min-h-[44px]"
+            className="rounded-xl px-5 min-h-[44px] font-bold shadow-xs"
             rightIcon={<Send className="w-4 h-4" />}
           >
             Yanıtla

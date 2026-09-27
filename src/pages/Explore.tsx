@@ -285,7 +285,7 @@ export function Explore() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="rounded-full shrink-0 font-bold group-hover:bg-slate-100 dark:group-hover:bg-white/[0.08] transition-colors"
+                        className="rounded-xl shrink-0 font-bold group-hover:bg-slate-100 dark:group-hover:bg-white/[0.08] transition-colors"
                       >
                         Profili Gör
                       </Button>
