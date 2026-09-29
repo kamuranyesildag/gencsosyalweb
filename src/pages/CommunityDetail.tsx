@@ -52,9 +52,10 @@ export function CommunityDetail() {
   } = usePagination(community ? `/communities/${community.id}/posts` : "");
 
   useSEO({
-    title: community ? `${community.name} - Genç Sosyal Topluluğu` : undefined,
+    title: community ? `${community.name} | Genç Sosyal` : undefined,
     description: community?.description ? community.description.substring(0, 150) : undefined,
     canonicalPath: slug ? `/communities/${slug}` : undefined,
+    ogImage: community?.avatarUrl,
   });
 
   useEffect(() => {

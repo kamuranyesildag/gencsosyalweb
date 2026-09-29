@@ -214,9 +214,6 @@ async function startServer() {
 
     const { appealsRouter } = await import("./server/routes/appeals.js");
     app.use("/api/v1/appeals", appealsRouter);
-
-    const { seoMiddleware } = await import("./server/middleware/seo.js");
-    app.use(seoMiddleware);
   
 // --- API Routes End ---
 
@@ -245,9 +242,11 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: "custom",
     });
     app.use(vite.middlewares);
+    const { createSeoMiddleware } = await import("./server/middleware/seo.js");
+    app.use(createSeoMiddleware(vite));
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     // Serve static files with dotfiles denied (returns 403 Forbidden)
@@ -261,6 +260,9 @@ async function startServer() {
       }
       next();
     });
+
+    const { createSeoMiddleware } = await import("./server/middleware/seo.js");
+    app.use(createSeoMiddleware());
 
     // SPA fallback
     app.get('*all', (req, res) => {

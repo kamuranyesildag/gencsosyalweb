@@ -1,60 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  User,
-  Mail,
-  ShieldCheck,
-  Sparkles,
-  ClipboardCheck,
-  CheckCircle2,
-  Check,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ArrowLeft,
-  Hexagon,
-  Lock,
-  KeyRound,
+import { 
+  User, 
+  Mail, 
+  Lock, 
+  Sparkles, 
+  ArrowRight, 
+  ArrowLeft, 
+  Check, 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  Loader2, 
+  CheckCircle2, 
+  X, 
   RotateCw,
-  Edit3,
+  KeyRound
 } from 'lucide-react';
 import { useAuthStore } from '../context/useAuth';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-
-const STEPS = [
-  { id: 1, title: 'Kullanıcı Adı', shortTitle: 'Kullanıcı', icon: User, text: 'Topluluğa katılmak için eşsiz bir kullanıcı adı belirleyin.' },
-  { id: 2, title: 'E-posta', shortTitle: 'E-posta', icon: Mail, text: 'Size ulaşabileceğimiz geçerli bir e-posta adresi girin.' },
-  { id: 3, title: 'Şifre', shortTitle: 'Güvenlik', icon: ShieldCheck, text: 'Hesabınız için güçlü ve güvenli bir şifre oluşturun.' },
-  { id: 4, title: 'Görünen Ad', shortTitle: 'Profil', icon: Sparkles, text: 'Profilinizde diğer insanlara nasıl görünmek istersiniz?' },
-  { id: 5, title: 'Koşullar', shortTitle: 'Onay', icon: ClipboardCheck, text: 'Devam etmeden önce kullanım koşullarını onaylayın.' },
-  { id: 6, title: 'E-posta Doğrulama', shortTitle: 'Doğrulama', icon: KeyRound, text: 'E-posta adresinize gönderilen 6 haneli güvenlik kodunu girin.' },
-];
+import { useSEO } from '../hooks/useSEO';
 
 export function Register() {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    displayName: '',
-    termsAccepted: false,
+  useSEO({
+    allowIndexing: false,
+    title: "Kayıt Ol | Genç Sosyal",
+    description: "Genç Sosyal'e katılın, projelerinizi paylaşın, topluluklara katılın ve üretmeye devam edin.",
+    canonicalPath: "/register"
   });
-  
-  // OTP state
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [cooldown, setCooldown] = useState(0);
-  const [resending, setResending] = useState(false);
-  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
 
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  // Cooldown countdown timer
+  // Mode: "form" or "otp"
+  const [mode, setMode] = useState<"form" | "otp">("form");
+
+  // Form Fields
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Username validation state
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameMessage, setUsernameMessage] = useState('');
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // OTP Verification state
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [cooldown, setCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Submission state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Cooldown countdown timer for OTP resend
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -63,96 +67,196 @@ export function Register() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Focus first OTP input when reaching step 6
+  // Focus first OTP input when switching to OTP mode
   useEffect(() => {
-    if (step === 6) {
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-
-      }, 150);
+    if (mode === "otp") {
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
     }
-  }, [step]);
+  }, [mode]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
-    if (error) setError('');
+  // Username debounce validation
+  useEffect(() => {
+    const cleanUser = username.trim();
+    if (!cleanUser) {
+      setUsernameStatus("idle");
+      setUsernameMessage("");
+      return;
+    }
+
+    if (cleanUser.length < 3) {
+      setUsernameStatus("invalid");
+      setUsernameMessage("En az 3 karakter olmalı.");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(cleanUser)) {
+      setUsernameStatus("invalid");
+      setUsernameMessage("Yalnızca harf, rakam ve alt çizgi (_) kullanılabilir.");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    setUsernameMessage("Kontrol ediliyor...");
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/v1/auth/check-username?username=${encodeURIComponent(cleanUser)}`);
+        const json = await res.json();
+        if (json.success) {
+          if (json.data.available) {
+            setUsernameStatus("available");
+            setUsernameMessage("Bu kullanıcı adı kullanılabilir.");
+          } else {
+            setUsernameStatus("taken");
+            setUsernameMessage(json.data.reason || "Bu kullanıcı adı zaten alınmış.");
+          }
+        } else {
+          setUsernameStatus("invalid");
+          setUsernameMessage(json.error?.message || "Geçersiz format.");
+        }
+      } catch (err) {
+        setUsernameStatus("idle");
+        setUsernameMessage("");
+      }
+    }, 350);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [username]);
+
+  // Calculate clean password strength
+  const getPasswordStrength = () => {
+    if (!password) return { level: 0, text: "" };
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+    if (score <= 1) return { level: 1, text: "Zayıf", color: "bg-amber-500 text-amber-600" };
+    if (score <= 3) return { level: 2, text: "Orta", color: "bg-blue-500 text-blue-600" };
+    return { level: 3, text: "Güçlü", color: "bg-emerald-500 text-emerald-600" };
   };
 
-  const validateStep = (currentStep: number) => {
-    if (currentStep === 1) {
-      if (formData.username.trim().length < 3) return 'Kullanıcı adı en az 3 karakter olmalıdır.';
-      if (!/^[a-zA-Z0-9_]+$/.test(formData.username.trim())) return 'Sadece harf, rakam ve alt çizgi (_) kullanılabilir.';
-    } else if (currentStep === 2) {
-      if (!formData.email.trim() || !formData.email.includes('@')) return 'Geçerli bir e-posta adresi girin.';
-    } else if (currentStep === 3) {
-      if (formData.password.length < 8) return 'Şifre en az 8 karakter olmalıdır.';
-      if (!/[a-z]/.test(formData.password)) return 'Şifre en az bir küçük harf içermelidir.';
-      if (!/[A-Z]/.test(formData.password)) return 'Şifre en az bir büyük harf içermelidir.';
-      if (!/[0-9]/.test(formData.password)) return 'Şifre en az bir rakam içermelidir.';
-    } else if (currentStep === 4) {
-      if (formData.displayName.trim().length < 2) return 'Lütfen görünen adınızı girin (en az 2 karakter).';
-    } else if (currentStep === 5) {
-      if (!formData.termsAccepted) return 'Devam etmek için kullanım koşullarını kabul etmelisiniz.';
-    }
-    return '';
-  };
+  const strength = getPasswordStrength();
 
-  // Step 5 -> Step 6: Send OTP and advance
-  const handleSendOtpAndAdvance = async () => {
+  // Step 1: Send registration OTP
+  const handleInitiateRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
     setError('');
+
+    // Validations
+    if (!displayName.trim() || displayName.trim().length < 2) {
+      setError('Lütfen adınızı ve soyadınızı eksiksiz girin.');
+      return;
+    }
+
+    if (usernameStatus === "taken" || usernameStatus === "invalid") {
+      setError('Lütfen geçerli ve boşta olan bir kullanıcı adı seçin.');
+      return;
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      setError('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalıdır.');
+      return;
+    }
+
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.');
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setError('Şifreler birbiriyle eşleşmiyor.');
+      return;
+    }
+
+    if (!termsAccepted) {
+      setError('Devam etmek için kullanım koşullarını ve gizlilik politikasını kabul etmelisiniz.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        username: formData.username.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        displayName: formData.displayName.trim(),
-      };
-
       const res = await fetch('/api/v1/auth/register/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          displayName: displayName.trim(),
+          username: username.trim(),
+          email: email.trim(),
+          password
+        }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error?.message || 'Doğrulama kodu gönderilemedi.');
+        throw new Error(data?.error?.message || 'Kayıt işlemi başlatılamadı.');
       }
 
       setCooldown(data?.data?.cooldownSeconds || 60);
-      setRemainingAttempts(null);
       setOtpDigits(['', '', '', '', '', '']);
-      setStep(6);
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 100);
+      setMode("otp");
     } catch (err: any) {
-      setError(err.message || 'Doğrulama kodu gönderilirken bir hata oluştu.');
+      setError(err.message || 'Kayıt talebi gönderilirken bir sorun oluştu.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNext = () => {
-    const stepError = validateStep(step);
-    if (stepError) {
-      setError(stepError);
+  // Step 2: Verify OTP and finalize registration
+  const handleVerifyOtp = async (codeToVerify?: string) => {
+    if (loading) return;
+    const finalCode = codeToVerify || otpDigits.join('');
+
+    if (finalCode.length !== 6) {
+      setError('Lütfen 6 haneli doğrulama kodunu eksiksiz girin.');
       return;
     }
-    setError('');
 
-    if (step === 5) {
-      handleSendOtpAndAdvance();
-    } else {
-      setStep((s) => s + 1);
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/v1/auth/register/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: displayName.trim(),
+          username: username.trim(),
+          email: email.trim(),
+          password,
+          otp: finalCode
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message || 'Doğrulama kodu hatalı veya süresi dolmuş.');
+      }
+
+      // Save token and authenticate
+      if (data?.data?.accessToken) {
+        useAuthStore.getState().setAuth(data.data.user, data.data.accessToken);
+        navigate('/onboarding', { state: { fromRegister: true }, replace: true });
+      } else {
+        navigate('/login', { state: { fromRegister: true } });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Hesap oluşturulurken bir hata oluştu.');
+      setLoading(false);
     }
-  };
-
-  const handlePrev = () => {
-    setError('');
-    setStep((s) => s - 1);
   };
 
   // Resend OTP
@@ -160,591 +264,411 @@ export function Register() {
     if (cooldown > 0 || resending) return;
     setError('');
     setResending(true);
+
     try {
       const res = await fetch('/api/v1/auth/register/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: formData.email.trim(),
-          displayName: formData.displayName.trim(),
+          email: email.trim(),
+          displayName: displayName.trim()
         }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        throw new Error(data?.error?.message || 'Kod tekrar gönderilemedi.');
+        throw new Error(data?.error?.message || 'Doğrulama kodu yeniden gönderilemedi.');
       }
+
       setCooldown(data?.data?.cooldownSeconds || 60);
-      setRemainingAttempts(null);
       setOtpDigits(['', '', '', '', '', '']);
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
-      setError(err.message || 'Kod tekrar gönderilemedi.');
+      setError(err.message || 'Kod yeniden gönderilemedi.');
     } finally {
       setResending(false);
     }
   };
 
-  // Handle individual OTP digit change
-  const handleOtpChange = (index: number, value: string) => {
-    if (error) setError('');
-    
-    // Handle paste of full or partial code
-    if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
-      const newOtp = [...otpDigits];
-      digits.forEach((d, i) => {
-        if (index + i < 6) {
-          newOtp[index + i] = d;
-        }
-      });
-      setOtpDigits(newOtp);
-      const nextIndex = Math.min(index + digits.length, 5);
-      otpInputRefs.current[nextIndex]?.focus();
-      
-      // If 6 digits are filled, automatically submit
-      if (newOtp.every((d) => d !== '')) {
-        verifyOtpAndSubmit(newOtp.join(''));
-      }
-      return;
-    }
+  const handleDigitChange = (index: number, val: string) => {
+    const char = val.slice(-1);
+    if (char && !/^\d$/.test(char)) return;
 
-    // Only allow digits
-    const cleaned = value.replace(/\D/g, '');
-    const newOtp = [...otpDigits];
-    newOtp[index] = cleaned;
-    setOtpDigits(newOtp);
+    const next = [...otpDigits];
+    next[index] = char;
+    setOtpDigits(next);
+    setError('');
 
-    // Auto advance focus
-    if (cleaned && index < 5) {
+    if (char && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
-
-    // Auto submit if all filled
-    if (cleaned && index === 5 && newOtp.every((d) => d !== '')) {
-      verifyOtpAndSubmit(newOtp.join(''));
+    if (next.every(d => d !== '') && next.length === 6) {
+      setTimeout(() => handleVerifyOtp(next.join('')), 50);
     }
   };
 
-  // Handle backspace / navigation in OTP inputs
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    } else if (e.key === 'ArrowRight' && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
     }
   };
 
-  // Verify OTP and complete registration
-  const verifyOtpAndSubmit = async (codeOverride?: string) => {
-    const fullOtp = codeOverride || otpDigits.join('');
-    if (fullOtp.length !== 6) {
-      setError('Lütfen 6 haneli doğrulama kodunu eksiksiz girin.');
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-    try {
-      const payload = {
-        username: formData.username.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        displayName: formData.displayName.trim(),
-        otp: fullOtp,
-      };
-
-      const res = await fetch('/api/v1/auth/register/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data?.error?.remainingAttempts !== undefined) {
-          setRemainingAttempts(data.error.remainingAttempts);
-        }
-        throw new Error(data?.error?.message || 'Doğrulama kodu geçersiz.');
-      }
-
-      // Successful registration & immediate login
-      if (data?.data?.accessToken && data?.data?.user) {
-        useAuthStore.getState().setAuth(data.data.user, data.data.accessToken);
-        navigate('/onboarding');
-      } else {
-        navigate('/login', { state: { fromRegister: true, message: 'Hesabınız başarıyla doğrulandı. Giriş yapabilirsiniz.' } });
-      }
-    } catch (err: any) {
-      setError(err.message || 'Doğrulama sırasında bir hata oluştu.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasteDigits = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    if (step < 5) {
-      handleNext();
-      return;
-    }
-    if (step === 5) {
-      handleSendOtpAndAdvance();
-      return;
-    }
-    if (step === 6) {
-      verifyOtpAndSubmit();
+    const paste = e.clipboardData.getData('text').trim();
+    if (/^\d{6}$/.test(paste)) {
+      const split = paste.split('');
+      setOtpDigits(split);
+      otpInputRefs.current[5]?.focus();
+      setTimeout(() => handleVerifyOtp(paste), 50);
     }
   };
-
-  const currentStepData = STEPS[step - 1];
-
-  // Password rules helper
-  const hasMinLength = formData.password.length >= 8;
-  const hasLower = /[a-z]/.test(formData.password);
-  const hasUpper = /[A-Z]/.test(formData.password);
-  const hasNumber = /[0-9]/.test(formData.password);
 
   return (
-    <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-8 px-4 sm:px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-lg"
-      >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200/80 dark:border-white/[0.08] rounded-3xl bg-white dark:bg-slate-950 relative overflow-hidden">
-          {/* Header Brand */}
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center shadow-xs mb-3">
-              <Hexagon className="w-6 h-6 fill-current" />
+    <div className="w-full">
+      {mode === "otp" ? (
+        /* OTP Verification Mode */
+        <div className="space-y-6">
+          <div className="text-left">
+            <button
+              type="button"
+              onClick={() => { setMode("form"); setError(''); }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white mb-4 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Bilgileri Düzenle</span>
+            </button>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center mb-3">
+              <KeyRound className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              Genç Sosyal'e Katıl
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              E-postanı Doğrula
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Adım {step} / {STEPS.length} &bull; {currentStepData.shortTitle}
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <strong className="text-slate-900 dark:text-white font-semibold">{email}</strong> adresine 6 haneli bir güvenlik kodu gönderdik.
             </p>
           </div>
 
-          {/* Stepper Progress Bar */}
-          <div className="mb-8">
-            <div className="relative flex items-center justify-between px-1">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-white/[0.08] rounded-full" />
-              <motion.div
-                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 rounded-full origin-left"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: (step - 1) / (STEPS.length - 1) }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-              />
-              {STEPS.map((s) => {
-                const isCompleted = step > s.id;
-                const isActive = step === s.id;
-                return (
-                  <div key={s.id} className="relative z-10 flex flex-col items-center">
-                    <motion.div
-                      className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full text-xs font-bold transition-all duration-200 ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-xs scale-105'
-                          : isCompleted
-                          ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40'
-                          : 'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.1] text-slate-400'
-                      }`}
-                    >
-                      {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : <s.icon className="w-4 h-4" />}
-                    </motion.div>
-                  </div>
-                );
-              })}
+          {error && (
+            <div 
+              role="alert"
+              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="leading-snug">{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-5">
+            <div className="flex justify-between gap-2" onPaste={handlePasteDigits}>
+              {otpDigits.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => { otpInputRefs.current[idx] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleDigitKeyDown(idx, e)}
+                  className="w-12 h-14 text-center text-xl font-bold rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleVerifyOtp()}
+              disabled={loading || otpDigits.some(d => !d)}
+              className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg hover:shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Hesap Oluşturuluyor...</span>
+                </>
+              ) : (
+                <>
+                  <span>Doğrula ve Başla</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-between pt-3 text-xs text-slate-500 dark:text-slate-400">
+              <span>Kod ulaşmadı mı?</span>
+              {cooldown > 0 ? (
+                <span className="font-semibold text-slate-400">
+                  {cooldown} saniye sonra tekrar iste
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resending}
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {resending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+                  <span>Kodu Yeniden Gönder</span>
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Step Form Body */}
-          <form onSubmit={handleSubmit} className="min-h-[220px] flex flex-col justify-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="w-full"
-              >
-                <div className="text-center mb-6">
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1">
-                    {currentStepData.title}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    {currentStepData.text}
-                  </p>
-                </div>
-
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-5 p-3.5 bg-rose-50 border border-rose-200/80 rounded-2xl text-xs sm:text-sm font-medium text-rose-700 flex items-start gap-2.5"
-                    role="alert"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-rose-600 mt-1.5 shrink-0" />
-                    <span className="flex-1 leading-snug">{error}</span>
-                  </motion.div>
-                )}
-
-                {/* Step 1: Username */}
-                {step === 1 && (
-                  <div className="space-y-1.5 text-left">
-                    <label htmlFor="reg-username" className="text-xs sm:text-sm font-semibold text-slate-700">
-                      Kullanıcı Adı
-                    </label>
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <input
-                        id="reg-username"
-                        type="text"
-                        name="username"
-                        autoFocus
-                        required
-                        autoComplete="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleNext();
-                          }
-                        }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                        placeholder="kullanici_adi"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 pl-1">
-                      En az 3 karakter. Harf, rakam ve alt çizgi kullanılabilir.
-                    </p>
-                  </div>
-                )}
-
-                {/* Step 2: Email */}
-                {step === 2 && (
-                  <div className="space-y-1.5 text-left">
-                    <label htmlFor="reg-email" className="text-xs sm:text-sm font-semibold text-slate-700">
-                      E-posta Adresi
-                    </label>
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <input
-                        id="reg-email"
-                        type="email"
-                        name="email"
-                        autoFocus
-                        required
-                        autoComplete="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleNext();
-                          }
-                        }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                        placeholder="isim@ornek.com"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 pl-1">
-                      Kayıt doğrulama kodu bu e-posta adresine gönderilecektir.
-                    </p>
-                  </div>
-                )}
-
-                {/* Step 3: Password */}
-                {step === 3 && (
-                  <div className="space-y-3 text-left">
-                    <div className="space-y-1.5">
-                      <label htmlFor="reg-password" className="text-xs sm:text-sm font-semibold text-slate-700">
-                        Güvenli Şifre
-                      </label>
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                          <Lock className="w-4 h-4" />
-                        </div>
-                        <input
-                          id="reg-password"
-                          type={showPassword ? 'text' : 'password'}
-                          name="password"
-                          autoFocus
-                          required
-                          autoComplete="new-password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleNext();
-                            }
-                          }}
-                          className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                          aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Security Checklist */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${hasMinLength ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${hasMinLength ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                          ✓
-                        </div>
-                        <span>En az 8 karakter</span>
-                      </div>
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${hasLower ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${hasLower ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                          ✓
-                        </div>
-                        <span>Küçük harf (a-z)</span>
-                      </div>
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${hasUpper ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${hasUpper ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                          ✓
-                        </div>
-                        <span>Büyük harf (A-Z)</span>
-                      </div>
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${hasNumber ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${hasNumber ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
-                          ✓
-                        </div>
-                        <span>En az 1 rakam (0-9)</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 4: Display Name */}
-                {step === 4 && (
-                  <div className="space-y-1.5 text-left">
-                    <label htmlFor="reg-displayname" className="text-xs sm:text-sm font-semibold text-slate-700">
-                      Görünen Ad
-                    </label>
-                    <div className="relative flex items-center">
-                      <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <input
-                        id="reg-displayname"
-                        type="text"
-                        name="displayName"
-                        autoFocus
-                        required
-                        value={formData.displayName}
-                        onChange={handleChange}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleNext();
-                          }
-                        }}
-                        className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                        placeholder="Örn. Ahmet Yılmaz"
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 pl-1">
-                      Profilinizde diğer kullanıcılara bu isimle görüneceksiniz.
-                    </p>
-                  </div>
-                )}
-
-                {/* Step 5: Terms & Confirmation */}
-                {step === 5 && (
-                  <div className="space-y-4 pt-1">
-                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/80 space-y-2.5 text-left">
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800/60 text-xs">
-                        <span className="text-slate-500">Kullanıcı Adı:</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">@{formData.username}</span>
-                      </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-200 dark:border-slate-800/60 text-xs">
-                        <span className="text-slate-500">E-posta:</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100 truncate max-w-[200px]">{formData.email}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500">Görünen Ad:</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">{formData.displayName}</span>
-                      </div>
-                    </div>
-
-                    <label className="flex items-start gap-3.5 p-4 border border-slate-200 dark:border-slate-800/90 rounded-2xl cursor-pointer hover:bg-slate-50/80 transition-colors bg-white dark:bg-slate-950 group">
-                      <input
-                        type="checkbox"
-                        name="termsAccepted"
-                        checked={formData.termsAccepted}
-                        onChange={handleChange}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 dark:text-slate-100 focus:ring-slate-900/20 accent-slate-600 shrink-0"
-                      />
-                      <span className="text-xs sm:text-sm text-slate-600 leading-relaxed group-hover:text-slate-900 dark:text-slate-100 select-none">
-                        <Link
-                          to="/terms"
-                          target="_blank"
-                          className="text-slate-900 dark:text-slate-100 hover:underline font-bold"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Kullanım Koşulları
-                        </Link>{' '}
-                        ve{' '}
-                        <Link
-                          to="/privacy"
-                          target="_blank"
-                          className="text-slate-900 dark:text-slate-100 hover:underline font-bold"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Gizlilik Politikası
-                        </Link>
-                        'nı okudum ve kabul ediyorum.
-                      </span>
-                    </label>
-                  </div>
-                )}
-
-                {/* Step 6: OTP Code Verification */}
-                {step === 6 && (
-                  <div className="space-y-5 text-center">
-                    {/* Sent Email Pill */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 dark:bg-slate-900 text-slate-700 rounded-full text-xs font-semibold border border-slate-100 dark:border-slate-800 max-w-full">
-                      <Mail className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{formData.email}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError('');
-                          setStep(2);
-                        }}
-                        className="ml-1 text-slate-500 hover:text-slate-800 dark:text-slate-100 transition-colors"
-                        title="E-postayı Değiştir"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* 6 Digit Input Group */}
-                    <div className="flex justify-center items-center gap-2 sm:gap-3 py-2">
-                      {otpDigits.map((digit, idx) => (
-                        <input
-                          key={idx}
-                          ref={(el) => { otpInputRefs.current[idx] = el; }}
-                          id={`register-otp-input-${idx}`}
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={6}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(idx, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                          className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all outline-none ${
-                            digit
-                              ? 'border-slate-900 bg-slate-100/40 text-slate-900 dark:text-slate-100 ring-2 ring-slate-900/10'
-                              : 'border-slate-200 dark:border-slate-800 bg-slate-50 text-slate-900 dark:text-slate-100 focus:border-slate-900 focus:bg-white dark:bg-slate-950 focus:ring-2 focus:ring-slate-900/10'
-                          }`}
-                          autoComplete="off"
-                        />
-                      ))}
-                    </div>
-
-                    {/* Attempts info & expiration hint */}
-                    <div className="space-y-1">
-                      <p className="text-xs text-slate-400">
-                        Kod 10 dakika boyunca geçerlidir. Lütfen spam kutunuzu da kontrol edin.
-                      </p>
-                      {remainingAttempts !== null && (
-                        <p className="text-xs font-semibold text-rose-600">
-                          Kalan deneme hakkı: {remainingAttempts}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Resend OTP button */}
-                    <div className="pt-2">
-                      {cooldown > 0 ? (
-                        <p className="text-xs font-medium text-slate-400 flex items-center justify-center gap-1.5">
-                          <RotateCw className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                          Yeni kod için {cooldown} saniye bekleyin
-                        </p>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          disabled={resending}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors disabled:opacity-50"
-                        >
-                          <RotateCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
-                          {resending ? 'Kod Gönderiliyor...' : 'Kodu Tekrar Gönder'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </form>
-
-          {/* Action Navigation */}
-          <div className="flex items-center gap-3 mt-8">
-            {step > 1 && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="lg"
-                onClick={handlePrev}
-                disabled={loading}
-                aria-label="Önceki adım"
-                leftIcon={<ArrowLeft className="w-4 h-4" />}
-              >
-                Geri
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              variant="primary"
-              size="lg"
-              fullWidth
-              onClick={handleSubmit}
-              isLoading={loading}
-              loadingText={step === 5 ? "Kod Gönderiliyor..." : "Doğrulanıyor..."}
-              rightIcon={step === 6 ? <CheckCircle2 className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-            >
-              {step === 5
-                ? 'Doğrulama Kodu Gönder'
-                : step === 6
-                ? 'Kodu Doğrula ve Tamamla'
-                : 'Devam Et'}
-            </Button>
+        </div>
+      ) : (
+        /* Primary Registration Form */
+        <div className="space-y-6">
+          <div className="text-left">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Genç Sosyal'e katıl
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+              Projelerini paylaş, topluluklara katıl ve üretmeye devam et.
+            </p>
           </div>
 
-          {/* Footer Navigation */}
-          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Zaten hesabınız var mı?{' '}
-              <Link
-                to="/login"
-                className="font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 hover:underline transition-colors"
+          {error && (
+            <div 
+              role="alert"
+              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="leading-snug">{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleInitiateRegister} className="space-y-4" noValidate>
+            {/* Görünen Ad (Ad Soyad) */}
+            <div>
+              <label 
+                htmlFor="register-displayname" 
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
               >
-                Giriş Yapın
+                Ad Soyad
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <input
+                  id="register-displayname"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => { setDisplayName(e.target.value); if (error) setError(''); }}
+                  placeholder="Örn: Deniz Yılmaz"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Kullanıcı Adı */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label 
+                  htmlFor="register-username" 
+                  className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider"
+                >
+                  Kullanıcı Adı
+                </label>
+                {usernameStatus === "checking" && (
+                  <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Kontrol ediliyor...
+                  </span>
+                )}
+                {usernameStatus === "available" && (
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Kullanılabilir
+                  </span>
+                )}
+                {usernameStatus === "taken" && (
+                  <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                    <X className="w-3 h-3" /> Zaten alınmış
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-bold text-sm">
+                  @
+                </div>
+                <input
+                  id="register-username"
+                  type="text"
+                  autoCapitalize="none"
+                  spellCheck="false"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); if (error) setError(''); }}
+                  placeholder="kullaniciadi"
+                  className={`w-full pl-9 pr-4 py-2.5 rounded-xl border bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 transition-all ${
+                    usernameStatus === 'available'
+                      ? 'border-emerald-400/80 focus:ring-emerald-500'
+                      : usernameStatus === 'taken'
+                      ? 'border-rose-400/80 focus:ring-rose-500'
+                      : 'border-slate-200 dark:border-white/[0.12] focus:ring-blue-600'
+                  }`}
+                  required
+                />
+              </div>
+              {usernameMessage && usernameStatus !== 'available' && usernameStatus !== 'checking' && (
+                <p className="text-[11px] text-rose-500 mt-1 font-medium">{usernameMessage}</p>
+              )}
+            </div>
+
+            {/* E-posta */}
+            <div>
+              <label 
+                htmlFor="register-email" 
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
+              >
+                E-posta Adresi
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  id="register-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+                  placeholder="ornek@gencsosyal.com"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Şifre */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label 
+                  htmlFor="register-password" 
+                  className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider"
+                >
+                  Şifre
+                </label>
+                {password && (
+                  <span className={`text-[11px] font-bold ${strength.color}`}>
+                    {strength.text}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  id="register-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
+                  placeholder="En az 8 karakter"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer focus-visible:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Şifre Tekrar */}
+            <div>
+              <label 
+                htmlFor="register-password-confirm" 
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
+              >
+                Şifre Tekrar
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  id="register-password-confirm"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={passwordConfirm}
+                  onChange={(e) => { setPasswordConfirm(e.target.value); if (error) setError(''); }}
+                  placeholder="Şifrenizi tekrar yazın"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 transition-all ${
+                    passwordConfirm && password === passwordConfirm
+                      ? 'border-emerald-400/80 focus:ring-emerald-500'
+                      : passwordConfirm && password !== passwordConfirm
+                      ? 'border-rose-400/80 focus:ring-rose-500'
+                      : 'border-slate-200 dark:border-white/[0.12] focus:ring-blue-600'
+                  }`}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Kullanım Koşulları Onayı */}
+            <div className="pt-1">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => { setTermsAccepted(e.target.checked); if (error) setError(''); }}
+                  className="mt-1 w-4 h-4 rounded text-blue-600 border-slate-300 dark:border-white/[0.2] focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  <Link to="/terms" target="_blank" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                    Kullanım Koşulları
+                  </Link>
+                  'nı ve{' '}
+                  <Link to="/privacy" target="_blank" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                    Gizlilik Politikası
+                  </Link>
+                  'nı okudum, kabul ediyorum.
+                </span>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading || !termsAccepted || usernameStatus === "taken" || usernameStatus === "invalid"}
+                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg hover:shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Kod Gönderiliyor...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Devam Et</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Switch to Login */}
+          <div className="pt-4 border-t border-slate-100 dark:border-white/[0.08] text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Zaten bir hesabın var mı?{' '}
+              <Link 
+                to="/login" 
+                className="font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+              >
+                Giriş Yap
               </Link>
             </p>
           </div>
-        </Card>
-      </motion.div>
+        </div>
+      )}
     </div>
   );
 }

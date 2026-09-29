@@ -64,9 +64,10 @@ export function Profile() {
 
   useSEO({
     allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
-    title: profile ? `${profile.displayName || profile.username} (@${profile.username}) - Genç Sosyal` : undefined,
-    description: profile?.bio ? profile.bio.substring(0, 150) : undefined,
+    title: profile ? `${profile.displayName || profile.username} (@${profile.username}) | Genç Sosyal` : undefined,
+    description: profile?.bio ? profile.bio.substring(0, 150) : (profile ? `${profile.displayName || profile.username} (@${profile.username}) profilini Genç Sosyal'de inceleyin. Projeleri, gönderileri ve paylaşımlarını keşfedin.` : undefined),
     canonicalPath: profile?.username ? `/profile/${profile.username}` : undefined,
+    ogImage: profile?.avatarUrl,
   });
 
   const postsQuery = usePagination(profile ? `/users/${profile.id}/posts` : "");

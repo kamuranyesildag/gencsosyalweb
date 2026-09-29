@@ -1,7 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router';
+import { useSEO } from '../hooks/useSEO';
 
 const NotFound = () => {
+  useSEO({
+    allowIndexing: false,
+    title: "Sayfa Bulunamadı | Genç Sosyal",
+    description: "Aradığınız sayfa silinmiş veya geçici olarak ulaşılamıyor olabilir."
+  });
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
       <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>

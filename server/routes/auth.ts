@@ -162,6 +162,65 @@ async function handleSendOtp(email: string, displayName: string, username: strin
   };
 }
 
+// Check Username Availability
+authRouter.get("/check-username", authRateLimiter, async (req, res) => {
+  try {
+    const rawUsername = String(req.query.username || "").trim();
+    if (!rawUsername) {
+      return res.status(400).json({
+        success: false,
+        error: { code: "REQUIRED", message: "Kullanıcı adı boş bırakılamaz." }
+      });
+    }
+
+    if (rawUsername.length < 3 || rawUsername.length > 30) {
+      return res.status(400).json({
+        success: false,
+        error: { code: "INVALID_LENGTH", message: "Kullanıcı adı 3 ile 30 karakter arasında olmalıdır." }
+      });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(rawUsername)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: "INVALID_FORMAT", message: "Kullanıcı adı yalnızca harf, rakam ve alt çizgi içerebilir." }
+      });
+    }
+
+    const reserved = ["admin", "root", "api", "auth", "settings", "explore", "messages", "notifications", "support", "help", "gencsosyal"];
+    if (reserved.includes(rawUsername.toLowerCase())) {
+      return res.json({
+        success: true,
+        data: {
+          available: false,
+          username: rawUsername,
+          reason: "Bu kullanıcı adı sistem tarafından ayrılmıştır."
+        }
+      });
+    }
+
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`LOWER(${users.username}) = LOWER(${rawUsername})`)
+      .limit(1);
+
+    return res.json({
+      success: true,
+      data: {
+        available: existing.length === 0,
+        username: rawUsername
+      }
+    });
+  } catch (err) {
+    console.error("Check username error:", err);
+    return res.status(500).json({
+      success: false,
+      error: { code: "INTERNAL_SERVER_ERROR", message: "Kullanıcı adı kontrol edilemedi." }
+    });
+  }
+});
+
 // 1. Send OTP Endpoint
 authRouter.post("/register/send-otp", otpSendRateLimiter, async (req, res) => {
   try {

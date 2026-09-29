@@ -5,8 +5,15 @@ import { CheckCircle2, XCircle, Hexagon, ArrowRight, Loader2 } from 'lucide-reac
 import { fetchApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { useSEO } from '../hooks/useSEO';
 
 export function VerifyEmail() {
+  useSEO({
+    allowIndexing: false,
+    title: "E-posta Doğrulama | Genç Sosyal",
+    canonicalPath: "/verify-email"
+  });
+
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');

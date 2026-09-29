@@ -17,8 +17,15 @@ import { VerifiedBadge } from "../components/VerifiedBadge";
 import { IconButton } from "../components/ui/IconButton";
 import { EmptyState } from "../components/ui/EmptyState";
 import { usePagination } from "../hooks/usePagination";
+import { useSEO } from "../hooks/useSEO";
 
 export function MessageDetail() {
+  useSEO({
+    allowIndexing: false,
+    title: "Mesajlaşma | Genç Sosyal",
+    canonicalPath: "/messages"
+  });
+
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();

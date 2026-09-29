@@ -16,7 +16,7 @@ import { backdropVariants, modalVariants } from "../lib/motion";
 export function Communities() {
   useSEO({ 
     title: "Topluluklar | Genç Sosyal", 
-    description: "Genç Sosyal topluluklarını keşfedin.",
+    description: "İlgi alanlarınıza uygun genç teknoloji ve üretim topluluklarına katılın.",
     canonicalPath: "/communities"
   });
   const [communities, setCommunities] = useState<any[]>([]);

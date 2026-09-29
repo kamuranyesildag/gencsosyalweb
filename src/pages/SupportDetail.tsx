@@ -7,8 +7,15 @@ import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { toast } from "../components/ui/Toast";
 import { useAuthStore } from "../context/useAuth";
+import { useSEO } from "../hooks/useSEO";
 
 export function SupportDetail() {
+  useSEO({
+    allowIndexing: false,
+    title: "Destek Talebi | Genç Sosyal",
+    canonicalPath: "/settings"
+  });
+
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();

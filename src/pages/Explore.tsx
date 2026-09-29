@@ -25,16 +25,18 @@ import { SuggestedUsers } from "../components/SuggestedUsers";
 export type ExploreTab = "users" | "posts" | "tags";
 
 export function Explore() {
-  useSEO({ 
-    title: "Keşfet | Genç Sosyal", 
-    description: "Genç Sosyal'de popüler içerikleri ve yeni insanları keşfedin.",
-    canonicalPath: "/explore"
-  });
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ExploreTab>("users");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useSEO({ 
+    title: query.trim() ? `"${query}" Arama Sonuçları | Genç Sosyal` : "Keşfet | Genç Sosyal", 
+    description: "Genç Sosyal'de popüler etiketleri, öne çıkan üreticileri ve trend tartışmaları keşfedin.",
+    canonicalPath: "/explore",
+    allowIndexing: !query.trim()
+  });
 
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {

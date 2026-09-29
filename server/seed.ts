@@ -1,5 +1,5 @@
 import { db } from "../src/db/index.js";
-import { users, profiles, posts, systemSettings, badges, announcements } from "../src/db/schema.js";
+import { users, profiles, posts, systemSettings, badges, announcements, communities, projects, hashtags } from "../src/db/schema.js";
 import argon2 from "argon2";
 import { eq } from "drizzle-orm";
 
@@ -64,10 +64,78 @@ export async function seedBadgesIfNeeded() {
   }
 }
 
+export async function seedStarterContentIfNeeded() {
+  try {
+    const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
+    if (existingUsers.length === 0) return;
+    const authorId = existingUsers[0].id;
+
+    // 1. Communities
+    const existingComm = await db.select({ id: communities.id }).from(communities).limit(1);
+    if (existingComm.length === 0) {
+      console.log("🌐 Seeding starter public communities...");
+      await db.insert(communities).values([
+        {
+          ownerId: authorId,
+          name: "Yazılım & Teknoloji",
+          slug: "yazilim-ve-teknoloji",
+          description: "Genç yazılımcıların kod paylaştığı, açık kaynak projeler geliştirdiği ve teknoloji tartıştığı topluluk.",
+          avatarUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=150&auto=format&fit=crop&q=80",
+          coverUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
+        },
+        {
+          ownerId: authorId,
+          name: "Tasarım & UI/UX",
+          slug: "tasarim-ve-ui-ux",
+          description: "Arayüz tasarımı, kullanıcı deneyimi, tipografi ve dijital sanatla ilgilenen genç tasarımcılar.",
+          avatarUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=150&auto=format&fit=crop&q=80",
+          coverUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80"
+        }
+      ]);
+    }
+
+    // 2. Projects
+    const existingProj = await db.select({ id: projects.id }).from(projects).limit(1);
+    if (existingProj.length === 0) {
+      console.log("🚀 Seeding starter public projects...");
+      await db.insert(projects).values([
+        {
+          userId: authorId,
+          title: "Açık Kaynak Geliştirici Kiti",
+          description: "Genç yazılımcıların modern web projelerini hızlıca ayağa kaldırmasını sağlayan modüler şablon ve araç seti.",
+          detailedDescription: "Bu proje; TypeScript, modern arayüz bileşenleri ve API entegrasyonlarını içeren kapsamlı bir açık kaynak geliştirici başlangıç kitidir.",
+          category: "Yazılım",
+          status: "published",
+          projectUrl: "https://gencsosyal.com/projects",
+          githubUrl: "https://github.com/gencsosyal",
+          imageUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80",
+          tags: ["açıkkaynak", "yazılım", "typescript", "geliştirici"]
+        }
+      ]);
+    }
+
+    // 3. Hashtags
+    const existingTags = await db.select({ id: hashtags.id }).from(hashtags).limit(1);
+    if (existingTags.length === 0) {
+      console.log("🏷️ Seeding starter public hashtags...");
+      await db.insert(hashtags).values([
+        { name: "yazılım", usageCount: 5 },
+        { name: "teknoloji", usageCount: 4 },
+        { name: "açıkkaynak", usageCount: 3 },
+        { name: "üretim", usageCount: 3 },
+        { name: "tasarım", usageCount: 2 }
+      ]);
+    }
+  } catch (err) {
+    console.error("Error seeding starter content:", err);
+  }
+}
+
 export async function seedInitialDataIfNeeded() {
   try {
     await seedBadgesIfNeeded();
     await seedAnnouncementsIfNeeded();
+    await seedStarterContentIfNeeded();
 
     const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
     if (existingUsers.length > 0) {

@@ -3,8 +3,15 @@ import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, X, Sparkles } from "lucide-react";
 import { CreatePost } from "../components/CreatePost";
 import { useAuthStore } from "../context/useAuth";
+import { useSEO } from "../hooks/useSEO";
 
 export function CreatePostPage() {
+  useSEO({
+    allowIndexing: false,
+    title: "Yeni Gönderi | Genç Sosyal",
+    canonicalPath: "/create"
+  });
+
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const [searchParams] = useSearchParams();

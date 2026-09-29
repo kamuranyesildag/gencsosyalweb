@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router';
-import { motion } from 'motion/react';
-import { Lock, CheckCircle2, ArrowRight, Eye, EyeOff, Hexagon } from 'lucide-react';
-import { fetchApi } from '../lib/api';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+import { Lock, CheckCircle2, ArrowRight, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { useSEO } from '../hooks/useSEO';
 
 export function ResetPassword() {
+  useSEO({
+    allowIndexing: false,
+    title: "Şifre Sıfırlama | Genç Sosyal",
+    description: "Hesabınız için yeni bir şifre belirleyin.",
+    canonicalPath: "/reset-password"
+  });
+
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const userIdStr = searchParams.get('id');
@@ -21,30 +25,38 @@ export function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-8 px-4 sm:px-6">
-        <Card className="w-full max-w-md p-8 text-center bg-white dark:bg-slate-950 rounded-3xl border-slate-200 dark:border-slate-800/80 shadow-xl">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 border border-rose-100">
-            <Lock className="w-6 h-6" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Geçersiz Bağlantı</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-            Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeniden talepte bulunun.
+      <div className="w-full text-center space-y-6">
+        <div className="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+          <Lock className="w-7 h-7" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            Geçersiz Bağlantı
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+            Şifre sıfırlama bağlantısı eksik veya süresi dolmuş olabilir. Lütfen yeni bir bağlantı talep edin.
           </p>
-          <Link to="/forgot-password">
-            <Button variant="primary" size="md" fullWidth>
-              Yeniden Bağlantı İste
-            </Button>
+        </div>
+        <div className="pt-2">
+          <Link
+            to="/forgot-password"
+            className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Yeniden Bağlantı İste</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
-        </Card>
+        </div>
       </div>
     );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     if (password !== confirmPassword) {
       setStatus('error');
-      setMessage('Şifreler eşleşmiyor.');
+      setMessage('Şifreler birbiriyle eşleşmiyor.');
       return;
     }
     if (password.length < 8) {
@@ -52,38 +64,32 @@ export function ResetPassword() {
       setMessage('Şifre en az 8 karakter olmalıdır.');
       return;
     }
-    if (!/[a-z]/.test(password)) {
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
       setStatus('error');
-      setMessage('Şifre en az bir küçük harf içermelidir.');
-      return;
-    }
-    if (!/[A-Z]/.test(password)) {
-      setStatus('error');
-      setMessage('Şifre en az bir büyük harf içermelidir.');
-      return;
-    }
-    if (!/[0-9]/.test(password)) {
-      setStatus('error');
-      setMessage('Şifre en az bir rakam içermelidir.');
+      setMessage('Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.');
       return;
     }
 
     setLoading(true);
     setStatus('idle');
     try {
-      const res = await fetchApi('/auth/reset-password', {
+      const res = await fetch('/api/v1/auth/reset-password', {
         method: 'POST',
-        data: { token, newPassword: password, userId: userIdStr ? parseInt(userIdStr, 10) : undefined },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          newPassword: password,
+          userId: userIdStr ? parseInt(userIdStr, 10) : undefined
+        }),
       });
       const json = await res.json();
 
       if (json.success) {
         setStatus('success');
-        setMessage(json.data.message || 'Şifreniz başarıyla güncellendi.');
-        setTimeout(() => navigate('/login'), 2500);
+        setMessage(json.data?.message || 'Şifreniz başarıyla güncellendi.');
       } else {
         setStatus('error');
-        setMessage(json.error?.message || 'Şifre sıfırlama işlemi tamamlanamadı.');
+        setMessage(json.error?.message || 'Şifre sıfırlama işlemi tamamlanamadı. Bağlantının süresi dolmuş olabilir.');
       }
     } catch (e) {
       setStatus('error');
@@ -94,122 +100,139 @@ export function ResetPassword() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-14rem)] items-center justify-center py-8 px-4 sm:px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="w-full max-w-md"
-      >
-        <Card className="p-7 sm:p-10 shadow-xl border-slate-200 dark:border-slate-800/80 rounded-3xl bg-white dark:bg-slate-950">
-          {/* Header Brand */}
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-500/25 mb-4">
-              <Hexagon className="w-7 h-7 fill-current" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Yeni Şifre Belirle
+    <div className="w-full">
+      {status === 'success' ? (
+        <div className="space-y-6 text-center">
+          <div className="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Şifren Güncellendi
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-              Hesabınız için güçlü ve güvenli yeni bir şifre girin.
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+              Yeni şifren başarıyla kaydedildi. Artık hesabına güvenle giriş yapabilirsin.
             </p>
           </div>
 
-          {status === 'success' ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center space-y-4"
+          <div className="pt-2">
+            <Link
+              to="/login"
+              className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Şifreniz Değiştirildi</h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                {message} Giriş sayfasına yönlendiriliyorsunuz...
-              </p>
-            </motion.div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {status === 'error' && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3.5 bg-rose-50 border border-rose-200/80 rounded-2xl text-xs sm:text-sm font-medium text-rose-700 flex items-start gap-2.5"
-                  role="alert"
-                >
-                  <div className="w-2 h-2 rounded-full bg-rose-600 mt-1.5 shrink-0" />
-                  <span className="flex-1 leading-snug">{message}</span>
-                </motion.div>
-              )}
+              <span>Giriş Yap</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="text-left">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Yeni şifreni belirle
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+              Hesabın için güçlü ve güvenli yeni bir şifre oluştur.
+            </p>
+          </div>
 
-              <div className="space-y-1.5 text-left">
-                <label htmlFor="reset-new-password" className="text-xs sm:text-sm font-semibold text-slate-700">
-                  Yeni Şifre
-                </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reset-new-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoFocus
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full min-h-[44px] pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-900 transition-colors"
-                    aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label htmlFor="reset-confirm-password" className="text-xs sm:text-sm font-semibold text-slate-700">
-                  Yeni Şifre (Tekrar)
-                </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reset-confirm-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full min-h-[44px] pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:border-slate-800/90 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  isLoading={loading}
-                  loadingText="Şifre Güncelleniyor..."
-                  disabled={!password || !confirmPassword}
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                >
-                  Şifreyi Kaydet
-                </Button>
-              </div>
-            </form>
+          {status === 'error' && message && (
+            <div 
+              role="alert"
+              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="leading-snug">{message}</span>
+            </div>
           )}
-        </Card>
-      </motion.div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div>
+              <label 
+                htmlFor="reset-password" 
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
+              >
+                Yeni Şifre
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  id="reset-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); if (status === 'error') setStatus('idle'); }}
+                  placeholder="En az 8 karakter"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer focus-visible:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label 
+                htmlFor="reset-confirm-password" 
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
+              >
+                Yeni Şifre Tekrar
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  id="reset-confirm-password"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); if (status === 'error') setStatus('idle'); }}
+                  placeholder="Şifrenizi tekrar yazın"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading || !password || !confirmPassword}
+                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg hover:shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Güncelleniyor...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Şifremi Güncelle</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="pt-4 border-t border-slate-100 dark:border-white/[0.08] text-center">
+            <Link
+              to="/login"
+              className="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Giriş sayfasına dön
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
