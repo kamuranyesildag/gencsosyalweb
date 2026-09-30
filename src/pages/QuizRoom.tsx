@@ -225,59 +225,93 @@ export function QuizRoom() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Connect WebSocket
+  // Connect WebSocket & Fetch Initial Room Details
   useEffect(() => {
     if (!code) return;
 
     let isSubscribed = true;
+
+    // 1. Instantly fetch room data via HTTP so UI doesn't hang on CONNECTING
+    const fetchRoomDetails = async () => {
+      try {
+        const res = await fetch(`/api/v1/quiz/rooms/${code}`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        });
+        const json = await res.json();
+        if (!isSubscribed) return;
+
+        if (json.success && json.room) {
+          setRoom(json.room);
+          if (json.players) setPlayers(json.players);
+          setStatus((prev) => (prev === "CONNECTING" ? (json.room.status || "LOBBY") : prev));
+        } else if (!json.success) {
+          setErrorMessage(json.error?.message || "Oda bulunamadı.");
+          setStatus("ERROR");
+        }
+      } catch (e) {
+        console.error("HTTP Room Fetch error:", e);
+      }
+    };
+
+    fetchRoomDetails();
+
+    // 2. Connect WebSocket for Realtime Gameplay
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/api/v1/quiz/ws${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}`;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      if (!isSubscribed) return;
-      // Join Room
-      ws.send(JSON.stringify({
-        event: "JOIN_ROOM",
-        payload: { roomCode: code, token: accessToken },
-      }));
-    };
+      ws.onopen = () => {
+        if (!isSubscribed) return;
+        // Join Room
+        ws?.send(JSON.stringify({
+          event: "JOIN_ROOM",
+          payload: { roomCode: code, token: accessToken },
+        }));
+      };
 
-    ws.onmessage = (event) => {
-      if (!isSubscribed) return;
-      try {
-        const message = JSON.parse(event.data);
-        const { event: evtName, data } = message;
+      ws.onmessage = (event) => {
+        if (!isSubscribed) return;
+        try {
+          const message = JSON.parse(event.data);
+          const { event: evtName, data } = message;
 
-        switch (evtName) {
-          case "ROOM_JOINED": {
-            setRoom(data.room);
-            setPlayers(data.players || []);
-            setStatus(data.room.status);
+          switch (evtName) {
+            case "ROOM_STATE":
+            case "ROOM_JOINED": {
+              const roomObj = data.room || data;
+              setRoom(roomObj);
+              setPlayers(data.players || data.leaderboard || []);
+              setStatus(roomObj.status || "LOBBY");
 
-            if (data.currentQuestion) {
-              setCurrentQuestion(data.currentQuestion);
-              setTimeLeft(data.currentQuestion.duration || 20);
-            }
-            break;
-          }
-
-          case "PLAYER_JOINED": {
-            playSoundEffect("pop");
-            setPlayers((prev) => {
-              const existingIdx = prev.findIndex((p) => p.userId === data.player.userId);
-              if (existingIdx >= 0) {
-                const next = [...prev];
-                next[existingIdx] = data.player;
-                return next;
+              if (data.currentQuestion) {
+                setCurrentQuestion(data.currentQuestion);
+                setTimeLeft(data.currentQuestion.duration || 20);
               }
-              return [...prev, data.player];
-            });
-            break;
-          }
+              break;
+            }
+
+            case "PLAYER_JOINED": {
+              playSoundEffect("pop");
+              if (data.player) {
+                setPlayers((prev) => {
+                  const existingIdx = prev.findIndex((p) => p.userId === data.player.userId);
+                  if (existingIdx >= 0) {
+                    const next = [...prev];
+                    next[existingIdx] = { ...next[existingIdx], ...data.player, isConnected: true };
+                    return next;
+                  }
+                  return [...prev, data.player];
+                });
+              } else if (data.players) {
+                setPlayers(data.players);
+              }
+              break;
+            }
 
           case "PLAYER_LEFT": {
             setPlayers((prev) =>
@@ -383,21 +417,20 @@ export function QuizRoom() {
       }
     };
 
-    ws.onerror = (err) => {
-      console.error("WS Error:", err);
-      if (status === "CONNECTING") {
-        setErrorMessage("Quiz sunucusuna bağlanılamadı.");
-        setStatus("ERROR");
-      }
-    };
+      ws.onerror = (err) => {
+        console.warn("Quiz WS connection notice:", err);
+      };
 
-    ws.onclose = () => {
-      console.log("WS closed");
-    };
+      ws.onclose = () => {
+        console.log("Quiz WS closed");
+      };
+    } catch (wsErr) {
+      console.error("Failed to establish WebSocket connection:", wsErr);
+    }
 
     return () => {
       isSubscribed = false;
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     };

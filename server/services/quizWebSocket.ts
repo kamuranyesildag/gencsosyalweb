@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { 
   activeRoomsByCode, 
   activeRoomsById, 
+  getOrRehydrateRoom,
   broadcastToRoom, 
   updateRoomLeaderboard, 
   advanceRoomQuestion,
@@ -124,8 +125,8 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
               return;
             }
 
-            const cleanCode = roomCode.toString().trim();
-            const room = activeRoomsByCode.get(cleanCode);
+            const cleanCode = roomCode.toString().trim().toUpperCase();
+            let room = await getOrRehydrateRoom(cleanCode);
 
             if (!room) {
               ws.send(JSON.stringify({ event: "ERROR", data: { message: "Bu kodla aktif bir quiz odası bulunamadı." } }));
@@ -198,28 +199,37 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
 
             room.lastActiveAt = Date.now();
 
-            // Send full ROOM_STATE to the joining player
+            // Send full ROOM_STATE and ROOM_JOINED to the joining player
             const currentQ = room.questions[room.currentQuestionIndex];
             const sanitizedQ = (room.status === "QUESTION_ACTIVE" && currentQ)
               ? sanitizeQuestionForClients(currentQ, room.currentQuestionIndex, room.questions.length, room.timePerQuestion)
               : null;
 
+            const roomData = {
+              id: room.id,
+              roomId: room.id,
+              code: room.code,
+              title: room.title,
+              hostId: room.hostId,
+              category: room.category,
+              difficulty: room.difficulty,
+              questionCount: room.questionCount || room.questions.length,
+              timePerQuestion: room.timePerQuestion,
+              totalQuestions: room.questions.length,
+              status: room.status,
+              currentQuestionIndex: room.currentQuestionIndex,
+              currentQuestion: sanitizedQ,
+              isHost: room.hostId === userId,
+            };
+
+            const playersList = updateRoomLeaderboard(room);
+
             ws.send(JSON.stringify({
               event: "ROOM_STATE",
               data: {
-                roomId: room.id,
-                code: room.code,
-                title: room.title,
-                hostId: room.hostId,
-                category: room.category,
-                difficulty: room.difficulty,
-                timePerQuestion: room.timePerQuestion,
-                totalQuestions: room.questions.length,
-                status: room.status,
-                currentQuestionIndex: room.currentQuestionIndex,
-                currentQuestion: sanitizedQ,
-                isHost: room.hostId === userId,
-                leaderboard: updateRoomLeaderboard(room),
+                room: roomData,
+                players: playersList,
+                ...roomData,
               },
               timestamp: Date.now(),
             }));
@@ -233,9 +243,11 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
                 score: player.score,
                 isHost: player.isHost,
                 rank: player.rank,
+                isConnected: true,
               },
               totalPlayers: room.players.size,
-              leaderboard: updateRoomLeaderboard(room),
+              leaderboard: playersList,
+              players: playersList,
             });
 
             break;

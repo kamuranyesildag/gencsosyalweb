@@ -578,5 +578,95 @@ export function cleanupInactiveRooms() {
   }
 }
 
+/**
+ * Gets an active room from memory or rehydrates it from DB if available
+ */
+export async function getOrRehydrateRoom(code: string): Promise<ActiveRoom | null> {
+  const cleanCode = code.trim().toUpperCase();
+  let room = activeRoomsByCode.get(cleanCode);
+  if (room) return room;
+
+  // Check database
+  const [dbRoom] = await db
+    .select()
+    .from(quizRooms)
+    .where(eq(quizRooms.code, cleanCode))
+    .limit(1);
+
+  if (!dbRoom || dbRoom.status === "CANCELLED" || dbRoom.status === "FINISHED") {
+    return null;
+  }
+
+  // Fetch questions from DB
+  const dbQuestions = await db
+    .select()
+    .from(quizRoomQuestions)
+    .where(eq(quizRoomQuestions.roomId, dbRoom.id))
+    .orderBy(quizRoomQuestions.order);
+
+  const dbPlayers = await db
+    .select({
+      userId: quizRoomPlayers.userId,
+      score: quizRoomPlayers.score,
+      isHost: quizRoomPlayers.isHost,
+      username: users.username,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(quizRoomPlayers)
+    .innerJoin(users, eq(quizRoomPlayers.userId, users.id))
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(eq(quizRoomPlayers.roomId, dbRoom.id));
+
+  const rehydratedRoom: ActiveRoom = {
+    id: dbRoom.id,
+    code: dbRoom.code,
+    title: dbRoom.title,
+    hostId: dbRoom.hostId,
+    category: dbRoom.category,
+    difficulty: dbRoom.difficulty,
+    questionCount: dbRoom.questionCount,
+    timePerQuestion: dbRoom.timePerQuestion,
+    roomType: dbRoom.roomType,
+    maxPlayers: dbRoom.maxPlayers,
+    status: (dbRoom.status as any) || "LOBBY",
+    currentQuestionIndex: dbRoom.currentQuestionIndex || 0,
+    questionStartedAt: dbRoom.questionStartedAt ? dbRoom.questionStartedAt.getTime() : null,
+    players: new Map(),
+    questions: dbQuestions.map((q: any) => ({
+      id: q.id,
+      questionText: q.questionText,
+      category: q.category,
+      difficulty: q.difficulty,
+      explanation: q.explanation,
+      order: q.order,
+      options: (q.options as any) || [],
+    })),
+    createdAt: dbRoom.createdAt ? dbRoom.createdAt.getTime() : Date.now(),
+    lastActiveAt: Date.now(),
+  };
+
+  for (const p of dbPlayers) {
+    rehydratedRoom.players.set(p.userId, {
+      userId: p.userId,
+      username: p.username,
+      avatarUrl: p.avatarUrl,
+      score: p.score,
+      correctAnswersCount: 0,
+      wrongAnswersCount: 0,
+      unansweredCount: 0,
+      streak: 0,
+      maxStreak: 0,
+      rank: 1,
+      isHost: p.isHost,
+      isConnected: false,
+      hasAnsweredCurrent: false,
+    });
+  }
+
+  activeRoomsByCode.set(cleanCode, rehydratedRoom);
+  activeRoomsById.set(dbRoom.id, rehydratedRoom);
+  return rehydratedRoom;
+}
+
 // Run cleanup every 15 minutes
 setInterval(cleanupInactiveRooms, 15 * 60 * 1000);
