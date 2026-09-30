@@ -34,38 +34,112 @@ export interface SuspensionInfo {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   suspensionInfo: SuspensionInfo | null;
-  setAuth: (user: User, token: string) => void;
-  setAccessToken: (token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string | null) => void;
+  setAccessToken: (token: string, refreshToken?: string | null) => void;
   setUser: (user: User) => void;
   setSuspension: (info: SuspensionInfo | null) => void;
   logout: () => void;
   setLoading: (isLoading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
-  isLoading: true,
-  suspensionInfo: (() => {
-    try {
-      const stored = sessionStorage.getItem('gencsosyal_suspension');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
+// Read persisted session from storage
+const getInitialAuthState = () => {
+  try {
+    const storedUser = localStorage.getItem('gencsosyal_user');
+    const storedToken = localStorage.getItem('gencsosyal_token');
+    const storedRefreshToken = localStorage.getItem('gencsosyal_refresh_token');
+    const storedSuspension = sessionStorage.getItem('gencsosyal_suspension');
+
+    const user = storedUser ? JSON.parse(storedUser) : null;
+    const suspensionInfo = storedSuspension ? JSON.parse(storedSuspension) : null;
+
+    if (user && storedToken) {
+      return {
+        user,
+        accessToken: storedToken,
+        refreshToken: storedRefreshToken || null,
+        isAuthenticated: true,
+        isLoading: false,
+        suspensionInfo: null,
+      };
     }
-  })(),
-  setAuth: (user, token) => {
+
+    return {
+      user: null,
+      accessToken: null,
+      refreshToken: storedRefreshToken || null,
+      isAuthenticated: false,
+      isLoading: Boolean(storedRefreshToken), // if refresh token exists, wait for silent background validation
+      suspensionInfo,
+    };
+  } catch {
+    return {
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+      suspensionInfo: null,
+    };
+  }
+};
+
+const initial = getInitialAuthState();
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: initial.user,
+  accessToken: initial.accessToken,
+  refreshToken: initial.refreshToken,
+  isAuthenticated: initial.isAuthenticated,
+  isLoading: initial.isLoading,
+  suspensionInfo: initial.suspensionInfo,
+
+  setAuth: (user, token, refreshToken) => {
     try {
+      localStorage.setItem('gencsosyal_user', JSON.stringify(user));
+      localStorage.setItem('gencsosyal_token', token);
+      if (refreshToken) {
+        localStorage.setItem('gencsosyal_refresh_token', refreshToken);
+      }
       sessionStorage.removeItem('gencsosyal_suspension');
     } catch {}
-    set({ user, accessToken: token, isAuthenticated: true, isLoading: false, suspensionInfo: null });
+
+    set({ 
+      user, 
+      accessToken: token, 
+      refreshToken: refreshToken || localStorage.getItem('gencsosyal_refresh_token') || null, 
+      isAuthenticated: true, 
+      isLoading: false, 
+      suspensionInfo: null 
+    });
   },
-  setAccessToken: (token) => set({ accessToken: token, isAuthenticated: true }),
-  setUser: (user) => set({ user, isAuthenticated: true }),
+
+  setAccessToken: (token, refreshToken) => {
+    try {
+      localStorage.setItem('gencsosyal_token', token);
+      if (refreshToken) {
+        localStorage.setItem('gencsosyal_refresh_token', refreshToken);
+      }
+    } catch {}
+    set({ 
+      accessToken: token, 
+      refreshToken: refreshToken || localStorage.getItem('gencsosyal_refresh_token') || null, 
+      isAuthenticated: true,
+      isLoading: false
+    });
+  },
+
+  setUser: (user) => {
+    try {
+      localStorage.setItem('gencsosyal_user', JSON.stringify(user));
+    } catch {}
+    set({ user, isAuthenticated: true });
+  },
+
   setSuspension: (info) => {
     try {
       if (info) {
@@ -73,14 +147,24 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         sessionStorage.removeItem('gencsosyal_suspension');
       }
+      localStorage.removeItem('gencsosyal_user');
+      localStorage.removeItem('gencsosyal_token');
+      localStorage.removeItem('gencsosyal_refresh_token');
     } catch {}
-    set({ suspensionInfo: info, isAuthenticated: false, user: null, accessToken: null, isLoading: false });
+    set({ suspensionInfo: info, isAuthenticated: false, user: null, accessToken: null, refreshToken: null, isLoading: false });
   },
+
   logout: () => {
     try {
+      localStorage.removeItem('gencsosyal_user');
+      localStorage.removeItem('gencsosyal_token');
+      localStorage.removeItem('gencsosyal_refresh_token');
       sessionStorage.removeItem('gencsosyal_suspension');
+      // Notify backend to clear cookie and revoke token
+      fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {});
     } catch {}
-    set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, suspensionInfo: null });
+    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, suspensionInfo: null });
   },
+
   setLoading: (isLoading) => set({ isLoading }),
 }));

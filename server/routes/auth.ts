@@ -39,8 +39,8 @@ const getRefreshTokenCookieOptions = (req: Request) => {
   return {
     httpOnly: true,
     secure: isHttps,
-    sameSite: "strict" as const,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    sameSite: isHttps ? ("none" as const) : ("lax" as const),
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     path: "/"
   };
 };
@@ -56,7 +56,7 @@ const getClearCookieOptions = (req: Request) => {
   return {
     httpOnly: true,
     secure: isHttps,
-    sameSite: "strict" as const,
+    sameSite: isHttps ? ("none" as const) : ("lax" as const),
     path: "/"
   };
 };
@@ -522,7 +522,8 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
         role: newUser.role,
         isVerified: newUser.isVerified
       },
-      accessToken
+      accessToken,
+      refreshToken
     }
   });
 }
@@ -740,6 +741,14 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
       success: true,
       data: {
         accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified
+        }
       }
     });
 
@@ -1093,7 +1102,7 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
 
 authRouter.post("/refresh", async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || (req.headers["x-refresh-token"] as string);
 
     if (!refreshToken) {
       res.status(401).json({
@@ -1260,7 +1269,8 @@ authRouter.post("/refresh", async (req, res) => {
     res.json({
       success: true,
       data: {
-        accessToken: newAccessToken
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
       }
     });
 

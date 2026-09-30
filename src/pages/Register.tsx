@@ -248,7 +248,7 @@ export function Register() {
 
       // Save token and authenticate
       if (data?.data?.accessToken) {
-        useAuthStore.getState().setAuth(data.data.user, data.data.accessToken);
+        useAuthStore.getState().setAuth(data.data.user, data.data.accessToken, data.data.refreshToken);
         navigate('/onboarding', { state: { fromRegister: true }, replace: true });
       } else {
         navigate('/login', { state: { fromRegister: true } });

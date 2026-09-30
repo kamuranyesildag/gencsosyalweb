@@ -49,14 +49,14 @@ export function Login() {
     }
   }, [step]);
 
-  const handleFetchMe = async (token: string) => {
+  const handleFetchMe = async (token: string, refreshToken?: string) => {
     const meRes = await fetch('/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     });
     const meData = await meRes.json();
 
     if (meRes.ok && meData.success) {
-      useAuthStore.getState().setAuth(meData.data, token);
+      useAuthStore.getState().setAuth(meData.data, token, refreshToken);
       if (isFromRegister || !meData.data.onboardingCompleted) {
         navigate('/onboarding', { replace: true });
       } else {
@@ -109,8 +109,8 @@ export function Login() {
         return;
       }
 
-      setAccessToken(data.data.accessToken);
-      await handleFetchMe(data.data.accessToken);
+      setAccessToken(data.data.accessToken, data.data.refreshToken);
+      await handleFetchMe(data.data.accessToken, data.data.refreshToken);
     } catch (err: any) {
       setError(err.message || 'Giriş yapılırken bir sorun oluştu.');
       setLoading(false);
@@ -149,8 +149,8 @@ export function Login() {
         throw new Error(data?.error?.message || 'İki faktörlü doğrulama kodu doğrulanamadı.');
       }
 
-      setAccessToken(data.data.accessToken);
-      await handleFetchMe(data.data.accessToken);
+      setAccessToken(data.data.accessToken, data.data.refreshToken);
+      await handleFetchMe(data.data.accessToken, data.data.refreshToken);
     } catch (err: any) {
       setError(err.message || 'Doğrulama işlemi başarısız.');
       setLoading(false);

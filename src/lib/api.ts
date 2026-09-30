@@ -24,15 +24,23 @@ async function requestTokenRefresh(): Promise<string | null> {
 
   refreshPromise = (async () => {
     try {
+      const storedRefreshToken = useAuthStore.getState().refreshToken || localStorage.getItem('gencsosyal_refresh_token');
+
       const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(storedRefreshToken ? { "x-refresh-token": storedRefreshToken } : {}),
+        },
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
       });
 
       if (refreshResponse.ok) {
         const refreshResult = await refreshResponse.json();
         if (refreshResult.success && refreshResult.data?.accessToken) {
           const newToken = refreshResult.data.accessToken;
-          useAuthStore.getState().setAccessToken(newToken);
+          const newRefreshToken = refreshResult.data.refreshToken || storedRefreshToken;
+          useAuthStore.getState().setAccessToken(newToken, newRefreshToken);
           return newToken;
         }
       } else if (refreshResponse.status === 403) {
