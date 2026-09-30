@@ -1,5 +1,5 @@
 import { db } from "../src/db/index.js";
-import { users, profiles, posts, systemSettings, badges, announcements, communities, projects, hashtags } from "../src/db/schema.js";
+import { users, profiles, posts, systemSettings, badges, announcements, communities, communityMembers, projects, hashtags } from "../src/db/schema.js";
 import argon2 from "argon2";
 import { eq } from "drizzle-orm";
 
@@ -74,12 +74,14 @@ export async function seedStarterContentIfNeeded() {
     const existingComm = await db.select({ id: communities.id }).from(communities).limit(1);
     if (existingComm.length === 0) {
       console.log("🌐 Seeding starter public communities...");
-      await db.insert(communities).values([
+      const seeded = await db.insert(communities).values([
         {
           ownerId: authorId,
           name: "Yazılım & Teknoloji",
           slug: "yazilim-ve-teknoloji",
           description: "Genç yazılımcıların kod paylaştığı, açık kaynak projeler geliştirdiği ve teknoloji tartıştığı topluluk.",
+          category: "Yazılım",
+          isPrivate: false,
           avatarUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=150&auto=format&fit=crop&q=80",
           coverUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
         },
@@ -88,10 +90,20 @@ export async function seedStarterContentIfNeeded() {
           name: "Tasarım & UI/UX",
           slug: "tasarim-ve-ui-ux",
           description: "Arayüz tasarımı, kullanıcı deneyimi, tipografi ve dijital sanatla ilgilenen genç tasarımcılar.",
+          category: "Tasarım",
+          isPrivate: false,
           avatarUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=150&auto=format&fit=crop&q=80",
           coverUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80"
         }
-      ]);
+      ]).returning();
+
+      for (const sc of seeded) {
+        await db.insert(communityMembers).values({
+          communityId: sc.id,
+          userId: authorId,
+          role: 'OWNER'
+        }).onConflictDoNothing();
+      }
     }
 
     // 2. Projects

@@ -473,7 +473,7 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           .from(communities)
           .innerJoin(users, eq(communities.ownerId, users.id))
           .leftJoin(profiles, eq(users.id, profiles.userId))
-          .where(eq(communities.slug, communitySlug))
+          .where(and(eq(communities.slug, communitySlug), isNull(communities.deletedAt)))
           .limit(1);
 
         if (commRecord.length === 0) {
@@ -580,6 +580,7 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
               name: communities.name
             })
             .from(communities)
+            .where(and(isNull(communities.deletedAt), eq(communities.isPrivate, false)))
             .limit(3);
         } catch (cErr) {
           console.warn("Could not fetch home communities for SEO:", cErr);

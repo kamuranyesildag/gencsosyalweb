@@ -292,6 +292,7 @@ export const notifications = pgTable('notifications', {
   postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
   projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
   commentId: integer('comment_id').references(() => comments.id, { onDelete: 'cascade' }),
+  communityId: integer('community_id').references(() => communities.id, { onDelete: 'cascade' }),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
@@ -299,6 +300,7 @@ export const notifications = pgTable('notifications', {
   isReadIdx: index('notifications_is_read_idx').on(t.isRead),
   recipientUnreadDateIdx: index('notifications_recipient_unread_date_idx').on(t.recipientId, t.isRead, t.createdAt),
   recipientCreatedAtIdx: index('notifications_recipient_created_at_idx').on(t.recipientId, t.createdAt),
+  communityIdx: index('notifications_community_idx').on(t.communityId),
 }));
 
 // --- STORIES ---
@@ -360,19 +362,57 @@ export const communities = pgTable('communities', {
   description: text('description'),
   avatarUrl: text('avatar_url'),
   coverUrl: text('cover_url'),
+  category: varchar('category', { length: 50 }).default('Genel').notNull(),
+  isPrivate: boolean('is_private').default(false).notNull(),
+  rules: text('rules'),
+  deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (t) => ({
+  deletedAtIdx: index('communities_deleted_at_idx').on(t.deletedAt),
+  ownerIdIdx: index('communities_owner_id_idx').on(t.ownerId),
+  categoryIdx: index('communities_category_idx').on(t.category),
+}));
 
 export const communityMembers = pgTable('community_members', {
   communityId: integer('community_id').notNull().references(() => communities.id, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: varchar('role', { length: 20 }).default('MEMBER').notNull(), // OWNER, MODERATOR, MEMBER
+  role: varchar('role', { length: 20 }).default('MEMBER').notNull(), // OWNER, MODERATOR (or ADMIN), MEMBER
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.communityId, t.userId] }),
   communityIdx: index('community_members_community_idx').on(t.communityId),
   userIdIdx: index('community_members_user_idx').on(t.userId),
+  roleIdx: index('community_members_role_idx').on(t.role),
+}));
+
+export const communityJoinRequests = pgTable('community_join_requests', {
+  id: serial('id').primaryKey(),
+  communityId: integer('community_id').notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // PENDING, ACCEPTED, REJECTED
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('community_join_requests_user_community_unq').on(t.communityId, t.userId),
+  communityIdx: index('community_join_requests_community_idx').on(t.communityId),
+  userIdIdx: index('community_join_requests_user_idx').on(t.userId),
+  statusIdx: index('community_join_requests_status_idx').on(t.status),
+}));
+
+export const communityAuditLogs = pgTable('community_audit_logs', {
+  id: serial('id').primaryKey(),
+  communityId: integer('community_id').notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  actorId: integer('actor_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  targetUserId: integer('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 50 }).notNull(), // ADMIN_ADDED, ADMIN_REMOVED, MEMBER_REMOVED, OWNERSHIP_TRANSFERRED, SETTINGS_UPDATED, COMMUNITY_DELETED, REQUEST_ACCEPTED, REQUEST_REJECTED
+  details: text('details'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  communityIdx: index('community_audit_logs_community_idx').on(t.communityId),
+  actorIdx: index('community_audit_logs_actor_idx').on(t.actorId),
+  createdAtIdx: index('community_audit_logs_created_at_idx').on(t.createdAt),
 }));
 
 // --- REPORTS ---

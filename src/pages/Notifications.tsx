@@ -12,7 +12,8 @@ import {
   Users, 
   Rocket,
   ShieldCheck,
-  CheckCheck
+  CheckCheck,
+  AlertTriangle
 } from "lucide-react";
 import { motion } from "motion/react";
 import { fetchApi } from "../lib/api";
@@ -123,6 +124,36 @@ export function Notifications() {
           bg: "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-600 dark:text-amber-400",
           text: "seni bir projede iş birliğine davet etti.",
         };
+      case "community_join_request":
+        return {
+          icon: <Users className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />,
+          bg: "bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40 text-blue-600 dark:text-blue-400",
+          text: "topluluğuna katılmak için istek gönderdi.",
+        };
+      case "community_request_accepted":
+        return {
+          icon: <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
+          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
+          text: "topluluğuna katılım isteğini onayladı.",
+        };
+      case "community_request_rejected":
+        return {
+          icon: <AlertTriangle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400" />,
+          bg: "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40 text-rose-600 dark:text-rose-400",
+          text: "topluluğuna katılım isteğini reddetti.",
+        };
+      case "community_role_updated":
+        return {
+          icon: <ShieldCheck className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />,
+          bg: "bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-200/60 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400",
+          text: "topluluk rolünü güncelledi.",
+        };
+      case "community_removed":
+        return {
+          icon: <AlertTriangle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />,
+          bg: "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-600 dark:text-amber-400",
+          text: "seni topluluktan çıkardı.",
+        };
       default:
         return {
           icon: <Bell className="w-4.5 h-4.5 text-slate-600 dark:text-slate-400" />,
@@ -138,7 +169,13 @@ export function Notifications() {
       setData((prev) => prev.map((n) => n.id === notif.id ? { ...n, isRead: true } : n));
     }
 
-    if (notif.type?.includes("collaborator_invite") || notif.type?.includes("project_invite")) {
+    if (notif.type?.startsWith("community") || notif.community) {
+      if (notif.community?.slug) {
+        navigate(`/communities/${notif.community.slug}`);
+      } else {
+        navigate(`/communities`);
+      }
+    } else if (notif.type?.includes("collaborator_invite") || notif.type?.includes("project_invite")) {
       navigate(`/settings?tab=invites`);
     } else if (notif.postId) {
       navigate(`/post/${notif.postId}`);
@@ -324,6 +361,11 @@ export function Notifications() {
                       {/* Text Description */}
                       <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
                         {details.text}
+                        {notif.community && (
+                          <span className="ml-1.5 inline-flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md">
+                            c/{notif.community.slug || notif.community.name}
+                          </span>
+                        )}
                       </p>
                       
                       {/* Follow Request Actions */}

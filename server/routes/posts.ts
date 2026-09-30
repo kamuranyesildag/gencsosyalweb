@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
 import { posts, postMedia, likes, comments, bookmarks, users, profiles, reposts, postCollaborators, communityMembers, communities, pollOptions, pollVotes, notifications, postViews } from "../../src/db/schema.js";
-import { eq, and, sql, or, inArray } from "drizzle-orm";
+import { eq, and, sql, or, inArray, isNull } from "drizzle-orm";
 import { extractHashtags, normalizeHashtag } from "../utils/hashtags.js";
 import { extractMentions } from "../utils/mentions.js";
 import { hashtags, postHashtags, postMentions, commentMentions, follows } from "../../src/db/schema.js";
@@ -176,7 +176,7 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
     
     // Check community authorization if communityId is provided
     if (communityId) {
-      const communityRecord = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
+      const communityRecord = await db.select().from(communities).where(and(eq(communities.id, communityId), isNull(communities.deletedAt))).limit(1);
       if (communityRecord.length === 0) {
         return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Topluluk bulunamadı." }});
       }

@@ -1,6 +1,6 @@
 import { db } from "../../src/db/index.js";
 import { users, profiles, follows, blocks, communities, communityMembers, posts } from "../../src/db/schema.js";
-import { eq, and, or, sql, inArray, notInArray } from "drizzle-orm";
+import { eq, and, or, sql, inArray, notInArray, isNull } from "drizzle-orm";
 import { getBlockedIds } from "../utils/blocks.js";
 
 export interface FollowSuggestionUser {
@@ -95,7 +95,7 @@ export async function getFollowSuggestions(
     })
     .from(communityMembers)
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
-    .where(eq(communityMembers.userId, currentUserId));
+    .where(and(eq(communityMembers.userId, currentUserId), isNull(communities.deletedAt)));
 
   const myCommunityIds = myCommunities.map((c: any) => c.communityId);
   const myCommunityNameMap = new Map<number, string>();

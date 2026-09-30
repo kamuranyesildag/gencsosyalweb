@@ -59,13 +59,14 @@ sitemapRouter.get("/sitemap.xml", async (req, res) => {
       .orderBy(desc(posts.createdAt))
       .limit(5000);
 
-    // 3. Communities: Public communities
+    // 3. Communities: Public non-deleted communities
     const publicCommunities = await db
       .select({ 
         slug: communities.slug,
         updatedAt: communities.updatedAt
       })
       .from(communities)
+      .where(and(isNull(communities.deletedAt), eq(communities.isPrivate, false)))
       .limit(1000);
 
     // 4. Projects: Public projects from active, public users

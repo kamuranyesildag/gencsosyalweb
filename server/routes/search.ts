@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { users, profiles, posts, hashtags, postHashtags, follows } from "../../src/db/schema.js";
+import { users, profiles, posts, hashtags, postHashtags, follows, communities, communityMembers } from "../../src/db/schema.js";
 import { eq, or, and, ilike, notInArray, isNull, desc, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
@@ -26,7 +26,7 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
     const { page, limit } = parsed.success ? parsed.data : { page: 1, limit: 20 };
     const offset = (page - 1) * limit;
 
-    const currentUserId = requireAuthContext(req);
+    const currentUserId = optionalAuthContext(req) || -1;
     const blockedIds = await getBlockedIds(currentUserId);
     const ignoreIds = blockedIds.length > 0 ? blockedIds : [-1];
 
@@ -120,12 +120,39 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
 
       return res.json({ success: true, data: searchResults });
     }
+    else if (type === "communities") {
+      const searchResults = await db.select({
+        id: communities.id,
+        name: communities.name,
+        slug: communities.slug,
+        description: communities.description,
+        avatarUrl: communities.avatarUrl,
+        category: communities.category,
+        isPrivate: communities.isPrivate,
+        memberCount: sql<number>`(SELECT count(*)::int FROM ${communityMembers} WHERE ${communityMembers.communityId} = ${communities.id})`,
+      })
+      .from(communities)
+      .where(
+        and(
+          isNull(communities.deletedAt),
+          or(
+            ilike(communities.name, `%${q}%`),
+            ilike(communities.slug, `%${q}%`),
+            ilike(communities.description, `%${q}%`)
+          )
+        )
+      )
+      .limit(limit)
+      .offset(offset);
+
+      return res.json({ success: true, data: searchResults });
+    }
     else {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Geçersiz arama tipi." }});
     }
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: "Sunucu hatası." }});
+  } catch (error: any) {
+    console.error("Search endpoint error:", error);
+    res.status(500).json({ success: false, error: { code: "INTERNAL_SERVER_ERROR", message: error?.message || "Sunucu hatası." }});
   }
 });
