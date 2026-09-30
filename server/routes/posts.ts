@@ -329,6 +329,9 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
             postId: newPost.id,
             mediaUrl: m.url,
             mediaType: m.type,
+            width: typeof m.width === 'number' ? m.width : null,
+            height: typeof m.height === 'number' ? m.height : null,
+            duration: typeof m.duration === 'number' ? m.duration : null,
             sortOrder: i,
           }))
         );

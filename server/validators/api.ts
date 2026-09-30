@@ -35,12 +35,24 @@ export const createPostSchema = z.object({
   quotedPostId: z.number().int().positive().optional(),
   contentWarning: z.string().max(100).optional(),
   pollOptions: z.array(z.string().min(1).max(100)).min(2).max(10).optional(),
-  media: z.array(z.object({
-    url: z.string(),
-    type: z.enum(["image", "video"]),
-    width: z.number().optional(),
-    height: z.number().optional()
-  })).optional()
+  media: z.array(z.union([
+    z.object({
+      url: z.string(),
+      type: z.enum(["image", "video"]),
+      width: z.number().optional(),
+      height: z.number().optional(),
+      duration: z.number().optional(),
+      thumbnailUrl: z.string().optional(),
+    }),
+    z.string().transform(url => ({
+      url,
+      type: (url.includes('.mp4') || url.includes('.webm') || url.includes('_compressed') ? 'video' : 'image') as 'image' | 'video',
+      width: undefined,
+      height: undefined,
+      duration: undefined,
+      thumbnailUrl: undefined,
+    }))
+  ])).optional()
 }).refine(data => {
   if (data.postType === "POLL" && (!data.pollOptions || data.pollOptions.length < 2)) return false;
   if (data.postType === "SENSITIVE" && !data.contentWarning) return false;

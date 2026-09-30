@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn, formatTimeAgo } from "../lib/utils";
+import { useMediaUploadPipeline } from "../hooks/useMediaUploadPipeline";
+import { MediaUploadItem } from "./media/MediaUploadItem";
 
 export type PostType = "NORMAL" | "POLL" | "SENSITIVE";
 export type PostVisibility = "PUBLIC" | "FOLLOWERS" | "PRIVATE";
@@ -71,7 +73,17 @@ export function CreatePost({
   const { openModal } = useAuthModalStore();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  
+  const {
+    items: mediaItems,
+    addFiles: addMediaFiles,
+    removeItem: removeMediaItem,
+    cancelItem: cancelMediaItem,
+    retryItem: retryMediaItem,
+    clearAll: clearAllMedia,
+    isUploading: isMediaUploading,
+    completedMedia,
+  } = useMediaUploadPipeline(4);
   
   const [quotedPost, setQuotedPost] = useState<any>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
@@ -139,19 +151,10 @@ export function CreatePost({
   }, [autoFocus]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files);
-      const totalAllowed = 4 - mediaFiles.length;
-      if (totalAllowed <= 0) {
-        toast.error("En fazla 4 medya dosyası ekleyebilirsiniz.");
-        return;
-      }
-      setMediaFiles((prev) => [...prev, ...selected.slice(0, totalAllowed)]);
+    if (e.target.files && e.target.files.length > 0) {
+      addMediaFiles(Array.from(e.target.files));
+      e.target.value = "";
     }
-  };
-
-  const handleRemoveMedia = (index: number) => {
-    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAddPollOption = () => {
@@ -179,12 +182,14 @@ export function CreatePost({
   };
 
   const isFormValid = () => {
-    if (loading) return false;
+    if (loading || isMediaUploading) return false;
     if (content.length > 2000) return false;
-    if (postType === "NORMAL") return content.trim().length > 0 || mediaFiles.length > 0 || !!quoteId;
+    // If any media items exist, all must be completed
+    if (mediaItems.length > 0 && completedMedia.length !== mediaItems.length) return false;
+    if (postType === "NORMAL") return content.trim().length > 0 || completedMedia.length > 0 || !!quoteId;
     if (postType === "SENSITIVE")
       return (
-        contentWarning.trim().length > 0 && (content.trim().length > 0 || mediaFiles.length > 0 || !!quoteId)
+        contentWarning.trim().length > 0 && (content.trim().length > 0 || completedMedia.length > 0 || !!quoteId)
       );
     if (postType === "POLL")
       return content.trim().length > 0 && pollOptions.filter((o) => o.trim()).length >= 2;
@@ -194,13 +199,23 @@ export function CreatePost({
   const handleSubmit = async () => {
     if (!isAuthenticated) return openModal();
 
+    if (isMediaUploading) {
+      toast.error("Lütfen medyanın yüklenmesini ve işlenmesini bekleyin.");
+      return;
+    }
+
+    if (mediaItems.length > 0 && completedMedia.length !== mediaItems.length) {
+      toast.error("Bazı medya dosyaları henüz yüklenemedi veya hata verdi. Lütfen kontrol edin.");
+      return;
+    }
+
     // Validation
     if (content.length > 2000) {
       toast.error("Gönderiniz en fazla 2000 karakter olabilir.");
       return;
     }
 
-    if (postType === "NORMAL" && !content.trim() && mediaFiles.length === 0 && !quoteId) {
+    if (postType === "NORMAL" && !content.trim() && completedMedia.length === 0 && !quoteId) {
       toast.error("Lütfen bir şeyler yazın veya medya ekleyin.");
       return;
     }
@@ -210,7 +225,7 @@ export function CreatePost({
         toast.error("Lütfen içerik uyarısı başlığı ekleyin.");
         return;
       }
-      if (!content.trim() && mediaFiles.length === 0) {
+      if (!content.trim() && completedMedia.length === 0) {
         toast.error("Lütfen hassas içerik metni veya medya ekleyin.");
         return;
       }
@@ -231,17 +246,6 @@ export function CreatePost({
     setLoading(true);
 
     try {
-      const mediaUrls: { url: string; type: string }[] = [];
-      for (const file of mediaFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetchApi("/media/upload", { method: "POST", data: formData });
-        const json = await res.json();
-        if (json.success) {
-          mediaUrls.push({ url: json.data.url, type: json.data.type });
-        }
-      }
-
       const filteredOptions = pollOptions.filter((o) => o.trim());
       
       let collaboratorId: number | undefined = undefined;
@@ -262,7 +266,7 @@ export function CreatePost({
         data: {
           content,
           visibility,
-          media: mediaUrls,
+          media: completedMedia,
           communityId,
           collaboratorId,
           postType,
@@ -275,7 +279,7 @@ export function CreatePost({
 
       if (json.success) {
         setContent("");
-        setMediaFiles([]);
+        clearAllMedia();
         setPostType("NORMAL");
         setContentWarning("");
         setPollOptions(["", ""]);
@@ -583,30 +587,16 @@ export function CreatePost({
           )}
 
           {/* Media Previews */}
-          {mediaFiles.length > 0 && (
-            <div className={cn(
-              "grid gap-2 mb-3.5 rounded-xl overflow-hidden",
-              mediaFiles.length === 1 ? "grid-cols-1" : "grid-cols-2"
-            )}>
-              {mediaFiles.map((f, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] group"
-                >
-                  <img
-                    src={URL.createObjectURL(f)}
-                    alt="Seçilen Medya"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMedia(i)}
-                    aria-label="Medyayı kaldır"
-                    className="absolute top-2 right-2 bg-slate-900/70 hover:bg-slate-900 text-white rounded-full p-1.5 transition-transform active:scale-95 cursor-pointer backdrop-blur-xs"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {mediaItems.length > 0 && (
+            <div className="space-y-3 mb-3.5">
+              {mediaItems.map((item) => (
+                <MediaUploadItem
+                  key={item.id}
+                  item={item}
+                  onRemove={removeMediaItem}
+                  onRetry={retryMediaItem}
+                  onCancel={cancelMediaItem}
+                />
               ))}
             </div>
           )}
@@ -621,7 +611,7 @@ export function CreatePost({
                   if (!isAuthenticated) openModal();
                   else fileInputRef.current?.click();
                 }}
-                disabled={mediaFiles.length >= 4}
+                disabled={mediaItems.length >= 4 || isMediaUploading}
                 title="Görsel veya Video Ekle (En fazla 4 dosya)"
                 aria-label="Medya Ekle (Görsel veya Video)"
                 className="flex items-center justify-center min-w-[36px] min-h-[36px] w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 transition-all active:scale-[0.97] cursor-pointer"
@@ -722,7 +712,7 @@ export function CreatePost({
                 onClick={handleSubmit}
                 className="px-5 py-2 font-semibold rounded-xl text-xs shadow-xs"
               >
-                Paylaş
+                {isMediaUploading ? "İşleniyor..." : "Paylaş"}
               </Button>
             </div>
           </div>

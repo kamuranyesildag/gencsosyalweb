@@ -107,8 +107,10 @@ async function startServer() {
   // Serve uploads statically with dotfiles denied (returns 403)
   app.use("/uploads", express.static(getUploadDir(), { dotfiles: 'deny' }));
 
-  // Ensure database migrations are run
+  // Ensure database is ready and migrations are run
   try {
+    const { ensureDatabaseReady } = await import("./src/db/index.js");
+    await ensureDatabaseReady();
     const { runMigration } = await import("./server/migrate.js");
     await runMigration(false);
     const { seedInitialDataIfNeeded } = await import("./server/seed.js");

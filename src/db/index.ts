@@ -121,6 +121,43 @@ export const createPglite = () => {
   return global._pgliteClient;
 }
 
+export const ensureDatabaseReady = async () => {
+  const pool = createPool();
+  if (pool) {
+    const client = await pool.connect();
+    client.release();
+    return;
+  }
+
+  const dbPath = path.join(process.cwd(), 'database');
+  const client = createPglite();
+  try {
+    await client.waitReady;
+    await client.query("SELECT 1;");
+  } catch (err) {
+    console.error("PGlite healthcheck failed on startup. Directory might be corrupted:", err);
+    try {
+      if (global._pgliteClient) {
+        try { await global._pgliteClient.close(); } catch (_) {}
+        global._pgliteClient = undefined;
+        global._dbInstance = undefined;
+      }
+      const backupPath = path.join(process.cwd(), `database_backup_${Date.now()}`);
+      if (fs.existsSync(dbPath)) {
+        fs.renameSync(dbPath, backupPath);
+        console.warn(`Corrupted database backed up to: ${backupPath}`);
+      }
+      global._pgliteClient = new PGlite(dbPath);
+      await global._pgliteClient.waitReady;
+      await global._pgliteClient.query("SELECT 1;");
+      console.log("Clean PGlite database initialized successfully.");
+    } catch (recoverErr) {
+      console.error("Failed to recover clean PGlite database:", recoverErr);
+      throw recoverErr;
+    }
+  }
+};
+
 export const getDb = () => {
   if (global._dbInstance) return global._dbInstance;
   

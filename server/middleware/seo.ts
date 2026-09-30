@@ -293,17 +293,22 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             .orderBy(desc(posts.createdAt))
             .limit(5);
 
-          // Fetch user's projects for internal linking
-          const userProjects = await db
-            .select({
-              id: projects.id,
-              title: projects.title,
-              category: projects.category
-            })
-            .from(projects)
-            .where(eq(projects.userId, u.id))
-            .orderBy(desc(projects.createdAt))
-            .limit(5);
+          // Fetch user's projects for internal linking safely
+          let userProjects: any[] = [];
+          try {
+            userProjects = await db
+              .select({
+                id: projects.id,
+                title: projects.title,
+                category: projects.category
+              })
+              .from(projects)
+              .where(eq(projects.userId, u.id))
+              .orderBy(desc(projects.createdAt))
+              .limit(5);
+          } catch (upErr) {
+            console.warn("Could not fetch user projects for SEO:", upErr);
+          }
 
           let postsListHtml = "";
           if (userPosts.length > 0) {
@@ -550,25 +555,35 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
         title = "Genç Sosyal — Genç Üretici Platformu";
         description = "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.";
         
-        // Fetch featured public projects for homepage internal links
-        const homeProjects = await db
-          .select({
-            id: projects.id,
-            title: projects.title,
-            category: projects.category
-          })
-          .from(projects)
-          .orderBy(desc(projects.createdAt))
-          .limit(3);
+        // Fetch featured public projects for homepage internal links safely
+        let homeProjects: any[] = [];
+        try {
+          homeProjects = await db
+            .select({
+              id: projects.id,
+              title: projects.title,
+              category: projects.category
+            })
+            .from(projects)
+            .orderBy(desc(projects.createdAt))
+            .limit(3);
+        } catch (pErr) {
+          console.warn("Could not fetch home projects for SEO:", pErr);
+        }
 
-        // Fetch active communities for homepage internal links
-        const homeCommunities = await db
-          .select({
-            slug: communities.slug,
-            name: communities.name
-          })
-          .from(communities)
-          .limit(3);
+        // Fetch active communities for homepage internal links safely
+        let homeCommunities: any[] = [];
+        try {
+          homeCommunities = await db
+            .select({
+              slug: communities.slug,
+              name: communities.name
+            })
+            .from(communities)
+            .limit(3);
+        } catch (cErr) {
+          console.warn("Could not fetch home communities for SEO:", cErr);
+        }
 
         semanticBody = `
           <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">

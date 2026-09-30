@@ -140,16 +140,21 @@ export function StoryCreateModal() {
   const handleFileSelect = (file: File) => {
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error("Dosya boyutu en fazla 25MB olabilir");
-      return;
-    }
-
-    const isVideo = file.type.startsWith("video/");
+    const isVideo = file.type.startsWith("video/") || file.name.match(/\.(mp4|mov|webm|mkv|3gp|avi)$/i) !== null;
     const isImage = file.type.startsWith("image/");
 
     if (!isVideo && !isImage) {
-      toast.error("Yalnızca görsel (JPG, PNG, WebP) veya video (MP4) yükleyebilirsiniz");
+      toast.error("Yalnızca görsel (JPG, PNG, WebP) veya video (MP4, MOV, WebM) yükleyebilirsiniz");
+      return;
+    }
+
+    if (isVideo && file.size > 100 * 1024 * 1024) {
+      toast.error("Video boyutu en fazla 100MB olabilir");
+      return;
+    }
+
+    if (isImage && file.size > 10 * 1024 * 1024) {
+      toast.error("Görsel boyutu en fazla 10MB olabilir");
       return;
     }
 

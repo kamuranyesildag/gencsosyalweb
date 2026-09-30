@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+import { useMediaUploadPipeline } from "../hooks/useMediaUploadPipeline";
+import { MediaUploadItem } from "./media/MediaUploadItem";
 
 export type PostType = "NORMAL" | "POLL" | "SENSITIVE";
 export type PostVisibility = "PUBLIC" | "FOLLOWERS" | "PRIVATE";
@@ -64,7 +66,18 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
   const [isExpanded, setIsExpanded] = useState(false);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  
+  const {
+    items: mediaItems,
+    addFiles: addMediaFiles,
+    removeItem: removeMediaItem,
+    cancelItem: cancelMediaItem,
+    retryItem: retryMediaItem,
+    clearAll: clearAllMedia,
+    isUploading: isMediaUploading,
+    completedMedia,
+  } = useMediaUploadPipeline(4);
+
   const [postType, setPostType] = useState<PostType>("NORMAL");
   const [contentWarning, setContentWarning] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
@@ -91,26 +104,9 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    if (mediaFiles.length + files.length > 4) {
-      toast.error("En fazla 4 medya dosyası ekleyebilirsiniz.");
-      return;
-    }
-
-    const validFiles = files.filter((f) => {
-      if (f.size > 25 * 1024 * 1024) {
-        toast.error(`${f.name} çok büyük (maks. 25MB)`);
-        return false;
-      }
-      return true;
-    });
-
-    setMediaFiles((prev) => [...prev, ...validFiles]);
+    addMediaFiles(files);
     setIsExpanded(true);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleRemoveMedia = (index: number) => {
-    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAddPollOption = () => {
@@ -133,7 +129,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
 
   const resetForm = () => {
     setContent("");
-    setMediaFiles([]);
+    clearAllMedia();
     setPostType("NORMAL");
     setContentWarning("");
     setPollOptions(["", ""]);
@@ -143,54 +139,44 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
   };
 
   const isFormValid = () => {
-    if (loading) return false;
+    if (loading || isMediaUploading) return false;
     if (content.length > 2000) return false;
+    if (mediaItems.length > 0 && completedMedia.length !== mediaItems.length) return false;
     if (postType === "POLL") {
       const validOpts = pollOptions.map((o) => o.trim()).filter(Boolean);
       if (validOpts.length < 2) return false;
       return content.trim().length > 0;
     }
     if (postType === "SENSITIVE" && !contentWarning.trim()) return false;
-    return content.trim().length > 0 || mediaFiles.length > 0;
+    return content.trim().length > 0 || completedMedia.length > 0;
   };
 
   const handleSubmit = async () => {
     if (!isAuthenticated) return openModal();
+    if (isMediaUploading) {
+      toast.error("Lütfen medyanın yüklenmesini ve işlenmesini bekleyin.");
+      return;
+    }
+    if (mediaItems.length > 0 && completedMedia.length !== mediaItems.length) {
+      toast.error("Bazı medya dosyaları henüz yüklenemedi veya hata verdi.");
+      return;
+    }
     if (!isFormValid()) return;
 
     setLoading(true);
 
     try {
-      // 1. Upload media if any
-      const mediaUrls: string[] = [];
-      if (mediaFiles.length > 0) {
-        for (const file of mediaFiles) {
-          const formData = new FormData();
-          formData.append("file", file);
-          const uploadRes = await fetchApi("/media/upload", {
-            method: "POST",
-            body: formData,
-          });
-          const uploadJson = await uploadRes.json();
-          if (uploadJson.success && uploadJson.data?.url) {
-            mediaUrls.push(uploadJson.data.url);
-          } else {
-            throw new Error(uploadJson.error?.message || "Medya yüklenemedi.");
-          }
-        }
-      }
-
-      // 2. Filter poll options
+      // 1. Filter poll options
       const filteredOptions =
         postType === "POLL" ? pollOptions.map((o) => o.trim()).filter(Boolean) : undefined;
 
-      // 3. Create post
+      // 2. Create post with already processed media
       const res = await fetchApi("/posts", {
         method: "POST",
         data: {
           content,
           visibility,
-          media: mediaUrls,
+          media: completedMedia,
           postType,
           contentWarning: postType === "SENSITIVE" ? contentWarning : undefined,
           pollOptions: filteredOptions,
@@ -457,27 +443,16 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
           )}
 
           {/* Selected Media Previews */}
-          {mediaFiles.length > 0 && (
-            <div className="flex gap-2.5 mb-3 overflow-x-auto pb-1 scrollbar-none">
-              {mediaFiles.map((file, i) => (
-                <div
-                  key={i}
-                  className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-white/[0.08] group"
-                >
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt="Seçilen Medya"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMedia(i)}
-                    aria-label="Medyayı kaldır"
-                    className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-transform active:scale-90 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {mediaItems.length > 0 && (
+            <div className="space-y-3 mb-3.5">
+              {mediaItems.map((item) => (
+                <MediaUploadItem
+                  key={item.id}
+                  item={item}
+                  onRemove={removeMediaItem}
+                  onRetry={retryMediaItem}
+                  onCancel={cancelMediaItem}
+                />
               ))}
             </div>
           )}
@@ -489,7 +464,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={mediaFiles.length >= 4}
+                disabled={mediaItems.length >= 4 || isMediaUploading}
                 title="Görsel veya Video Ekle"
                 aria-label="Medya ekle"
                 className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/[0.06] disabled:opacity-40 transition-all cursor-pointer"
@@ -554,7 +529,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
                 onClick={handleSubmit}
                 className="px-4 py-1.5 font-semibold rounded-xl text-xs shadow-xs"
               >
-                Paylaş
+                {isMediaUploading ? "İşleniyor..." : "Paylaş"}
               </Button>
             </div>
           </div>
