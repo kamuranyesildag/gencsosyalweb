@@ -15,6 +15,8 @@ import {
   ShieldAlert,
   Rocket,
   User,
+  Trophy,
+  Gamepad2,
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
@@ -42,6 +44,8 @@ export function DesktopSidebar() {
   ];
 
   const produceGroup: NavItem[] = [
+    { name: 'Genç Quiz', path: '/quiz', icon: Gamepad2, protected: false },
+    { name: '19 Mayıs Gençlik Ligi', path: '/youth-league', icon: Trophy, protected: false },
     { name: 'Projeler', path: '/projects', icon: Rocket, protected: false },
     { name: 'Topluluklar', path: '/communities', icon: Users, protected: false },
   ];

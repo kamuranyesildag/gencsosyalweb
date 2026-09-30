@@ -111,6 +111,13 @@ export const toast = {
   },
 };
 
+export function showToast({ title, type }: { title: string; type?: 'success' | 'error' | 'warning' | 'info' }) {
+  if (type === 'error') toast.error(title);
+  else if (type === 'warning') toast.warning(title);
+  else if (type === 'info') toast.info(title);
+  else toast.success(title);
+}
+
 const toastConfig: Record<
   ToastType,
   {

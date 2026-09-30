@@ -260,6 +260,20 @@
       "when": 1790750000000,
       "tag": "0036_community_management",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790780000000,
+      "tag": "0037_genclik_ligi",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790800000000,
+      "tag": "0038_genc_quiz",
+      "breakpoints": true
     }
   ]
 }

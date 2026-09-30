@@ -40,10 +40,12 @@ import {
   ExternalLink,
   Loader2,
   Lock,
+  Gamepad2,
+  Trophy,
 } from "lucide-react";
 import { motion } from "motion/react";
 
-export type ProfileTab = "posts" | "projects" | "followers" | "following";
+export type ProfileTab = "posts" | "projects" | "followers" | "following" | "quiz";
 
 export function Profile() {
   const { username } = useParams();
@@ -61,6 +63,7 @@ export function Profile() {
   const [showVerification, setShowVerification] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [quizStats, setQuizStats] = useState<any>(null);
 
   useSEO({
     allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
@@ -84,6 +87,14 @@ export function Profile() {
           setProfile(json.data);
           setFollowing(json.data.isFollowing);
           setFollowStatus(json.data.followStatus || (json.data.isFollowing ? "accepted" : "none"));
+
+          // Fetch quiz stats
+          fetch(`/api/v1/quiz/user/${username}/stats`)
+            .then(r => r.json())
+            .then(res => {
+              if (res.success) setQuizStats(res.stats);
+            })
+            .catch(() => {});
         } else {
           setProfile(null);
         }
@@ -709,6 +720,30 @@ export function Profile() {
             />
           )}
         </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "quiz"}
+          onClick={() => setActiveTab("quiz")}
+          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
+            activeTab === "quiz"
+              ? "text-slate-900 dark:text-white"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <Gamepad2 className="w-3.5 h-3.5 text-blue-500" />
+            <span>Genç Quiz</span>
+          </span>
+          {activeTab === "quiz" && (
+            <motion.div
+              layoutId="profileActiveTabIndicator"
+              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
+              transition={{ type: "spring", stiffness: 450, damping: 35 }}
+            />
+          )}
+        </button>
       </div>
 
       {/* TAB CONTENT STREAM */}
@@ -842,6 +877,82 @@ export function Profile() {
               />
             </div>
           )
+        )}
+
+        {/* 4. Genç Quiz Tab */}
+        {activeTab === "quiz" && (
+          <div className="p-4 sm:p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Gamepad2 className="w-5 h-5 text-blue-600" />
+                  <span>Genç Quiz İstatistikleri</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {profile.displayName || profile.username} kullanıcısının bilgi yarışması performansı.
+                </p>
+              </div>
+
+              {isMe && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate("/quiz")}
+                  className="rounded-xl font-bold text-xs"
+                >
+                  Quiz Odalarına Git ➔
+                </Button>
+              )}
+            </div>
+
+            {quizStats && quizStats.totalQuizes > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Katıldığı Quiz</span>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white">{quizStats.totalQuizes}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kazandığı Quiz</span>
+                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{quizStats.wins || 0}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Toplam Puan</span>
+                  <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{quizStats.totalScore?.toLocaleString() || 0}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Doğruluk Oranı</span>
+                  <p className="text-2xl font-black text-blue-600 dark:text-blue-400">%{quizStats.accuracyRate || 0}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 mx-auto flex items-center justify-center">
+                  <Gamepad2 className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Henüz Tamamlanan Quiz Yok</h4>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    {isMe 
+                      ? "Genç Quiz odalarına katılarak veya yeni bir oda kurarak yarışmaya başlayabilir ve ilk puanlarını kazanabilirsin!"
+                      : "Bu kullanıcı henüz kayıtlı bir quiz yarışmasına katılmadı."}
+                  </p>
+                </div>
+                {isMe && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate("/quiz")}
+                    className="rounded-xl font-bold text-xs"
+                  >
+                    Quiz'e Başla 🚀
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
       </>

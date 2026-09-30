@@ -17,7 +17,8 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   ChevronRight,
-  Scale
+  Scale,
+  Trophy
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -33,10 +34,12 @@ import { AdminModeration } from '../components/admin/AdminModeration';
 import { AdminSmtp } from '../components/admin/AdminSmtp';
 import { AdminAuditLogs } from '../components/admin/AdminAuditLogs';
 import { AdminAnnouncements } from '../components/admin/AdminAnnouncements';
+import { AdminLeague } from '../components/admin/AdminLeague';
 import { fadeInVariants, pageInVariants } from '../lib/motion';
 
 export type AdminTab = 
   | 'stats' 
+  | 'league'
   | 'users' 
   | 'announcements'
   | 'official' 
@@ -93,6 +96,7 @@ export function Admin() {
 
   const tabs: TabItem[] = [
     { id: 'stats', label: 'Genel Bakış', shortLabel: 'Özet', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'league', label: 'Gençlik Ligi & Soru Bankası', shortLabel: 'Soru Bankası', icon: <Trophy className="w-4 h-4 text-amber-500" /> },
     { id: 'users', label: 'Kullanıcılar', shortLabel: 'Üyeler', icon: <Users className="w-4 h-4" /> },
     { id: 'announcements', label: 'Duyurular & Popup', shortLabel: 'Duyurular', icon: <Megaphone className="w-4 h-4" /> },
     { id: 'verifications', label: 'Mavi Tik Başvuruları', shortLabel: 'Mavi Tik', icon: <FileCheck2 className="w-4 h-4" /> },
@@ -177,6 +181,7 @@ export function Admin() {
             exit="exit"
           >
             {activeTab === 'stats' && <AdminDashboard onNavigateTab={setActiveTab} />}
+            {activeTab === 'league' && <AdminLeague />}
             {activeTab === 'users' && <AdminUsers />}
             {activeTab === 'announcements' && <AdminAnnouncements />}
             {activeTab === 'verifications' && <AdminVerification />}

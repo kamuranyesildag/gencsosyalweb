@@ -43,6 +43,7 @@ export const profiles = pgTable('profiles', {
   defaultPostVisibility: varchar('default_post_visibility', { length: 20 }).default('PUBLIC').notNull(),
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   interests: jsonb('interests').default([]),
+  birthDate: timestamp('birth_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -1106,6 +1107,312 @@ export const appealsRelations = relations(appeals, ({ one }) => ({
     relationName: 'appealReviewer',
   }),
 }));
+
+// --- 19 MAYIS GENÇLİK LİGİ (FAZ 67) ---
+
+export const leagueSeasons = pgTable('league_seasons', {
+  id: serial('id').primaryKey(),
+  year: integer('year').notNull().unique(), // e.g., 2027
+  title: varchar('title', { length: 150 }).notNull(),
+  theme: varchar('theme', { length: 150 }),
+  description: text('description'),
+  registrationStartDate: timestamp('registration_start_date').notNull(),
+  registrationEndDate: timestamp('registration_end_date').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date').notNull(),
+  status: varchar('status', { length: 30 }).default('UPCOMING').notNull(), // 'UPCOMING', 'REGISTRATION_OPEN', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'
+  settings: jsonb('settings').$type<{
+    ageGroups: string[];
+    pointsCorrect: number;
+    pointsHardBonus: number;
+    maxSpeedBonus: number;
+    questionTimeLimit: number;
+    questionsPerMatch: number;
+    simulationMode?: boolean;
+  }>().default({
+    ageGroups: ['13-15', '16-17', '18+'],
+    pointsCorrect: 100,
+    pointsHardBonus: 50,
+    maxSpeedBonus: 25,
+    questionTimeLimit: 20,
+    questionsPerMatch: 8,
+    simulationMode: false,
+  }).notNull(),
+  championUserId: integer('champion_user_id').references(() => users.id, { onDelete: 'set null' }),
+  totalParticipants: integer('total_participants').default(0).notNull(),
+  totalMatches: integer('total_matches').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  yearIdx: index('league_seasons_year_idx').on(t.year),
+  statusIdx: index('league_seasons_status_idx').on(t.status),
+}));
+
+export const leagueParticipants = pgTable('league_participants', {
+  id: serial('id').primaryKey(),
+  seasonId: integer('season_id').notNull().references(() => leagueSeasons.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  ageGroup: varchar('age_group', { length: 20 }).notNull(), // '13-15', '16-17', '18+'
+  totalPoints: integer('total_points').default(0).notNull(),
+  matchesPlayed: integer('matches_played').default(0).notNull(),
+  matchesWon: integer('matches_won').default(0).notNull(),
+  correctAnswersCount: integer('correct_answers_count').default(0).notNull(),
+  totalAnswersCount: integer('total_answers_count').default(0).notNull(),
+  currentRound: varchar('current_round', { length: 30 }).default('QUALIFIERS').notNull(),
+  status: varchar('status', { length: 30 }).default('ACTIVE').notNull(), // 'ACTIVE', 'ELIMINATED', 'FINALIST', 'CHAMPION'
+  isFlagged: boolean('is_flagged').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('league_participants_season_user_unq').on(t.seasonId, t.userId),
+  seasonIdx: index('league_participants_season_idx').on(t.seasonId),
+  userIdx: index('league_participants_user_idx').on(t.userId),
+  pointsIdx: index('league_participants_points_idx').on(t.seasonId, t.totalPoints),
+  ageGroupIdx: index('league_participants_age_group_idx').on(t.seasonId, t.ageGroup),
+}));
+
+export const leagueQuestions = pgTable('league_questions', {
+  id: serial('id').primaryKey(),
+  question: text('question').notNull(),
+  category: varchar('category', { length: 50 }).notNull(), // 'Tarih ve Kültür', 'Bilim', 'Teknoloji', 'Genel Kültür', 'Mantık', 'Spor'
+  difficulty: varchar('difficulty', { length: 20 }).default('MEDIUM').notNull(), // 'EASY', 'MEDIUM', 'HARD', 'EXPERT'
+  ageGroup: varchar('age_group', { length: 20 }).default('ALL').notNull(), // 'ALL', '13-15', '16-17', '18+'
+  language: varchar('language', { length: 10 }).default('tr').notNull(),
+  explanation: text('explanation'),
+  sourceType: varchar('source_type', { length: 30 }).default('MANUAL').notNull(), // 'MANUAL', 'AI', 'OFFICIAL'
+  sourceReference: text('source_reference'),
+  status: varchar('status', { length: 20 }).default('ACTIVE').notNull(), // 'DRAFT', 'ACTIVE', 'INACTIVE'
+  usageCount: integer('usage_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  categoryIdx: index('league_questions_category_idx').on(t.category),
+  difficultyIdx: index('league_questions_difficulty_idx').on(t.difficulty),
+  statusIdx: index('league_questions_status_idx').on(t.status),
+  ageGroupIdx: index('league_questions_age_group_idx').on(t.ageGroup),
+}));
+
+export const leagueQuestionOptions = pgTable('league_question_options', {
+  id: serial('id').primaryKey(),
+  questionId: integer('question_id').notNull().references(() => leagueQuestions.id, { onDelete: 'cascade' }),
+  optionKey: varchar('option_key', { length: 5 }).notNull(), // 'A', 'B', 'C', 'D'
+  optionText: text('option_text').notNull(),
+  isCorrect: boolean('is_correct').default(false).notNull(),
+}, (t) => ({
+  unq: unique('league_question_options_q_key_unq').on(t.questionId, t.optionKey),
+  questionIdx: index('league_question_options_q_idx').on(t.questionId),
+}));
+
+export const leagueMatches = pgTable('league_matches', {
+  id: serial('id').primaryKey(),
+  seasonId: integer('season_id').notNull().references(() => leagueSeasons.id, { onDelete: 'cascade' }),
+  stage: varchar('stage', { length: 30 }).default('QUALIFIERS').notNull(), // 'QUALIFIERS', 'TOP_32', 'TOP_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'
+  ageGroup: varchar('age_group', { length: 20 }).default('13-15').notNull(),
+  player1Id: integer('player1_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  player2Id: integer('player2_id').references(() => users.id, { onDelete: 'set null' }),
+  isVsBot: boolean('is_vs_bot').default(false).notNull(),
+  botName: varchar('bot_name', { length: 50 }),
+  winnerId: integer('winner_id').references(() => users.id, { onDelete: 'set null' }),
+  player1Score: integer('player1_score').default(0).notNull(),
+  player2Score: integer('player2_score').default(0).notNull(),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // 'PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'
+  currentQuestionIndex: integer('current_question_index').default(0).notNull(),
+  questionStartedAt: timestamp('question_started_at'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  seasonIdx: index('league_matches_season_idx').on(t.seasonId),
+  player1Idx: index('league_matches_player1_idx').on(t.player1Id),
+  player2Idx: index('league_matches_player2_idx').on(t.player2Id),
+  statusIdx: index('league_matches_status_idx').on(t.status),
+  stageIdx: index('league_matches_stage_idx').on(t.stage),
+}));
+
+export const leagueMatchQuestions = pgTable('league_match_questions', {
+  id: serial('id').primaryKey(),
+  matchId: integer('match_id').notNull().references(() => leagueMatches.id, { onDelete: 'cascade' }),
+  questionId: integer('question_id').notNull().references(() => leagueQuestions.id, { onDelete: 'cascade' }),
+  order: integer('order').notNull(),
+}, (t) => ({
+  unq: unique('league_match_questions_match_q_unq').on(t.matchId, t.questionId),
+  matchIdx: index('league_match_questions_match_idx').on(t.matchId),
+}));
+
+export const leagueMatchAnswers = pgTable('league_match_answers', {
+  id: serial('id').primaryKey(),
+  matchId: integer('match_id').notNull().references(() => leagueMatches.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  questionId: integer('question_id').notNull().references(() => leagueQuestions.id, { onDelete: 'cascade' }),
+  selectedOption: varchar('selected_option', { length: 5 }),
+  isCorrect: boolean('is_correct').default(false).notNull(),
+  pointsEarned: integer('points_earned').default(0).notNull(),
+  timeTakenMs: integer('time_taken_ms').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('league_match_answers_match_user_q_unq').on(t.matchId, t.userId, t.questionId),
+  matchIdx: index('league_match_answers_match_idx').on(t.matchId),
+  userIdx: index('league_match_answers_user_idx').on(t.userId),
+}));
+
+// --- GENÇ QUIZ (FAZ 68) ---
+
+export const quizQuestionSets = pgTable('quiz_question_sets', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 120 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 50 }).default('Genel Kültür').notNull(),
+  difficulty: varchar('difficulty', { length: 20 }).default('Orta').notNull(),
+  isPublic: boolean('is_public').default(false).notNull(),
+  questionCount: integer('question_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdx: index('quiz_question_sets_user_idx').on(t.userId),
+  isPublicIdx: index('quiz_question_sets_public_idx').on(t.isPublic),
+}));
+
+export const quizQuestionSetItems = pgTable('quiz_question_set_items', {
+  id: serial('id').primaryKey(),
+  setId: integer('set_id').notNull().references(() => quizQuestionSets.id, { onDelete: 'cascade' }),
+  question: text('question').notNull(),
+  explanation: text('explanation'),
+  order: integer('order').default(1).notNull(),
+  options: jsonb('options').$type<{
+    key: string;
+    text: string;
+    isCorrect: boolean;
+  }[]>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  setIdx: index('quiz_question_set_items_set_idx').on(t.setId),
+}));
+
+export const quizRooms = pgTable('quiz_rooms', {
+  id: serial('id').primaryKey(),
+  code: varchar('code', { length: 10 }).notNull().unique(), // e.g. "482731"
+  title: varchar('title', { length: 150 }).notNull(),
+  hostId: integer('host_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  category: varchar('category', { length: 50 }).default('Karışık').notNull(),
+  difficulty: varchar('difficulty', { length: 20 }).default('Karışık').notNull(),
+  questionCount: integer('question_count').default(10).notNull(),
+  timePerQuestion: integer('time_per_question').default(20).notNull(), // seconds
+  roomType: varchar('room_type', { length: 20 }).default('PUBLIC').notNull(), // 'PUBLIC', 'CODE_ONLY', 'PRIVATE'
+  sourceType: varchar('source_type', { length: 30 }).default('SYSTEM').notNull(), // 'SYSTEM', 'QUESTION_SET', 'MIXED'
+  questionSetId: integer('question_set_id').references(() => quizQuestionSets.id, { onDelete: 'set null' }),
+  maxPlayers: integer('max_players').default(30).notNull(),
+  status: varchar('status', { length: 25 }).default('LOBBY').notNull(), // 'LOBBY', 'PLAYING', 'QUESTION_ACTIVE', 'QUESTION_RESULT', 'FINISHED', 'CANCELLED'
+  currentQuestionIndex: integer('current_question_index').default(0).notNull(),
+  questionStartedAt: timestamp('question_started_at'),
+  startedAt: timestamp('started_at'),
+  finishedAt: timestamp('finished_at'),
+  settings: jsonb('settings').$type<{
+    allowAnswerChange?: boolean;
+    speedBonus?: boolean;
+    soundEnabled?: boolean;
+  }>().default({
+    allowAnswerChange: false,
+    speedBonus: true,
+    soundEnabled: true,
+  }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  codeIdx: index('quiz_rooms_code_idx').on(t.code),
+  hostIdx: index('quiz_rooms_host_idx').on(t.hostId),
+  statusIdx: index('quiz_rooms_status_idx').on(t.status),
+}));
+
+export const quizRoomPlayers = pgTable('quiz_room_players', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => quizRooms.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  score: integer('score').default(0).notNull(),
+  correctAnswersCount: integer('correct_answers_count').default(0).notNull(),
+  wrongAnswersCount: integer('wrong_answers_count').default(0).notNull(),
+  unansweredCount: integer('unanswered_count').default(0).notNull(),
+  streak: integer('streak').default(0).notNull(),
+  maxStreak: integer('max_streak').default(0).notNull(),
+  rank: integer('rank').default(1),
+  isHost: boolean('is_host').default(false).notNull(),
+  isConnected: boolean('is_connected').default(true).notNull(),
+  lastActiveAt: timestamp('last_active_at').defaultNow().notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('quiz_room_players_room_user_unq').on(t.roomId, t.userId),
+  roomIdx: index('quiz_room_players_room_idx').on(t.roomId),
+  userIdx: index('quiz_room_players_user_idx').on(t.userId),
+  scoreIdx: index('quiz_room_players_score_idx').on(t.roomId, t.score),
+}));
+
+export const quizRoomQuestions = pgTable('quiz_room_questions', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => quizRooms.id, { onDelete: 'cascade' }),
+  questionId: integer('question_id').references(() => leagueQuestions.id, { onDelete: 'set null' }),
+  questionText: text('question_text').notNull(),
+  category: varchar('category', { length: 50 }).notNull(),
+  difficulty: varchar('difficulty', { length: 20 }).notNull(),
+  explanation: text('explanation'),
+  options: jsonb('options').$type<{
+    key: string;
+    text: string;
+    isCorrect: boolean;
+  }[]>().notNull(),
+  order: integer('order').notNull(),
+}, (t) => ({
+  unq: unique('quiz_room_questions_room_order_unq').on(t.roomId, t.order),
+  roomIdx: index('quiz_room_questions_room_idx').on(t.roomId),
+}));
+
+export const quizAnswers = pgTable('quiz_answers', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => quizRooms.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  roomQuestionId: integer('room_question_id').notNull().references(() => quizRoomQuestions.id, { onDelete: 'cascade' }),
+  selectedOption: varchar('selected_option', { length: 5 }),
+  isCorrect: boolean('is_correct').default(false).notNull(),
+  pointsEarned: integer('points_earned').default(0).notNull(),
+  timeTakenMs: integer('time_taken_ms').default(0).notNull(),
+  answeredAt: timestamp('answered_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('quiz_answers_room_user_q_unq').on(t.roomId, t.userId, t.roomQuestionId),
+  roomIdx: index('quiz_answers_room_idx').on(t.roomId),
+  userIdx: index('quiz_answers_user_idx').on(t.userId),
+}));
+
+export const quizResults = pgTable('quiz_results', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').references(() => quizRooms.id, { onDelete: 'set null' }),
+  roomTitle: varchar('room_title', { length: 150 }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  rank: integer('rank').notNull(),
+  totalPlayers: integer('total_players').notNull(),
+  score: integer('score').notNull(),
+  correctCount: integer('correct_count').notNull(),
+  wrongCount: integer('wrong_count').notNull(),
+  unansweredCount: integer('unanswered_count').notNull(),
+  totalQuestions: integer('total_questions').notNull(),
+  playedAt: timestamp('played_at').defaultNow().notNull(),
+}, (t) => ({
+  userPlayedIdx: index('quiz_results_user_played_idx').on(t.userId, t.playedAt),
+  userScoreIdx: index('quiz_results_user_score_idx').on(t.userId, t.score),
+}));
+
+export const quizInvites = pgTable('quiz_invites', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').notNull().references(() => quizRooms.id, { onDelete: 'cascade' }),
+  senderId: integer('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  receiverId: integer('receiver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // 'PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  unq: unique('quiz_invites_room_receiver_unq').on(t.roomId, t.receiverId),
+  receiverIdx: index('quiz_invites_receiver_idx').on(t.receiverId),
+}));
+
+
 
 
 

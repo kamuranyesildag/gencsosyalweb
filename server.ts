@@ -1,6 +1,7 @@
 import { ensureUploadDir, getUploadDir } from "./server/utils/uploadConfig.js";
 import { onboardingRouter } from "./server/routes/onboarding.js";
 import express from "express";
+import http from "http";
 import path from "path";
 import cors from "cors";
 import helmet from "helmet";
@@ -115,6 +116,26 @@ async function startServer() {
     await runMigration(false);
     const { seedInitialDataIfNeeded } = await import("./server/seed.js");
     await seedInitialDataIfNeeded();
+
+    // 19 Mayıs Gençlik Ligi (FAZ 67) Automation & Scheduler
+    try {
+      const { 
+        ensureCurrentSeason, 
+        checkAndRunSeasonTransitions, 
+        seedStarterQuestionsIfNeeded, 
+        ensureLeagueBadges 
+      } = await import("./server/services/leagueAutomation.js");
+      await ensureCurrentSeason();
+      await ensureLeagueBadges();
+      await seedStarterQuestionsIfNeeded();
+      await checkAndRunSeasonTransitions();
+      // Automated hourly transition check
+      setInterval(() => {
+        checkAndRunSeasonTransitions().catch(console.error);
+      }, 60 * 60 * 1000);
+    } catch (leagueInitErr) {
+      console.error("League startup initialization failed:", leagueInitErr);
+    }
   } catch (migErr) {
     console.error("Database migration/seed check failed on startup:", migErr);
   }
@@ -216,6 +237,13 @@ async function startServer() {
 
     const { appealsRouter } = await import("./server/routes/appeals.js");
     app.use("/api/v1/appeals", appealsRouter);
+
+    const { leagueRouter } = await import("./server/routes/league.js");
+    app.use("/api/v1/league", leagueRouter);
+
+    // Genç Quiz (FAZ 68)
+    const { quizRouter } = await import("./server/routes/quiz.js");
+    app.use("/api/v1/quiz", quizRouter);
   
 // --- API Routes End ---
 
@@ -272,7 +300,16 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const httpServer = http.createServer(app);
+
+  try {
+    const { setupQuizWebSocketServer } = await import("./server/services/quizWebSocket.js");
+    setupQuizWebSocketServer(httpServer);
+  } catch (wsErr) {
+    console.error("Failed to initialize Quiz WebSocket Server:", wsErr);
+  }
+
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Genç Sosyal Server running on http://localhost:${PORT}`);
   });
 }

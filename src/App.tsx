@@ -32,6 +32,12 @@ import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
 import { AccountSuspended } from "./pages/AccountSuspended";
 import { HtmlSitemap } from "./pages/HtmlSitemap";
+import YouthLeague from "./pages/YouthLeague";
+import YouthLeagueMatch from "./pages/YouthLeagueMatch";
+import YouthLeagueLeaderboard from "./pages/YouthLeagueLeaderboard";
+import YouthLeagueArchive from "./pages/YouthLeagueArchive";
+import { GencQuiz } from "./pages/GencQuiz";
+import { QuizRoom } from "./pages/QuizRoom";
 import { AuthWrapper } from "./components/AuthWrapper";
 import { useAuthStore } from "./context/useAuth";
 import { BaseLayout } from "./layouts/BaseLayout";
@@ -97,6 +103,14 @@ export default function App() {
                 <Route path="/bookmarks" element={<ProtectedRoute><Bookmarks /></ProtectedRoute>} />
                 <Route path="/communities" element={<Communities />} />
                 <Route path="/communities/:slug" element={<CommunityDetail />} />
+                <Route path="/youth-league" element={<YouthLeague />} />
+                <Route path="/genc-lig" element={<Navigate to="/youth-league" replace />} />
+                <Route path="/youth-league/match/:id" element={<ProtectedRoute><YouthLeagueMatch /></ProtectedRoute>} />
+                <Route path="/youth-league/leaderboard" element={<YouthLeagueLeaderboard />} />
+                <Route path="/youth-league/archive" element={<YouthLeagueArchive />} />
+                <Route path="/quiz" element={<GencQuiz />} />
+                <Route path="/genc-quiz" element={<Navigate to="/quiz" replace />} />
+                <Route path="/quiz/room/:code" element={<QuizRoom />} />
                 <Route path="/profile/:username" element={<Profile />} />
                 <Route path="/post/:id" element={<PostDetail />} />
                 <Route path="/projects" element={<Projects />} />
