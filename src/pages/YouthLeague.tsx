@@ -240,45 +240,45 @@ export default function YouthLeague() {
   const userParticipation = data?.userState?.participation;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-6 space-y-6 sm:space-y-8 overflow-x-hidden">
       {/* 1. HERO BANNER: 19 Mayıs Milli Mücadele Ruhu */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 via-rose-700 to-slate-900 text-white p-6 sm:p-10 shadow-xl border border-red-500/30">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 via-rose-700 to-slate-900 text-white p-5 sm:p-10 shadow-xl border border-red-500/30">
         {/* Decorative background badges */}
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 right-10 opacity-10 pointer-events-none select-none text-9xl font-black">
+        <div className="absolute bottom-0 right-4 sm:right-10 opacity-10 pointer-events-none select-none text-7xl sm:text-9xl font-black">
           1919
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-red-100">
-              <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8">
+          <div className="space-y-3 sm:space-y-4 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs font-bold uppercase tracking-wider text-red-100 max-w-full truncate">
+              <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+              <span className="truncate">19 Mayıs Gençlik ve Spor Bayramı</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
               {season?.title || "19 Mayıs Gençlik Ligi"}
             </h1>
 
-            <p className="text-red-100/90 text-sm sm:text-base leading-relaxed font-normal">
+            <p className="text-red-100/90 text-xs sm:text-base leading-relaxed font-normal">
               {season?.description ||
                 "Atatürk'ün gençliğe emanet ettiği cumhuriyet meşalesini bilgi, bilim ve teknolojiyle geleceğe taşıyoruz. Hemen katıl, 1v1 düellolarda yarış ve şampiyonluk rozetini kazan!"}
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
               {isRegistered ? (
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                   <Button
                     onClick={handleStartMatch}
                     isLoading={startingMatch}
-                    className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg hover:shadow-amber-500/25 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+                    className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-lg hover:shadow-amber-500/25 px-5 sm:px-6 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 text-sm"
                   >
-                    <Swords className="w-5 h-5 text-slate-950" />
-                    Hemen Maça Başla (1v1 Düello)
+                    <Swords className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 shrink-0" />
+                    <span>Hemen Maça Başla (1v1)</span>
                   </Button>
-                  <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-white">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-                    Kayıtlı Katılımcı ({userParticipation?.ageGroup} Kategorisi)
+                  <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-white/15 backdrop-blur-md px-3.5 py-2.5 rounded-2xl text-[11px] sm:text-xs font-semibold text-white text-center">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                    <span>Kayıtlı ({userParticipation?.ageGroup})</span>
                   </div>
                 </div>
               ) : (
@@ -287,37 +287,37 @@ export default function YouthLeague() {
                     if (!isAuthenticated) openModal();
                     else setShowRegisterModal(true);
                   }}
-                  className="bg-white hover:bg-slate-100 text-red-700 font-extrabold shadow-lg px-8 py-3.5 rounded-2xl flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+                  className="w-full sm:w-auto bg-white hover:bg-slate-100 text-red-700 font-extrabold shadow-lg px-6 sm:px-8 py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 text-sm"
                 >
-                  <Trophy className="w-5 h-5 text-amber-500" />
-                  Gençlik Ligi'ne Katıl
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
+                  <span>Gençlik Ligi'ne Katıl</span>
                 </Button>
               )}
 
-              <Link to="/youth-league/archive">
+              <Link to="/youth-league/archive" className="w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 rounded-2xl flex items-center gap-1.5 text-xs font-semibold"
+                  className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 rounded-2xl flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5"
                 >
-                  <Archive className="w-4 h-4" />
-                  Geçmiş Sezonlar
+                  <Archive className="w-4 h-4 shrink-0" />
+                  <span>Geçmiş Sezonlar</span>
                 </Button>
               </Link>
             </div>
           </div>
 
           {/* Countdown & Status Block */}
-          <div className="bg-black/30 backdrop-blur-md p-5 rounded-3xl border border-white/15 space-y-4 shrink-0 min-w-[260px]">
+          <div className="bg-black/30 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-white/15 space-y-3 sm:space-y-4 w-full md:w-auto shrink-0 md:min-w-[260px]">
             <div className="flex items-center justify-between text-xs text-red-200">
-              <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider">
-                <Clock className="w-3.5 h-3.5 text-amber-300" />
+              <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[11px] sm:text-xs">
+                <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 {season?.status === "IN_PROGRESS"
-                  ? "Lig Bitişine Kalan Süre"
+                  ? "Lig Bitişine Kalan"
                   : season?.status === "REGISTRATION_OPEN"
                   ? "Lig Başlangıcına Kalan"
                   : "Geri Sayım"}
               </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/20 font-mono font-bold text-white">
+              <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-white/20 font-mono font-bold text-white">
                 {season?.status === "IN_PROGRESS"
                   ? "CANLI LİG"
                   : season?.status === "REGISTRATION_OPEN"
@@ -327,30 +327,30 @@ export default function YouthLeague() {
             </div>
 
             {/* Countdown Grid */}
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="bg-white/10 rounded-2xl p-2.5">
-                <div className="text-xl sm:text-2xl font-black font-mono">{timeLeft.days}</div>
-                <div className="text-[10px] text-red-200 uppercase font-semibold">Gün</div>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
+              <div className="bg-white/10 rounded-2xl p-2 sm:p-2.5">
+                <div className="text-lg sm:text-2xl font-black font-mono">{timeLeft.days}</div>
+                <div className="text-[9px] sm:text-[10px] text-red-200 uppercase font-semibold">Gün</div>
               </div>
-              <div className="bg-white/10 rounded-2xl p-2.5">
-                <div className="text-xl sm:text-2xl font-black font-mono">{timeLeft.hours}</div>
-                <div className="text-[10px] text-red-200 uppercase font-semibold">Saat</div>
+              <div className="bg-white/10 rounded-2xl p-2 sm:p-2.5">
+                <div className="text-lg sm:text-2xl font-black font-mono">{timeLeft.hours}</div>
+                <div className="text-[9px] sm:text-[10px] text-red-200 uppercase font-semibold">Saat</div>
               </div>
-              <div className="bg-white/10 rounded-2xl p-2.5">
-                <div className="text-xl sm:text-2xl font-black font-mono">{timeLeft.minutes}</div>
-                <div className="text-[10px] text-red-200 uppercase font-semibold">Dk</div>
+              <div className="bg-white/10 rounded-2xl p-2 sm:p-2.5">
+                <div className="text-lg sm:text-2xl font-black font-mono">{timeLeft.minutes}</div>
+                <div className="text-[9px] sm:text-[10px] text-red-200 uppercase font-semibold">Dk</div>
               </div>
-              <div className="bg-white/10 rounded-2xl p-2.5">
-                <div className="text-xl sm:text-2xl font-black font-mono">{timeLeft.seconds}</div>
-                <div className="text-[10px] text-red-200 uppercase font-semibold">Sn</div>
+              <div className="bg-white/10 rounded-2xl p-2 sm:p-2.5">
+                <div className="text-lg sm:text-2xl font-black font-mono">{timeLeft.seconds}</div>
+                <div className="text-[9px] sm:text-[10px] text-red-200 uppercase font-semibold">Sn</div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-red-200">
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs text-red-200">
               <span>Toplam Katılımcı:</span>
               <span className="font-bold text-white">{season?.totalParticipants || 0} Genç</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-red-200">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs text-red-200">
               <span>Oynanan Maçlar:</span>
               <span className="font-bold text-white">{season?.totalMatches || 0} Maç</span>
             </div>
@@ -360,41 +360,41 @@ export default function YouthLeague() {
 
       {/* 2. USER STATS CARD (If Registered) */}
       {isRegistered && userParticipation && (
-        <Card className="p-6 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/80 dark:border-blue-800/40 rounded-3xl">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md">
+        <Card className="p-4 sm:p-6 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/80 dark:border-blue-800/40 rounded-3xl overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0">
                 #{userParticipation.rank}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">Lig Performansın</h3>
-                  <Badge variant="primary" className="text-xs">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Lig Performansın</h3>
+                  <Badge variant="primary" className="text-[10px] sm:text-xs">
                     {userParticipation.ageGroup} Yaş Kategorisi
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Her kazandığın maç ve hızlı cevap seni zirveye taşır!
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 text-center w-full sm:w-auto">
-              <div className="bg-white/80 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm min-w-[90px]">
-                <div className="text-xs text-slate-500 font-medium">Toplam Puan</div>
-                <div className="text-lg font-black text-blue-600 dark:text-blue-400">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center w-full sm:w-auto">
+              <div className="bg-white/80 dark:bg-slate-900/60 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] sm:text-xs text-slate-500 font-medium">Toplam Puan</div>
+                <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400">
                   {userParticipation.totalPoints}
                 </div>
               </div>
-              <div className="bg-white/80 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm min-w-[90px]">
-                <div className="text-xs text-slate-500 font-medium">Galibiyet</div>
-                <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                  {userParticipation.matchesWon} / {userParticipation.matchesPlayed}
+              <div className="bg-white/80 dark:bg-slate-900/60 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] sm:text-xs text-slate-500 font-medium">Galibiyet</div>
+                <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                  {userParticipation.matchesWon}/{userParticipation.matchesPlayed}
                 </div>
               </div>
-              <div className="bg-white/80 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm min-w-[90px]">
-                <div className="text-xs text-slate-500 font-medium">Doğru Cevap</div>
-                <div className="text-lg font-black text-amber-600 dark:text-amber-400">
+              <div className="bg-white/80 dark:bg-slate-900/60 p-2.5 sm:p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-[10px] sm:text-xs text-slate-500 font-medium">Doğru Cevap</div>
+                <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
                   {userParticipation.correctAnswersCount}
                 </div>
               </div>

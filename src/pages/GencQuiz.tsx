@@ -384,28 +384,28 @@ export function GencQuiz() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-x-hidden">
       {/* HERO HEADER - DISTINCT GENÇ SOSYAL BRANDING */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-900 via-blue-900 to-slate-950 p-6 sm:p-10 text-white shadow-xl border border-white/10">
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-900 via-blue-900 to-slate-950 p-5 sm:p-10 text-white shadow-xl border border-white/10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold uppercase tracking-wider text-blue-200">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Canlı Quiz Odaları & Çok Oyunculu Bilgi Arenası</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-200">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Canlı Quiz Odaları & Bilgi Arenası</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
               Genç Quiz
             </h1>
-            <p className="text-sm sm:text-base text-blue-100/90 font-medium leading-relaxed">
+            <p className="text-xs sm:text-base text-blue-100/90 font-medium leading-relaxed">
               Arkadaşlarınla aynı anda canlı odalara katıl, 6 haneli oda koduyla arkadaşlarına meydan oku, kendi soru setlerini hazırla veya genel bilgi havuzunda hızını kanıtla!
             </p>
           </div>
 
           {/* QUICK JOIN BOX IN HERO */}
-          <div className="bg-white/10 backdrop-blur-xl p-5 rounded-2xl border border-white/20 sm:min-w-[320px] shadow-2xl space-y-3">
+          <div className="bg-white/10 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/20 w-full md:w-80 shrink-0 shadow-2xl space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-200">
               <Gamepad2 className="w-4 h-4 text-emerald-400" />
               <span>Hızlı Quiz'e Katıl</span>

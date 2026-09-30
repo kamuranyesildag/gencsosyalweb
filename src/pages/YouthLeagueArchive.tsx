@@ -60,7 +60,7 @@ export default function YouthLeagueArchive() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="space-y-1">
         <Link
@@ -70,11 +70,11 @@ export default function YouthLeagueArchive() {
           <ArrowLeft className="w-3.5 h-3.5" />
           Gençlik Ligi Ana Sayfası
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <Archive className="w-7 h-7 text-red-600" />
-          Geçmiş Sezonlar Arşivi
+        <h1 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <Archive className="w-6 h-6 sm:w-7 sm:h-7 text-red-600 shrink-0" />
+          <span>Geçmiş Sezonlar Arşivi</span>
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
           Her yıl 19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı'nda düzenlenen ligin altın geçmişi.
         </p>
       </div>

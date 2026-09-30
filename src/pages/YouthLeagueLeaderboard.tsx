@@ -78,7 +78,7 @@ export default function YouthLeagueLeaderboard() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-6 space-y-6 overflow-x-hidden">
       {/* Top Navigation & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -89,17 +89,17 @@ export default function YouthLeagueLeaderboard() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Gençlik Ligi Ana Sayfası
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Trophy className="w-7 h-7 text-amber-500" />
-            Canlı Liderlik Tablosu
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 shrink-0" />
+            <span>Canlı Liderlik Tablosu</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
             Öğrenci güvenliği ve gizliliği gereği sadece platform içi kullanıcı adı ve yarışma skorları listelenir.
           </p>
         </div>
 
         {/* Age Group Filters */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl shrink-0 overflow-x-auto no-scrollbar max-w-full">
           {[
             { key: "all", label: "Tümü" },
             { key: "13-15", label: "13–15 Yaş" },

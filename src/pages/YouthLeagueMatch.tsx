@@ -236,52 +236,52 @@ export default function YouthLeagueMatch() {
   const opponentName = match.isVsBot ? match.botName || "BilgeGenç_06" : "Rakip Genç";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6 overflow-x-hidden">
       {/* 1. TOP ARENA STATUS BAR */}
-      <div className="bg-slate-900 text-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-800 flex items-center justify-between">
+      <div className="bg-slate-900 text-white rounded-3xl p-3.5 sm:p-6 shadow-xl border border-slate-800 flex items-center justify-between gap-2">
         {/* Player 1 (User) */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 max-w-[42%]">
           <Avatar
             url={user?.avatarUrl || undefined}
             name={user?.username || "Sen"}
-            size="md"
-            className="ring-2 ring-blue-500"
+            size="sm"
+            className="ring-2 ring-blue-500 shrink-0"
           />
-          <div>
-            <div className="font-extrabold text-sm text-white flex items-center gap-1.5">
-              @{user?.username || "Sen"}
-              <Badge variant="primary" className="text-[10px] py-0">SEN</Badge>
+          <div className="min-w-0">
+            <div className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-1 truncate">
+              <span className="truncate">@{user?.username || "Sen"}</span>
+              <Badge variant="primary" className="text-[9px] sm:text-[10px] py-0 px-1 shrink-0">SEN</Badge>
             </div>
-            <div className="text-lg font-black text-blue-400 font-mono">
-              {match.player1Score} <span className="text-xs font-normal text-slate-400">Puan</span>
+            <div className="text-sm sm:text-lg font-black text-blue-400 font-mono">
+              {match.player1Score} <span className="text-[10px] sm:text-xs font-normal text-slate-400">P</span>
             </div>
           </div>
         </div>
 
         {/* VS Badge & Stage */}
-        <div className="flex flex-col items-center justify-center px-4">
-          <div className="w-10 h-10 rounded-full bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center font-black text-xs shadow-inner">
+        <div className="flex flex-col items-center justify-center px-1 sm:px-4 shrink-0">
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center font-black text-[10px] sm:text-xs shadow-inner">
             VS
           </div>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mt-1">
+          <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-slate-400 mt-1 whitespace-nowrap">
             {match.stage === "QUALIFIERS" ? "Eleme Turu" : match.stage}
           </span>
         </div>
 
         {/* Player 2 (Opponent / Bot) */}
-        <div className="flex items-center gap-3 text-right">
-          <div>
-            <div className="font-extrabold text-sm text-white flex items-center justify-end gap-1.5">
-              <Badge variant="outline" className="text-[10px] py-0 text-slate-300 border-slate-700">
-                {match.isVsBot ? "BOT RAKİP" : "RAKİP"}
+        <div className="flex items-center justify-end gap-2 sm:gap-3 text-right min-w-0 max-w-[42%]">
+          <div className="min-w-0">
+            <div className="font-extrabold text-xs sm:text-sm text-white flex items-center justify-end gap-1 truncate">
+              <Badge variant="outline" className="text-[9px] sm:text-[10px] py-0 px-1 text-slate-300 border-slate-700 shrink-0">
+                {match.isVsBot ? "BOT" : "RAKİP"}
               </Badge>
-              @{opponentName}
+              <span className="truncate">@{opponentName}</span>
             </div>
-            <div className="text-lg font-black text-rose-400 font-mono">
-              {match.player2Score} <span className="text-xs font-normal text-slate-400">Puan</span>
+            <div className="text-sm sm:text-lg font-black text-rose-400 font-mono">
+              {match.player2Score} <span className="text-[10px] sm:text-xs font-normal text-slate-400">P</span>
             </div>
           </div>
-          <Avatar name={opponentName} size="md" className="ring-2 ring-rose-500" />
+          <Avatar name={opponentName} size="sm" className="ring-2 ring-rose-500 shrink-0" />
         </div>
       </div>
 

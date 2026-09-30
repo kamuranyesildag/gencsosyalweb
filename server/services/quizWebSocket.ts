@@ -335,6 +335,21 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
             break;
           }
 
+          case "LOBBY_REACTION": {
+            if (!ws.userId || !ws.roomCode) return;
+            const room = activeRoomsByCode.get(ws.roomCode);
+            if (!room) return;
+
+            const emoji = payload?.emoji || "🔥";
+            broadcastToRoom(room, "LOBBY_REACTION", {
+              userId: ws.userId,
+              username: ws.username || "Oyuncu",
+              emoji,
+              id: `${Date.now()}_${Math.random()}`,
+            });
+            break;
+          }
+
           case "LEAVE_ROOM": {
             handlePlayerLeave(ws);
             break;
