@@ -634,9 +634,236 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             </footer>
           </main>
         `;
+      } else if (cleanPath === "/quiz") {
+        title = "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal";
+        description = "Arkadaşlarınla veya toplulukla canlı bilgi yarışması odaları kur, oda kodunu paylaş, düellolara katıl ve genel kültürünü test et.";
+        ogType = "game";
+
+        jsonLd.push(
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Ana Sayfa",
+                "item": domain
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Genç Quiz",
+                "item": `${domain}/quiz`
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "VideoGame",
+            "name": "Genç Quiz",
+            "description": "Gerçek zamanlı interaktif bilgi yarışması oyunu ve canlı lobi sistemi.",
+            "url": `${domain}/quiz`,
+            "genre": ["Trivia", "Quiz", "Educational", "Multiplayer"],
+            "gamePlatform": ["Web Browser", "Mobile Web"],
+            "numberOfPlayers": {
+              "@type": "QuantitativeValue",
+              "minValue": 1,
+              "maxValue": 100
+            }
+          }
+        );
+
+        semanticBody = `
+          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+            <header style="text-align:center;margin-bottom:32px;">
+              <h1 style="font-size:30px;font-weight:900;color:#0f172a;">Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması</h1>
+              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Arkadaşlarınla aynı anda yarışabileceğin, oda kodu ile anında katılınabilen gerçek zamanlı bilgi yarışması arenası.</p>
+              <div style="display:flex;justify-content:center;gap:12px;">
+                <a href="${domain}/quiz" style="padding:12px 24px;background:#4f46e5;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Hemen Yarışmaya Katıl</a>
+              </div>
+            </header>
+            <section style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px;">
+              <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Nasıl Oynanır?</h2>
+              <ol style="padding-left:20px;line-height:1.8;color:#334155;">
+                <li>Oda kurucusundan aldığınız 6 haneli oda kodunu girin.</li>
+                <li>Lobi ekranında diğer yarışmacılarla buluşun ve hazırlanın.</li>
+                <li>Soru süresi dolmadan en hızlı ve doğru cevabı vererek puanları toplayın!</li>
+              </ol>
+            </section>
+            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
+              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
+              <a href="${domain}/youth-league" style="color:#2563eb;font-weight:600;text-decoration:none;">19 Mayıs Gençlik Ligi</a>
+            </footer>
+          </main>
+        `;
+      } else if (cleanPath === "/youth-league") {
+        title = "19 Mayıs Gençlik Ligi — 1v1 Bilgi Arenası | Genç Sosyal";
+        description = "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı şerefine düzenlenen 1v1 düellolu, dinamik sıralamalı ve rozet ödüllü bilgi ligi.";
+        
+        jsonLd.push(
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Ana Sayfa",
+                "item": domain
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "19 Mayıs Gençlik Ligi",
+                "item": `${domain}/youth-league`
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Event",
+            "name": "19 Mayıs Gençlik Ligi",
+            "description": "Atatürk, Milli Mücadele, Bilim & Sanat temalı 1v1 düellolu lig yarışması.",
+            "startDate": "2026-05-01T00:00:00+03:00",
+            "endDate": "2026-05-31T23:59:59+03:00",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+            "location": {
+              "@type": "VirtualLocation",
+              "url": `${domain}/youth-league`
+            },
+            "organizer": {
+              "@type": "Organization",
+              "name": "Genç Sosyal",
+              "url": domain
+            }
+          }
+        );
+
+        semanticBody = `
+          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+            <header style="text-align:center;margin-bottom:32px;">
+              <h1 style="font-size:30px;font-weight:900;color:#dc2626;">19 Mayıs Gençlik Ligi</h1>
+              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Milli Mücadele ruhunu, cumhuriyet tarihini ve bilim kültürünü yaşatan 1v1 düellolarla şampiyonluk yarışına katılın.</p>
+              <div style="display:flex;justify-content:center;gap:12px;">
+                <a href="${domain}/youth-league" style="padding:12px 24px;background:#dc2626;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Lig Düellosuna Başla</a>
+                <a href="${domain}/youth-league/leaderboard" style="padding:12px 24px;background:#f1f5f9;color:#0f172a;border-radius:12px;text-decoration:none;font-weight:700;">Liderlik Tablosu</a>
+              </div>
+            </header>
+            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
+              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
+              <a href="${domain}/quiz" style="color:#2563eb;font-weight:600;text-decoration:none;">Genç Quiz</a>
+            </footer>
+          </main>
+        `;
+      } else if (cleanPath === "/youth-league/leaderboard") {
+        title = "19 Mayıs Gençlik Ligi Liderlik Tablosu | Genç Sosyal";
+        description = "Gençlik Ligi en yüksek puanlı yarışmacıları, şampiyonlar sıralaması ve kazanılan unvanlar.";
+        
+        jsonLd.push({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Ana Sayfa",
+              "item": domain
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "19 Mayıs Gençlik Ligi",
+              "item": `${domain}/youth-league`
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "Liderlik Tablosu",
+              "item": `${domain}/youth-league/leaderboard`
+            }
+          ]
+        });
+      } else if (cleanPath === "/faq") {
+        title = "Sıkça Sorulan Sorular (SSS) | Genç Sosyal";
+        description = "Genç Sosyal platformu, projeler, topluluklar ve Genç Quiz hakkında en çok sorulan soruların yanıtları.";
+        
+        jsonLd.push(
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Ana Sayfa",
+                "item": domain
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Sıkça Sorulan Sorular",
+                "item": `${domain}/faq`
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Genç Sosyal nedir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Genç Sosyal, genç yazılımcı, tasarımcı ve üreticilerin projelerini sergilediği, topluluklar kurduğu ve gerçek zamanlı quizlerle yarıştığı sosyal platformdur."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Genç Quiz nasıl oynanır?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Oda kodu girerek veya kendi odanızı oluşturarak arkadaşlarınızla çok oyunculu bilgi yarışması yapabilirsiniz."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Genç Sosyal'e katılım ücretli mi?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Hayır, Genç Sosyal platformuna üye olmak ve tüm özellikleri kullanmak tamamen ücretsizdir."
+                }
+              }
+            ]
+          }
+        );
+      } else if (cleanPath === "/about") {
+        title = "Hakkımızda | Genç Sosyal";
+        description = "Genç Sosyal'in kuruluş amacı, vizyonu ve genç üreticileri destekleyen açık kaynak misyonu.";
+        
+        jsonLd.push({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Ana Sayfa",
+              "item": domain
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Hakkımızda",
+              "item": `${domain}/about`
+            }
+          ]
+        });
       } else if (cleanPath === "/explore") {
-        title = "Keşfet | Genç Sosyal";
-        description = "Genç Sosyal'de popüler etiketleri, öne çıkan üreticileri ve trend tartışmaları keşfedin.";
+        title = "Keşfet — Trend Projeler ve Topluluklar | Genç Sosyal";
+        description = "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.";
         
         // Search queries should be noindex
         if (req.query.q) {
@@ -644,20 +871,20 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           title = `"${escapeHtml(String(req.query.q))}" için Arama Sonuçları | Genç Sosyal`;
         }
       } else if (cleanPath === "/projects") {
-        title = "Projeler | Genç Sosyal";
-        description = "Genç yazılımcı ve üreticilerin hayata geçirdiği projeleri inceleyin, geri bildirimde bulunun ve destek olun.";
+        title = "Projeler — Genç Üretici ve Yazılım Projeleri | Genç Sosyal";
+        description = "Genç yazılımcı, tasarımcı ve mühendislerin geliştirdiği açık kaynak ve yenilikçi projeleri inceleyin, geri bildirim verin ve ortaklık kurun.";
       } else if (cleanPath === "/communities") {
-        title = "Topluluklar | Genç Sosyal";
-        description = "İlgi alanlarınıza uygun genç teknoloji ve üretim topluluklarına katılın.";
+        title = "Topluluklar — Teknoloji ve Üretim Grupları | Genç Sosyal";
+        description = "Yazılım, yapay zeka, tasarım, robotik ve girişimcilik alanındaki genç topluluklara katılın; etkinlikler düzenleyin ve birlikte üretin.";
       } else if (cleanPath === "/privacy") {
-        title = "Gizlilik İlkeleri | Genç Sosyal";
-        description = "Genç Sosyal kullanıcı gizliliği ve veri güvenliği politikası.";
+        title = "Gizlilik İlkeleri ve Veri Güvenliği | Genç Sosyal";
+        description = "Genç Sosyal kullanıcı gizliliği, kişisel verilerin korunması (KVKK) ve platform bilgi güvenliği ilkeleri hakkında detaylı bilgilendirme.";
       } else if (cleanPath === "/terms") {
-        title = "Kullanım Şartları | Genç Sosyal";
-        description = "Genç Sosyal platform kullanım şartları ve kuralları.";
+        title = "Kullanım Şartları ve Topluluk Kuralları | Genç Sosyal";
+        description = "Genç Sosyal platformu üyelik sözleşmesi, kullanıcı hakları, topluluk ilkeleri ve hizmet şartları hakkında resmi bilgilendirme.";
       } else if (cleanPath === "/sitemap") {
-        title = "Site Haritası | Genç Sosyal";
-        description = "Genç Sosyal platformundaki tüm açık ve indekslenebilir sayfalara, projelere ve topluluklara hızlı erişim.";
+        title = "Site Haritası — Tüm Sayfalar ve Dizin | Genç Sosyal";
+        description = "Genç Sosyal platformundaki tüm açık projelere, topluluklara, quiz odalarına ve bilgi sayfalarına hızlı ve kolay erişim dizini.";
         semanticBody = `
           <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
             <header style="margin-bottom:28px;">

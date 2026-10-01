@@ -34,8 +34,9 @@ interface Participant {
 
 export default function YouthLeagueLeaderboard() {
   useSEO({
-    title: "Canlı Liderlik Tablosu | 19 Mayıs Gençlik Ligi",
-    description: "19 Mayıs Gençlik Ligi resmi sıralaması. Yaş gruplarına göre en yüksek puan toplayan genç yetenekler.",
+    title: "Liderlik Tablosu ve Sıralama — 19 Mayıs Ligi | Genç Sosyal",
+    description: "19 Mayıs Gençlik Ligi resmi canlı liderlik tablosu. Yaş gruplarına göre en yüksek puanı toplayan şampiyonları ve sıralamaları keşfedin.",
+    canonicalPath: "/youth-league/leaderboard"
   });
 
   const { user } = useAuthStore();

@@ -85,8 +85,9 @@ interface LeagueData {
 
 export default function YouthLeague() {
   useSEO({
-    title: "19 Mayıs Gençlik Ligi | Genç Sosyal",
+    title: "19 Mayıs Gençlik Ligi — 1v1 Bilgi Düelloları | Genç Sosyal",
     description: "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı Bilgi ve Yetenek Ligi. Tarih, bilim, teknoloji ve sporda Türkiye'nin gençleriyle yarış!",
+    canonicalPath: "/youth-league"
   });
 
   const { isAuthenticated, user } = useAuthStore();

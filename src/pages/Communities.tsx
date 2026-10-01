@@ -40,8 +40,8 @@ const CATEGORIES = [
 
 export function Communities() {
   useSEO({ 
-    title: "Topluluklar | Genç Sosyal", 
-    description: "İlgi alanlarınıza uygun genç teknoloji ve üretim topluluklarına katılın.",
+    title: "Topluluklar — Teknoloji ve Üretim Grupları | Genç Sosyal", 
+    description: "Yazılım, yapay zeka, tasarım, robotik ve girişimcilik alanındaki genç topluluklara katılın; etkinlikler düzenleyin ve birlikte üretin.",
     canonicalPath: "/communities"
   });
 

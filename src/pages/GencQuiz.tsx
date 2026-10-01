@@ -58,7 +58,8 @@ const TIME_LIMITS = [10, 15, 20, 30, 60];
 export function GencQuiz() {
   useSEO({
     title: "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal",
-    description: "Arkadaşlarınla gerçek zamanlı quiz odalarında yarış, kendi soru setlerini oluştur ve sıralamada yüksel!",
+    description: "Arkadaşlarınla canlı bilgi yarışması odaları kur, oda kodunu paylaş, genel kültür ve teknoloji sorularıyla 1v1 düellolara katıl ve zirveye yerleş!",
+    canonicalPath: "/quiz"
   });
 
   const { user, isAuthenticated, accessToken } = useAuthStore();

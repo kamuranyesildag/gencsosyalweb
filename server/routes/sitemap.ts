@@ -106,8 +106,13 @@ sitemapRouter.get("/sitemap.xml", async (req, res) => {
     const statics = [
       { path: "", priority: "1.0", changefreq: "daily" },
       { path: "/explore", priority: "0.9", changefreq: "hourly" },
+      { path: "/quiz", priority: "0.9", changefreq: "daily" },
+      { path: "/youth-league", priority: "0.9", changefreq: "daily" },
+      { path: "/youth-league/leaderboard", priority: "0.8", changefreq: "daily" },
       { path: "/projects", priority: "0.9", changefreq: "daily" },
       { path: "/communities", priority: "0.8", changefreq: "daily" },
+      { path: "/faq", priority: "0.7", changefreq: "weekly" },
+      { path: "/about", priority: "0.7", changefreq: "monthly" },
       { path: "/sitemap", priority: "0.5", changefreq: "weekly" },
       { path: "/privacy", priority: "0.3", changefreq: "monthly" },
       { path: "/terms", priority: "0.3", changefreq: "monthly" },

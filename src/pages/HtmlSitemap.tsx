@@ -6,8 +6,8 @@ import { fetchApi } from "../lib/api";
 
 export function HtmlSitemap() {
   useSEO({
-    title: "Site Haritası | Genç Sosyal",
-    description: "Genç Sosyal platformundaki tüm açık ve indekslenebilir sayfalara, projelere ve topluluklara hızlı erişim.",
+    title: "Site Haritası — Tüm Sayfalar ve Dizin | Genç Sosyal",
+    description: "Genç Sosyal platformundaki tüm açık projelere, topluluklara, quiz odalarına ve bilgi sayfalarına hızlı ve kolay erişim dizini.",
     canonicalPath: "/sitemap",
   });
 

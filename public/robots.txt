@@ -1,0 +1,40 @@
+# Genç Sosyal robots.txt
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /quiz
+Allow: /youth-league
+Allow: /youth-league/leaderboard
+Allow: /youth-league/archive
+Allow: /projects
+Allow: /projects/*
+Allow: /communities
+Allow: /communities/*
+Allow: /profile/*
+Allow: /hashtag/*
+Allow: /hashtags/*
+Allow: /faq
+Allow: /about
+Allow: /privacy
+Allow: /terms
+Allow: /sitemap
+
+# Disallow private user-specific and authenticated areas
+Disallow: /api/
+Disallow: /messages
+Disallow: /settings
+Disallow: /admin
+Disallow: /notifications
+Disallow: /bookmarks
+Disallow: /create
+Disallow: /onboarding
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /account-suspended
+Disallow: /support
+
+# Sitemap location
+Sitemap: https://gencsosyal.com/sitemap.xml

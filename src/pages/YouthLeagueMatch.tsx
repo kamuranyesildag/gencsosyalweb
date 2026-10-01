@@ -55,8 +55,9 @@ interface MatchState {
 
 export default function YouthLeagueMatch() {
   useSEO({
-    title: "1v1 Bilgi Düellosu | 19 Mayıs Gençlik Ligi",
-    description: "19 Mayıs Gençlik Ligi canlı bilgi ve yetenek düellosu!",
+    title: "1v1 Canlı Bilgi Düellosu — 19 Mayıs Ligi | Genç Sosyal",
+    description: "19 Mayıs Gençlik Ligi 1v1 canlı bilgi düellosu! Rakibinle yarış, süre dolmadan soruları doğru cevapla ve lig puanlarını topla.",
+    allowIndexing: false,
   });
 
   const { id } = useParams<{ id: string }>();

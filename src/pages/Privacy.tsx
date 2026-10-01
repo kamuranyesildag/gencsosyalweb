@@ -7,8 +7,8 @@ export function Privacy() {
   const navigate = useNavigate();
 
   useSEO({
-    title: "Gizlilik Politikası | Genç Sosyal",
-    description: "Genç Sosyal gizlilik politikası ve kişisel verilerin korunması hakkında bilgilendirme.",
+    title: "Gizlilik İlkeleri ve Veri Güvenliği | Genç Sosyal",
+    description: "Genç Sosyal kullanıcı gizliliği, kişisel verilerin korunması (KVKK) ve platform bilgi güvenliği ilkeleri hakkında detaylı bilgilendirme.",
     canonicalPath: "/privacy",
   });
 

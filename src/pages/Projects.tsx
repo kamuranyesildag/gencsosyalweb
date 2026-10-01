@@ -36,8 +36,8 @@ const getStatusText = (status: string) => {
 
 export function Projects() {
   useSEO({ 
-    title: "Projeler | Genç Sosyal", 
-    description: "Genç yazılımcı ve üreticilerin hayata geçirdiği projeleri inceleyin, geri bildirimde bulunun ve destek olun.",
+    title: "Projeler — Genç Üretici ve Yazılım Projeleri | Genç Sosyal", 
+    description: "Genç yazılımcı, tasarımcı ve mühendislerin geliştirdiği açık kaynak ve yenilikçi projeleri inceleyin, geri bildirim verin ve ortaklık kurun.",
     canonicalPath: "/projects"
   });
   const navigate = useNavigate();

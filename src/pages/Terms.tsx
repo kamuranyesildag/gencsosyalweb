@@ -8,8 +8,8 @@ export function Terms() {
   const navigate = useNavigate();
 
   useSEO({
-    title: "Kullanım Şartları | Genç Sosyal",
-    description: "Genç Sosyal kullanım ve üyelik şartları sözleşmesi.",
+    title: "Kullanım Şartları ve Topluluk Kuralları | Genç Sosyal",
+    description: "Genç Sosyal platformu üyelik sözleşmesi, kullanıcı hakları, topluluk ilkeleri ve hizmet şartları hakkında resmi bilgilendirme.",
     canonicalPath: "/terms",
   });
 

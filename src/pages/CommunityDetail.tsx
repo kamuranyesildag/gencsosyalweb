@@ -66,8 +66,12 @@ export function CommunityDetail() {
   } = usePagination(community ? `/communities/${community.id}/posts` : "");
 
   useSEO({
-    title: community ? `${community.name} | Genç Sosyal` : undefined,
-    description: community?.description ? community.description.substring(0, 150) : undefined,
+    title: community ? `${community.name} — Topluluk | Genç Sosyal` : "Topluluk Detayı | Genç Sosyal",
+    description: community?.description 
+      ? (community.description.length < 110 
+          ? `${community.description}. ${community.name} topluluğuna katılın, tartışmalara dahil olun ve üretin.`
+          : community.description.substring(0, 155))
+      : "Genç Sosyal topluluğuna katılın, tartışmalara dahil olun ve genç üreticilerle iş birliği yapın.",
     canonicalPath: slug ? `/communities/${slug}` : undefined,
     ogImage: community?.avatarUrl,
   });

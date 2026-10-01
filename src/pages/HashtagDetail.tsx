@@ -15,8 +15,8 @@ export function HashtagDetail() {
   const [hashtagInfo, setHashtagInfo] = useState<any>(null);
 
   useSEO({
-    title: name ? `#${name} | Genç Sosyal` : "Hashtag | Genç Sosyal",
-    description: name ? `#${name} etiketi altındaki popüler gönderileri, projeleri ve genç yazılımcı tartışmalarını keşfedin.` : undefined,
+    title: name ? `#${name} Etiketi — Trend Gönderiler | Genç Sosyal` : "Hashtag | Genç Sosyal",
+    description: name ? `#${name} etiketi altındaki en popüler yazılım projelerini, teknoloji gönderilerini ve genç üretici tartışmalarını hemen keşfedin.` : "Genç Sosyal etiket akışındaki popüler içerikleri keşfedin.",
     canonicalPath: name ? `/hashtags/${encodeURIComponent(name)}` : undefined,
   });
 

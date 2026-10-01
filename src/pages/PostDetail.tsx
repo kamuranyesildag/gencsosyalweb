@@ -259,8 +259,12 @@ export function PostDetail() {
   } = usePagination(`/posts/${id}/comments`);
 
   useSEO({
-    title: post ? `${post.user?.displayName || post.user?.username} tarafından paylaşılan gönderi | Genç Sosyal` : undefined,
-    description: post?.content ? (post.content.length > 150 ? post.content.substring(0, 150) + "..." : post.content) : (post ? `${post.user?.displayName || post.user?.username} tarafından paylaşılan gönderi.` : undefined),
+    title: post ? `${post.user?.displayName || post.user?.username} (@${post.user?.username}) Gönderisi | Genç Sosyal` : "Gönderi Detayı | Genç Sosyal",
+    description: post?.content 
+      ? (post.content.length < 110 
+          ? `${post.content}. Genç Sosyal'de ${post.user?.displayName || post.user?.username} tarafından paylaşılan gönderiyi ve tartışmaları inceleyin.`
+          : (post.content.length > 155 ? post.content.substring(0, 152) + "..." : post.content))
+      : (post ? `${post.user?.displayName || post.user?.username} tarafından paylaşılan gönderiyi ve yorumları Genç Sosyal'de inceleyin.` : "Genç Sosyal topluluğunda paylaşılan gönderiyi ve tartışmaları inceleyin."),
     canonicalPath: id ? `/post/${id}` : undefined,
     allowIndexing: post ? (post.visibility === "PUBLIC" && post.moderationStatus === "APPROVED" && (post.user?.allowSearchEngineIndexing ?? true) && !post.user?.isPrivate) : false,
     ogImage: post?.mediaUrls?.[0] || post?.user?.avatarUrl,

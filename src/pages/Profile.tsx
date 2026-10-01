@@ -67,8 +67,12 @@ export function Profile() {
 
   useSEO({
     allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
-    title: profile ? `${profile.displayName || profile.username} (@${profile.username}) | Genç Sosyal` : undefined,
-    description: profile?.bio ? profile.bio.substring(0, 150) : (profile ? `${profile.displayName || profile.username} (@${profile.username}) profilini Genç Sosyal'de inceleyin. Projeleri, gönderileri ve paylaşımlarını keşfedin.` : undefined),
+    title: profile ? `${profile.displayName || profile.username} (@${profile.username}) | Genç Sosyal` : "Kullanıcı Profili | Genç Sosyal",
+    description: profile?.bio 
+      ? (profile.bio.length < 110 
+          ? `${profile.bio}. ${profile.displayName || profile.username} profilini Genç Sosyal'de keşfedin, projelerini inceleyin.`
+          : profile.bio.substring(0, 155))
+      : (profile ? `${profile.displayName || profile.username} (@${profile.username}) üretici profilini Genç Sosyal'de keşfedin. Projelerini, paylaşımlarını ve topluluklarını inceleyin.` : "Genç Sosyal üretici profilini inceleyin, projelerini ve paylaşımlarını keşfedin."),
     canonicalPath: profile?.username ? `/profile/${profile.username}` : undefined,
     ogImage: profile?.avatarUrl,
   });

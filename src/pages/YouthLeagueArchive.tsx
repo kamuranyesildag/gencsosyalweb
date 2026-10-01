@@ -34,8 +34,9 @@ interface SeasonArchiveItem {
 
 export default function YouthLeagueArchive() {
   useSEO({
-    title: "Geçmiş Sezonlar Arşivi | 19 Mayıs Gençlik Ligi",
-    description: "19 Mayıs Gençlik Ligi geçmiş sezonları, şampiyonları ve istatistikleri.",
+    title: "Geçmiş Sezonlar ve Şampiyonlar — 19 Mayıs Ligi | Genç Sosyal",
+    description: "19 Mayıs Gençlik Ligi geçmiş sezon şampiyonları, final maçları istatistikleri ve turnuva arşivini detaylı olarak inceleyin.",
+    canonicalPath: "/youth-league/archive"
   });
 
   const [loading, setLoading] = useState(true);

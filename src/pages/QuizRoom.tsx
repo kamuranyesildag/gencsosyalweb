@@ -95,8 +95,9 @@ export function QuizRoom() {
   const navigate = useNavigate();
 
   useSEO({
-    title: `Genç Quiz Oda #${code} | Genç Sosyal`,
-    description: "Canlı çok oyunculu Genç Quiz odası!",
+    title: code ? `Genç Quiz #${code} — Canlı Yarışma Odası | Genç Sosyal` : "Genç Quiz Canlı Oda | Genç Sosyal",
+    description: `Genç Quiz #${code || ""} odasında canlı bilgi yarışması mücadelesi! Soruları en hızlı sen yanıtla, arkadaşlarına meydan oku ve liderlik puanı kazan.`,
+    canonicalPath: code ? `/quiz/room/${code}` : undefined,
   });
 
   // Room State

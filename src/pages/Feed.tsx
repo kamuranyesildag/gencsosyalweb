@@ -40,8 +40,8 @@ interface Post {
 
 export function Feed() {
   useSEO({
-    title: "Akış | Genç Sosyal",
-    description: "Genç Sosyal akışınızda en güncel projeleri, fikirleri ve gönderileri keşfedin.",
+    title: "Akış — Keşfet ve Paylaş | Genç Sosyal",
+    description: "Genç Sosyal akışında genç yazılımcıların ve üreticilerin en yeni projelerini, güncel fikirlerini ve teknoloji paylaşımlarını canlı takip edin.",
     canonicalPath: "/home",
   });
 

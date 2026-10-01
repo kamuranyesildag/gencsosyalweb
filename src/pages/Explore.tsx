@@ -32,8 +32,8 @@ export function Explore() {
   const [error, setError] = useState<string | null>(null);
 
   useSEO({ 
-    title: query.trim() ? `"${query}" Arama Sonuçları | Genç Sosyal` : "Keşfet | Genç Sosyal", 
-    description: "Genç Sosyal'de popüler etiketleri, öne çıkan üreticileri ve trend tartışmaları keşfedin.",
+    title: query.trim() ? `"${query}" Arama Sonuçları | Genç Sosyal` : "Keşfet — Trend Projeler ve Topluluklar | Genç Sosyal", 
+    description: "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.",
     canonicalPath: "/explore",
     allowIndexing: !query.trim()
   });

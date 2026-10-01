@@ -78,8 +78,12 @@ export function ProjectDetail() {
   const [copied, setCopied] = useState(false);
 
   useSEO({
-    title: project ? `${project.title} | Genç Sosyal` : undefined,
-    description: project?.description ? project.description.substring(0, 150) : undefined,
+    title: project ? `${project.title} — Proje Detayı | Genç Sosyal` : "Proje Detayı | Genç Sosyal",
+    description: project?.description 
+      ? (project.description.length < 120 
+          ? `${project.description}. Genç Sosyal'de projeyi inceleyin, geliştiriciye destek olun ve yorum yapın.`
+          : project.description.substring(0, 155))
+      : "Genç Sosyal'de geliştirilen yenilikçi projeyi inceleyin, geri bildirimde bulunun.",
     canonicalPath: id ? `/projects/${id}` : undefined,
     allowIndexing: !error && !!project,
     ogImage: project?.imageUrl || undefined,
