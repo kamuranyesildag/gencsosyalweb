@@ -1412,6 +1412,176 @@ export const quizInvites = pgTable('quiz_invites', {
   receiverIdx: index('quiz_invites_receiver_idx').on(t.receiverId),
 }));
 
+// --- FAZ 69: TEKNOFEST KÖŞESİ (FESTIVAL & EVENT ARCHIVE) ---
+
+export const teknofestEvents = pgTable('teknofest_events', {
+  id: serial('id').primaryKey(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(), // e.g. "2026", "2025", "2027"
+  title: varchar('title', { length: 150 }).notNull(), // e.g. "TEKNOFEST 2026"
+  theme: varchar('theme', { length: 255 }), // e.g. "Geleceğin Teknolojileri ve Havacılık"
+  description: text('description').notNull(),
+  location: varchar('location', { length: 150 }).notNull(), // e.g. "İstanbul — Atatürk Havalimanı"
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date').notNull(),
+  coverImageUrl: text('cover_image_url'),
+  status: varchar('status', { length: 30 }).default('COMPLETED').notNull(), // 'UPCOMING', 'ACTIVE', 'COMPLETED', 'ARCHIVED'
+  isFeatured: boolean('is_featured').default(true).notNull(),
+  stats: jsonb('stats').default({
+    visitorCount: '1.2M+',
+    projectCount: '1,500+',
+    competitionsCount: '44',
+    teamCount: '25,000+'
+  }),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  slugIdx: index('teknofest_events_slug_idx').on(t.slug),
+  statusIdx: index('teknofest_events_status_idx').on(t.status),
+}));
+
+export const teknofestCategories = pgTable('teknofest_categories', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => teknofestEvents.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 100 }).notNull(),
+  slug: varchar('slug', { length: 100 }).notNull(),
+  icon: varchar('icon', { length: 50 }).default('Camera').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  eventCategoryUnq: unique('teknofest_categories_event_slug_unq').on(t.eventId, t.slug),
+  eventIdIdx: index('teknofest_categories_event_id_idx').on(t.eventId),
+}));
+
+export const teknofestTimelineItems = pgTable('teknofest_timeline_items', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => teknofestEvents.id, { onDelete: 'cascade' }),
+  dateLabel: varchar('date_label', { length: 50 }).notNull(), // e.g. "30 Eylül", "01 Ekim"
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  icon: varchar('icon', { length: 50 }).default('Sparkles').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  eventIdIdx: index('teknofest_timeline_event_id_idx').on(t.eventId),
+}));
+
+export const teknofestMedia = pgTable('teknofest_media', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => teknofestEvents.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  categoryId: integer('category_id').references(() => teknofestCategories.id, { onDelete: 'set null' }),
+  postId: integer('post_id').references(() => posts.id, { onDelete: 'set null' }),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  mediaType: varchar('media_type', { length: 20 }).default('IMAGE').notNull(), // 'IMAGE', 'VIDEO'
+  mediaUrl: text('media_url').notNull(),
+  thumbnailUrl: text('thumbnail_url'),
+  title: varchar('title', { length: 200 }),
+  caption: text('caption'),
+  altText: varchar('alt_text', { length: 255 }),
+  credit: varchar('200', { length: 200 }).default('📷 Genç Sosyal Topluluğu').notNull(),
+  aspectRatio: varchar('aspect_ratio', { length: 20 }).default('4:3'), // '1:1', '4:3', '16:9', '3:4', '9:16'
+  duration: integer('duration'), // In seconds if video
+  viewsCount: integer('views_count').default(0).notNull(),
+  likesCount: integer('likes_count').default(0).notNull(),
+  isFeatured: boolean('is_featured').default(false).notNull(),
+  moderationStatus: varchar('moderation_status', { length: 20 }).default('APPROVED').notNull(), // 'PENDING', 'APPROVED', 'REJECTED'
+  rejectionReason: text('rejection_reason'),
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  eventIdIdx: index('teknofest_media_event_id_idx').on(t.eventId),
+  userIdIdx: index('teknofest_media_user_id_idx').on(t.userId),
+  categoryIdx: index('teknofest_media_category_id_idx').on(t.categoryId),
+  modStatusIdx: index('teknofest_media_mod_status_idx').on(t.moderationStatus),
+  isFeaturedIdx: index('teknofest_media_is_featured_idx').on(t.isFeatured),
+}));
+
+export const teknofestMemories = pgTable('teknofest_memories', {
+  id: serial('id').primaryKey(),
+  eventId: integer('event_id').notNull().references(() => teknofestEvents.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  postId: integer('post_id').references(() => posts.id, { onDelete: 'set null' }),
+  content: text('content').notNull(),
+  authorName: varchar('author_name', { length: 100 }),
+  authorTitle: varchar('author_title', { length: 150 }), // e.g. "İHA Takım Kaptanı", "Yarışmacı"
+  isFeatured: boolean('is_featured').default(false).notNull(),
+  moderationStatus: varchar('moderation_status', { length: 20 }).default('APPROVED').notNull(), // 'PENDING', 'APPROVED', 'REJECTED'
+  rejectionReason: text('rejection_reason'),
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  eventIdIdx: index('teknofest_memories_event_id_idx').on(t.eventId),
+  userIdIdx: index('teknofest_memories_user_id_idx').on(t.userId),
+  modStatusIdx: index('teknofest_memories_mod_status_idx').on(t.moderationStatus),
+}));
+
+export const teknofestEventsRelations = relations(teknofestEvents, ({ many }) => ({
+  categories: many(teknofestCategories),
+  timelineItems: many(teknofestTimelineItems),
+  media: many(teknofestMedia),
+  memories: many(teknofestMemories),
+}));
+
+export const teknofestCategoriesRelations = relations(teknofestCategories, ({ one, many }) => ({
+  event: one(teknofestEvents, {
+    fields: [teknofestCategories.eventId],
+    references: [teknofestEvents.id],
+  }),
+  media: many(teknofestMedia),
+}));
+
+export const teknofestTimelineItemsRelations = relations(teknofestTimelineItems, ({ one }) => ({
+  event: one(teknofestEvents, {
+    fields: [teknofestTimelineItems.eventId],
+    references: [teknofestEvents.id],
+  }),
+}));
+
+export const teknofestMediaRelations = relations(teknofestMedia, ({ one }) => ({
+  event: one(teknofestEvents, {
+    fields: [teknofestMedia.eventId],
+    references: [teknofestEvents.id],
+  }),
+  user: one(users, {
+    fields: [teknofestMedia.userId],
+    references: [users.id],
+  }),
+  category: one(teknofestCategories, {
+    fields: [teknofestMedia.categoryId],
+    references: [teknofestCategories.id],
+  }),
+  post: one(posts, {
+    fields: [teknofestMedia.postId],
+    references: [posts.id],
+  }),
+  project: one(projects, {
+    fields: [teknofestMedia.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const teknofestMemoriesRelations = relations(teknofestMemories, ({ one }) => ({
+  event: one(teknofestEvents, {
+    fields: [teknofestMemories.eventId],
+    references: [teknofestEvents.id],
+  }),
+  user: one(users, {
+    fields: [teknofestMemories.userId],
+    references: [users.id],
+  }),
+  post: one(posts, {
+    fields: [teknofestMemories.postId],
+    references: [posts.id],
+  }),
+}));
+
+
 
 
 

@@ -634,6 +634,81 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             </footer>
           </main>
         `;
+      } else if (cleanPath === "/teknofest" || cleanPath.startsWith("/teknofest/")) {
+        const teknofestSlug = cleanPath.replace("/teknofest/", "").replace("/teknofest", "") || "2026";
+        title = `TEKNOFEST ${teknofestSlug} Köşesi — Fotoğraf ve Anı Arşivi | Genç Sosyal`;
+        description = `TEKNOFEST ${teknofestSlug} etkinlik fotoğrafları, genç üreticilerin projeleri, unutulmayan anıları ve gün gün festival zaman tüneli arşivi.`;
+        ogType = "event";
+
+        jsonLd.push(
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Ana Sayfa",
+                "item": domain
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "TEKNOFEST Köşesi",
+                "item": `${domain}/teknofest`
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Event",
+            "name": `TEKNOFEST ${teknofestSlug}`,
+            "description": `TEKNOFEST ${teknofestSlug} havacılık, uzay ve teknoloji festivali etkinlik arşivi.`,
+            "startDate": "2026-09-30T09:00:00+03:00",
+            "endDate": "2026-10-04T19:00:00+03:00",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "location": {
+              "@type": "Place",
+              "name": "İstanbul Atatürk Havalimanı",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "İstanbul",
+                "addressCountry": "TR"
+              }
+            },
+            "organizer": {
+              "@type": "Organization",
+              "name": "Genç Sosyal",
+              "url": domain
+            }
+          }
+        );
+
+        semanticBody = `
+          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+            <header style="text-align:center;margin-bottom:32px;">
+              <h1 style="font-size:30px;font-weight:900;color:#0f172a;">TEKNOFEST Köşesi — Bilim, Teknoloji ve Unutulmayan Anılar</h1>
+              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST'te geride kalan fotoğrafları, yarışma projelerini ve gençlerin anılarını keşfet.</p>
+              <div style="display:flex;justify-content:center;gap:12px;">
+                <a href="${domain}/teknofest" style="padding:12px 24px;background:#0284c7;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Arşivi Keşfet</a>
+              </div>
+            </header>
+            <section style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px;">
+              <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">TEKNOFEST Arşivinde Neler Var?</h2>
+              <ul style="padding-left:20px;line-height:1.8;color:#334155;">
+                <li>📸 <strong>Fotoğraf Galerisi:</strong> Festival alanından, stantlardan ve uçuş gösterilerinden gerçek kareler.</li>
+                <li>🚀 <strong>Projeler:</strong> Genç geliştirici ve takımların yarışma projeleri.</li>
+                <li>💙 <strong>Gençlerin Anıları:</strong> Katılımcıların ve yarışmacıların unutulmaz deneyimleri.</li>
+                <li>⏳ <strong>Zaman Tüneli:</strong> 30 Eylül – 4 Ekim gün gün festival akışı.</li>
+              </ul>
+            </section>
+            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
+              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
+              <a href="${domain}/projects" style="color:#2563eb;font-weight:600;text-decoration:none;">Projeler</a>
+            </footer>
+          </main>
+        `;
       } else if (cleanPath === "/quiz") {
         title = "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal";
         description = "Arkadaşlarınla veya toplulukla canlı bilgi yarışması odaları kur, oda kodunu paylaş, düellolara katıl ve genel kültürünü test et.";

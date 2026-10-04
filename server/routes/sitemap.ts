@@ -106,6 +106,7 @@ sitemapRouter.get("/sitemap.xml", async (req, res) => {
     const statics = [
       { path: "", priority: "1.0", changefreq: "daily" },
       { path: "/explore", priority: "0.9", changefreq: "hourly" },
+      { path: "/teknofest", priority: "0.9", changefreq: "daily" },
       { path: "/quiz", priority: "0.9", changefreq: "daily" },
       { path: "/youth-league", priority: "0.9", changefreq: "daily" },
       { path: "/youth-league/leaderboard", priority: "0.8", changefreq: "daily" },

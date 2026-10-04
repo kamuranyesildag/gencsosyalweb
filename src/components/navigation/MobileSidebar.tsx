@@ -14,6 +14,7 @@ import {
   Sun,
   Trophy,
   Gamepad2,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
@@ -40,6 +41,7 @@ export function MobileSidebar({ onItemClick }: { onItemClick?: () => void }) {
     const navItems = [
     { name: 'Ana Sayfa', path: '/home', icon: Home, protected: false },
     { name: 'Keşfet', path: '/explore', icon: Compass, protected: false },
+    { name: 'TEKNOFEST Köşesi', path: '/teknofest', icon: Sparkles, protected: false },
     { name: 'Genç Quiz', path: '/quiz', icon: Gamepad2, protected: false },
     { name: '19 Mayıs Gençlik Ligi', path: '/youth-league', icon: Trophy, protected: false },
     { name: 'Mesajlar', path: '/messages', icon: Mail, protected: true },

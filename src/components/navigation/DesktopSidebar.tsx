@@ -17,6 +17,7 @@ import {
   User,
   Trophy,
   Gamepad2,
+  Sparkles,
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Tooltip } from '../ui/Tooltip';
@@ -44,6 +45,7 @@ export function DesktopSidebar() {
   ];
 
   const produceGroup: NavItem[] = [
+    { name: 'TEKNOFEST Köşesi', path: '/teknofest', icon: Sparkles, protected: false },
     { name: 'Genç Quiz', path: '/quiz', icon: Gamepad2, protected: false },
     { name: '19 Mayıs Gençlik Ligi', path: '/youth-league', icon: Trophy, protected: false },
     { name: 'Projeler', path: '/projects', icon: Rocket, protected: false },

@@ -244,6 +244,10 @@ async function startServer() {
     // Genç Quiz (FAZ 68)
     const { quizRouter } = await import("./server/routes/quiz.js");
     app.use("/api/v1/quiz", quizRouter);
+
+    // TEKNOFEST Köşesi (FAZ 69)
+    const { teknofestRouter } = await import("./server/routes/teknofest.js");
+    app.use("/api/v1/teknofest", teknofestRouter);
   
 // --- API Routes End ---
 

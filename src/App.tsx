@@ -38,6 +38,7 @@ import YouthLeagueLeaderboard from "./pages/YouthLeagueLeaderboard";
 import YouthLeagueArchive from "./pages/YouthLeagueArchive";
 import { GencQuiz } from "./pages/GencQuiz";
 import { QuizRoom } from "./pages/QuizRoom";
+import Teknofest from "./pages/Teknofest";
 import { AuthWrapper } from "./components/AuthWrapper";
 import { useAuthStore } from "./context/useAuth";
 import { BaseLayout } from "./layouts/BaseLayout";
@@ -108,6 +109,9 @@ export default function App() {
                 <Route path="/youth-league/match/:id" element={<ProtectedRoute><YouthLeagueMatch /></ProtectedRoute>} />
                 <Route path="/youth-league/leaderboard" element={<YouthLeagueLeaderboard />} />
                 <Route path="/youth-league/archive" element={<YouthLeagueArchive />} />
+                <Route path="/teknofest" element={<Teknofest />} />
+                <Route path="/teknofest/:slug" element={<Teknofest />} />
+                <Route path="/teknofest-kosesi" element={<Navigate to="/teknofest" replace />} />
                 <Route path="/quiz" element={<GencQuiz />} />
                 <Route path="/genc-quiz" element={<Navigate to="/quiz" replace />} />
                 <Route path="/quiz/room/:code" element={<QuizRoom />} />

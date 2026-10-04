@@ -319,6 +319,175 @@ export async function runMigration(isStandalone = false) {
       `);
       await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS "quiz_invites_room_receiver_unq" ON "quiz_invites" ("room_id", "receiver_id");`);
       await db.execute(sql`CREATE INDEX IF NOT EXISTS "quiz_invites_receiver_idx" ON "quiz_invites" ("receiver_id");`);
+
+      // FAZ 69: TEKNOFEST KÖŞESİ (Etkinlik ve Anı Arşivi)
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "teknofest_events" (
+          "id" serial PRIMARY KEY NOT NULL,
+          "slug" varchar(50) NOT NULL UNIQUE,
+          "title" varchar(150) NOT NULL,
+          "theme" varchar(255),
+          "description" text NOT NULL,
+          "location" varchar(150) NOT NULL,
+          "start_date" timestamp NOT NULL,
+          "end_date" timestamp NOT NULL,
+          "cover_image_url" text,
+          "status" varchar(30) DEFAULT 'COMPLETED' NOT NULL,
+          "is_featured" boolean DEFAULT true NOT NULL,
+          "stats" jsonb DEFAULT '{"visitorCount":"1.2M+","projectCount":"1,500+","competitionsCount":"44","teamCount":"25,000+"}'::jsonb,
+          "sort_order" integer DEFAULT 0 NOT NULL,
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_events_slug_idx" ON "teknofest_events" ("slug");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_events_status_idx" ON "teknofest_events" ("status");`);
+
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "teknofest_categories" (
+          "id" serial PRIMARY KEY NOT NULL,
+          "event_id" integer NOT NULL REFERENCES "teknofest_events"("id") ON DELETE CASCADE,
+          "name" varchar(100) NOT NULL,
+          "slug" varchar(100) NOT NULL,
+          "icon" varchar(50) DEFAULT 'Camera' NOT NULL,
+          "sort_order" integer DEFAULT 0 NOT NULL,
+          "created_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS "teknofest_categories_event_slug_unq" ON "teknofest_categories" ("event_id", "slug");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_categories_event_id_idx" ON "teknofest_categories" ("event_id");`);
+
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "teknofest_timeline_items" (
+          "id" serial PRIMARY KEY NOT NULL,
+          "event_id" integer NOT NULL REFERENCES "teknofest_events"("id") ON DELETE CASCADE,
+          "date_label" varchar(50) NOT NULL,
+          "title" varchar(200) NOT NULL,
+          "description" text,
+          "icon" varchar(50) DEFAULT 'Sparkles' NOT NULL,
+          "sort_order" integer DEFAULT 0 NOT NULL,
+          "created_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_timeline_event_id_idx" ON "teknofest_timeline_items" ("event_id");`);
+
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "teknofest_media" (
+          "id" serial PRIMARY KEY NOT NULL,
+          "event_id" integer NOT NULL REFERENCES "teknofest_events"("id") ON DELETE CASCADE,
+          "user_id" integer REFERENCES "users"("id") ON DELETE SET NULL,
+          "category_id" integer REFERENCES "teknofest_categories"("id") ON DELETE SET NULL,
+          "post_id" integer REFERENCES "posts"("id") ON DELETE SET NULL,
+          "project_id" integer REFERENCES "projects"("id") ON DELETE SET NULL,
+          "media_type" varchar(20) DEFAULT 'IMAGE' NOT NULL,
+          "media_url" text NOT NULL,
+          "thumbnail_url" text,
+          "title" varchar(200),
+          "caption" text,
+          "alt_text" varchar(255),
+          "credit" varchar(200) DEFAULT '📷 Genç Sosyal Topluluğu' NOT NULL,
+          "aspect_ratio" varchar(20) DEFAULT '4:3',
+          "duration" integer,
+          "views_count" integer DEFAULT 0 NOT NULL,
+          "likes_count" integer DEFAULT 0 NOT NULL,
+          "is_featured" boolean DEFAULT false NOT NULL,
+          "moderation_status" varchar(20) DEFAULT 'APPROVED' NOT NULL,
+          "rejection_reason" text,
+          "reviewed_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+          "reviewed_at" timestamp,
+          "sort_order" integer DEFAULT 0 NOT NULL,
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_media_event_id_idx" ON "teknofest_media" ("event_id");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_media_user_id_idx" ON "teknofest_media" ("user_id");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_media_category_id_idx" ON "teknofest_media" ("category_id");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_media_mod_status_idx" ON "teknofest_media" ("moderation_status");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_media_is_featured_idx" ON "teknofest_media" ("is_featured");`);
+
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "teknofest_memories" (
+          "id" serial PRIMARY KEY NOT NULL,
+          "event_id" integer NOT NULL REFERENCES "teknofest_events"("id") ON DELETE CASCADE,
+          "user_id" integer REFERENCES "users"("id") ON DELETE SET NULL,
+          "post_id" integer REFERENCES "posts"("id") ON DELETE SET NULL,
+          "content" text NOT NULL,
+          "author_name" varchar(100),
+          "author_title" varchar(150),
+          "is_featured" boolean DEFAULT false NOT NULL,
+          "moderation_status" varchar(20) DEFAULT 'APPROVED' NOT NULL,
+          "rejection_reason" text,
+          "reviewed_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+          "reviewed_at" timestamp,
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_memories_event_id_idx" ON "teknofest_memories" ("event_id");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_memories_user_id_idx" ON "teknofest_memories" ("user_id");`);
+      await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_memories_mod_status_idx" ON "teknofest_memories" ("moderation_status");`);
+
+      // Seed initial TEKNOFEST 2026 Event if not exists
+      const existingEvents = await db.execute(sql`SELECT id FROM "teknofest_events" WHERE "slug" = '2026' LIMIT 1;`);
+      if (!existingEvents || (existingEvents as any).rows?.length === 0 || (Array.isArray(existingEvents) && existingEvents.length === 0)) {
+        const evInsert = await db.execute(sql`
+          INSERT INTO "teknofest_events" (
+            "slug", "title", "theme", "description", "location", 
+            "start_date", "end_date", "cover_image_url", "status", "is_featured", "stats"
+          ) VALUES (
+            '2026',
+            'TEKNOFEST 2026',
+            'Milli Teknoloji Hamlesi & Geleceğin Gençleri',
+            'Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST''te geride kalan fotoğrafları, yarışma projelerini ve gençlerin unutulmaz anılarını keşfet.',
+            'İstanbul — Atatürk Havalimanı',
+            '2026-09-30 09:00:00',
+            '2026-10-04 19:00:00',
+            null,
+            'COMPLETED',
+            true,
+            '{"visitorCount":"1.5M+","projectCount":"2,100+","competitionsCount":"46","teamCount":"32,000+"}'::jsonb
+          ) RETURNING "id";
+        `);
+        
+        const eventId = (evInsert as any).rows?.[0]?.id || (Array.isArray(evInsert) && evInsert[0]?.id) || 1;
+
+        if (eventId) {
+          // Seed standard categories
+          await db.execute(sql`
+            INSERT INTO "teknofest_categories" ("event_id", "name", "slug", "icon", "sort_order") VALUES
+            (${eventId}, '📸 Etkinlik', 'etkinlik', 'Camera', 1),
+            (${eventId}, '🚀 Projeler', 'projeler', 'Rocket', 2),
+            (${eventId}, '🤖 Teknoloji', 'teknoloji', 'Cpu', 3),
+            (${eventId}, '🧑‍🤝‍🧑 Gençler', 'gencler', 'Users', 4),
+            (${eventId}, '🏆 Yarışmalar', 'yarismalar', 'Trophy', 5),
+            (${eventId}, '🎤 Sahne & Uçuş', 'sahne', 'Plane', 6),
+            (${eventId}, '🌆 Festival Alanı', 'alan', 'MapPin', 7),
+            (${eventId}, '💡 İlham', 'ilham', 'Sparkles', 8)
+            ON CONFLICT DO NOTHING;
+          `);
+
+          // Seed timeline days (30 Eylül – 4 Ekim)
+          await db.execute(sql`
+            INSERT INTO "teknofest_timeline_items" ("event_id", "date_label", "title", "description", "icon", "sort_order") VALUES
+            (${eventId}, '30 Eylül', 'Büyük Açılış Günü', 'Protokol açılışı, SoloTürk ve Türk Yıldızları nefes kesen açılış uçuşları ve stantların ilk ziyaretçilerle buluşması.', 'Plane', 1),
+            (${eventId}, '01 Ekim', 'Proje ve Girişim Alanları', 'Genç geliştiricilerin ve girişimcilerin çadırlarında jüri sunumları, AR/VR ve robotik teknoloji sergileri.', 'Rocket', 2),
+            (${eventId}, '02 Ekim', 'Teknoloji ve İHA Sergileri', 'Otonom sistemler, insansız hava araçları ve yapay zeka yarışmalarının eleme turları ve halka açık atölyeler.', 'Cpu', 3),
+            (${eventId}, '03 Ekim', 'Büyük Yarışma Finalleri', 'Roket, Model Uydu, Tarım Teknolojileri ve Hackathon yarışmalarının final etabı ve ödül heyecanı.', 'Trophy', 4),
+            (${eventId}, '04 Ekim', 'Görkemli Kapanış & Ödül Töreni', 'Dereceye giren takımların ödüllerini alması, kapanış hava gösterileri ve festival anılarının taçlanması.', 'Sparkles', 5)
+            ON CONFLICT DO NOTHING;
+          `);
+
+          // Seed default featured memories
+          await db.execute(sql`
+            INSERT INTO "teknofest_memories" ("event_id", "content", "author_name", "author_title", "is_featured", "moderation_status") VALUES
+            (${eventId}, 'Aylarca geceli gündüzlü çalıştığımız otonom İHA projemizi jüri önünde uçurduğumuz andaki gururu asla unutamam. TEKNOFEST sadece bir yarışma değil, Türkiye''nin dört bir yanından gençlerle kurulan devasa bir kardeşlik ağı.', 'Alperen K.', 'İHA Takım Kaptanı', true, 'APPROVED'),
+            (${eventId}, 'Festival çadırında küçük bir kardeşimizin robotik kolumuza bakarken gözlerinde gördüğüm o ışık, bize sabahlara kadar kod yazmanın değerini bir kez daha hissettirdi.', 'Zeynep B.', 'Yapay Zeka Yarışmacısı', true, 'APPROVED'),
+            (${eventId}, 'İlk kez TEKNOFEST''e katıldık ve projemizle finalist olduk. Genç Sosyal''deki ekibimizle burada tanışmıştık, seneye şampiyonluk için geliyoruz!', 'Mert & Can', 'Girişimci Gençler', true, 'APPROVED')
+            ON CONFLICT DO NOTHING;
+          `);
+        }
+      }
     } catch (safeErr) {
       console.warn("Community schema safety check note:", safeErr);
     }
