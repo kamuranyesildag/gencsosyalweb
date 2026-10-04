@@ -60,6 +60,33 @@ export const useToastStore = create<ToastStore>((set) => ({
         ? { duration: options }
         : options || {};
 
+    // Ensure message is safely converted to string to prevent object rendering crashes
+    let safeMessage = '';
+    if (typeof message === 'string') {
+      safeMessage = message;
+    } else if (message && typeof message === 'object') {
+      if ('message' in message && typeof (message as any).message === 'string') {
+        safeMessage = (message as any).message;
+      } else if ('error' in message && typeof (message as any).error === 'string') {
+        safeMessage = (message as any).error;
+      } else {
+        safeMessage = JSON.stringify(message);
+      }
+    } else {
+      safeMessage = String(message || 'İşlem tamamlandı');
+    }
+
+    let safeTitle: string | undefined = undefined;
+    if (typeof opts.title === 'string') {
+      safeTitle = opts.title;
+    } else if (opts.title && typeof opts.title === 'object') {
+      if ('message' in (opts.title as any) && typeof (opts.title as any).message === 'string') {
+        safeTitle = (opts.title as any).message;
+      } else {
+        safeTitle = JSON.stringify(opts.title);
+      }
+    }
+
     const duration = opts.duration ?? (type === 'error' ? 5500 : 4000);
     const id = Math.random().toString(36).substring(2, 9);
 
@@ -71,8 +98,8 @@ export const useToastStore = create<ToastStore>((set) => ({
           ...existing,
           {
             id,
-            title: opts.title,
-            message,
+            title: safeTitle,
+            message: safeMessage,
             type,
             duration,
             action: opts.action,

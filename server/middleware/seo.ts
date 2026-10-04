@@ -670,10 +670,10 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
             "location": {
               "@type": "Place",
-              "name": "İstanbul Atatürk Havalimanı",
+              "name": "Şanlıurfa GAP Havalimanı",
               "address": {
                 "@type": "PostalAddress",
-                "addressLocality": "İstanbul",
+                "addressLocality": "Şanlıurfa",
                 "addressCountry": "TR"
               }
             },

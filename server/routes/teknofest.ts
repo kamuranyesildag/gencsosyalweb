@@ -906,6 +906,7 @@ teknofestRouter.put("/admin/events/:id", requireAuth, requireAdmin, async (req, 
   try {
     const id = parseInt(req.params.id as string, 10);
     const {
+      slug,
       title,
       theme,
       description,
@@ -921,6 +922,7 @@ teknofestRouter.put("/admin/events/:id", requireAuth, requireAdmin, async (req, 
     const [updated] = await db
       .update(teknofestEvents)
       .set({
+        slug: slug ? slug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "") : undefined,
         title: title?.trim(),
         theme: theme?.trim(),
         description: description?.trim(),

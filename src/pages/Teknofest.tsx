@@ -41,6 +41,7 @@ import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Avatar } from "../components/ui/Avatar";
 import { showToast } from "../components/ui/Toast";
+import { fetchApi } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 
 interface TeknofestEvent {
@@ -262,7 +263,7 @@ export function Teknofest() {
     if (!isAuthenticated) return;
     setLoadingMySubmissions(true);
     try {
-      const res = await fetch("/api/v1/teknofest/my-submissions");
+      const res = await fetchApi("/teknofest/my-submissions");
       const json = await res.json();
       if (json.success) {
         setMySubmissions(json.data || []);
@@ -313,7 +314,7 @@ export function Teknofest() {
     }
 
     try {
-      await fetch(`/api/v1/teknofest/media/${mediaId}/like`, { method: "POST" });
+      await fetchApi(`/teknofest/media/${mediaId}/like`, { method: "POST" });
     } catch (err) {
       console.error(err);
     }
@@ -344,13 +345,12 @@ export function Teknofest() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/v1/teknofest/events/${currentSlug}/submit`, {
+      const res = await fetchApi(`/teknofest/events/${currentSlug}/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           type: submitType,
           ...submitForm
-        })
+        }
       });
       const json = await res.json();
       if (json.success) {
@@ -368,7 +368,8 @@ export function Teknofest() {
           loadMySubmissions();
         }
       } else {
-        showToast({ title: json.error || "Gönderim başarısız", type: "error" });
+        const errMsg = typeof json.error === "string" ? json.error : (json.error?.message || "Gönderim başarısız");
+        showToast({ title: errMsg, type: "error" });
       }
     } catch (err) {
       showToast({ title: "Sunucu hatası oluştu", type: "error" });
@@ -394,7 +395,7 @@ export function Teknofest() {
     title: "TEKNOFEST 2026",
     theme: "Milli Teknoloji Hamlesi & Geleceğin Gençleri",
     description: "Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST'te geride kalan fotoğrafları, yarışma projelerini ve gençlerin unutulmaz anılarını keşfet.",
-    location: "İstanbul — Atatürk Havalimanı",
+    location: "Şanlıurfa — GAP Havalimanı",
     startDate: "2026-09-30",
     endDate: "2026-10-04",
     coverImageUrl: null,

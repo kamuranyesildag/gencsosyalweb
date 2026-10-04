@@ -428,6 +428,13 @@ export async function runMigration(isStandalone = false) {
       await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_memories_user_id_idx" ON "teknofest_memories" ("user_id");`);
       await db.execute(sql`CREATE INDEX IF NOT EXISTS "teknofest_memories_mod_status_idx" ON "teknofest_memories" ("moderation_status");`);
 
+      // Update existing TEKNOFEST 2026 if location is still Istanbul
+      await db.execute(sql`
+        UPDATE "teknofest_events"
+        SET "location" = 'Şanlıurfa — GAP Havalimanı'
+        WHERE "slug" = '2026' AND ("location" LIKE '%İstanbul%' OR "location" LIKE '%Atatürk%');
+      `);
+
       // Seed initial TEKNOFEST 2026 Event if not exists
       const existingEvents = await db.execute(sql`SELECT id FROM "teknofest_events" WHERE "slug" = '2026' LIMIT 1;`);
       if (!existingEvents || (existingEvents as any).rows?.length === 0 || (Array.isArray(existingEvents) && existingEvents.length === 0)) {
@@ -440,7 +447,7 @@ export async function runMigration(isStandalone = false) {
             'TEKNOFEST 2026',
             'Milli Teknoloji Hamlesi & Geleceğin Gençleri',
             'Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST''te geride kalan fotoğrafları, yarışma projelerini ve gençlerin unutulmaz anılarını keşfet.',
-            'İstanbul — Atatürk Havalimanı',
+            'Şanlıurfa — GAP Havalimanı',
             '2026-09-30 09:00:00',
             '2026-10-04 19:00:00',
             null,
