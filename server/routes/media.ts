@@ -3,6 +3,7 @@ import multer from "multer";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs";
+import { execSync } from "child_process";
 import sharp from "sharp";
 import { fileTypeFromFile } from "file-type";
 import ffmpeg from "fluent-ffmpeg";
@@ -11,12 +12,42 @@ import { strictLimiter } from "../middleware/rateLimiter.js";
 import { getUploadDir } from "../utils/uploadConfig.js";
 import { videoTranscodeQueue } from "../utils/transcodeQueue.js";
 
-// Ensure fluent-ffmpeg uses system binaries
-if (fs.existsSync("/usr/bin/ffmpeg")) {
-  ffmpeg.setFfmpegPath("/usr/bin/ffmpeg");
+// Dynamic discovery of ffmpeg and ffprobe binaries
+function getBinaryPath(name: string, envVar: string): string | null {
+  if (process.env[envVar] && fs.existsSync(process.env[envVar]!)) {
+    return process.env[envVar]!;
+  }
+  const knownPaths = [
+    `/usr/bin/${name}`,
+    `/usr/local/bin/${name}`,
+    `/opt/homebrew/bin/${name}`,
+    `/bin/${name}`
+  ];
+  for (const p of knownPaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  try {
+    const found = execSync(`which ${name}`, { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }).trim();
+    if (found && fs.existsSync(found)) return found;
+  } catch {}
+  return null;
 }
-if (fs.existsSync("/usr/bin/ffprobe")) {
-  ffmpeg.setFfprobePath("/usr/bin/ffprobe");
+
+const ffmpegBinary = getBinaryPath("ffmpeg", "FFMPEG_PATH");
+const ffprobeBinary = getBinaryPath("ffprobe", "FFPROBE_PATH");
+
+if (ffmpegBinary) {
+  ffmpeg.setFfmpegPath(ffmpegBinary);
+  console.log(`[media] FFmpeg binary configured at: ${ffmpegBinary}`);
+} else {
+  console.warn(`[media] WARNING: FFmpeg binary not found on system.`);
+}
+
+if (ffprobeBinary) {
+  ffmpeg.setFfprobePath(ffprobeBinary);
+  console.log(`[media] FFprobe binary configured at: ${ffprobeBinary}`);
+} else {
+  console.warn(`[media] WARNING: FFprobe binary not found on system.`);
 }
 
 const MIME_CONFIG: Record<string, { ext: string; isVideo: boolean }> = {
@@ -51,7 +82,6 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB max upload limit
   fileFilter: (req, file, cb) => {
     const allowedMimes = Object.keys(MIME_CONFIG);
-    // Allow if mime is recognized or if extension matches standard video/image
     const ext = path.extname(file.originalname).toLowerCase();
     if (dangerousExts.includes(ext)) {
       return cb(new Error("Güvenlik nedeniyle bu dosya uzantısına izin verilmiyor."));
@@ -122,7 +152,7 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
     const detected = await fileTypeFromFile(tempFilePath);
     let mime = detected?.mime || req.file.mimetype;
 
-    const isVideo = mime.startsWith("video/") || ["video/mp4", "video/quicktime", "video/webm", "video/x-matroska", "video/3gpp"].includes(mime);
+    const isVideo = mime.startsWith("video/") || ["video/mp4", "video/quicktime", "video/webm", "video/x-matroska", "video/3gpp", "video/x-msvideo", "application/mp4"].includes(mime);
     const isImage = mime.startsWith("image/");
 
     if (!isVideo && !isImage) {
@@ -136,11 +166,11 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
     const fileSize = req.file.size;
 
     // 2. Size limits based on file type
-    if (isImage && fileSize > 10 * 1024 * 1024) {
+    if (isImage && fileSize > 15 * 1024 * 1024) {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
       return res.status(400).json({ 
         success: false, 
-        error: { code: "IMAGE_TOO_LARGE", message: "Görseller maksimum 10MB olabilir." } 
+        error: { code: "IMAGE_TOO_LARGE", message: "Görseller maksimum 15MB olabilir." } 
       });
     }
 
@@ -187,27 +217,58 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
     }
 
     // 4. Process Videos
-    console.log(`[video] Inspecting video metadata for ${baseId} (${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+    console.log(`[VIDEO] input: ${tempFilePath}`);
+    console.log(`[VIDEO] mime: ${mime}`);
+    console.log(`[VIDEO] size: ${(fileSize / 1024 / 1024).toFixed(2)} MB (${fileSize} bytes)`);
+    console.log(`[VIDEO] ffmpeg path: ${ffmpegBinary || "NOT FOUND"}`);
+    console.log(`[VIDEO] ffprobe path: ${ffprobeBinary || "NOT FOUND"}`);
 
-    // ffprobe inspection with Promise
-    const metadata: ffmpeg.FfprobeData = await new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(tempFilePath, (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
-      });
-    });
-
-    const videoStream = metadata.streams.find(s => s.codec_type === "video");
-    if (!videoStream) {
+    if (!ffmpegBinary || !ffprobeBinary) {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-      return res.status(400).json({ 
-        success: false, 
-        error: { code: "NO_VIDEO_STREAM", message: "Dosya geçerli bir video akışı içermiyor." } 
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: "FFMPEG_NOT_FOUND",
+          message: "Video işleme servisi (FFmpeg/FFprobe) sunucuda bulunamadı."
+        }
       });
     }
 
-    const rawDuration = metadata.format.duration ?? videoStream.duration ?? 0;
+    // ffprobe inspection with Promise & detailed error separation
+    let metadata: ffmpeg.FfprobeData;
+    try {
+      metadata = await new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
+        ffmpeg.ffprobe(tempFilePath, (err, data) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+    } catch (probeErr: any) {
+      console.error(`[VIDEO] ffprobe failed for ${baseId}:`, probeErr?.message || probeErr);
+      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_FILE",
+          message: "Dosya geçerli bir video formatında değil veya bozuk (ffprobe analiz edemedi)."
+        }
+      });
+    }
+
+    const videoStream = metadata.streams?.find(s => s.codec_type === "video");
+    if (!videoStream) {
+      console.error(`[VIDEO] No video stream found in ${baseId}`);
+      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      return res.status(400).json({ 
+        success: false, 
+        error: { code: "NO_VIDEO_STREAM", message: "Yüklenen dosyada geçerli bir video akışı bulunamadı." } 
+      });
+    }
+
+    const audioStream = metadata.streams?.find(s => s.codec_type === "audio");
+    const rawDuration = metadata.format?.duration ?? videoStream.duration ?? 0;
     const duration = Math.round(Number(rawDuration) || 0);
+
     if (duration > 600) { // 10 minutes limit
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
       return res.status(400).json({ 
@@ -216,11 +277,13 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
       });
     }
 
-    const hasAudio = metadata.streams.some(s => s.codec_type === "audio");
+    const hasAudio = Boolean(audioStream);
     const origWidth = videoStream.width || 1280;
     const origHeight = videoStream.height || 720;
+    const videoCodec = videoStream.codec_name || "unknown";
+    const audioCodec = audioStream?.codec_name || "none";
 
-    console.log(`[video] ffprobe check passed for ${baseId}: duration=${duration}s, res=${origWidth}x${origHeight}, hasAudio=${hasAudio}`);
+    console.log(`[VIDEO] ffprobe result: codec=${videoCodec}, res=${origWidth}x${origHeight}, duration=${duration}s, audioCodec=${audioCodec}, hasAudio=${hasAudio}`);
 
     if (isAborted) return;
 
@@ -233,7 +296,8 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
             return reject(new Error("Transcoding aborted by client."));
           }
 
-          console.log(`[video] Starting FFmpeg transcoding for ${baseId}...`);
+          let ffmpegStderr = "";
+          console.log(`[VIDEO] Starting FFmpeg transcoding for ${baseId}...`);
 
           const cmd = ffmpeg(tempFilePath)
             .outputOptions([
@@ -241,40 +305,43 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
               "-preset veryfast",
               "-crf 26",
               "-pix_fmt yuv420p",
-              // Safe scaling filter: fits in 1280x1280 box, truncates width & height to even numbers
+              // Safe scaling: fits within 1280x1280, keeps aspect ratio, ensures even width/height
               "-vf scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2",
               "-movflags +faststart",
             ]);
 
           if (hasAudio) {
-            cmd.outputOptions(["-c:a aac", "-b:a 128k"]);
+            cmd.outputOptions(["-c:a aac", "-b:a 128k", "-ac 2"]);
           } else {
             cmd.outputOptions(["-an"]);
           }
 
           // Timeout after 180s to prevent hanging
           const timeoutTimer = setTimeout(() => {
-            console.error(`[video] Transcode timeout (180s) reached for ${baseId}`);
+            console.error(`[VIDEO] Transcode timeout (180s) reached for ${baseId}`);
             try {
               cmd.kill("SIGKILL");
             } catch (e) {}
-            reject(new Error("Video işleme süresi zaman aşımına uğradı."));
+            reject(new Error("TIMEOUT"));
           }, 180000);
 
           cmd
             .toFormat("mp4")
             .on("start", (commandLine) => {
-              console.log(`[video] FFmpeg process started for ${baseId}`);
+              console.log(`[VIDEO] compression command: ${commandLine}`);
             })
-            .on("progress", (progress) => {
-              // Can be monitored if needed
+            .on("stderr", (stderrLine: string) => {
+              ffmpegStderr += stderrLine + "\n";
+              if (ffmpegStderr.length > 50000) {
+                ffmpegStderr = ffmpegStderr.slice(-25000);
+              }
             })
             .on("end", async () => {
               clearTimeout(timeoutTimer);
               activeFfmpegProcess = null;
-              console.log(`[video] Transcoding finished for ${baseId}`);
+              console.log(`[VIDEO] Transcoding finished for ${baseId}`);
 
-              // Generate thumbnail at 1s (or 0s if short)
+              // Generate thumbnail at 1s (or 0s if short video)
               try {
                 const seekTime = duration > 1 ? 1 : 0;
                 await new Promise<void>((thumbResolve) => {
@@ -301,7 +368,7 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
                     });
                 });
               } catch (thumbErr) {
-                console.warn(`[video] Thumbnail generation warning for ${baseId}:`, thumbErr);
+                console.warn(`[VIDEO] Thumbnail generation warning for ${baseId}:`, thumbErr);
               }
 
               resolve();
@@ -309,7 +376,8 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
             .on("error", (err) => {
               clearTimeout(timeoutTimer);
               activeFfmpegProcess = null;
-              console.error(`[video] FFmpeg error for ${baseId}:`, err.message);
+              console.error(`[VIDEO] FFmpeg error for ${baseId}:`, err.message);
+              console.error(`[VIDEO] stderr:\n${ffmpegStderr.slice(-1500)}`);
               reject(err);
             })
             .save(finalFilePath);
@@ -329,7 +397,7 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
 
     if (isAborted) return;
 
-    // Verify output file exists and has size > 0
+    // 1. Verify output file exists and has size > 0
     if (!fs.existsSync(finalFilePath) || fs.statSync(finalFilePath).size === 0) {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
       if (fs.existsSync(finalFilePath)) fs.unlinkSync(finalFilePath);
@@ -339,13 +407,36 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
       });
     }
 
+    // 2. Post-transcoding output validation using ffprobe
+    try {
+      const outProbe = await new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
+        ffmpeg.ffprobe(finalFilePath, (err, data) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+
+      const outVideoStream = outProbe.streams?.find(s => s.codec_type === "video");
+      if (!outVideoStream) {
+        throw new Error("Output contains no valid video stream");
+      }
+    } catch (valErr: any) {
+      console.error(`[VIDEO] Output validation failed for ${baseId}:`, valErr?.message);
+      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      if (fs.existsSync(finalFilePath)) fs.unlinkSync(finalFilePath);
+      return res.status(500).json({
+        success: false,
+        error: { code: "OUTPUT_INVALID", message: "Sıkıştırılan video çıktısı doğrulanamadı." }
+      });
+    }
+
     // Clean up original temp raw file
     if (fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
 
     const compressedSize = fs.statSync(finalFilePath).size;
-    console.log(`[video] Transcoding successful for ${baseId}: ${(compressedSize / 1024 / 1024).toFixed(1)} MB`);
+    console.log(`[VIDEO] Transcoding successful for ${baseId}: ${(compressedSize / 1024 / 1024).toFixed(2)} MB`);
 
     const finalVideoUrl = `/uploads/${baseId}_compressed.mp4`;
     const finalThumbUrl = fs.existsSync(thumbFilePath) ? `/uploads/${baseId}_thumb.webp` : undefined;
@@ -364,7 +455,7 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
     });
 
   } catch (error: any) {
-    console.error(`[video] Media upload/transcode failure for ${baseId}:`, error);
+    console.error(`[VIDEO] Media upload/transcode failure for ${baseId}:`, error);
 
     // Clean up temporary files on error
     try {
@@ -374,11 +465,22 @@ mediaRouter.post("/upload", requireAuth, strictLimiter, (req, res, next) => {
     } catch (e) {}
 
     if (!res.headersSent) {
+      const errMsg = error?.message || "";
+      if (errMsg === "TIMEOUT") {
+        return res.status(504).json({
+          success: false,
+          error: {
+            code: "TIMEOUT",
+            message: "Video işleme süresi zaman aşımına uğradı (180 saniye)."
+          }
+        });
+      }
+
       return res.status(500).json({ 
         success: false, 
         error: { 
-          code: "MEDIA_PROCESSING_FAILED", 
-          message: "Video sıkıştırılamadı. Dosya bozuk veya desteklenmeyen bir formatta olabilir." 
+          code: "COMPRESSION_FAILED", 
+          message: "Video sıkıştırma işlemi sırasında hata oluştu. Lütfen videonun geçerli olduğundan emin olup tekrar deneyin." 
         } 
       });
     }

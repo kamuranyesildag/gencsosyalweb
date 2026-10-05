@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
@@ -34,7 +34,9 @@ import {
   Bookmark, 
   Eye, 
   ShieldCheck,
-  Quote
+  Quote,
+  UploadCloud,
+  Loader2
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -156,6 +158,12 @@ export function Teknofest() {
   // Submit Modal State
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitType, setSubmitType] = useState<"PHOTO" | "VIDEO" | "MEMORY">("PHOTO");
+  const [submitSourceTab, setSubmitSourceTab] = useState<"file" | "url">("file");
+  const [submitFile, setSubmitFile] = useState<File | null>(null);
+  const [submitPreviewUrl, setSubmitPreviewUrl] = useState<string | null>(null);
+  const [submitUploadProgress, setSubmitUploadProgress] = useState(0);
+  const [submitUploadPhase, setSubmitUploadPhase] = useState<"idle" | "uploading" | "processing" | "completed" | "error">("idle");
+  const [submitUploadMessage, setSubmitUploadMessage] = useState("");
   const [submitForm, setSubmitForm] = useState({
     mediaUrl: "",
     title: "",
@@ -165,6 +173,7 @@ export function Teknofest() {
     rightsAgreed: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const userFileInputRef = useRef<HTMLInputElement>(null);
 
   // My Submissions
   const [mySubmissions, setMySubmissions] = useState<any[]>([]);
@@ -330,6 +339,35 @@ export function Teknofest() {
     }
   };
 
+  // Handle User File Selection
+  const handleUserFileSelected = (file: File) => {
+    if (submitPreviewUrl && submitPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(submitPreviewUrl);
+    }
+    const preview = URL.createObjectURL(file);
+    setSubmitFile(file);
+    setSubmitPreviewUrl(preview);
+    setSubmitUploadPhase("idle");
+    setSubmitUploadProgress(0);
+    setSubmitUploadMessage("Dosya seçildi");
+    
+    if (!submitForm.title) {
+      const clean = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      setSubmitForm(prev => ({ ...prev, title: clean.charAt(0).toUpperCase() + clean.slice(1) }));
+    }
+  };
+
+  const handleClearSubmitFile = () => {
+    if (submitPreviewUrl && submitPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(submitPreviewUrl);
+    }
+    setSubmitFile(null);
+    setSubmitPreviewUrl(null);
+    setSubmitUploadPhase("idle");
+    setSubmitUploadProgress(0);
+    setSubmitUploadMessage("");
+  };
+
   // Submit Content
   const handleSubmitContent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,18 +382,92 @@ export function Teknofest() {
     }
 
     setIsSubmitting(true);
+
     try {
+      let finalMediaUrl = submitForm.mediaUrl;
+
+      // If user selected a file, upload it first if not already uploaded
+      if (submitType !== "MEMORY" && submitSourceTab === "file") {
+        if (!submitFile) {
+          showToast({ title: "Lütfen bir dosya seçin.", type: "error" });
+          setIsSubmitting(false);
+          return;
+        }
+
+        setSubmitUploadPhase("uploading");
+        setSubmitUploadMessage("Dosya yükleniyor...");
+
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", submitFile);
+
+        const accessToken = useAuthStore.getState().accessToken;
+
+        // Upload with real XHR progress
+        const uploadResult: any = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              const pct = Math.min(99, Math.round((ev.loaded / ev.total) * 100));
+              setSubmitUploadProgress(pct);
+              if (ev.loaded >= ev.total) {
+                setSubmitUploadPhase("processing");
+                setSubmitUploadMessage("Sunucuda optimize ediliyor...");
+              } else {
+                setSubmitUploadMessage(`Yükleniyor: %${pct}`);
+              }
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const json = JSON.parse(xhr.responseText);
+                if (json.success && json.data) {
+                  resolve(json.data);
+                } else {
+                  reject(new Error(json.error?.message || "Sunucu dosya işleme hatası"));
+                }
+              } catch {
+                reject(new Error("Sunucu yanıtı okunamadı"));
+              }
+            } else {
+              reject(new Error("Yükleme başarısız"));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error("Ağ bağlantı hatası"));
+
+          xhr.open("POST", "/api/v1/media/upload", true);
+          if (accessToken) {
+            xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+          }
+          xhr.send(uploadFormData);
+        });
+
+        finalMediaUrl = uploadResult.url;
+        setSubmitUploadPhase("completed");
+        setSubmitUploadProgress(100);
+      }
+
+      if (submitType !== "MEMORY" && (!finalMediaUrl || !finalMediaUrl.trim())) {
+        showToast({ title: "Lütfen bir dosya yükleyin veya URL girin.", type: "error" });
+        setIsSubmitting(false);
+        return;
+      }
+
       const res = await fetchApi(`/teknofest/events/${currentSlug}/submit`, {
         method: "POST",
         data: {
           type: submitType,
-          ...submitForm
+          ...submitForm,
+          mediaUrl: finalMediaUrl
         }
       });
       const json = await res.json();
       if (json.success) {
         showToast({ title: "İçeriğiniz moderasyon incelemesine gönderildi!", type: "success" });
         setShowSubmitModal(false);
+        handleClearSubmitFile();
         setSubmitForm({
           mediaUrl: "",
           title: "",
@@ -371,8 +483,9 @@ export function Teknofest() {
         const errMsg = typeof json.error === "string" ? json.error : (json.error?.message || "Gönderim başarısız");
         showToast({ title: errMsg, type: "error" });
       }
-    } catch (err) {
-      showToast({ title: "Sunucu hatası oluştu", type: "error" });
+    } catch (err: any) {
+      showToast({ title: err.message || "Sunucu hatası oluştu", type: "error" });
+      setSubmitUploadPhase("error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1275,18 +1388,122 @@ export function Teknofest() {
 
               <form onSubmit={handleSubmitContent} className="space-y-4">
                 {submitType !== "MEMORY" && (
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                      Görsel / Video URL (Doğrudan bağlantı)*
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      placeholder="https://..."
-                      value={submitForm.mediaUrl}
-                      onChange={(e) => setSubmitForm({ ...submitForm, mediaUrl: e.target.value })}
-                      className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 mt-1"
-                    />
+                  <div className="space-y-3">
+                    {/* Source Tab: File Upload vs URL */}
+                    <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setSubmitSourceTab("file")}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          submitSourceTab === "file"
+                            ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Cihazdan Yükle</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSubmitSourceTab("url")}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          submitSourceTab === "url"
+                            ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>URL ile Ekle</span>
+                      </button>
+                    </div>
+
+                    {submitSourceTab === "file" ? (
+                      <div>
+                        {submitFile && submitPreviewUrl ? (
+                          <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 flex items-center gap-3">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 flex items-center justify-center">
+                              {submitType === "VIDEO" ? (
+                                <video src={submitPreviewUrl} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={submitPreviewUrl} alt="Preview" className="w-full h-full object-cover" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 space-y-1 text-white">
+                              <div className="text-xs font-bold truncate">
+                                {submitFile.name}
+                              </div>
+                              <div className="text-[11px] text-slate-400">
+                                {(submitFile.size / (1024 * 1024)).toFixed(1)} MB
+                              </div>
+                              {submitUploadPhase === "uploading" && (
+                                <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="bg-sky-500 h-full rounded-full transition-all duration-150"
+                                    style={{ width: `${submitUploadProgress}%` }}
+                                  />
+                                </div>
+                              )}
+                              {submitUploadMessage && (
+                                <p className="text-[10px] text-sky-300 font-medium">
+                                  {submitUploadMessage}
+                                </p>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleClearSubmitFile}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                              title="Kaldır"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => userFileInputRef.current?.click()}
+                            className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-sky-500 rounded-2xl p-6 text-center cursor-pointer bg-slate-50 dark:bg-slate-800/40 hover:bg-sky-50/40 dark:hover:bg-sky-950/20 transition-all"
+                          >
+                            <input
+                              ref={userFileInputRef}
+                              type="file"
+                              accept={submitType === "VIDEO" ? "video/mp4,video/quicktime,video/webm" : "image/jpeg,image/png,image/webp,image/gif"}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handleUserFileSelected(e.target.files[0]);
+                                  e.target.value = "";
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-2">
+                              <UploadCloud className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {submitType === "VIDEO" ? "Video seçmek için dokunun" : "Fotoğraf seçmek için dokunun"}
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {submitType === "VIDEO" ? "MP4, MOV, WebM (Maks. 100MB)" : "JPG, PNG, WEBP (Maks. 15MB)"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                          Görsel / Video URL (Doğrudan bağlantı)*
+                        </label>
+                        <input
+                          type="url"
+                          required
+                          placeholder="https://..."
+                          value={submitForm.mediaUrl}
+                          onChange={(e) => setSubmitForm({ ...submitForm, mediaUrl: e.target.value })}
+                          className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 mt-1"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

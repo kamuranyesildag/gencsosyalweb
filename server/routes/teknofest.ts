@@ -1,4 +1,6 @@
 import { Router } from "express";
+import fs from "fs";
+import path from "path";
 import { db } from "../../src/db/index.js";
 import { 
   teknofestEvents, 
@@ -15,6 +17,7 @@ import {
 } from "../../src/db/schema.js";
 import { eq, and, desc, sql, or, inArray, ilike } from "drizzle-orm";
 import { requireAuth, optionalAuth, requireRole } from "../middleware/auth.js";
+import { getUploadDir } from "../utils/uploadConfig.js";
 
 export const teknofestRouter = Router();
 const requireAdmin = requireRole("ADMIN");
@@ -949,8 +952,68 @@ teknofestRouter.put("/admin/events/:id", requireAuth, requireAdmin, async (req, 
 });
 
 /**
+ * GET /api/v1/teknofest/admin/media
+ * Admin list all media items with filters
+ */
+teknofestRouter.get("/admin/media", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const eventId = req.query.eventId ? parseInt(req.query.eventId as string, 10) : undefined;
+    const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string, 10) : undefined;
+    const mediaType = req.query.mediaType as string | undefined;
+    const search = (req.query.search as string)?.trim();
+
+    const conditions: any[] = [];
+    if (eventId) conditions.push(eq(teknofestMedia.eventId, eventId));
+    if (categoryId) conditions.push(eq(teknofestMedia.categoryId, categoryId));
+    if (mediaType && (mediaType === "IMAGE" || mediaType === "VIDEO")) {
+      conditions.push(eq(teknofestMedia.mediaType, mediaType));
+    }
+    if (search) {
+      conditions.push(or(
+        ilike(teknofestMedia.title, `%${search}%`),
+        ilike(teknofestMedia.caption, `%${search}%`),
+        ilike(teknofestMedia.credit, `%${search}%`)
+      ));
+    }
+
+    const items = await db
+      .select({
+        id: teknofestMedia.id,
+        eventId: teknofestMedia.eventId,
+        eventTitle: teknofestEvents.title,
+        categoryId: teknofestMedia.categoryId,
+        categoryName: teknofestCategories.name,
+        mediaType: teknofestMedia.mediaType,
+        mediaUrl: teknofestMedia.mediaUrl,
+        thumbnailUrl: teknofestMedia.thumbnailUrl,
+        title: teknofestMedia.title,
+        caption: teknofestMedia.caption,
+        altText: teknofestMedia.altText,
+        credit: teknofestMedia.credit,
+        aspectRatio: teknofestMedia.aspectRatio,
+        duration: teknofestMedia.duration,
+        viewsCount: teknofestMedia.viewsCount,
+        likesCount: teknofestMedia.likesCount,
+        isFeatured: teknofestMedia.isFeatured,
+        moderationStatus: teknofestMedia.moderationStatus,
+        createdAt: teknofestMedia.createdAt
+      })
+      .from(teknofestMedia)
+      .leftJoin(teknofestEvents, eq(teknofestMedia.eventId, teknofestEvents.id))
+      .leftJoin(teknofestCategories, eq(teknofestMedia.categoryId, teknofestCategories.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(teknofestMedia.createdAt));
+
+    return res.json({ success: true, data: items });
+  } catch (error: any) {
+    console.error("Admin media fetch error:", error);
+    return res.status(500).json({ success: false, error: "Medyalar yüklenemedi." });
+  }
+});
+
+/**
  * POST /api/v1/teknofest/admin/media
- * Admin direct add photo/video
+ * Admin direct add single photo/video
  */
 teknofestRouter.post("/admin/media", requireAuth, requireAdmin, async (req: any, res) => {
   try {
@@ -966,6 +1029,7 @@ teknofestRouter.post("/admin/media", requireAuth, requireAdmin, async (req: any,
       altText,
       credit,
       aspectRatio,
+      duration,
       isFeatured
     } = req.body;
 
@@ -979,7 +1043,7 @@ teknofestRouter.post("/admin/media", requireAuth, requireAdmin, async (req: any,
         eventId: parseInt(eventId, 10),
         userId: userId,
         categoryId: categoryId ? parseInt(categoryId, 10) : null,
-        mediaType: mediaType || "IMAGE",
+        mediaType: mediaType || (mediaUrl.endsWith(".mp4") ? "VIDEO" : "IMAGE"),
         mediaUrl: mediaUrl.trim(),
         thumbnailUrl: thumbnailUrl?.trim() || null,
         title: title?.trim() || "TEKNOFEST Medyası",
@@ -987,6 +1051,7 @@ teknofestRouter.post("/admin/media", requireAuth, requireAdmin, async (req: any,
         altText: altText?.trim() || title?.trim() || "TEKNOFEST Etkinlik Fotoğrafı",
         credit: credit?.trim() || "📷 Genç Sosyal",
         aspectRatio: aspectRatio || "4:3",
+        duration: duration ? parseInt(duration, 10) : null,
         isFeatured: Boolean(isFeatured),
         moderationStatus: "APPROVED",
         reviewedBy: userId,
@@ -1006,14 +1071,134 @@ teknofestRouter.post("/admin/media", requireAuth, requireAdmin, async (req: any,
 });
 
 /**
+ * POST /api/v1/teknofest/admin/media/batch
+ * Admin batch add multiple media items
+ */
+teknofestRouter.post("/admin/media/batch", requireAuth, requireAdmin, async (req: any, res) => {
+  try {
+    const userId = getReqUserId(req);
+    const { eventId, items } = req.body;
+
+    if (!eventId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: "Etkinlik ve en az bir medya öğesi gereklidir." });
+    }
+
+    const insertedList = [];
+    for (const item of items) {
+      if (!item.mediaUrl) continue;
+      const [newMedia] = await db
+        .insert(teknofestMedia)
+        .values({
+          eventId: parseInt(eventId, 10),
+          userId: userId,
+          categoryId: item.categoryId ? parseInt(item.categoryId, 10) : null,
+          mediaType: item.mediaType || (item.mediaUrl.endsWith(".mp4") ? "VIDEO" : "IMAGE"),
+          mediaUrl: item.mediaUrl.trim(),
+          thumbnailUrl: item.thumbnailUrl?.trim() || null,
+          title: item.title?.trim() || "TEKNOFEST Medyası",
+          caption: item.caption?.trim() || null,
+          altText: item.altText?.trim() || item.title?.trim() || "TEKNOFEST Etkinlik Fotoğrafı",
+          credit: item.credit?.trim() || "📷 Genç Sosyal",
+          aspectRatio: item.aspectRatio || "4:3",
+          duration: item.duration || null,
+          isFeatured: Boolean(item.isFeatured),
+          moderationStatus: "APPROVED",
+          reviewedBy: userId,
+          reviewedAt: new Date()
+        })
+        .returning();
+      insertedList.push(newMedia);
+    }
+
+    return res.json({
+      success: true,
+      message: `${insertedList.length} medya başarıyla kaydedildi ve yayınlandı.`,
+      data: insertedList
+    });
+  } catch (error: any) {
+    console.error("Admin batch media error:", error);
+    return res.status(500).json({ success: false, error: "Toplu medya kaydedilemedi." });
+  }
+});
+
+/**
+ * PUT /api/v1/teknofest/admin/media/:id
+ * Admin update existing media metadata
+ */
+teknofestRouter.put("/admin/media/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: "Geçersiz ID" });
+
+    const {
+      eventId,
+      categoryId,
+      title,
+      caption,
+      altText,
+      credit,
+      aspectRatio,
+      isFeatured,
+      moderationStatus
+    } = req.body;
+
+    const [updated] = await db
+      .update(teknofestMedia)
+      .set({
+        eventId: eventId ? parseInt(eventId, 10) : undefined,
+        categoryId: categoryId !== undefined ? (categoryId ? parseInt(categoryId, 10) : null) : undefined,
+        title: title?.trim(),
+        caption: caption !== undefined ? caption?.trim() : undefined,
+        altText: altText?.trim(),
+        credit: credit?.trim(),
+        aspectRatio: aspectRatio || undefined,
+        isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : undefined,
+        moderationStatus: moderationStatus || undefined,
+        updatedAt: new Date()
+      })
+      .where(eq(teknofestMedia.id, id))
+      .returning();
+
+    return res.json({ success: true, message: "Medya güncellendi.", data: updated });
+  } catch (error) {
+    console.error("Admin media update error:", error);
+    return res.status(500).json({ success: false, error: "Medya güncellenemedi." });
+  }
+});
+
+/**
  * DELETE /api/v1/teknofest/admin/media/:id
- * Delete media
+ * Delete media & cleanup local files
  */
 teknofestRouter.delete("/admin/media/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id as string, 10);
-    await db.delete(teknofestMedia).where(eq(teknofestMedia.id, id));
-    return res.json({ success: true, message: "Medya silindi." });
+    const [media] = await db
+      .select()
+      .from(teknofestMedia)
+      .where(eq(teknofestMedia.id, id))
+      .limit(1);
+
+    if (media) {
+      // If local uploaded file in /uploads, safely delete from filesystem
+      const uploadDir = getUploadDir();
+      if (media.mediaUrl && media.mediaUrl.startsWith("/uploads/")) {
+        const filename = path.basename(media.mediaUrl);
+        const filePath = path.join(uploadDir, filename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) {}
+        }
+      }
+      if (media.thumbnailUrl && media.thumbnailUrl.startsWith("/uploads/")) {
+        const filename = path.basename(media.thumbnailUrl);
+        const filePath = path.join(uploadDir, filename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) {}
+        }
+      }
+      await db.delete(teknofestMedia).where(eq(teknofestMedia.id, id));
+    }
+    return res.json({ success: true, message: "Medya ve dosyalar başarıyla silindi." });
   } catch (error) {
     return res.status(500).json({ success: false, error: "Medya silinemedi." });
   }

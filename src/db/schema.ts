@@ -1479,7 +1479,7 @@ export const teknofestMedia = pgTable('teknofest_media', {
   title: varchar('title', { length: 200 }),
   caption: text('caption'),
   altText: varchar('alt_text', { length: 255 }),
-  credit: varchar('200', { length: 200 }).default('📷 Genç Sosyal Topluluğu').notNull(),
+  credit: varchar('credit', { length: 200 }).default('📷 Genç Sosyal Topluluğu').notNull(),
   aspectRatio: varchar('aspect_ratio', { length: 20 }).default('4:3'), // '1:1', '4:3', '16:9', '3:4', '9:16'
   duration: integer('duration'), // In seconds if video
   viewsCount: integer('views_count').default(0).notNull(),

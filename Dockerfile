@@ -3,6 +3,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies and ffmpeg
+RUN apk add --no-cache ffmpeg
+
 # Install all dependencies (including dev tools like vite, esbuild)
 COPY package*.json ./
 RUN npm ci
@@ -17,6 +20,9 @@ RUN npm run build
 FROM node:22-alpine
 
 WORKDIR /app
+
+# Install ffmpeg and ffprobe runtime binaries
+RUN apk add --no-cache ffmpeg
 
 # Only install production dependencies
 COPY package*.json ./

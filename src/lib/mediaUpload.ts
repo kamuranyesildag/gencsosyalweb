@@ -192,10 +192,20 @@ export function uploadMediaFile(
       }
     } else {
       let errorMsg = "Yükleme sırasında hata oluştu.";
+      if (xhr.status === 413) {
+        errorMsg = "Dosya boyutu çok büyük (Sunucu sınırı aşıldı).";
+      } else if (xhr.status === 503) {
+        errorMsg = "Video işleme servisi (FFmpeg) şu anda kullanılamıyor.";
+      } else if (xhr.status === 504) {
+        errorMsg = "Video işleme süresi zaman aşımına uğradı.";
+      }
+
       try {
         const errJson = JSON.parse(xhr.responseText);
         if (errJson.error?.message) {
           errorMsg = errJson.error.message;
+        } else if (errJson.message) {
+          errorMsg = errJson.message;
         }
       } catch (e) {}
 
