@@ -479,7 +479,7 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
       const tokenHash = await argon2.hash(refreshToken);
 
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
 
       const rawIp = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "";
       const cleanIp = rawIp.split(',')[0].trim().slice(0, 45) || null;
@@ -720,7 +720,7 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
 
     // Save refresh token hash in DB
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
 
     await db.insert(refreshTokens).values({
       userId: user.id,
@@ -897,7 +897,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
     const ipAddress = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
 
     await db.insert(refreshTokens).values({
       userId: user.id,
@@ -1129,12 +1129,30 @@ authRouter.post("/refresh", async (req, res) => {
     
     let matchedTokenId: number | null = null;
     let reusedTokenDetected = false;
+    const ROTATION_GRACE_PERIOD_MS = 60 * 1000; // 60s grace period for in-flight concurrent requests
 
     for (const record of activeTokens) {
       const isValid = await argon2.verify(record.tokenHash, refreshToken).catch(() => false);
       if (isValid) {
         if (record.revokedAt) {
-          reusedTokenDetected = true;
+          const revokedAgoMs = Date.now() - new Date(record.revokedAt).getTime();
+          if (revokedAgoMs <= ROTATION_GRACE_PERIOD_MS) {
+            // Token was rotated within the last 60 seconds (parallel request in flight)
+            // Return fresh access token and allow continuous session without destroying tokens
+            const user = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+            if (user.length > 0 && user[0].isActive) {
+              const newAccessToken = generateAccessToken(user[0].id, user[0].role);
+              return res.json({
+                success: true,
+                data: {
+                  accessToken: newAccessToken,
+                  refreshToken: refreshToken
+                }
+              });
+            }
+          } else {
+            reusedTokenDetected = true;
+          }
         } else if (new Date() <= record.expiresAt) {
           matchedTokenId = record.id;
         }
@@ -1185,6 +1203,12 @@ authRouter.post("/refresh", async (req, res) => {
         .returning();
 
       if (updateResult.length === 0) {
+        // Handle concurrent rotation gracefully: fetch fresh access token
+        const user = await tx.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+        if (user.length > 0 && user[0].isActive) {
+          const newAccessToken = generateAccessToken(user[0].id, user[0].role);
+          return { newAccessToken, newRefreshToken: refreshToken };
+        }
         return { error: 'race_condition' };
       }
 
@@ -1224,7 +1248,7 @@ authRouter.post("/refresh", async (req, res) => {
       const tokenHash = await argon2.hash(newRefreshToken);
 
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
 
       await tx.insert(refreshTokens).values({
         userId: user[0].id,

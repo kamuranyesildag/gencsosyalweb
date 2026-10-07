@@ -26,7 +26,7 @@ export const generateAccessToken = (userId: number, role: string) => {
   return jwt.sign(
     { userId, role, type: "access" },
     getAccessTokenSecret(),
-    { expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "15m") as any }
+    { expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "2h") as any }
   );
 };
 
@@ -34,7 +34,7 @@ export const generateRefreshToken = (userId: number, role: string) => {
   return jwt.sign(
     { userId, role, type: "refresh" },
     getRefreshTokenSecret(),
-    { expiresIn: (process.env.REFRESH_TOKEN_EXPIRES_IN || "7d") as any }
+    { expiresIn: (process.env.REFRESH_TOKEN_EXPIRES_IN || "30d") as any }
   );
 };
 

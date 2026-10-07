@@ -48,21 +48,24 @@ import { ConfirmDialogContainer } from "./components/ui/ConfirmDialog"; // for l
 import { SplashScreen } from "./components/ui/SplashScreen";
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const user = useAuthStore(state => state.user);
+  const { user, isLoading } = useAuthStore();
+  if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "admin" && user.role !== "superadmin" && user.role !== "ADMIN" && user.role !== "SUPERADMIN") return <Navigate to="/home" replace />;
   return <>{children}</>;
 };
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  const { isAuthenticated, isLoading } = useAuthStore();
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  if (isAuthenticated) return <Navigate to="/home" />;
+  const { isAuthenticated, isLoading } = useAuthStore();
+  if (isLoading) return null;
+  if (isAuthenticated) return <Navigate to="/home" replace />;
   return <>{children}</>;
 };
 

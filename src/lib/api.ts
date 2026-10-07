@@ -15,25 +15,51 @@ interface FetchOptions extends RequestInit {
   data?: unknown;
 }
 
-let refreshPromise: Promise<string | null> | null = null;
+export type RefreshResult = 
+  | { success: true; accessToken: string }
+  | { success: false; reason: 'unauthorized' | 'suspended' | 'network' | 'unknown' };
 
-async function requestTokenRefresh(): Promise<string | null> {
+let refreshPromise: Promise<RefreshResult> | null = null;
+
+/**
+ * Singleton Single-Flight Refresh Coordinator
+ * Ensures all concurrent requests share the exact same refresh promise
+ * and isolates network errors from explicit authorization failures.
+ */
+export async function requestTokenRefresh(): Promise<RefreshResult> {
   if (refreshPromise) {
     return refreshPromise;
   }
 
-  refreshPromise = (async () => {
+  refreshPromise = (async (): Promise<RefreshResult> => {
     try {
       const storedRefreshToken = useAuthStore.getState().refreshToken || localStorage.getItem('gencsosyal_refresh_token');
 
-      const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(storedRefreshToken ? { "x-refresh-token": storedRefreshToken } : {}),
-        },
-        body: JSON.stringify({ refreshToken: storedRefreshToken }),
-      });
+      if (!storedRefreshToken) {
+        return { success: false, reason: 'unauthorized' };
+      }
+
+      const controller = new AbortController();
+      const timeoutTimer = setTimeout(() => controller.abort(), 8000);
+
+      let refreshResponse: Response;
+      try {
+        refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-refresh-token": storedRefreshToken,
+          },
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          signal: controller.signal,
+        });
+      } catch (netErr: any) {
+        // Network timeout / connection dropped / offline
+        console.warn("[api] Token refresh network error, maintaining session offline:", netErr?.message);
+        return { success: false, reason: 'network' };
+      } finally {
+        clearTimeout(timeoutTimer);
+      }
 
       if (refreshResponse.ok) {
         const refreshResult = await refreshResponse.json();
@@ -41,7 +67,7 @@ async function requestTokenRefresh(): Promise<string | null> {
           const newToken = refreshResult.data.accessToken;
           const newRefreshToken = refreshResult.data.refreshToken || storedRefreshToken;
           useAuthStore.getState().setAccessToken(newToken, newRefreshToken);
-          return newToken;
+          return { success: true, accessToken: newToken };
         }
       } else if (refreshResponse.status === 403) {
         const refreshResult = await refreshResponse.json().catch(() => null);
@@ -50,12 +76,19 @@ async function requestTokenRefresh(): Promise<string | null> {
           if (window.location.pathname !== "/account-suspended") {
             window.location.href = "/account-suspended";
           }
-          return null;
+          return { success: false, reason: 'suspended' };
         }
+      } else if (refreshResponse.status === 401) {
+        return { success: false, reason: 'unauthorized' };
+      } else if (refreshResponse.status >= 500) {
+        // Server 5xx error / proxy error
+        console.warn("[api] Token refresh 5xx server error, maintaining session:", refreshResponse.status);
+        return { success: false, reason: 'network' };
       }
-      return null;
+
+      return { success: false, reason: 'unknown' };
     } catch {
-      return null;
+      return { success: false, reason: 'network' };
     } finally {
       refreshPromise = null;
     }
@@ -84,29 +117,40 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     ? customBody
     : (data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined);
 
-  let response = await fetch(`${API_BASE}${endpoint}`, {
-    ...rest,
-    headers,
-    body: finalBody,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${endpoint}`, {
+      ...rest,
+      headers,
+      body: finalBody,
+    });
+  } catch (networkError) {
+    // Network failure (offline, DNS, timeout, connection reset)
+    // NEVER log out user on network errors!
+    throw networkError;
+  }
 
+  // Handle 401: Token expired or invalid
   if (response.status === 401 && accessToken) {
-    const newToken = await requestTokenRefresh();
-    if (newToken) {
+    const refreshRes = await requestTokenRefresh();
+    if (refreshRes.success) {
       // Retry original request with new token
-      headers.set("Authorization", `Bearer ${newToken}`);
+      headers.set("Authorization", `Bearer ${refreshRes.accessToken}`);
       response = await fetch(`${API_BASE}${endpoint}`, {
         ...rest,
         headers,
         body: finalBody,
       });
-    } else {
-      // Refresh failed or session expired
+    } else if (refreshRes.reason === 'unauthorized') {
+      // ONLY logout if server explicitly rejected the refresh token (session revoked or expired)
       if (useAuthStore.getState().isAuthenticated || useAuthStore.getState().accessToken) {
         useAuthStore.getState().logout();
         window.dispatchEvent(new CustomEvent("session_expired"));
       }
-      return response; // Return the 401 response
+      return response;
+    } else {
+      // Network issue or server 5xx: keep session alive!
+      return response;
     }
   }
 
@@ -125,7 +169,6 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
 
   return response;
 }
-
 
 export const api = {
   get: async <T = any>(url: string): Promise<{ data: ApiResponse<T> }> => {

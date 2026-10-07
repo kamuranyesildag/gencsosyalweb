@@ -57,10 +57,10 @@ const getInitialAuthState = () => {
     const user = storedUser ? JSON.parse(storedUser) : null;
     const suspensionInfo = storedSuspension ? JSON.parse(storedSuspension) : null;
 
-    if (user && storedToken) {
+    if (user && (storedToken || storedRefreshToken)) {
       return {
         user,
-        accessToken: storedToken,
+        accessToken: storedToken || null,
         refreshToken: storedRefreshToken || null,
         isAuthenticated: true,
         isLoading: false,

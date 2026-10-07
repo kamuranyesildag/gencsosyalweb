@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { useAuthStore } from "../context/useAuth";
+import { requestTokenRefresh } from "../lib/api";
 
 let initPromise: Promise<void> | null = null;
 
 export function useAuthInit() {
-  const { setAuth, logout, isAuthenticated, isLoading, accessToken, refreshToken } = useAuthStore();
+  const { setAuth, logout, accessToken, refreshToken } = useAuthStore();
 
   useEffect(() => {
     let mounted = true;
@@ -26,11 +27,11 @@ export function useAuthInit() {
         const storedRefreshToken = refreshToken || localStorage.getItem('gencsosyal_refresh_token');
         const storedToken = accessToken || localStorage.getItem('gencsosyal_token');
 
-        // 1. If we already have an accessToken, verify if it's still valid with /me
+        // 1. If we have an accessToken, verify with /me first
         if (storedToken) {
           try {
             const meController = new AbortController();
-            const meTimeout = setTimeout(() => meController.abort(), 3500);
+            const meTimeout = setTimeout(() => meController.abort(), 4000);
 
             const meRes = await fetch("/api/v1/auth/me", {
               headers: { Authorization: `Bearer ${storedToken}` },
@@ -42,9 +43,10 @@ export function useAuthInit() {
               const meData = await meRes.json();
               if (meData.success && meData.data) {
                 setAuth(meData.data, storedToken, storedRefreshToken);
+                useAuthStore.getState().setLoading(false);
                 return;
               }
-            } else {
+            } else if (meRes.status === 403) {
               const meErr = await meRes.json().catch(() => null);
               if (meErr?.error?.code === "ACCOUNT_SUSPENDED") {
                 useAuthStore.getState().setSuspension(meErr.error.suspension);
@@ -55,7 +57,7 @@ export function useAuthInit() {
               }
             }
           } catch (e) {
-            // Network issue or timeout; keep current session if user exists
+            // Network issue or timeout; keep current session if user state exists
             if (useAuthStore.getState().user) {
               useAuthStore.getState().setLoading(false);
               return;
@@ -63,29 +65,12 @@ export function useAuthInit() {
           }
         }
 
-        // 2. Try to refresh access token using both cookie and storedRefreshToken (for iframe compatibility)
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-          const refreshRes = await fetch("/api/v1/auth/refresh", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(storedRefreshToken ? { "x-refresh-token": storedRefreshToken } : {}),
-            },
-            body: JSON.stringify({ refreshToken: storedRefreshToken }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            if (refreshData.success && refreshData.data?.accessToken) {
-              const newAccessToken = refreshData.data.accessToken;
-              const newRefreshToken = refreshData.data.refreshToken || storedRefreshToken;
-
-              // Fetch updated user profile
+        // 2. If access token is missing or expired, attempt single-flight refresh
+        if (storedRefreshToken) {
+          try {
+            const refreshRes = await requestTokenRefresh();
+            if (refreshRes.success) {
+              const newAccessToken = refreshRes.accessToken;
               const meRes = await fetch("/api/v1/auth/me", {
                 headers: { Authorization: `Bearer ${newAccessToken}` },
               });
@@ -93,28 +78,20 @@ export function useAuthInit() {
               if (meRes.ok) {
                 const meData = await meRes.json();
                 if (meData.success && meData.data) {
-                  setAuth(meData.data, newAccessToken, newRefreshToken);
+                  const currentRefreshToken = useAuthStore.getState().refreshToken || storedRefreshToken;
+                  setAuth(meData.data, newAccessToken, currentRefreshToken);
+                  useAuthStore.getState().setLoading(false);
                   return;
                 }
               }
-            }
-          } else {
-            const refreshErr = await refreshRes.json().catch(() => null);
-            if (refreshErr?.error?.code === "ACCOUNT_SUSPENDED") {
-              useAuthStore.getState().setSuspension(refreshErr.error.suspension);
-              if (window.location.pathname !== "/account-suspended") {
-                window.location.href = "/account-suspended";
-              }
-              return;
-            }
-            // Only if explicitly 401 and no valid session, logout
-            if (refreshRes.status === 401 && !storedToken) {
+            } else if (refreshRes.reason === 'unauthorized') {
+              // Only if server explicitly rejects refresh token, log out
               logout();
               return;
             }
+          } catch {
+            // Network error: maintain offline state without logout
           }
-        } catch {
-          // Network issue
         }
 
         useAuthStore.getState().setLoading(false);
@@ -124,12 +101,54 @@ export function useAuthInit() {
       initPromise = null;
     };
 
-    // Run auth initialization
+    // Run auth initialization immediately
     initAuth();
+
+    // 3. Proactive session validation on window focus / mobile tab resume
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const currentToken = useAuthStore.getState().accessToken || localStorage.getItem('gencsosyal_token');
+        const currentRefreshToken = useAuthStore.getState().refreshToken || localStorage.getItem('gencsosyal_refresh_token');
+        
+        if (currentToken) {
+          fetch("/api/v1/auth/me", {
+            headers: { Authorization: `Bearer ${currentToken}` }
+          }).then(async (res) => {
+            if (res.status === 401 && currentRefreshToken) {
+              // Silently refresh token in background
+              const refreshed = await requestTokenRefresh();
+              if (refreshed.success) {
+                const meRes = await fetch("/api/v1/auth/me", {
+                  headers: { Authorization: `Bearer ${refreshed.accessToken}` }
+                });
+                if (meRes.ok) {
+                  const meData = await meRes.json();
+                  if (meData.success && meData.data) {
+                    useAuthStore.getState().setAuth(meData.data, refreshed.accessToken, currentRefreshToken);
+                  }
+                }
+              }
+            } else if (res.ok) {
+              const meData = await res.json();
+              if (meData.success && meData.data) {
+                useAuthStore.getState().setUser(meData.data);
+              }
+            }
+          }).catch(() => {
+            // Network glitch on resume: do not disturb user session
+          });
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
 
     return () => {
       mounted = false;
       clearTimeout(safetyTimer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
     };
   }, []);
 }
