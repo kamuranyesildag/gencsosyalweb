@@ -13,7 +13,8 @@ export const registerSchema = z.object({
     .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir.")
     .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir.")
     .regex(/[0-9]/, "Şifre en az bir rakam içermelidir."),
-  displayName: z.string().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(50, "Görünen ad en fazla 50 karakter olabilir.")
+  displayName: z.string().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(50, "Görünen ad en fazla 50 karakter olabilir."),
+  birthDate: z.string().min(1, "Doğum tarihi zorunludur."),
 });
 
 export const loginSchema = z.object({
@@ -38,7 +39,8 @@ export const sendOtpSchema = z.object({
     .regex(/[a-z]/, "Şifre en az bir küçük harf içermelidir.")
     .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir.")
     .regex(/[0-9]/, "Şifre en az bir rakam içermelidir."),
-  displayName: z.string().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(50, "Görünen ad en fazla 50 karakter olabilir.")
+  displayName: z.string().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(50, "Görünen ad en fazla 50 karakter olabilir."),
+  birthDate: z.string().min(1, "Doğum tarihi zorunludur."),
 });
 
 export const verifyRegisterOtpSchema = z.object({
@@ -55,6 +57,7 @@ export const verifyRegisterOtpSchema = z.object({
     .regex(/[A-Z]/, "Şifre en az bir büyük harf içermelidir.")
     .regex(/[0-9]/, "Şifre en az bir rakam içermelidir."),
   displayName: z.string().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(50, "Görünen ad en fazla 50 karakter olabilir."),
+  birthDate: z.string().min(1, "Doğum tarihi zorunludur."),
   otp: z.string().length(6, "Doğrulama kodu 6 haneli olmalıdır.").regex(/^[0-9]{6}$/, "Doğrulama kodu sadece rakamlardan oluşmalıdır.")
 });
 

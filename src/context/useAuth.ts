@@ -18,6 +18,14 @@ export interface User {
   banExpiresAt?: string | null;
   createdAt: string;
   onboardingCompleted?: boolean;
+  isMinor?: boolean;
+  ageVerificationStatus?: 'UNVERIFIED' | 'VERIFIED_CHILD' | 'VERIFIED_ADULT' | 'REJECTED_UNDERAGE' | string;
+  ageVerificationToken?: string | null;
+  ageVerifiedAt?: string | null;
+  ageVerificationMethod?: string | null;
+  birthDate?: string | null;
+  isScreenshotProtected?: boolean;
+  dailyScreenTimeLimitMinutes?: number | null;
 }
 
 export interface SuspensionInfo {

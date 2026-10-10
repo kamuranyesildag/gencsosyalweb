@@ -248,6 +248,10 @@ async function startServer() {
     // TEKNOFEST Köşesi (FAZ 69)
     const { teknofestRouter } = await import("./server/routes/teknofest.js");
     app.use("/api/v1/teknofest", teknofestRouter);
+
+    // Çocuk Güvenliği ve Yaş Doğrulama (FAZ 71 - 10 Ekim 2026 Yönetmeliği)
+    const { childSafetyRouter } = await import("./server/routes/childSafety.js");
+    app.use("/api/v1/child-safety", childSafetyRouter);
   
 // --- API Routes End ---
 

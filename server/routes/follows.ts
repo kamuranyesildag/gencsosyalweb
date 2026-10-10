@@ -176,11 +176,21 @@ followsRouter.get("/:id/followers", optionalAuth, async (req, res) => {
 
     const currentUserId = optionalAuthContext(req);
 
-    // Profile privacy check
-    const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);
-    const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+    // Child Protection & Privacy check (10 Ekim 2026 Yönetmeliği)
+    const targetUserRec = await db.select({
+      isMinor: users.isMinor,
+      isPrivate: profiles.isPrivate
+    })
+    .from(users)
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(eq(users.id, targetUserId))
+    .limit(1);
 
-    if (isPrivate && currentUserId !== targetUserId) {
+    const isMinor = targetUserRec.length > 0 ? targetUserRec[0].isMinor : false;
+    const isPrivate = targetUserRec.length > 0 ? targetUserRec[0].isPrivate : false;
+
+    // Minor accounts or private accounts require approved follow to view follower list
+    if ((isMinor || isPrivate) && currentUserId !== targetUserId) {
       let isFollowing = false;
       if (currentUserId) {
         const f = await db.select().from(follows).where(and(
@@ -229,11 +239,21 @@ followsRouter.get("/:id/following", optionalAuth, async (req, res) => {
 
     const currentUserId = optionalAuthContext(req);
 
-    // Profile privacy check
-    const targetProfile = await db.select({ isPrivate: profiles.isPrivate }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);
-    const isPrivate = targetProfile.length > 0 ? targetProfile[0].isPrivate : false;
+    // Child Protection & Privacy check (10 Ekim 2026 Yönetmeliği)
+    const targetUserRec = await db.select({
+      isMinor: users.isMinor,
+      isPrivate: profiles.isPrivate
+    })
+    .from(users)
+    .leftJoin(profiles, eq(users.id, profiles.userId))
+    .where(eq(users.id, targetUserId))
+    .limit(1);
 
-    if (isPrivate && currentUserId !== targetUserId) {
+    const isMinor = targetUserRec.length > 0 ? targetUserRec[0].isMinor : false;
+    const isPrivate = targetUserRec.length > 0 ? targetUserRec[0].isPrivate : false;
+
+    // Minor accounts or private accounts require approved follow to view following list
+    if ((isMinor || isPrivate) && currentUserId !== targetUserId) {
       let isFollowing = false;
       if (currentUserId) {
         const f = await db.select().from(follows).where(and(

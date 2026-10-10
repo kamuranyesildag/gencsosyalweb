@@ -12,6 +12,7 @@ import { SettingsPrivacy } from "../components/settings/SettingsPrivacy";
 import { SettingsSecurity } from "../components/settings/SettingsSecurity";
 import { SettingsNotifications } from "../components/settings/SettingsNotifications";
 import { SettingsAppearance } from "../components/settings/SettingsAppearance";
+import { SettingsChildSafety } from "../components/settings/SettingsChildSafety";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   User, 
@@ -34,6 +35,7 @@ export type SettingsTab =
   | "profile" 
   | "account" 
   | "privacy" 
+  | "child-safety"
   | "notifications" 
   | "appearance" 
   | "security" 
@@ -61,9 +63,10 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Tercihler",
+    title: "Tercihler & Güvenlik",
     items: [
       { id: "privacy", icon: EyeOff, label: "Gizlilik & Engelleme", description: "Görünürlük ve engellenenler" },
+      { id: "child-safety", icon: Shield, label: "Çocuk Güvenliği & Yaş", description: "10 Ekim Yönetmeliği ve veli kontrolü" },
       { id: "notifications", icon: Bell, label: "Bildirimler", description: "Push ve e-posta tercihleri" },
       { id: "appearance", icon: Palette, label: "Görünüm", description: "Tema ve animasyonlar" },
     ],
@@ -71,7 +74,7 @@ const navGroups: NavGroup[] = [
   {
     title: "Gelişmiş",
     items: [
-      { id: "security", icon: Shield, label: "Güvenlik & Oturumlar", description: "Şifre ve aktif cihazlar" },
+      { id: "security", icon: Lock, label: "Güvenlik & Oturumlar", description: "Şifre ve aktif cihazlar" },
       { id: "projects", icon: LayoutGrid, label: "Projelerim", description: "Portföy projeleri ve vitrin" },
       { id: "invites", icon: UserCheck, label: "İş Birliği Davetleri", description: "Ortak üretici davetleri" },
       { id: "verification", icon: CheckCircle2, label: "Hesap Doğrulama", description: "Mavi tik rozet başvurusu" },
@@ -93,8 +96,8 @@ export function Settings() {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab") as SettingsTab;
     const validTabs: SettingsTab[] = [
-      "profile", "account", "privacy", "notifications", 
-      "appearance", "security", "projects", "verification", "invites"
+      "profile", "account", "privacy", "child-safety", "notifications", 
+      "appearance", "security", "projects", "verification", "invites", "support"
     ];
     return validTabs.includes(tab) ? tab : "profile";
   });
@@ -351,6 +354,9 @@ export function Settings() {
                     setProfileData={setProfileData}
                     showMsg={showMsg}
                   />
+                )}
+                {activeTab === "child-safety" && (
+                  <SettingsChildSafety showMsg={showMsg} />
                 )}
                 {activeTab === "notifications" && (
                   <SettingsNotifications showMsg={showMsg} />

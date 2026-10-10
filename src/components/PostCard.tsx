@@ -906,8 +906,14 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                       return (
                         <div
                           key={i}
+                          onContextMenu={(e) => {
+                            if (post.user?.isMinor || post.isMinor) {
+                              e.preventDefault();
+                            }
+                          }}
                           className={cn(
                             "relative bg-slate-100 dark:bg-slate-900 overflow-hidden",
+                            (post.user?.isMinor || post.isMinor) && "select-none",
                             post.media.length === 1
                               ? "aspect-[16/10] sm:aspect-auto sm:max-h-[480px]"
                               : post.media.length === 3 && i === 0
@@ -939,6 +945,12 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                                 setSelectedMediaIndex(i);
                               }}
                             />
+                          )}
+                          {(post.user?.isMinor || post.isMinor) && (
+                            <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/60 backdrop-blur-xs text-[10px] text-white/90 font-medium select-none">
+                              <ShieldAlert className="w-3 h-3 text-blue-400" />
+                              <span>Korunan İçerik</span>
+                            </div>
                           )}
                         </div>
                       );

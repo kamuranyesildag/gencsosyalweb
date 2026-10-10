@@ -495,6 +495,56 @@ export async function runMigration(isStandalone = false) {
           `);
         }
       }
+
+      // FAZ 71 — Child Safety & Age Verification (10 Ekim 2026 Yönetmeliği)
+      try {
+        await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "is_minor" boolean DEFAULT false NOT NULL;`);
+        await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "age_verification_status" varchar(30) DEFAULT 'UNVERIFIED' NOT NULL;`);
+        await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "age_verification_token" text;`);
+        await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "age_verified_at" timestamp;`);
+        await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "age_verification_method" varchar(50);`);
+
+        await db.execute(sql`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "is_screenshot_protected" boolean DEFAULT false NOT NULL;`);
+        await db.execute(sql`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "daily_screen_time_limit_minutes" integer DEFAULT 120;`);
+
+        await db.execute(sql`ALTER TABLE "appeals" ADD COLUMN IF NOT EXISTS "appeal_type" varchar(50) DEFAULT 'ACCOUNT_SUSPENSION' NOT NULL;`);
+        await db.execute(sql`ALTER TABLE "appeals" ADD COLUMN IF NOT EXISTS "human_review_notes" text;`);
+
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS "parental_controls" (
+            "id" serial PRIMARY KEY NOT NULL,
+            "child_user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+            "parent_email" varchar(255) NOT NULL,
+            "pairing_code" varchar(10) NOT NULL,
+            "status" varchar(20) DEFAULT 'PENDING' NOT NULL,
+            "daily_screen_time_minutes" integer DEFAULT 120 NOT NULL,
+            "messaging_restricted" boolean DEFAULT true NOT NULL,
+            "night_mode_enforced" boolean DEFAULT true NOT NULL,
+            "last_notified_at" timestamp,
+            "paired_at" timestamp,
+            "created_at" timestamp DEFAULT now() NOT NULL,
+            "updated_at" timestamp DEFAULT now() NOT NULL
+          );
+        `);
+        await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS "parental_controls_child_unq" ON "parental_controls" ("child_user_id");`);
+
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS "age_verification_logs" (
+            "id" serial PRIMARY KEY NOT NULL,
+            "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+            "action" varchar(50) NOT NULL,
+            "calculated_age" integer,
+            "verification_method" varchar(50) NOT NULL,
+            "token_hash" text,
+            "ip_hash" varchar(128),
+            "notes" text,
+            "created_at" timestamp DEFAULT now() NOT NULL
+          );
+        `);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS "age_verification_logs_user_idx" ON "age_verification_logs" ("user_id");`);
+      } catch (childSafetyErr) {
+        console.warn("Child safety migration safety note:", childSafetyErr);
+      }
     } catch (safeErr) {
       console.warn("Community schema safety check note:", safeErr);
     }

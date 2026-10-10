@@ -110,6 +110,48 @@ messagesRouter.post("/conversations", requireAuth, standardLimiter, async (req, 
     if (blockedIds.includes(targetUserId)) {
       return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Engelli kullanıcı." }});
     }
+
+    // Child Protection & Age Verification Rules (10 Ekim 2026 Yönetmeliği)
+    const [currentUserRec] = await db.select({
+      id: users.id,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus
+    }).from(users).where(eq(users.id, currentUserId)).limit(1);
+
+    const [targetUserRec] = await db.select({
+      id: users.id,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus
+    }).from(users).where(eq(users.id, targetUserId)).limit(1);
+
+    if (!targetUserRec) {
+      return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }});
+    }
+
+    if (targetUserRec.ageVerificationStatus === 'REJECTED_UNDERAGE' || currentUserRec.ageVerificationStatus === 'REJECTED_UNDERAGE') {
+      return res.status(403).json({ success: false, error: { code: "CHILD_PROTECTION_RESTRICTION", message: "15 yaş altı hesaplar mesajlaşamaz." }});
+    }
+
+    // Adult to Minor Contact Restriction:
+    // Yetişkin kullanıcıların 15-18 yaş çocuk kullanıcılara yabancı/tek taraflı mesaj atması kesinlikle engellenir.
+    if (targetUserRec.isMinor && !currentUserRec.isMinor) {
+      const minorFollowsAdult = await db.select().from(follows).where(
+        and(eq(follows.followerId, targetUserId), eq(follows.followingId, currentUserId), eq(follows.status, 'accepted'))
+      ).limit(1);
+      const adultFollowsMinor = await db.select().from(follows).where(
+        and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId), eq(follows.status, 'accepted'))
+      ).limit(1);
+
+      if (minorFollowsAdult.length === 0 || adultFollowsMinor.length === 0) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: "CHILD_PROTECTION_RESTRICTION",
+            message: "10 Ekim 2026 Sosyal Ağ Çocuk Güvenliği Yönetmeliği uyarınca 15-18 yaş arası kullanıcılara karşılıklı onaylı takipleşme olmadan yetişkinler tarafından doğrudan mesaj başlatılamaz."
+          }
+        });
+      }
+    }
     
     // Privacy Preferences
     const targetProfile = await db.select({ messagePreference: profiles.messagePreference }).from(profiles).where(eq(profiles.userId, targetUserId)).limit(1);

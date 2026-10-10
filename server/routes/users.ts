@@ -92,6 +92,8 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       id: users.id,
       username: users.username,
       isVerified: users.isVerified,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus,
       createdAt: users.createdAt,
       displayName: profiles.displayName,
       bio: profiles.bio,
@@ -100,6 +102,7 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       location: profiles.location,
       website: profiles.website,
       isPrivate: profiles.isPrivate,
+      isScreenshotProtected: profiles.isScreenshotProtected,
       allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
       messagePreference: profiles.messagePreference,
       mentionPreference: profiles.mentionPreference,
@@ -172,6 +175,13 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       followsMe,
       notificationPreference,
     };
+
+    // 10 Ekim 2026 Yönetmeliği: Çocuk profillerinde konum ve yabancı erişimi kısıtlamaları
+    if (targetUser.isMinor && currentUserId !== targetUser.id && !isFollowing) {
+      responseData.location = null;
+      responseData.website = null;
+      responseData.isScreenshotProtected = true;
+    }
 
     // Mutual Followers
     responseData.mutualFollowers = [];

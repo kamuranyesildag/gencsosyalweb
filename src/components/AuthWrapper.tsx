@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 import React, { useState, useEffect } from "react";
 import { useAuthInit } from "../hooks/useAuthInit";
 import { useAuthStore } from "../context/useAuth";
+import { AgeGatekeeperModal } from "./safety/AgeGatekeeperModal";
 
 export function AuthWrapper({ children }: { children: React.ReactNode }) {
   useAuthInit();
@@ -18,5 +19,10 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("session_expired", handleSessionExpired);
   }, [navigate]);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AgeGatekeeperModal />
+    </>
+  );
 }

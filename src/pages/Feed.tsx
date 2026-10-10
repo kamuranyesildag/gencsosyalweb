@@ -12,6 +12,7 @@ import { Sparkles, Users, ArrowUp, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../components/ui/Button";
+import { DigitalWellbeingAlert } from "../components/safety/DigitalWellbeingAlert";
 
 interface Post {
   id: number;
@@ -276,6 +277,9 @@ export function Feed() {
 
       {/* 2. FEED CONTENT FLOW */}
       <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 pt-2.5 sm:pt-3 flex flex-col gap-2.5 sm:gap-3">
+        {/* Child Safety Digital Wellbeing Notice */}
+        <DigitalWellbeingAlert />
+
         {/* Stories Bar */}
         <StoriesBar />
 

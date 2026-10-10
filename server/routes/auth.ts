@@ -4,8 +4,9 @@ import argon2 from "argon2";
 import crypto from "crypto";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows, appeals } from "../../src/db/schema.js";
+import { users, profiles, refreshTokens, otpVerifications, systemSettings, follows, appeals, ageVerificationLogs } from "../../src/db/schema.js";
 import { eq, or, and, sql, desc, isNull, inArray } from "drizzle-orm";
+import { classifyAge, generateAgeVerificationToken, hashIpForAudit } from "../utils/childSafety.js";
 import { 
   registerSchema, 
   sendOtpSchema, 
@@ -63,7 +64,24 @@ const getClearCookieOptions = (req: Request) => {
 
 
 // Helper to handle OTP generation and dispatch
-async function handleSendOtp(email: string, displayName: string, username: string, password?: string) {
+async function handleSendOtp(email: string, displayName: string, username: string, password?: string, birthDate?: string) {
+  // Child Safety Age Pre-Check (10 Ekim 2026 Yönetmeliği)
+  if (birthDate) {
+    const ageCheck = classifyAge(birthDate);
+    if (ageCheck.category === 'UNDER_15') {
+      return {
+        status: 403,
+        body: {
+          success: false,
+          error: {
+            code: "AGE_RESTRICTED_UNDER_15",
+            message: ageCheck.legalExplanation
+          }
+        }
+      };
+    }
+  }
+
   // Check if username already exists
   const existingUsername = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
   if (existingUsername.length > 0) {
@@ -233,8 +251,8 @@ authRouter.post("/register/send-otp", otpSendRateLimiter, async (req, res) => {
       return;
     }
 
-    const { email, displayName, username, password } = parsed.data;
-    const result = await handleSendOtp(email, displayName, username, password);
+    const { email, displayName, username, password, birthDate } = parsed.data;
+    const result = await handleSendOtp(email, displayName, username, password, birthDate);
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error("Send OTP error:", error);
@@ -347,7 +365,23 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
 
 // Helper to verify OTP and complete registration
 async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedData: any) {
-  const { username, email, password, displayName, otp } = parsedData;
+  const { username, email, password, displayName, otp, birthDate } = parsedData;
+
+  // 0. Age Verification & Child Safety Regulation Check (10 Ekim 2026 Yönetmeliği)
+  const ageClassification = classifyAge(birthDate);
+  if (ageClassification.category === 'UNDER_15') {
+    res.status(403).json({
+      success: false,
+      error: { 
+        code: "AGE_RESTRICTED_UNDER_15", 
+        message: ageClassification.legalExplanation 
+      }
+    });
+    return;
+  }
+
+  const isMinor = ageClassification.category === 'MINOR_15_18';
+  const ageVerificationStatus = isMinor ? 'VERIFIED_CHILD' : 'VERIFIED_ADULT';
 
   // 1. Find the active OTP verification record
   const otpRecords = await db.select().from(otpVerifications).where(
@@ -432,18 +466,43 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
       }
 
       const [createdUser] = await tx.insert(users).values({
-
         username,
         email,
         passwordHash,
         isVerified: false,
         emailVerified: true,
         isActive: true,
+        isMinor,
+        ageVerificationStatus,
+        ageVerifiedAt: new Date(),
+        ageVerificationMethod: 'DECLARATION',
       }).returning();
+
+      const verificationToken = generateAgeVerificationToken(createdUser.id, ageClassification.age, ageVerificationStatus);
+      await tx.update(users).set({ ageVerificationToken: verificationToken }).where(eq(users.id, createdUser.id));
 
       await tx.insert(profiles).values({
         userId: createdUser.id,
         displayName,
+        birthDate: new Date(birthDate),
+        isPrivate: isMinor, // 10 Ekim 2026 Yönetmeliği: Çocuk hesapları varsayılan olarak GİZLİ
+        allowSearchEngineIndexing: !isMinor, // Çocuk hesapları için arama motoru dizini varsayılan KAPALI
+        messagePreference: isMinor ? 'FOLLOWERS' : 'ANYONE',
+        defaultPostVisibility: isMinor ? 'FOLLOWERS' : 'PUBLIC',
+        isScreenshotProtected: isMinor,
+        dailyScreenTimeLimitMinutes: isMinor ? 120 : null,
+      });
+
+      // Child Safety & Age Audit Log
+      const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+      await tx.insert(ageVerificationLogs).values({
+        userId: createdUser.id,
+        action: ageVerificationStatus,
+        calculatedAge: ageClassification.age,
+        verificationMethod: 'REGISTRATION_DECLARATION',
+        tokenHash: verificationToken.split('.')[2] || null,
+        ipHash: hashIpForAudit(clientIp),
+        notes: ageClassification.legalExplanation,
       });
 
       // Remove OTP record or mark verified
@@ -1353,6 +1412,11 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       banReason: users.banReason,
       banExpiresAt: users.banExpiresAt,
       isVerified: users.isVerified,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus,
+      ageVerificationToken: users.ageVerificationToken,
+      ageVerifiedAt: users.ageVerifiedAt,
+      ageVerificationMethod: users.ageVerificationMethod,
       createdAt: users.createdAt,
       displayName: profiles.displayName,
       bio: profiles.bio,
@@ -1367,6 +1431,9 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       defaultPostVisibility: profiles.defaultPostVisibility,
       onboardingCompleted: profiles.onboardingCompleted,
       interests: profiles.interests,
+      birthDate: profiles.birthDate,
+      isScreenshotProtected: profiles.isScreenshotProtected,
+      dailyScreenTimeLimitMinutes: profiles.dailyScreenTimeLimitMinutes,
     })
     .from(users)
     .leftJoin(profiles, eq(users.id, profiles.userId))

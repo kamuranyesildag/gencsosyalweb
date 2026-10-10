@@ -453,6 +453,15 @@ export function Profile() {
                 targetUser={{ username: profile.username, isVerified: !!profile.isVerified }}
               />
             )}
+            {profile.isMinor && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 px-2 py-0.5 rounded-full select-none ml-1"
+                title="10 Ekim 2026 Yönetmeliği kapsamında ayrıştırılmış yüksek korumalı genç hesabı"
+              >
+                <Shield className="w-3 h-3 text-blue-500" />
+                <span>15-18 Genç</span>
+              </span>
+            )}
             {profile.isPrivate && (
               <span
                 className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium select-none ml-1"

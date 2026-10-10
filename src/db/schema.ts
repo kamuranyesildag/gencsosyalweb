@@ -20,6 +20,12 @@ export const users = pgTable('users', {
   officialPriority: varchar('official_priority', { length: 20 }).default('normal').notNull(),
   twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
   twoFactorSecret: text('two_factor_secret'),
+  // Child Safety & Age Verification (10 Ekim 2026 Yönetmeliği)
+  isMinor: boolean('is_minor').default(false).notNull(),
+  ageVerificationStatus: varchar('age_verification_status', { length: 30 }).default('UNVERIFIED').notNull(), // UNVERIFIED, VERIFIED_CHILD, VERIFIED_ADULT, REJECTED_UNDERAGE
+  ageVerificationToken: text('age_verification_token'),
+  ageVerifiedAt: timestamp('age_verified_at'),
+  ageVerificationMethod: varchar('age_verification_method', { length: 50 }), // NV_KPS, E_DEVLET, DECLARATION
   bannedAt: timestamp('banned_at'),
   banReason: text('ban_reason'),
   banExpiresAt: timestamp('ban_expires_at'),
@@ -44,6 +50,9 @@ export const profiles = pgTable('profiles', {
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   interests: jsonb('interests').default([]),
   birthDate: timestamp('birth_date'),
+  // Minor safety features
+  isScreenshotProtected: boolean('is_screenshot_protected').default(false).notNull(),
+  dailyScreenTimeLimitMinutes: integer('daily_screen_time_limit_minutes').default(120),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -1081,11 +1090,13 @@ export const announcementViewsRelations = relations(announcementViews, ({ one })
 export const appeals = pgTable('appeals', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  appealType: varchar('appeal_type', { length: 50 }).default('ACCOUNT_SUSPENSION').notNull(), // 'ACCOUNT_SUSPENSION', 'AGE_VERIFICATION_DISPUTE', 'CHILD_SAFETY_RESTRICTION'
   banReason: text('ban_reason'),
   reason: text('reason').notNull(),
   status: varchar('status', { length: 20 }).default('PENDING').notNull(), // 'PENDING', 'APPROVED', 'REJECTED'
   adminResponse: text('admin_response'),
   reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  humanReviewNotes: text('human_review_notes'),
   reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -1093,6 +1104,54 @@ export const appeals = pgTable('appeals', {
   userIdIdx: index('appeals_user_id_idx').on(t.userId),
   statusIdx: index('appeals_status_idx').on(t.status),
   createdAtIdx: index('appeals_created_at_idx').on(t.createdAt),
+}));
+
+// --- CHILD SAFETY & PARENTAL CONTROLS (10 EKİM 2026 YÖNETMELİĞİ) ---
+
+export const parentalControls = pgTable('parental_controls', {
+  id: serial('id').primaryKey(),
+  childUserId: integer('child_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  parentEmail: varchar('parent_email', { length: 255 }).notNull(),
+  pairingCode: varchar('pairing_code', { length: 10 }).notNull(),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // PENDING, ACTIVE, REVOKED
+  dailyScreenTimeMinutes: integer('daily_screen_time_minutes').default(120).notNull(),
+  messagingRestricted: boolean('messaging_restricted').default(true).notNull(),
+  nightModeEnforced: boolean('night_mode_enforced').default(true).notNull(),
+  lastNotifiedAt: timestamp('last_notified_at'),
+  pairedAt: timestamp('paired_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  childIdx: index('parental_controls_child_idx').on(t.childUserId),
+  unqChild: unique('parental_controls_child_unq').on(t.childUserId),
+}));
+
+export const ageVerificationLogs = pgTable('age_verification_logs', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar('action', { length: 50 }).notNull(), // VERIFICATION_ATTEMPT, VERIFIED_CHILD, VERIFIED_ADULT, REJECTED_UNDERAGE, REVERTED
+  calculatedAge: integer('calculated_age'),
+  verificationMethod: varchar('verification_method', { length: 50 }).notNull(),
+  tokenHash: text('token_hash'),
+  ipHash: varchar('ip_hash', { length: 128 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  userIdIdx: index('age_verification_logs_user_idx').on(t.userId),
+}));
+
+export const parentalControlsRelations = relations(parentalControls, ({ one }) => ({
+  child: one(users, {
+    fields: [parentalControls.childUserId],
+    references: [users.id],
+  }),
+}));
+
+export const ageVerificationLogsRelations = relations(ageVerificationLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [ageVerificationLogs.userId],
+    references: [users.id],
+  }),
 }));
 
 export const appealsRelations = relations(appeals, ({ one }) => ({

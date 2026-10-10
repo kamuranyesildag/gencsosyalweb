@@ -11,6 +11,8 @@ import { verifyPostAccess } from "../utils/visibility.js";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 
+import { isDigitalWellbeingNightHours } from "../utils/childSafety.js";
+
 export const feedRouter = Router();
 
 const viewLimiter = rateLimit({
@@ -128,11 +130,22 @@ const getFeedHandler = async (req: any, res: any) => {
     const rankScore = sql`${numerator} / ${denominator}`;
     // -----------------------------------------------------
 
+    let isViewerMinor = false;
+    if (currentUserId) {
+      const [u] = await db.select({ isMinor: users.isMinor }).from(users).where(eq(users.id, currentUserId)).limit(1);
+      isViewerMinor = u?.isMinor || false;
+    }
+
     const whereConditions: any[] = [
       isNull(posts.communityId),
       eq(posts.moderationStatus, 'APPROVED'),
       sql`${posts.createdAt} >= NOW() - INTERVAL '30 days'`
     ];
+
+    // 10 Ekim 2026 Yönetmeliği: Çocuk kullanıcılar için hassas/uyarılı içerikler filtrelenir
+    if (isViewerMinor) {
+      whereConditions.push(isNull(posts.contentWarning));
+    }
 
     if (currentUserId) {
       whereConditions.push(

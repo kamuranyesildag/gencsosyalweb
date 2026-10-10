@@ -16,7 +16,9 @@ import {
   CheckCircle2, 
   X, 
   RotateCw,
-  KeyRound
+  KeyRound,
+  Calendar,
+  Shield
 } from 'lucide-react';
 import { useAuthStore } from '../context/useAuth';
 import { useSEO } from '../hooks/useSEO';
@@ -40,8 +42,29 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Age calculation and regulation compliance (10 Ekim 2026 Yönetmeliği)
+  const getAgeInfo = () => {
+    if (!birthDate) return null;
+    const bDate = new Date(birthDate);
+    if (isNaN(bDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - bDate.getFullYear();
+    const m = today.getMonth() - bDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < bDate.getDate())) {
+      age--;
+    }
+    return {
+      age,
+      isUnder15: age < 15,
+      isMinor: age >= 15 && age < 18,
+      isAdult: age >= 18
+    };
+  };
+  const ageInfo = getAgeInfo();
 
   // Username validation state
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
@@ -180,6 +203,16 @@ export function Register() {
       return;
     }
 
+    if (!birthDate) {
+      setError('Lütfen doğum tarihinizi girin.');
+      return;
+    }
+
+    if (ageInfo?.isUnder15) {
+      setError('10 Ekim 2026 Sosyal Ağ Sağlayıcı Yönetmeliği uyarınca 15 yaşından küçük kullanıcıların hesap oluşturması kanunen yasaktır.');
+      return;
+    }
+
     if (!termsAccepted) {
       setError('Devam etmek için kullanım koşullarını ve gizlilik politikasını kabul etmelisiniz.');
       return;
@@ -194,7 +227,8 @@ export function Register() {
           displayName: displayName.trim(),
           username: username.trim(),
           email: email.trim(),
-          password
+          password,
+          birthDate,
         }),
       });
 
@@ -236,6 +270,7 @@ export function Register() {
           username: username.trim(),
           email: email.trim(),
           password,
+          birthDate,
           otp: finalCode
         }),
       });
@@ -540,6 +575,68 @@ export function Register() {
               </div>
             </div>
 
+            {/* Doğum Tarihi & Yaş Doğrulama (10 Ekim 2026 Yönetmeliği) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label 
+                  htmlFor="register-birthdate" 
+                  className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider"
+                >
+                  Doğum Tarihi
+                </label>
+                {ageInfo && (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                    ageInfo.isUnder15 
+                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' 
+                      : ageInfo.isMinor 
+                      ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300' 
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                  }`}>
+                    {ageInfo.age} Yaşında {ageInfo.isUnder15 ? '• İzin Verilmiyor' : ageInfo.isMinor ? '• 15-18 Genç Hesabı' : '• Yetişkin'}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <input
+                  id="register-birthdate"
+                  type="date"
+                  max={new Date().toISOString().split("T")[0]}
+                  value={birthDate}
+                  onChange={(e) => { setBirthDate(e.target.value); if (error) setError(''); }}
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all ${
+                    ageInfo?.isUnder15
+                      ? 'border-rose-400 focus:ring-rose-500'
+                      : ageInfo?.isMinor
+                      ? 'border-blue-400 focus:ring-blue-500'
+                      : 'border-slate-200 dark:border-white/[0.12] focus:ring-blue-600'
+                  }`}
+                  required
+                />
+              </div>
+
+              {/* Legal Notice Callout */}
+              {ageInfo?.isUnder15 && (
+                <div className="mt-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Mevzuat Uyarısı:</span> 10 Ekim 2026 tarihli Sosyal Ağ Sağlayıcı Yönetmeliği gereğince 15 yaşını doldurmamış çocuk kullanıcıların sosyal ağ hesabı oluşturması kanunen yasaktır.
+                  </div>
+                </div>
+              )}
+
+              {ageInfo?.isMinor && (
+                <div className="mt-2 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/50 flex items-start gap-2 text-xs text-blue-700 dark:text-blue-300">
+                  <Shield className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
+                  <div>
+                    <span className="font-bold">Ayrıştırılmış Hizmet Koruması:</span> Hesabınız yönetmelik gereği varsayılan olarak gizli profil, yabancılardan doğrudan mesaj kısıtlaması ve içerik korumasıyla oluşturulacaktır.
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Şifre */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -637,7 +734,7 @@ export function Register() {
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={loading || !termsAccepted || usernameStatus === "taken" || usernameStatus === "invalid"}
+                disabled={loading || !termsAccepted || usernameStatus === "taken" || usernameStatus === "invalid" || !birthDate || Boolean(ageInfo?.isUnder15)}
                 className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg hover:shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               >
                 {loading ? (
