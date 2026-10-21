@@ -200,7 +200,7 @@ export function Projects() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+      <div className="glass-card bg-white/70 dark:bg-[#0B1329]/75 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -211,7 +211,7 @@ export function Projects() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Proje adı, açıklama veya etiket ara..."
               aria-label="Projelerde ara"
-              className="w-full bg-slate-100/70 dark:bg-[#161E2E]/70 border border-slate-200/80 dark:border-white/[0.08] rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-[#0D121D] focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+              className="w-full bg-white/80 dark:bg-[#101C38]/70 border border-slate-200/90 dark:border-white/[0.1] rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-[#142244] focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all shadow-xs"
             />
             {search && (
               <button
@@ -410,11 +410,11 @@ export function Projects() {
             <div
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl hover:border-slate-300 dark:hover:border-white/[0.14] hover:shadow-sm transition-all flex flex-col group overflow-hidden cursor-pointer"
+              className="glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-2xl hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col group overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (
-                <div className="w-full aspect-[16/9] bg-slate-100 dark:bg-[#161E2E] overflow-hidden relative border-b border-slate-200/80 dark:border-white/[0.08]">
+                <div className="w-full aspect-[16/9] bg-slate-100 dark:bg-[#101C38] overflow-hidden relative border-b border-slate-200/80 dark:border-white/[0.08]">
                   <img
                     src={project.imageUrl}
                     alt={project.title}
@@ -422,10 +422,16 @@ export function Projects() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
                   />
+                  <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full glass-surface bg-white/80 dark:bg-black/60 backdrop-blur-md text-[10px] font-bold text-slate-800 dark:text-sky-300 border border-slate-200/60 dark:border-white/[0.1]">
+                    {getStatusText(project.status)}
+                  </div>
                 </div>
               ) : (
-                <div className="w-full h-32 bg-slate-50 dark:bg-[#161E2E]/50 flex items-center justify-center border-b border-slate-200/80 dark:border-white/[0.08]">
-                  <Rocket className="w-8 h-8 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                <div className="w-full h-36 bg-gradient-to-br from-blue-50/80 to-sky-100/50 dark:from-[#0B1329] dark:to-[#101C38] flex items-center justify-center border-b border-slate-200/80 dark:border-white/[0.08] relative">
+                  <Rocket className="w-9 h-9 text-blue-600 dark:text-sky-400 group-hover:scale-110 transition-transform" />
+                  <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full glass-surface bg-white/80 dark:bg-black/60 backdrop-blur-md text-[10px] font-bold text-slate-800 dark:text-sky-300 border border-slate-200/60 dark:border-white/[0.1]">
+                    {getStatusText(project.status)}
+                  </div>
                 </div>
               )}
 
@@ -433,12 +439,10 @@ export function Projects() {
               <div className="flex-1 p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium mb-2">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{project.category}</span>
-                    <span aria-hidden="true" className="opacity-40">·</span>
-                    <span>{getStatusText(project.status)}</span>
+                    <span className="text-blue-600 dark:text-sky-400 font-bold">{project.category}</span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 mb-1.5">
+                  <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors line-clamp-2 mb-1.5">
                     {project.title}
                   </h3>
 
@@ -447,11 +451,14 @@ export function Projects() {
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
-                  <span className="font-medium truncate text-slate-600 dark:text-slate-400">@{project.username}</span>
+                <div className="pt-3.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-sky-400" />
+                    <span className="font-semibold truncate text-slate-700 dark:text-slate-300">@{project.username}</span>
+                  </div>
                   <div className="flex items-center gap-2.5">
                     {project.githubUrl && <Github className="w-4 h-4 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" />}
-                    {project.projectUrl && <LinkIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 hover:underline transition-colors" />}
+                    {project.projectUrl && <LinkIcon className="w-4 h-4 text-blue-600 dark:text-sky-400 hover:underline transition-colors" />}
                   </div>
                 </div>
               </div>

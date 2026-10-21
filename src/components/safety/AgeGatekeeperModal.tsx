@@ -1,17 +1,25 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Shield, AlertCircle, Calendar, CheckCircle2, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import { Shield, AlertCircle, Calendar, CheckCircle2, ArrowRight, Loader2, X } from "lucide-react";
 import { useAuthStore } from "../../context/useAuth";
 
 export function AgeGatekeeperModal() {
-  const { user, setUser, setSuspension, logout } = useAuthStore();
+  const { user, setUser, logout } = useAuthStore();
   const [birthDate, setBirthDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [dismissed, setDismissed] = useState(() => {
+    return localStorage.getItem("gencsosyal_skip_age_gate") === "true";
+  });
 
-  // Only show if user is authenticated and ageVerificationStatus is UNVERIFIED or missing
-  const needsVerification = user && (user.ageVerificationStatus === "UNVERIFIED" || !user.ageVerificationStatus);
+  const handleSkip = () => {
+    localStorage.setItem("gencsosyal_skip_age_gate", "true");
+    setDismissed(true);
+  };
+
+  // Only show if user is authenticated and hasn't declared birthDate and hasn't dismissed
+  const needsVerification = !dismissed && user && !user.birthDate && (user.ageVerificationStatus === "UNVERIFIED" || !user.ageVerificationStatus);
 
   if (!needsVerification) {
     return null;
@@ -58,20 +66,11 @@ export function AgeGatekeeperModal() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data?.error?.code === "AGE_RESTRICTED_UNDER_15") {
-          // Underage suspension
-          if (data.error.suspension) {
-            setSuspension(data.error.suspension);
-            window.location.href = "/account-suspended";
-            return;
-          }
-          setError(data.error.message || "15 yaş altı kullanıcıların platformu kullanması mevzuat gereği kısıtlanmıştır.");
-          return;
-        }
         throw new Error(data?.error?.message || "Doğrulama yapılamadı.");
       }
 
-      setSuccessMsg(data.data?.message || "Yaş doğrulamanız başarıyla tamamlandı.");
+      setSuccessMsg(data.data?.message || "Yaş bilgileriniz kaydedildi.");
+      localStorage.setItem("gencsosyal_skip_age_gate", "true");
 
       // Refresh /me to update store
       const meRes = await fetch("/api/v1/auth/me", {
@@ -83,6 +82,10 @@ export function AgeGatekeeperModal() {
           setUser(meData.data);
         }
       }
+
+      setTimeout(() => {
+        setDismissed(true);
+      }, 1200);
     } catch (err: any) {
       setError(err.message || "Bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
@@ -91,28 +94,37 @@ export function AgeGatekeeperModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-fade-in">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden p-6 sm:p-8"
+        className="relative w-full max-w-lg bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/70 dark:border-white/[0.08] overflow-hidden p-6 sm:p-8"
       >
+        <button
+          type="button"
+          onClick={handleSkip}
+          aria-label="Kapat"
+          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-2xl">
+          <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-500/20">
             <Shield className="w-6 h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              Yasal Mevzuat Uyumu
+              Profil Güvenliği
             </span>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Yaş Doğrulaması Zorunluluğu
+              Doğum Tarihi Tercihi (İsteğe Bağlı)
             </h2>
           </div>
         </div>
 
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-          10 Ekim 2026 tarihinde yayımlanan <strong>Sosyal Ağ Sağlayıcı Tarafından Çocuklara Özgü Ayrıştırılmış Hizmet Sunulması ve Yaş Doğrulama Yönetmeliği</strong> gereğince platformumuzda yaş tespiti yapılması yasal zorunluluktur. Devam edebilmek için lütfen doğum tarihinizi onaylayınız.
+          Genç Sosyal deneyiminizi size en uygun içerik ve koruma seviyesiyle özelleştirebilmemiz için doğum tarihinizi belirtebilir veya bu adımı dilediğiniz zaman atlayabilirsiniz.
         </p>
 
         {error && (
@@ -139,12 +151,12 @@ export function AgeGatekeeperModal() {
                 {calculatedAge !== null && (
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
                     calculatedAge < 15 
-                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' 
                       : calculatedAge < 18 
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' 
                       : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                   }`}>
-                    {calculatedAge} Yaşında {calculatedAge < 15 ? '(Yasaklı Yaş)' : calculatedAge < 18 ? '(15-18 Genç)' : '(Yetişkin)'}
+                    {calculatedAge} Yaşında {calculatedAge < 15 ? '(Korumalı Genç)' : calculatedAge < 18 ? '(15-18 Genç)' : '(Yetişkin)'}
                   </span>
                 )}
               </div>
@@ -154,42 +166,42 @@ export function AgeGatekeeperModal() {
                 </div>
                 <input
                   type="date"
-                  required
                   max={new Date().toISOString().split("T")[0]}
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#080E1A] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
 
-              {calculatedAge !== null && calculatedAge < 15 && (
-                <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-2 font-medium">
-                  ⚠️ Yönetmelik gereği 15 yaşından küçüklerin sosyal ağ hesabı bulundurması kanunen yasaktır. Bu yaş onaylandığında hesap dondurulacaktır.
-                </p>
-              )}
-
-              {calculatedAge !== null && calculatedAge >= 15 && calculatedAge < 18 && (
+              {calculatedAge !== null && calculatedAge < 18 && (
                 <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-2 font-medium">
-                  🛡️ Hesabınız 15-18 yaş korumalı moda geçirilecek, yabancılardan doğrudan mesaj kısıtlaması ve gizli profil otomatik devreye alınacaktır.
+                  🛡️ Hesabınız için güvenli korumalı genç modu ve gizli profil seçenekleri hazırlandı.
                 </p>
               )}
             </div>
 
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
               <button
                 type="submit"
                 disabled={loading || !birthDate}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Doğrula ve Devam Et"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kaydet ve Devam Et"}
                 {!loading && <ArrowRight className="w-4 h-4" />}
               </button>
               <button
                 type="button"
-                onClick={logout}
-                className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                onClick={handleSkip}
+                className="w-full sm:w-auto px-4 py-3 rounded-xl border border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-colors cursor-pointer"
               >
-                Çıkış Yap
+                Şimdilik Atla
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full sm:w-auto px-3 py-3 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                Çıkış
               </button>
             </div>
           </form>

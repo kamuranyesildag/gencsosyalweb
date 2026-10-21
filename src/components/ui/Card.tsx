@@ -11,17 +11,17 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles: Record<CardVariant, string> = {
   default:
-    'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
+    'bg-white/90 dark:bg-[#0B1329]/90 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
   bordered:
-    'bg-white dark:bg-[#0D121D] border border-slate-200 dark:border-white/[0.12] shadow-none',
+    'bg-white/90 dark:bg-[#0B1329]/90 border border-slate-200 dark:border-white/[0.12] shadow-none',
   flat:
-    'bg-slate-50 dark:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] shadow-none',
+    'bg-slate-100/70 dark:bg-[#142244]/50 border border-slate-200/60 dark:border-white/[0.06] shadow-none',
   elevated:
-    'bg-white dark:bg-[#131927] border border-slate-200/80 dark:border-white/[0.08] shadow-md dark:shadow-slate-950/40',
+    'bg-white/95 dark:bg-[#101C38]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.10] shadow-lg dark:shadow-black/50',
   interactive:
-    'bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.16] cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
+    'bg-white/90 dark:bg-[#0B1329]/90 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.16] cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
   glass:
-    ' bg-white/75 dark:bg-[#0D121D]/75 border border-slate-900/[0.06] dark:border-white/[0.08] shadow-xs',
+    'bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.10] shadow-sm',
 };
 
 const paddingStyles = {

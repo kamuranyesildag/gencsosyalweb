@@ -280,9 +280,9 @@ export function Profile() {
   const isMe = currentUser?.username === profile.username;
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
+    <div className="flex flex-col w-full min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
       {/* STICKY TOP APP BAR (Native Profile Header) */}
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[56px] sm:h-[60px] px-4 sm:px-6 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-30 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] h-[56px] sm:h-[60px] px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -291,7 +291,7 @@ export function Profile() {
               else navigate("/home");
             }}
             aria-label="Geri Dön"
-            className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer"
+            className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
           >
             <ArrowLeft className="w-5 h-5 stroke-[2]" />
           </button>
@@ -319,7 +319,7 @@ export function Profile() {
             type="button"
             onClick={() => setShowShare(true)}
             aria-label="Profili Paylaş"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
           >
             <Share2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="hidden sm:inline">Paylaş</span>
@@ -330,7 +330,7 @@ export function Profile() {
               type="button"
               onClick={() => navigate("/settings")}
               aria-label="Ayarlar"
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -339,13 +339,15 @@ export function Profile() {
       </header>
 
       {/* COVER IMAGE */}
-      <div className="relative h-36 sm:h-48 md:h-56 bg-slate-200 dark:bg-[#0D121D] w-full overflow-hidden shrink-0 group border-b border-slate-200/60 dark:border-white/[0.05]">
+      <div className="relative h-40 sm:h-52 md:h-60 bg-gradient-to-tr from-[#080E1A] via-[#0B1329] to-[#172554] w-full overflow-hidden shrink-0 group border-b border-slate-200/60 dark:border-white/[0.08]">
         {profile.coverUrl ? (
           <img src={profile.coverUrl} alt="Kapak" className="w-full h-full object-cover" />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-tr from-slate-800 via-slate-900 to-slate-950">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:16px_16px]" />
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#080E1A] via-[#0B1329] to-[#1E293B]">
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
           </div>
         )}
       </div>
@@ -353,14 +355,14 @@ export function Profile() {
       {/* PROFILE INFO HEADER */}
       <div className="px-4 sm:px-6 pb-5 border-b border-slate-200/80 dark:border-white/[0.08] relative">
         {/* Avatar and Main Actions Row */}
-        <div className="flex justify-between items-end -mt-12 sm:-mt-16 md:-mt-18 mb-3.5">
-          {/* Avatar with Ring */}
-          <div className="p-1 bg-white dark:bg-[#070A10] rounded-full shadow-md shrink-0 z-10">
+        <div className="flex justify-between items-end -mt-14 sm:-mt-18 md:-mt-20 mb-3.5">
+          {/* Avatar with Frosted Glass Ring */}
+          <div className="p-1 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md rounded-full shadow-xl shrink-0 z-10 border border-slate-200/60 dark:border-white/[0.12]">
             <Avatar
               url={profile.avatarUrl}
               name={profile.displayName || profile.username}
               size="xl"
-              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 ring-4 ring-white dark:ring-[#070A10] bg-white dark:bg-[#070A10]"
+              className="w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 ring-4 ring-white dark:ring-[#080E1A] bg-white dark:bg-[#080E1A]"
             />
           </div>
 
@@ -523,17 +525,17 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Stats Row (Posts, Projects, Following, Followers) */}
-        <div className="flex flex-wrap items-center gap-5 sm:gap-6 mt-5 text-sm">
+        {/* Stats Row (Posts, Projects, Following, Followers) - Frosted Glass Chips */}
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mt-5 text-sm">
           <button
             type="button"
             onClick={() => setActiveTab("posts")}
-            className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none transition-transform active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
           >
             <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
               {profile.postsCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200">
+            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
               Gönderi
             </span>
           </button>
@@ -542,12 +544,12 @@ export function Profile() {
             <button
               type="button"
               onClick={() => setActiveTab("projects")}
-              className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none transition-transform active:scale-95"
+              className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
             >
               <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
                 {profile.projectsCount}
               </span>
-              <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200">
+              <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
                 Proje
               </span>
             </button>
@@ -556,12 +558,12 @@ export function Profile() {
           <button
             type="button"
             onClick={() => setActiveTab("following")}
-            className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none transition-transform active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
           >
             <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
               {profile.followingCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200">
+            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
               Takip Edilen
             </span>
           </button>
@@ -569,12 +571,12 @@ export function Profile() {
           <button
             type="button"
             onClick={() => setActiveTab("followers")}
-            className="group/stat inline-flex items-baseline gap-1.5 focus:outline-none transition-transform active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
           >
             <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
               {profile.followersCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200">
+            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
               Takipçi
             </span>
           </button>
@@ -646,7 +648,7 @@ export function Profile() {
         <>
           {/* PROFILE TABS */}
           <div
-            className="sticky top-[56px] sm:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors"
+            className="sticky top-[56px] sm:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors shadow-xs"
             role="tablist"
             aria-label="Profil Sekmeleri"
           >
@@ -920,22 +922,22 @@ export function Profile() {
 
             {quizStats && quizStats.totalQuizes > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Katıldığı Quiz</span>
                   <p className="text-2xl font-black text-slate-900 dark:text-white">{quizStats.totalQuizes}</p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kazandığı Quiz</span>
                   <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{quizStats.wins || 0}</p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Toplam Puan</span>
                   <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{quizStats.totalScore?.toLocaleString() || 0}</p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-center space-y-1">
+                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Doğruluk Oranı</span>
                   <p className="text-2xl font-black text-blue-600 dark:text-blue-400">%{quizStats.accuracyRate || 0}</p>
                 </div>

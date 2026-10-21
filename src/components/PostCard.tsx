@@ -470,10 +470,10 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
         }}
         className={cn(
           "group relative flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-5 w-full",
-          "bg-white dark:bg-[#0D121D]",
-          "border border-slate-200/90 dark:border-white/[0.08]",
+          "bg-white/85 dark:bg-[#0B1329]/85 backdrop-blur-md",
+          "border border-slate-200/80 dark:border-white/[0.08]",
           "rounded-2xl",
-          "shadow-xs hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-black/40 hover:border-slate-300/90 dark:hover:border-white/[0.14]",
+          "shadow-xs hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-black/50 hover:border-slate-300/90 dark:hover:border-white/[0.14]",
           "cursor-pointer transition-all duration-200",
           post.postType === "SENSITIVE" && !isRevealed && "opacity-95",
           className
@@ -906,14 +906,8 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                       return (
                         <div
                           key={i}
-                          onContextMenu={(e) => {
-                            if (post.user?.isMinor || post.isMinor) {
-                              e.preventDefault();
-                            }
-                          }}
                           className={cn(
                             "relative bg-slate-100 dark:bg-slate-900 overflow-hidden",
-                            (post.user?.isMinor || post.isMinor) && "select-none",
                             post.media.length === 1
                               ? "aspect-[16/10] sm:aspect-auto sm:max-h-[480px]"
                               : post.media.length === 3 && i === 0
@@ -945,12 +939,6 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                                 setSelectedMediaIndex(i);
                               }}
                             />
-                          )}
-                          {(post.user?.isMinor || post.isMinor) && (
-                            <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/60 backdrop-blur-xs text-[10px] text-white/90 font-medium select-none">
-                              <ShieldAlert className="w-3 h-3 text-blue-400" />
-                              <span>Korunan İçerik</span>
-                            </div>
                           )}
                         </div>
                       );
@@ -1028,7 +1016,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                 initial={{ opacity: 0, y: 10, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white dark:bg-[#131927] border border-slate-200/90 dark:border-white/[0.12] shadow-xl rounded-full z-50 backdrop-blur-md"
+                className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#0B1329]/95 border border-slate-200/90 dark:border-white/[0.12] shadow-xl rounded-full z-50 backdrop-blur-xl"
               >
                 {[
                   { type: 'like', icon: '👍', color: 'text-blue-500' },

@@ -776,7 +776,7 @@ adminRouter.patch("/appeals/:id", requireAuth, requireRole("ADMIN"), async (req:
     }
 
     const adminId = requireAuthContext(req);
-    const { action, adminResponse } = req.body;
+    const { action, adminResponse, humanReviewNotes } = req.body;
 
     if (action !== "APPROVE" && action !== "REJECT") {
       res.status(400).json({ success: false, error: { message: "Geçersiz işlem. 'action' parametresi 'APPROVE' veya 'REJECT' olmalıdır." } });
@@ -792,21 +792,27 @@ adminRouter.patch("/appeals/:id", requireAuth, requireRole("ADMIN"), async (req:
     const appeal = existingAppeal[0];
     const targetUserId = appeal.userId;
     const sanitizedResponse = typeof adminResponse === "string" ? adminResponse.trim() : null;
+    const sanitizedHumanNotes = typeof humanReviewNotes === "string" ? humanReviewNotes.trim() : null;
 
     if (action === "APPROVE") {
       await db.transaction(async (tx: DbTransaction) => {
-        // 1. Update appeal status
+        // 1. Update appeal status with human review notes
         await tx.update(appeals).set({
           status: "APPROVED",
-          adminResponse: sanitizedResponse || "İtirazınız onaylandı ve hesabınız yeniden aktifleştirildi.",
+          adminResponse: sanitizedResponse || "İtirazınız insan incelemesi neticesinde onaylandı ve hesabınız yeniden aktifleştirildi.",
+          humanReviewNotes: sanitizedHumanNotes || "İnceleme yetkili moderatör tarafından mevzuat kriterlerine göre onaylandı.",
           reviewedBy: adminId,
           reviewedAt: new Date(),
           updatedAt: new Date()
         }).where(eq(appeals.id, appealId));
 
-        // 2. Reactivate target user
+        // 2. Reactivate target user and reconcile age status if was underage-rejected
+        const [targetUserRec] = await tx.select({ ageVerificationStatus: users.ageVerificationStatus }).from(users).where(eq(users.id, targetUserId)).limit(1);
+        const resolvedAgeStatus = targetUserRec?.ageVerificationStatus === 'REJECTED_UNDERAGE' ? 'UNVERIFIED' : targetUserRec?.ageVerificationStatus;
+
         await tx.update(users).set({
           isActive: true,
+          ageVerificationStatus: resolvedAgeStatus,
           banReason: null,
           bannedAt: null,
           banExpiresAt: null,

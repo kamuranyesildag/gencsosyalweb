@@ -12,7 +12,6 @@ import { Sparkles, Users, ArrowUp, RefreshCw, AlertCircle } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "../components/ui/Button";
-import { DigitalWellbeingAlert } from "../components/safety/DigitalWellbeingAlert";
 
 interface Post {
   id: number;
@@ -199,7 +198,7 @@ export function Feed() {
   return (
     <section aria-label="Sosyal Akış" className="w-full min-h-screen">
       {/* 1. STICKY FEED HEADER (Clean, Soft, Blurred Tabs) */}
-      <header className="sticky top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+      <header className="sticky top-[60px] z-20 bg-white/80 dark:bg-[#080E1A]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
         <div className="flex h-12 w-full max-w-2xl mx-auto px-2 sm:px-4">
           {/* For You Tab */}
           <button
@@ -266,7 +265,7 @@ export function Feed() {
             <button
               type="button"
               onClick={handleRefreshToNewPosts}
-              className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold rounded-full shadow-md transition-all cursor-pointer"
+              className="pointer-events-auto inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600/90 hover:bg-blue-600 backdrop-blur-md active:scale-95 text-white text-xs font-semibold rounded-full shadow-lg shadow-blue-500/25 border border-blue-400/30 transition-all cursor-pointer"
             >
               <ArrowUp className="w-3.5 h-3.5" />
               <span>Yeni Gönderiler Var</span>
@@ -277,9 +276,6 @@ export function Feed() {
 
       {/* 2. FEED CONTENT FLOW */}
       <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 pt-2.5 sm:pt-3 flex flex-col gap-2.5 sm:gap-3">
-        {/* Child Safety Digital Wellbeing Notice */}
-        <DigitalWellbeingAlert />
-
         {/* Stories Bar */}
         <StoriesBar />
 
@@ -294,7 +290,7 @@ export function Feed() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="w-full bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-xs"
+                  className="w-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4 shadow-xs"
                 >
                   <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2.5">
@@ -311,7 +307,7 @@ export function Feed() {
             </div>
           ) : error ? (
             /* Error State with Retry Button */
-            <div className="w-full bg-white dark:bg-[#0D121D] border border-rose-200/80 dark:border-rose-900/40 rounded-2xl p-6 sm:p-8 text-center shadow-xs">
+            <div className="w-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md border border-rose-200/80 dark:border-rose-900/40 rounded-2xl p-6 sm:p-8 text-center shadow-xs">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
                 <AlertCircle className="w-6 h-6 stroke-[1.75]" />
               </div>
@@ -333,7 +329,7 @@ export function Feed() {
             </div>
           ) : posts.length === 0 ? (
             /* Soft Empty State */
-            <div className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-6 sm:p-8 text-center shadow-xs">
+            <div className="w-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-6 sm:p-8 text-center shadow-xs">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3.5">
                 {feedType === "following" ? (
                   <Users className="w-6 h-6 stroke-[1.75]" />

@@ -209,7 +209,7 @@ export function ToastContainer() {
               exit="exit"
               role="status"
               className={cn(
-                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-xl shadow-slate-900/10 border text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-950 select-none',
+                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-2xl shadow-slate-900/15 border text-slate-800 dark:text-slate-100 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl select-none',
                 config.border
               )}
             >
@@ -229,7 +229,7 @@ export function ToastContainer() {
                     t.action?.onClick();
                     removeToast(t.id);
                   }}
-                  className="shrink-0 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 bg-slate-100 dark:bg-slate-900 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="shrink-0 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 bg-slate-100 dark:bg-white/[0.08] hover:dark:bg-white/[0.14] px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   {t.action.label}
                 </button>
@@ -239,7 +239,7 @@ export function ToastContainer() {
                 type="button"
                 onClick={() => removeToast(t.id)}
                 aria-label="Bildirimi kapat"
-                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 dark:bg-slate-900 transition-colors cursor-pointer"
+                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -78,7 +78,7 @@ export function useAuthInit() {
               if (meRes.ok) {
                 const meData = await meRes.json();
                 if (meData.success && meData.data) {
-                  const currentRefreshToken = useAuthStore.getState().refreshToken || storedRefreshToken;
+                  const currentRefreshToken = refreshRes.refreshToken || useAuthStore.getState().refreshToken || storedRefreshToken;
                   setAuth(meData.data, newAccessToken, currentRefreshToken);
                   useAuthStore.getState().setLoading(false);
                   return;
@@ -124,7 +124,8 @@ export function useAuthInit() {
                 if (meRes.ok) {
                   const meData = await meRes.json();
                   if (meData.success && meData.data) {
-                    useAuthStore.getState().setAuth(meData.data, refreshed.accessToken, currentRefreshToken);
+                    const activeRefreshToken = refreshed.refreshToken || useAuthStore.getState().refreshToken || currentRefreshToken;
+                    useAuthStore.getState().setAuth(meData.data, refreshed.accessToken, activeRefreshToken);
                   }
                 }
               }

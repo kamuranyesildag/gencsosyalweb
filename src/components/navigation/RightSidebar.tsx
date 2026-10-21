@@ -87,7 +87,7 @@ export function RightSidebar() {
     <div className="flex flex-col gap-4 pb-8">
       {/* 1. Unauthenticated CTA Card */}
       {!isAuthenticated && (
-        <div className="bg-white dark:bg-[#0D121D] rounded-2xl p-5 border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+        <div className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
             <Sparkles className="w-5 h-5 stroke-[2]" />
           </div>
@@ -113,7 +113,7 @@ export function RightSidebar() {
       {isAuthenticated && (
         <section
           aria-labelledby="suggested-users-heading"
-          className="bg-white dark:bg-[#0D121D] rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+          className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
         >
           <div className="flex items-center justify-between mb-3">
             <h3
@@ -137,7 +137,7 @@ export function RightSidebar() {
       {/* 3. Secondary: Trending Topics / Hashtags */}
       <section
         aria-labelledby="trending-heading"
-        className="bg-white dark:bg-[#0D121D] rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+        className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
       >
         <div className="flex items-center justify-between mb-3">
           <h3
@@ -178,7 +178,7 @@ export function RightSidebar() {
               <Link
                 key={tag.name}
                 to={`/hashtags/${tag.name}`}
-                className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-[#161E2E] transition-colors group"
+                className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50/80 dark:hover:bg-white/[0.04] transition-colors group"
               >
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -198,7 +198,7 @@ export function RightSidebar() {
       {/* 4. Popular Communities */}
       <section
         aria-labelledby="popular-communities-heading"
-        className="bg-white dark:bg-[#0D121D] rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+        className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
       >
         <div className="flex items-center justify-between mb-3">
           <h3
@@ -246,7 +246,7 @@ export function RightSidebar() {
                 key={c.id}
                 type="button"
                 onClick={() => navigate(`/communities/${c.slug}`)}
-                className="flex items-center justify-between w-full p-2.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors cursor-pointer text-left group"
+                className="flex items-center justify-between w-full p-2.5 rounded-xl bg-slate-50/70 dark:bg-white/[0.04] hover:bg-slate-100/80 dark:hover:bg-white/[0.07] border border-slate-200/60 dark:border-white/[0.06] transition-colors cursor-pointer text-left group"
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-[11px]">

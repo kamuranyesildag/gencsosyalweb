@@ -36,12 +36,12 @@ export const tokens = {
       infoSoft: '#F0F9FF',
     },
     dark: {
-      canvas: '#070A10',
-      surfaceBase: '#0D121D',
-      surfaceElevated: '#131927',
-      surfaceSubtle: '#161E2E',
-      surfaceGlass: 'rgba(13, 18, 29, 0.75)',
-      borderSubtle: 'rgba(255, 255, 255, 0.07)',
+      canvas: '#080E1A',
+      surfaceBase: '#0B1329',
+      surfaceElevated: '#101C38',
+      surfaceSubtle: '#142244',
+      surfaceGlass: 'rgba(11, 19, 41, 0.82)',
+      borderSubtle: 'rgba(255, 255, 255, 0.08)',
       borderStrong: 'rgba(255, 255, 255, 0.14)',
       textPrimary: '#F8FAFC',
       textSecondary: '#CBD5E1',
@@ -73,18 +73,18 @@ export const tokens = {
       gradient: 'from-blue-600 to-indigo-600',
     },
     neutral: {
-      canvas: 'bg-[#F8FAFC] dark:bg-[#070A10]',
-      bg: 'bg-[#F8FAFC] dark:bg-[#070A10]',
-      surface: 'bg-white dark:bg-[#0D121D]',
-      surfaceElevated: 'bg-white dark:bg-[#131927]',
-      surfaceMuted: 'bg-[#F1F5F9] dark:bg-[#161E2E]',
-      border: 'border-slate-900/[0.08] dark:border-white/[0.08]',
-      borderSubtle: 'border-slate-900/[0.06] dark:border-white/[0.07]',
-      borderStrong: 'border-slate-900/[0.12] dark:border-white/[0.14]',
+      canvas: 'bg-[#F8FAFC] dark:bg-[#080E1A]',
+      bg: 'bg-[#F8FAFC] dark:bg-[#080E1A]',
+      surface: 'bg-white dark:bg-[#0B1329]',
+      surfaceElevated: 'bg-white dark:bg-[#101C38]',
+      surfaceMuted: 'bg-[#F1F5F9] dark:bg-[#142244]',
+      border: 'border-slate-200/80 dark:border-white/[0.08]',
+      borderSubtle: 'border-slate-200/60 dark:border-white/[0.06]',
+      borderStrong: 'border-slate-300 dark:border-white/[0.14]',
       textMain: 'text-[#0F172A] dark:text-[#F8FAFC]',
       textMuted: 'text-[#64748B] dark:text-[#94A3B8]',
       textSubtle: 'text-[#94A3B8] dark:text-[#64748B]',
-      divider: 'bg-slate-900/[0.06] dark:bg-white/[0.07]',
+      divider: 'bg-slate-200/60 dark:bg-white/[0.08]',
     },
     feedback: {
       success: {
@@ -165,10 +165,11 @@ export const tokens = {
 
   // 6. LIQUID GLASS: Controlled, high-performance glassmorphism for overlays and chrome
   glass: {
-    chrome: 'backdrop-blur-md bg-white/75 dark:bg-[#0D121D]/75 border border-slate-900/[0.06] dark:border-white/[0.07] shadow-xs',
-    elevated: 'backdrop-blur-lg bg-white/80 dark:bg-[#131927]/80 border border-slate-900/[0.08] dark:border-white/[0.10] shadow-md',
-    dropdown: 'backdrop-blur-md bg-white/95 dark:bg-[#0D121D]/95 border border-slate-900/[0.08] dark:border-white/[0.10] shadow-lg',
-    modal: 'backdrop-blur-xl bg-white/90 dark:bg-[#0D121D]/90 border border-slate-900/[0.10] dark:border-white/[0.12] shadow-2xl',
+    chrome: 'backdrop-blur-md bg-white/85 dark:bg-[#080E1A]/85 border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
+    elevated: 'backdrop-blur-lg bg-white/90 dark:bg-[#0B1329]/90 border border-slate-200/80 dark:border-white/[0.10] shadow-md',
+    dropdown: 'backdrop-blur-xl bg-white/95 dark:bg-[#0B1329]/95 border border-slate-200/90 dark:border-white/[0.10] shadow-xl',
+    modal: 'backdrop-blur-2xl bg-white/95 dark:bg-[#0B1329]/95 border border-slate-200/90 dark:border-white/[0.12] shadow-2xl',
+    card: 'backdrop-blur-md bg-white/90 dark:bg-[#0B1329]/90 border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
   },
 
   // 7. FOCUS RINGS: Accessible, clear brand rings for keyboard navigation

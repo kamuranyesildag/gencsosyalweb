@@ -126,9 +126,9 @@ export function MessageDetail() {
   const otherUser = messages.find((m) => m.sender?.id !== user?.id)?.sender;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#070A10] transition-colors">
+    <div className="flex flex-col h-[calc(100vh-60px)] w-full max-w-2xl mx-auto border-x border-slate-200/70 dark:border-white/[0.08] bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
       {/* STICKY CHAT HEADER */}
-      <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] px-4 py-3 flex items-center justify-between transition-colors shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <IconButton
             aria-label="Geri Dön"
@@ -205,17 +205,17 @@ export function MessageDetail() {
                   className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm sm:text-[15px] shadow-xs leading-relaxed ${
+                    className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm sm:text-[15px] leading-relaxed transition-all ${
                       isMe
-                        ? "bg-blue-600 text-white rounded-br-xs shadow-blue-500/10"
-                        : "bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 rounded-bl-xs"
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-xs shadow-sm shadow-blue-500/20 border border-blue-500/30"
+                        : "glass-card bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 rounded-bl-xs shadow-xs"
                     }`}
                   >
                     <div className="whitespace-pre-wrap break-words">{msg.content}</div>
 
                     <div
                       className={`flex items-center justify-end gap-1 text-[11px] font-medium mt-1.5 ${
-                        isMe ? "text-slate-300 dark:text-blue-100" : "text-slate-400 dark:text-slate-500"
+                        isMe ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
                       }`}
                     >
                       <span>
@@ -227,9 +227,9 @@ export function MessageDetail() {
                       {isMe && (
                         <span>
                           {msg.isRead ? (
-                            <CheckCheck className="w-3.5 h-3.5 text-blue-300 dark:text-white" />
+                            <CheckCheck className="w-3.5 h-3.5 text-blue-200" />
                           ) : (
-                            <Check className="w-3.5 h-3.5 text-slate-300 dark:text-blue-200" />
+                            <Check className="w-3.5 h-3.5 text-blue-200/80" />
                           )}
                         </span>
                       )}
@@ -252,8 +252,8 @@ export function MessageDetail() {
       </div>
 
       {/* STICKY INPUT BAR */}
-      <div className="p-3 sm:p-4 bg-white/85 dark:bg-[#070A10]/85  border-t border-slate-200/80 dark:border-white/[0.08]">
-        <div className="flex gap-2 items-center bg-slate-100/70 hover:bg-slate-100 focus-within:bg-white dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:focus:bg-[#0D121D] rounded-2xl p-1.5 pl-4 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-blue-500/50 dark:focus:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all">
+      <div className="p-3 sm:p-4 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-t border-slate-200/70 dark:border-white/[0.08]">
+        <div className="flex gap-2 items-center glass-input bg-white/70 hover:bg-white focus-within:bg-white dark:bg-white/[0.05] dark:hover:bg-white/[0.07] dark:focus-within:bg-[#0B1329] rounded-2xl p-1.5 pl-4 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/15 transition-all shadow-xs">
           <input
             type="text"
             placeholder="Mesajınızı yazın..."
@@ -269,12 +269,11 @@ export function MessageDetail() {
           />
 
           <button
-            
             type="button"
             disabled={!content.trim() || isSending}
             onClick={handleSend}
             aria-label="Mesaj Gönder"
-            className="w-10 h-10 bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 disabled:opacity-40 disabled:hover:bg-slate-900 dark:disabled:hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-all active:scale-[0.97] shadow-xs shrink-0"
+            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-all active:scale-[0.97] shadow-xs shadow-blue-500/20 shrink-0 cursor-pointer"
           >
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

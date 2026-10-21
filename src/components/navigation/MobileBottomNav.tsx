@@ -39,7 +39,7 @@ export function MobileBottomNav() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 150, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden fixed z-40 bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] rounded-[24px] transition-colors"
+            className="md:hidden fixed z-40 bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.12] shadow-xl shadow-slate-900/10 dark:shadow-black/60 rounded-[24px] transition-colors"
             style={{
               bottom: 'calc(16px + env(safe-area-inset-bottom))',
               left: '16px',
@@ -110,7 +110,7 @@ export function MobileBottomNav() {
                     else setShowCreate(true);
                   }}
                   aria-label="İçerik Oluştur"
-                  className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs shadow-blue-500/25 transition-all active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-sm shadow-blue-500/30 transition-all active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
                   <Plus className="w-5.5 h-5.5 stroke-[2.2]" />
                 </button>
@@ -140,7 +140,7 @@ export function MobileBottomNav() {
                     }`}
                   />
                   {unreadNotifications > 0 && !isNotificationsActive && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white dark:ring-[#0D121D]" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white dark:ring-[#080E1A]" />
                   )}
                   {isNotificationsActive && (
                     <motion.span

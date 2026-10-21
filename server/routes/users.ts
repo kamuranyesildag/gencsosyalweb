@@ -243,6 +243,35 @@ usersRouter.patch("/me", requireAuth, async (req, res) => {
       return;
     }
 
+    // Child Protection Enforcement (10 Ekim 2026 Yönetmeliği)
+    const [currentUserRec] = await db.select({ isMinor: users.isMinor }).from(users).where(eq(users.id, currentUserId)).limit(1);
+    if (currentUserRec?.isMinor) {
+      if (parsed.data.isPrivate === false) {
+        return res.status(403).json({
+          success: false,
+          error: { code: "CHILD_PROTECTION_RESTRICTION", message: "10 Ekim 2026 Yönetmeliği gereğince çocuk hesaplarının gizlilik modu kapatılamaz." }
+        });
+      }
+      if (parsed.data.allowSearchEngineIndexing === true) {
+        return res.status(403).json({
+          success: false,
+          error: { code: "CHILD_PROTECTION_RESTRICTION", message: "10 Ekim 2026 Yönetmeliği gereğince çocuk hesapları arama motoru dizinlerine açılamaz." }
+        });
+      }
+      if (parsed.data.messagePreference === 'ANYONE') {
+        return res.status(403).json({
+          success: false,
+          error: { code: "CHILD_PROTECTION_RESTRICTION", message: "Çocuk hesapları yabancılardan doğrudan mesaj kabul edecek şekilde ayarlanamaz." }
+        });
+      }
+      if (parsed.data.defaultPostVisibility === 'PUBLIC') {
+        return res.status(403).json({
+          success: false,
+          error: { code: "CHILD_PROTECTION_RESTRICTION", message: "Çocuk hesaplarının gönderi görünürlüğü herkese açık yapılamaz." }
+        });
+      }
+    }
+
     if (parsed.data.bio) {
       const modResult = await moderateContent(parsed.data.bio);
       if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {

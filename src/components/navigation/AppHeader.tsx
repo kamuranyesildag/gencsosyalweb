@@ -136,7 +136,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   return (
     <header
       role="banner"
-      className="sticky top-0 left-0 right-0 z-40 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
+      className="sticky top-0 left-0 right-0 z-40 bg-white/80 dark:bg-[#080E1A]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
     >
       <div className="w-full max-w-7xl px-3 sm:px-4 md:px-6 flex justify-between items-center h-full gap-2 md:gap-4">
         {/* ===================== MOBILE HEADER ===================== */}
@@ -147,11 +147,11 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               type="button"
               onClick={onMenuClick}
               aria-label="Gezinme menüsünü aç"
-              className="relative flex items-center justify-center w-10 h-10 -ml-1 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
+              className="relative flex items-center justify-center w-10 h-10 -ml-1 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
             >
               <Menu className="w-5 h-5 stroke-[2]" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#070A10]" />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#080E1A]" />
               )}
             </button>
 
@@ -187,7 +187,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               type="button"
               onClick={() => navigate('/explore')}
               aria-label="Arama"
-              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
             >
               <Search className="w-4.5 h-4.5 stroke-[1.8]" />
             </button>
@@ -197,7 +197,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               type="button"
               onClick={toggleTheme}
               aria-label={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
-              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
             >
               {actualTheme === 'dark' ? (
                 <Sun className="w-4.5 h-4.5 stroke-[1.8] text-amber-400" />
@@ -215,12 +215,12 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
                   isMessagesActive
                     ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
                 }`}
               >
                 <Mail className="w-4.5 h-4.5 stroke-[1.8]" />
                 {unreadMessages > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#070A10]">
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A]">
                     {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}
@@ -274,7 +274,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                     Genç Sosyal
                   </span>
                   {contextLabel && (
-                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-200/60 dark:border-blue-900/40 ml-0.5 animate-fadeIn">
+                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 px-2 py-0.5 rounded-lg border border-blue-200/60 dark:border-blue-900/40 ml-0.5 animate-fadeIn">
                       {contextLabel}
                     </span>
                   )}
@@ -300,7 +300,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 onFocus={() => setSearchFocused(true)}
                 placeholder="Genç Sosyal'de kişi veya konu ara..."
                 aria-label="Arama Yap"
-                className="w-full pl-10 pr-12 py-2 h-10 bg-slate-100/90 dark:bg-white/[0.05] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#0D121D] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 rounded-xl text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all"
+                className="w-full pl-10 pr-12 py-2 h-10 bg-slate-100/70 dark:bg-white/[0.05] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#0B1329] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 rounded-xl text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all shadow-2xs"
               />
 
               {query ? (
@@ -317,7 +317,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 </button>
               ) : (
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-200/70 dark:bg-white/[0.08] border border-slate-300/40 dark:border-white/[0.08]">
+                  <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-white/[0.08] border border-slate-300/40 dark:border-white/[0.08]">
                     ⌘K
                   </kbd>
                 </div>
@@ -331,7 +331,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full mt-2 w-full bg-white dark:bg-[#0D121D] rounded-2xl shadow-xl border border-slate-200/90 dark:border-white/[0.09] overflow-hidden z-50"
+                    className="absolute top-full mt-2 w-full bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 dark:border-white/[0.10] overflow-hidden z-50"
                   >
                     {searchLoading ? (
                       <div className="p-4 text-center text-xs text-slate-400 font-medium">
@@ -406,7 +406,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               onClick={toggleTheme}
               aria-label={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
               title={actualTheme === 'dark' ? 'Açık Tema' : 'Koyu Tema'}
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors active:scale-95 cursor-pointer"
             >
               {actualTheme === 'dark' ? (
                 <Sun className="w-4.5 h-4.5 stroke-[1.8] text-amber-400 transition-transform hover:rotate-45" />
@@ -422,7 +422,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   type="button"
                   onClick={() => navigate('/create')}
                   aria-label="Yeni Gönderi Oluştur"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 font-semibold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 font-semibold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
                 >
                   <Plus className="w-4 h-4 stroke-[2.2]" />
                   <span className="hidden xl:inline">Yeni Gönderi</span>
@@ -437,12 +437,12 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
                     isMessagesActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
                   }`}
                 >
                   <Mail className={`w-4.5 h-4.5 ${isMessagesActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
                   {unreadMessages > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#070A10] shadow-xs">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A] shadow-xs">
                       {unreadMessages > 9 ? '9+' : unreadMessages}
                     </span>
                   )}
@@ -457,12 +457,12 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
                     isNotificationsActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
                   }`}
                 >
                   <Bell className={`w-4.5 h-4.5 ${isNotificationsActive ? 'stroke-[2.2]' : 'stroke-[1.8]'}`} />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#070A10] shadow-xs">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A] shadow-xs">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}

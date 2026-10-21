@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { conversations, conversationMembers, messages, users, profiles, follows } from "../../src/db/schema.js";
-import { eq, and, desc, inArray, not, sql } from "drizzle-orm";
+import { conversations, conversationMembers, messages, users, profiles, follows, blocks } from "../../src/db/schema.js";
+import { eq, and, desc, inArray, not, or, sql } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -250,6 +250,64 @@ messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter,
 
     const membership = await db.select().from(conversationMembers).where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, currentUserId))).limit(1);
     if (membership.length === 0) return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Yetkisiz." }});
+
+    // Child Protection & Account Status Checks for Existing Conversations (AŞAMA E - 6.2)
+    const [senderUser] = await db.select({
+      id: users.id,
+      isActive: users.isActive,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus
+    }).from(users).where(eq(users.id, currentUserId)).limit(1);
+
+    if (!senderUser || !senderUser.isActive || senderUser.ageVerificationStatus === 'REJECTED_UNDERAGE') {
+      return res.status(403).json({ success: false, error: { code: "CHILD_PROTECTION_RESTRICTION", message: "Hesabınız askıya alınmıştır veya 15 yaş altı kısıtlamasına tabidir." }});
+    }
+
+    const otherMembers = await db.select({
+      id: users.id,
+      isActive: users.isActive,
+      isMinor: users.isMinor,
+      ageVerificationStatus: users.ageVerificationStatus
+    })
+    .from(conversationMembers)
+    .innerJoin(users, eq(conversationMembers.userId, users.id))
+    .where(and(eq(conversationMembers.conversationId, conversationId), not(eq(conversationMembers.userId, currentUserId))));
+
+    for (const other of otherMembers) {
+      if (!other.isActive || other.ageVerificationStatus === 'REJECTED_UNDERAGE') {
+        return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Kullanıcı hesabı aktif değildir." }});
+      }
+
+      // Check block
+      const isBlocked = await db.select().from(blocks).where(or(
+        and(eq(blocks.blockerId, currentUserId), eq(blocks.blockedId, other.id)),
+        and(eq(blocks.blockerId, other.id), eq(blocks.blockedId, currentUserId))
+      )).limit(1);
+
+      if (isBlocked.length > 0) {
+        return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Engellenmiş kullanıcıya mesaj gönderilemez." }});
+      }
+
+      // Adult to minor mutual follow enforcement:
+      if (!senderUser.isMinor && other.isMinor) {
+        const minorFollowsAdult = await db.select().from(follows).where(
+          and(eq(follows.followerId, other.id), eq(follows.followingId, currentUserId), eq(follows.status, 'accepted'))
+        ).limit(1);
+        const adultFollowsMinor = await db.select().from(follows).where(
+          and(eq(follows.followerId, currentUserId), eq(follows.followingId, other.id), eq(follows.status, 'accepted'))
+        ).limit(1);
+
+        if (minorFollowsAdult.length === 0 || adultFollowsMinor.length === 0) {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: "CHILD_PROTECTION_RESTRICTION",
+              message: "10 Ekim 2026 Yönetmeliği uyarınca 15-18 yaş arası çocuk kullanıcıyla karşılıklı onaylı takipleşme olmadan mesajlaşılamaz."
+            }
+          });
+        }
+      }
+    }
 
     const [msg] = await db.insert(messages).values({
       conversationId,

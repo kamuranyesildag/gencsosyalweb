@@ -193,6 +193,12 @@ postsRouter.post("/", requireAuth, strictLimiter, async (req, res) => {
        finalVisibility = p.length > 0 ? p[0].defaultPostVisibility as any : "PUBLIC";
     }
 
+    // 10 Ekim 2026 Yönetmeliği: Çocuk kullanıcıların içerikleri yabancılara herkese açık yayımlanamaz
+    const [authorRec] = await db.select({ isMinor: users.isMinor }).from(users).where(eq(users.id, currentUserId)).limit(1);
+    if (authorRec?.isMinor && finalVisibility === 'PUBLIC') {
+      finalVisibility = 'FOLLOWERS';
+    }
+
     const modResult = await moderateContent(content || "");
     const modStatus = modResult.riskLevel === 'HIGH_RISK' ? 'REJECTED' : (modResult.riskLevel === 'MEDIUM_RISK' ? 'PENDING' : 'APPROVED');
 

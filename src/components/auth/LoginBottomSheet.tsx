@@ -48,7 +48,7 @@ export function LoginBottomSheet() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-slate-950/50 "
+            className="fixed inset-0 bg-slate-950/45 backdrop-blur-sm"
             onClick={closeModal}
             aria-hidden="true"
           />
@@ -59,7 +59,7 @@ export function LoginBottomSheet() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="relative w-full sm:max-w-md bg-white dark:bg-slate-950 rounded-t-[28px] sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            className="relative w-full sm:max-w-md bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl rounded-t-[28px] sm:rounded-3xl border border-slate-200/90 dark:border-white/[0.12] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Grab Handle for Mobile */}
@@ -95,21 +95,21 @@ export function LoginBottomSheet() {
               </p>
 
               {/* Feature Highlights */}
-              <div className="grid grid-cols-1 gap-2.5 my-5 bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700">
-                  <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0">
+              <div className="grid grid-cols-1 gap-2.5 my-5 bg-slate-50/80 dark:bg-[#101C38]/70 p-3.5 rounded-2xl border border-slate-200/60 dark:border-white/[0.08]">
+                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0">
                     <Heart className="w-3.5 h-3.5 fill-current" />
                   </div>
                   <span>Gönderilerle etkileşime geç ve kaydet</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700">
-                  <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <span>Kendi projelerini ve fikirlerini paylaş</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700">
-                  <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                     <MessageCircle className="w-3.5 h-3.5" />
                   </div>
                   <span>Üretici topluluklarla doğrudan iletişim kur</span>

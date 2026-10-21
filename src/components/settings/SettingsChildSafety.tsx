@@ -103,6 +103,10 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
       showMsg("Lütfen eşleştirme kodunu girin.", "error");
       return;
     }
+    if (!parentEmail.trim() || !parentEmail.includes("@")) {
+      showMsg("Lütfen doğrulayan veli e-posta adresini girin.", "error");
+      return;
+    }
     setParentalLoading(true);
     try {
       const token = localStorage.getItem("gencsosyal_token");
@@ -114,6 +118,7 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
         },
         body: JSON.stringify({
           pairingCode: pairingCodeInput.trim().toUpperCase(),
+          parentConfirmationEmail: parentEmail.trim().toLowerCase(),
           dailyScreenTimeMinutes: dailyScreenTime
         })
       });

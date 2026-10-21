@@ -211,7 +211,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
     <div
       ref={containerRef}
       className={cn(
-        "w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs transition-all duration-200",
+        "w-full bg-white/85 dark:bg-[#0B1329]/85 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs transition-all duration-200",
         className
       )}
     >
@@ -240,7 +240,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
             type="button"
             onClick={() => handleOpenComposer("NORMAL")}
             aria-label="Gönderi yazmaya başla"
-            className="flex-1 text-left px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131927] hover:bg-slate-100/80 dark:hover:bg-[#161e2e] text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-normal border border-slate-200/60 dark:border-white/[0.06] transition-colors cursor-pointer select-none truncate"
+            className="flex-1 text-left px-4 py-2.5 rounded-xl bg-slate-50/80 dark:bg-[#101C38]/70 hover:bg-slate-100/90 dark:hover:bg-[#142244] text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-normal border border-slate-200/60 dark:border-white/[0.06] transition-colors cursor-pointer select-none truncate"
           >
             {user?.displayName
               ? `Ne düşünüyorsun, ${user.displayName.split(" ")[0]}?`
@@ -256,7 +256,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
               }}
               title="Görsel / Video Ekle"
               aria-label="Medya yükle"
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 transition-all active:scale-95 cursor-pointer"
             >
               <ImageIcon className="w-4.5 h-4.5 stroke-[1.75]" />
             </button>
@@ -266,7 +266,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
               onClick={() => handleOpenComposer("POLL")}
               title="Anket Oluştur"
               aria-label="Anket oluştur"
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 transition-all active:scale-95 cursor-pointer"
             >
               <ListOrdered className="w-4.5 h-4.5 stroke-[1.75]" />
             </button>
@@ -320,7 +320,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.96, y: 4 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-[#131927] rounded-xl border border-slate-200/80 dark:border-white/[0.1] shadow-lg py-1 z-30 overflow-hidden"
+                      className="absolute right-0 top-full mt-1.5 w-52 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl rounded-xl border border-slate-200/90 dark:border-white/[0.10] shadow-xl py-1 z-30 overflow-hidden"
                     >
                       {VISIBILITY_OPTIONS.map((opt) => {
                         const Icon = opt.icon;

@@ -38,7 +38,7 @@ export function MobileSidebarDrawer({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-slate-900/60 dark:bg-black/60 "
+                className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
               />
 
               {/* Drawer Content */}
@@ -47,12 +47,12 @@ export function MobileSidebarDrawer({
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="relative w-[280px] max-w-[85vw] h-full bg-white dark:bg-[#0D121D] shadow-xl flex flex-col transition-colors border-r border-slate-200/80 dark:border-white/[0.08]"
+                className="relative w-[280px] max-w-[85vw] h-full bg-white/95 dark:bg-[#080E1A]/95 backdrop-blur-xl shadow-2xl flex flex-col transition-colors border-r border-slate-200/80 dark:border-white/[0.08]"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 h-[60px] border-b border-slate-200/80 dark:border-white/[0.08] shrink-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-blue-600 p-0.5 flex items-center justify-center text-white shadow-xs">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 p-0.5 flex items-center justify-center text-white shadow-xs">
                       <Hexagon className="w-4 h-4 fill-transparent stroke-white stroke-[2.2]" />
                     </div>
                     <span className="font-bold text-base tracking-tight text-slate-900 dark:text-slate-100">
@@ -63,7 +63,7 @@ export function MobileSidebarDrawer({
                     type="button"
                     onClick={onClose}
                     aria-label="Kapat"
-                    className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 -mr-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#161E2E] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+                    className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 -mr-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>

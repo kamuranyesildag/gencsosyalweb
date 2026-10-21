@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Neutral Color Palette (Sophisticated Slate/Zinc hybrid) */
+  /* Neutral Color Palette (Deep Navy / Frost Slate) */
   --color-slate-50: #f8fafc;
   --color-slate-100: #f1f5f9;
   --color-slate-200: #e2e8f0;
@@ -16,8 +16,11 @@
   --color-slate-700: #334155;
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
+  --color-navy-950: #080e1a;
+  --color-navy-900: #0b1329;
+  --color-navy-800: #101c38;
 
-  /* Brand Palette: Crisp, accessible Blue/Indigo */
+  /* Brand Palette: Crisp, accessible Royal Blue */
   --color-blue-50: #eff6ff;
   --color-blue-100: #dbeafe;
   --color-blue-200: #bfdbfe;
@@ -31,13 +34,13 @@
 
   /* Semantic Token Colors for Design System */
   --color-canvas-light: #f8fafc;
-  --color-canvas-dark: #070a10;
+  --color-canvas-dark: #080e1a;
   --color-surface-base-light: #ffffff;
-  --color-surface-base-dark: #0d121d;
+  --color-surface-base-dark: #0b1329;
   --color-surface-elevated-light: #ffffff;
-  --color-surface-elevated-dark: #131927;
+  --color-surface-elevated-dark: #101c38;
   --color-surface-subtle-light: #f1f5f9;
-  --color-surface-subtle-dark: #161e2e;
+  --color-surface-subtle-dark: #142244;
 
   /* Standardized Radius System: xs(4px), sm(8px), md(12px), lg(16px), xl(20px), pill(9999px) */
   --radius-xs: 0.25rem;   /* 4px */
@@ -45,19 +48,20 @@
   --radius-md: 0.75rem;   /* 12px - Controls, Inputs, Buttons */
   --radius-lg: 1rem;      /* 16px - Cards */
   --radius-xl: 1.25rem;   /* 20px - Modals, Floating Panels */
+  --radius-2xl: 1.5rem;   /* 24px - Floating Bars, Large Drawers */
   --radius-pill: 9999px;  /* Badges, Avatars */
   --radius-full: 9999px;
 
-  /* Font Family & Hierarchy */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Font Family & Hierarchy - Plus Jakarta Sans for Premium Modern Feel */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
-  /* Modern soft shadows - Natural, low-intensity, no aggressive neon/glow */
+  /* Modern soft shadows - Natural, low-intensity, no aggressive neon */
   --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
-  --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
-  --shadow-xl: 0 25px 50px -12px rgba(15, 23, 42, 0.16);
+  --shadow-sm: 0 2px 4px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  --shadow: 0 4px 8px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 10px 20px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 20px 30px -5px rgba(15, 23, 42, 0.07), 0 8px 12px -6px rgba(15, 23, 42, 0.03);
+  --shadow-xl: 0 25px 50px -12px rgba(15, 23, 42, 0.14);
 }
 
 @layer base {
@@ -77,15 +81,15 @@
     -moz-osx-font-smoothing: grayscale;
     background-color: #f8fafc;
     color: #0f172a;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   html.dark {
-    background-color: #070a10;
+    background-color: #080e1a;
     color: #f8fafc;
   }
 
   body {
-    /* Safe-area padding is removed from body to prevent double padding bugs with fixed/absolute nav bars */
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -110,6 +114,187 @@
     background-color: rgba(59, 130, 246, 0.25);
     color: #f8fafc;
   }
+}
+
+/* =========================================================================
+   PREMIUM GLASSMORPHISM DESIGN SYSTEM UTILITIES
+   Provides elegant, high-performance frosted surfaces with graceful fallbacks
+   ========================================================================= */
+
+.glass-nav {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-nav {
+  background-color: rgba(8, 14, 26, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-surface {
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.03), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+}
+
+.dark .glass-surface {
+  background-color: rgba(11, 19, 41, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.04), 0 1px 2px 0 rgba(15, 23, 42, 0.02);
+}
+
+.dark .glass-card {
+  background-color: rgba(11, 19, 41, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.3);
+}
+
+.glass-floating {
+  background-color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(190%);
+  -webkit-backdrop-filter: blur(16px) saturate(190%);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.10), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+.dark .glass-floating {
+  background-color: rgba(11, 19, 41, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 6px 16px -2px rgba(0, 0, 0, 0.35);
+}
+
+.glass-dropdown {
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
+.dark .glass-dropdown {
+  background-color: rgba(11, 19, 41, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 20px 45px -4px rgba(0, 0, 0, 0.6);
+}
+
+.glass-modal {
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.20);
+}
+
+.dark .glass-modal {
+  background-color: rgba(11, 19, 41, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.75);
+}
+
+/* Fallback for environments lacking backdrop-filter support */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-nav,
+  .glass-surface,
+  .glass-card,
+  .glass-floating,
+  .glass-dropdown,
+  .glass-modal {
+    background-color: #ffffff !important;
+  }
+  .dark .glass-nav,
+  .dark .glass-surface,
+  .dark .glass-card,
+  .dark .glass-floating,
+  .dark .glass-dropdown,
+  .dark .glass-modal {
+    background-color: #0b1329 !important;
+  }
+}
+
+/* Reduced motion preference override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Safe area padding utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Accessible minimum touch targets for mobile */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Refined Subtle Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
 }
 
 /* Reduced motion preference override */

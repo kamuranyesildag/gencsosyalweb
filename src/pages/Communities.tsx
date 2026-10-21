@@ -150,15 +150,15 @@ export function Communities() {
   });
 
   return (
-    <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-transparent">
+    <div className="flex flex-col h-full w-full max-w-3xl mx-auto min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
       {/* Sticky Header */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 md:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-            <Users className="w-4 h-4" />
+          <div className="w-8.5 h-8.5 rounded-xl bg-blue-50 dark:bg-sky-500/10 text-blue-600 dark:text-sky-400 flex items-center justify-center font-bold border border-blue-200/60 dark:border-sky-500/20">
+            <Users className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Topluluklar
             </h1>
           </div>
@@ -172,14 +172,14 @@ export function Communities() {
             if (!isAuthenticated) openModal();
             else setShowCreate(true);
           }}
-          className="rounded-xl font-semibold shadow-xs"
+          className="rounded-xl font-bold shadow-xs bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
         >
           Topluluk Kur
         </Button>
       </header>
 
       {/* Search Bar & Categories */}
-      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#0D121D]/50 space-y-3">
+      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-white/[0.08] bg-white/50 dark:bg-[#0B1329]/50 backdrop-blur-md space-y-3">
         <div className="relative flex items-center">
           <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
@@ -189,7 +189,7 @@ export function Communities() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Topluluklarda ara (ad, açıklama veya c/slug)..."
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white/80 dark:bg-[#101C38]/70 border border-slate-200/90 dark:border-white/[0.1] rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all shadow-xs"
           />
         </div>
 
@@ -199,10 +199,10 @@ export function Communities() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-full font-semibold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full font-bold transition-all shrink-0 cursor-pointer ${
                 selectedCategory === cat
                   ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-white dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.1]"
+                  : "glass-card bg-white/80 dark:bg-[#101C38]/60 border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#142244]"
               }`}
             >
               {cat}
@@ -221,15 +221,15 @@ export function Communities() {
               <div
                 key={c.id}
                 onClick={() => navigate(`/communities/${c.slug}`)}
-                className="p-5 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl bg-white dark:bg-[#0D121D] hover:border-blue-400 dark:hover:border-blue-500/40 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/75 backdrop-blur-xl hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start gap-3.5 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50/80 dark:bg-sky-500/10 border border-blue-100 dark:border-sky-500/20 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform shadow-xs">
                       {c.avatarUrl ? (
                         <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
-                        <Users className="text-blue-600 dark:text-blue-400 w-6 h-6" />
+                        <Users className="text-blue-600 dark:text-sky-400 w-6 h-6" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -308,15 +308,15 @@ export function Communities() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative w-full max-w-lg bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-3xl p-6 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-lg glass-surface bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-white/[0.12] rounded-3xl p-6 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/[0.05] mb-5">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/[0.06] mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-sky-500/10 text-blue-600 dark:text-sky-400 flex items-center justify-center border border-blue-200/60 dark:border-sky-500/20">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                    <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                       Yeni Topluluk Kur
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">

@@ -527,6 +527,9 @@ export async function runMigration(isStandalone = false) {
           );
         `);
         await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS "parental_controls_child_unq" ON "parental_controls" ("child_user_id");`);
+        await db.execute(sql`ALTER TABLE "parental_controls" ADD COLUMN IF NOT EXISTS "expires_at" timestamp;`);
+        await db.execute(sql`ALTER TABLE "parental_controls" ADD COLUMN IF NOT EXISTS "attempts" integer DEFAULT 0 NOT NULL;`);
+        await db.execute(sql`ALTER TABLE "parental_controls" ALTER COLUMN "pairing_code" TYPE varchar(32);`);
 
         await db.execute(sql`
           CREATE TABLE IF NOT EXISTS "age_verification_logs" (

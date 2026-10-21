@@ -10,8 +10,18 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleSessionExpired = () => {
-      const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/'];
-      if (!publicRoutes.includes(window.location.pathname)) {
+      const protectedPrefixes = [
+        '/create',
+        '/notifications',
+        '/messages',
+        '/bookmarks',
+        '/settings',
+        '/support',
+        '/admin',
+        '/onboarding'
+      ];
+      const isStrictlyProtected = protectedPrefixes.some(prefix => window.location.pathname.startsWith(prefix));
+      if (isStrictlyProtected) {
         navigate('/login', { replace: true });
       }
     };

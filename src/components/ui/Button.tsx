@@ -19,11 +19,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white dark:bg-white dark:hover:bg-slate-100 dark:active:bg-slate-200 dark:text-slate-900 shadow-xs border border-transparent',
+    'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs shadow-blue-500/20 border border-blue-500/30',
   secondary:
-    'bg-slate-100 hover:bg-slate-200/80 active:bg-slate-300 text-slate-800 dark:bg-[#161E2E] dark:hover:bg-[#1E293B] dark:active:bg-[#26354D] dark:text-slate-100 border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
+    'bg-slate-100/90 hover:bg-slate-200/80 active:bg-slate-300 text-slate-800 dark:bg-[#142244] dark:hover:bg-[#1A2D5A] dark:active:bg-[#203870] dark:text-slate-100 border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
   outline:
-    'bg-transparent border border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 active:bg-slate-100 dark:border-white/[0.12] dark:hover:border-white/[0.2] dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-200 shadow-xs',
+    'bg-white/40 dark:bg-transparent backdrop-blur-xs border border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 active:bg-blue-100/50 dark:border-white/[0.12] dark:hover:border-blue-500/50 dark:hover:bg-blue-950/30 text-slate-700 dark:text-slate-200 shadow-xs',
   ghost:
     'bg-transparent hover:bg-slate-100/80 active:bg-slate-200/80 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[0.06] border border-transparent',
   danger:

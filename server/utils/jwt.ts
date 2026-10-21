@@ -1,38 +1,29 @@
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 const getAccessTokenSecret = () => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("FATAL: JWT_SECRET is missing in production!");
-    }
-    return "dev_secret_do_not_use_in_prod";
-  }
-  return secret;
+  return process.env.JWT_SECRET || "gencsosyal_secure_access_jwt_secret_2026";
 };
 
 const getRefreshTokenSecret = () => {
-  const secret = process.env.JWT_REFRESH_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("FATAL: JWT_REFRESH_SECRET is missing in production!");
-    }
-    return "dev_refresh_secret_do_not_use_in_prod";
-  }
-  return secret;
+  return process.env.JWT_REFRESH_SECRET || "gencsosyal_secure_refresh_jwt_secret_2026";
+};
+
+export const hashRefreshToken = (token: string): string => {
+  return crypto.createHash("sha256").update(token).digest("hex");
 };
 
 export const generateAccessToken = (userId: number, role: string) => {
   return jwt.sign(
-    { userId, role, type: "access" },
+    { userId, role, type: "access", jti: crypto.randomUUID() },
     getAccessTokenSecret(),
-    { expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "2h") as any }
+    { expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "24h") as any }
   );
 };
 
 export const generateRefreshToken = (userId: number, role: string) => {
   return jwt.sign(
-    { userId, role, type: "refresh" },
+    { userId, role, type: "refresh", jti: crypto.randomUUID() },
     getRefreshTokenSecret(),
     { expiresIn: (process.env.REFRESH_TOKEN_EXPIRES_IN || "30d") as any }
   );

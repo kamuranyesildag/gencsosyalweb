@@ -76,15 +76,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               error ? errorId : isSuccess && successMessage ? successId : helperText ? helperId : undefined
             }
             className={cn(
-              'w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50 dark:bg-[#0D121D] border rounded-xl text-sm text-slate-900 dark:text-slate-100 font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-150 ease-out',
+              'w-full min-h-[44px] px-3.5 py-2.5 bg-slate-50/80 dark:bg-[#0B1329]/80 backdrop-blur-xs border rounded-xl text-sm text-slate-900 dark:text-slate-100 font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-150 ease-out',
               leftIcon ? 'pl-10' : 'pl-3.5',
               rightIcon || (clearable && hasValue) || isSuccess ? 'pr-10' : 'pr-3.5',
               error
-                ? 'border-rose-400 bg-rose-50/30 text-rose-900 dark:bg-rose-950/20 dark:border-rose-500/50 dark:text-rose-200 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
+                ? 'border-rose-400 bg-rose-50/40 text-rose-900 dark:bg-rose-950/20 dark:border-rose-500/50 dark:text-rose-200 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                 : isSuccess
-                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 dark:text-slate-100 dark:bg-emerald-950/20 dark:border-emerald-500/50 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
-                : 'border-slate-200 dark:border-white/[0.12] focus:bg-white dark:focus:bg-[#131927] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/30',
-              disabled && 'bg-slate-100 dark:bg-[#161E2E]/60 border-slate-200 dark:border-white/[0.06] text-slate-400 dark:text-slate-600 cursor-not-allowed select-none',
+                ? 'border-emerald-400 bg-emerald-50/30 text-slate-900 dark:text-slate-100 dark:bg-emerald-950/20 dark:border-emerald-500/50 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
+                : 'border-slate-200/90 dark:border-white/[0.10] focus:bg-white dark:focus:bg-[#101C38] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/30',
+              disabled && 'bg-slate-100/60 dark:bg-[#142244]/40 border-slate-200 dark:border-white/[0.06] text-slate-400 dark:text-slate-600 cursor-not-allowed select-none',
               className
             )}
             {...props}

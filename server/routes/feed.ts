@@ -163,6 +163,8 @@ const getFeedHandler = async (req: any, res: any) => {
           ),
           and( // Herkese açık olan, ama engellenmemiş genel gönderiler (Discover/Keşfet)
             eq(posts.visibility, 'PUBLIC'),
+            eq(users.isMinor, false), // 10 Ekim 2026: Çocuk hesaplar keşfet akışına genel açık olarak itilmez
+            or(eq(profiles.isPrivate, false), sql`${profiles.isPrivate} IS NULL`),
             not(inArray(posts.userId, safeBlockedIds)),
             not(exists(db.select().from(postCollaborators).where(and(eq(postCollaborators.postId, posts.id), inArray(postCollaborators.userId, safeBlockedIds), eq(postCollaborators.status, 'accepted')))))
           )
@@ -170,7 +172,11 @@ const getFeedHandler = async (req: any, res: any) => {
       );
     } else {
       whereConditions.push(
-        eq(posts.visibility, 'PUBLIC')
+        and(
+          eq(posts.visibility, 'PUBLIC'),
+          eq(users.isMinor, false),
+          or(eq(profiles.isPrivate, false), sql`${profiles.isPrivate} IS NULL`)
+        )
       );
     }
 

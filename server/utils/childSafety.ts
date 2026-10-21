@@ -5,7 +5,7 @@ export interface AgeClassification {
   category: 'UNDER_15' | 'MINOR_15_18' | 'ADULT_18_PLUS';
   isMinor: boolean;
   isPermitted: boolean;
-  status: 'REJECTED_UNDERAGE' | 'VERIFIED_CHILD' | 'VERIFIED_ADULT';
+  status: 'REJECTED_UNDERAGE' | 'DECLARED_CHILD' | 'DECLARED_ADULT';
   legalExplanation: string;
 }
 
@@ -27,7 +27,8 @@ export function calculateAge(birthDate: Date | string | null | undefined): numbe
 }
 
 /**
- * Classifies user age according to 10 Ekim 2026 Sosyal Ağ Sağlayıcı Çocuk Yönetmeliği
+ * Classifies user age according to 10 Ekim 2026 Sosyal Ağ Sağlayıcı Çocuk Yönetmeliği.
+ * IMPORTANT: This represents SELF-DECLARED age classification, NOT official government verification.
  */
 export function classifyAge(birthDate: Date | string | null | undefined): AgeClassification {
   const age = calculateAge(birthDate);
@@ -49,7 +50,7 @@ export function classifyAge(birthDate: Date | string | null | undefined): AgeCla
       category: 'MINOR_15_18',
       isMinor: true,
       isPermitted: true,
-      status: 'VERIFIED_CHILD',
+      status: 'DECLARED_CHILD',
       legalExplanation: '15-18 yaş aralığındaki çocuk kullanıcılar için ayrıştırılmış yüksek güvenlikli hizmet (varsayılan gizli hesap, yabancılardan doğrudan mesaj kısıtlaması, takipçi gizliliği ve içerik koruması) uygulanmaktadır.'
     };
   }
@@ -59,50 +60,70 @@ export function classifyAge(birthDate: Date | string | null | undefined): AgeCla
     category: 'ADULT_18_PLUS',
     isMinor: false,
     isPermitted: true,
-    status: 'VERIFIED_ADULT',
-    legalExplanation: '18 yaşını doldurmuş yetişkin kullanıcı statüsü onaylanmıştır.'
+    status: 'DECLARED_ADULT',
+    legalExplanation: '18 yaşını doldurmuş yetişkin kullanıcı beyanı kaydedilmiştir. Resmî yaş doğrulaması kamu entegrasyonu aşamasındadır.'
   };
 }
 
 /**
- * Generates cryptographic age verification token
- * Keeps token verification tamper-proof while ensuring zero plain identity data is stored
+ * Generates internal application-level cryptographic age token (Tamper-proof HMAC-SHA256).
+ * NOTE: This is an internal Genç Sosyal token for session integrity, NOT a substitute for official e-Devlet proof.
  */
-export function generateAgeVerificationToken(userId: number, age: number, category: string): string {
+export function generateAgeVerificationToken(userId: number, age: number, category: string, customTimestamp?: number): string {
   const secret = process.env.JWT_SECRET || "gencsosyal-age-verification-secret-salt";
-  const timestamp = Date.now();
+  const timestamp = customTimestamp || Date.now();
   const payload = `${userId}:${age}:${category}:${timestamp}`;
   const hmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return `GENC-AGE-V1.${Buffer.from(payload).toString("base64")}.${hmac}`;
 }
 
 /**
- * Verifies cryptographic age token
+ * Verifies internal cryptographic age token with signature check, expiration (default 30 days), and user binding.
  */
-export function verifyAgeVerificationToken(token: string): { valid: boolean; userId?: number; age?: number; category?: string } {
+export function verifyAgeVerificationToken(
+  token: string, 
+  expectedUserId?: number,
+  maxAgeMs: number = 30 * 24 * 60 * 60 * 1000
+): { valid: boolean; userId?: number; age?: number; category?: string; timestamp?: number; error?: string } {
   try {
     const secret = process.env.JWT_SECRET || "gencsosyal-age-verification-secret-salt";
     const parts = token.split(".");
     if (parts.length !== 3 || parts[0] !== "GENC-AGE-V1") {
-      return { valid: false };
+      return { valid: false, error: "MALFORMED_TOKEN_STRUCTURE" };
     }
 
     const payload = Buffer.from(parts[1], "base64").toString("utf-8");
     const expectedHmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
-    if (crypto.timingSafeEqual(Buffer.from(parts[2]), Buffer.from(expectedHmac))) {
-      const [uIdStr, ageStr, category] = payload.split(":");
-      return {
-        valid: true,
-        userId: parseInt(uIdStr),
-        age: parseInt(ageStr),
-        category
-      };
+    if (!crypto.timingSafeEqual(Buffer.from(parts[2]), Buffer.from(expectedHmac))) {
+      return { valid: false, error: "INVALID_SIGNATURE" };
     }
-  } catch (err) {
-    // invalid token
+
+    const [uIdStr, ageStr, category, tsStr] = payload.split(":");
+    const parsedUserId = parseInt(uIdStr);
+    const parsedAge = parseInt(ageStr);
+    const parsedTimestamp = tsStr ? parseInt(tsStr) : 0;
+
+    // 1. Expiration check
+    if (parsedTimestamp > 0 && Date.now() - parsedTimestamp > maxAgeMs) {
+      return { valid: false, error: "TOKEN_EXPIRED" };
+    }
+
+    // 2. Bound User ID check
+    if (expectedUserId !== undefined && parsedUserId !== expectedUserId) {
+      return { valid: false, error: "USER_MISMATCH" };
+    }
+
+    return {
+      valid: true,
+      userId: parsedUserId,
+      age: parsedAge,
+      category,
+      timestamp: parsedTimestamp
+    };
+  } catch {
+    return { valid: false, error: "DECODE_ERROR" };
   }
-  return { valid: false };
 }
 
 /**

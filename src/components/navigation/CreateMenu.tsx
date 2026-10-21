@@ -46,7 +46,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 animate="visible"
                 exit="exit"
                 onClick={onClose}
-                className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 "
+                className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm"
               />
 
               <motion.div
@@ -57,7 +57,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="create-sheet-title"
-                className="relative z-10 w-full max-w-lg mx-auto bg-white dark:bg-[#0D121D] rounded-t-2xl sm:rounded-2xl border-t sm:border border-slate-200/80 dark:border-white/[0.08] shadow-xl pb-[var(--sab,0px)] overflow-hidden max-h-[85vh] flex flex-col transition-colors"
+                className="relative z-10 w-full max-w-lg mx-auto bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl rounded-t-2xl sm:rounded-2xl border-t sm:border border-slate-200/90 dark:border-white/[0.12] shadow-2xl pb-[var(--sab,0px)] overflow-hidden max-h-[85vh] flex flex-col transition-colors"
               >
                 {/* Drag Handle */}
                 <div className="w-10 h-1 bg-slate-200 dark:bg-white/[0.12] rounded-full mx-auto my-2.5 shrink-0" />
@@ -79,7 +79,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       type="button"
                       onClick={onClose}
                       aria-label="Kapat"
-                      className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#161E2E] text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+                      className="flex items-center justify-center min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/[0.08] text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -97,7 +97,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                           openStoryCreate();
                         }
                       }}
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#101C38]/70 hover:bg-slate-100 dark:hover:bg-[#142244] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
                     >
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                         <Sparkles className="w-5 h-5 stroke-[2]" />
@@ -119,7 +119,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <button
                       type="button"
                       onClick={() => handleNavigate('/create')}
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#101C38]/70 hover:bg-slate-100 dark:hover:bg-[#142244] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
                     >
                       <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-xs">
                         <PenTool className="w-5 h-5 stroke-[2]" />
@@ -138,7 +138,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <button
                       type="button"
                       onClick={() => handleNavigate('/settings?tab=projects')}
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#101C38]/70 hover:bg-slate-100 dark:hover:bg-[#142244] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
                     >
                       <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
                         <Rocket className="w-5 h-5 stroke-[2]" />
@@ -157,7 +157,7 @@ export function CreateMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <button
                       type="button"
                       onClick={() => handleNavigate('/communities')}
-                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#161E2E]/60 hover:bg-slate-100 dark:hover:bg-[#161E2E] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-xl bg-slate-50/80 dark:bg-[#101C38]/70 hover:bg-slate-100 dark:hover:bg-[#142244] border border-slate-200/60 dark:border-white/[0.06] transition-colors text-left cursor-pointer group"
                     >
                       <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
                         <Users className="w-5 h-5 stroke-[2]" />

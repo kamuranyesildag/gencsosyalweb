@@ -523,16 +523,18 @@ export function Teknofest() {
     <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-6 space-y-8 overflow-x-hidden">
       
       {/* 1. HERO & EVENT STATUS HEADER */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-indigo-950 text-white p-6 sm:p-10 border border-sky-900/50 shadow-xl">
-        {/* Subtle geometric grid background */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#080E1A] via-[#0B1329] to-[#172554] text-white p-6 sm:p-10 border border-blue-500/20 shadow-2xl">
+        {/* Subtle geometric glowing background */}
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
         
         <div className="relative z-10 space-y-6">
           {/* Top Bar: Event Switcher & Status Badges */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-sky-500/20 text-sky-300 border border-sky-400/30 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span className="px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center gap-1.5 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                 TEKNOFEST KÖŞESİ
               </span>
 
@@ -641,15 +643,15 @@ export function Teknofest() {
       </div>
 
       {/* 2. MAIN SECTION NAVIGATION TABS */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 overflow-x-auto pb-1 gap-2">
+      <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-white/[0.08] overflow-x-auto pb-1 gap-2">
         <div className="flex gap-1.5 min-w-max">
           <button
             type="button"
             onClick={() => setActiveSection("gallery")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
               activeSection === "gallery"
-                ? "bg-sky-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -659,10 +661,10 @@ export function Teknofest() {
           <button
             type="button"
             onClick={() => setActiveSection("projects")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
               activeSection === "projects"
-                ? "bg-sky-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
             <Rocket className="w-4 h-4" />
@@ -672,10 +674,10 @@ export function Teknofest() {
           <button
             type="button"
             onClick={() => setActiveSection("memories")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
               activeSection === "memories"
-                ? "bg-sky-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
             <Heart className="w-4 h-4" />
@@ -685,10 +687,10 @@ export function Teknofest() {
           <button
             type="button"
             onClick={() => setActiveSection("timeline")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
               activeSection === "timeline"
-                ? "bg-sky-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -699,10 +701,10 @@ export function Teknofest() {
             <button
               type="button"
               onClick={() => setActiveSection("my-submissions")}
-              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 activeSection === "my-submissions"
-                  ? "bg-sky-600 text-white shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
               }`}
             >
               <CheckCircle2 className="w-4 h-4" />

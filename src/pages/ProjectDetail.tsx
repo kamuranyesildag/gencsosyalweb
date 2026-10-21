@@ -280,9 +280,9 @@ export function ProjectDetail() {
       </div>
 
       {/* Main Project Card */}
-      <div className="bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs overflow-hidden">
+      <div className="glass-card bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md rounded-3xl border border-slate-200/70 dark:border-white/[0.08] shadow-xl overflow-hidden">
         {project.imageUrl && (
-          <div className="w-full h-64 sm:h-80 md:h-96 bg-slate-100 dark:bg-[#161E2E] border-b border-slate-200/80 dark:border-white/[0.08] overflow-hidden">
+          <div className="w-full h-72 sm:h-96 md:h-[420px] bg-slate-900 border-b border-slate-200/70 dark:border-white/[0.08] overflow-hidden">
             <img
               src={project.imageUrl}
               alt={project.title}

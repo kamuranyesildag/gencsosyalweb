@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
 import { users, profiles, posts, hashtags, postHashtags, follows, communities, communityMembers } from "../../src/db/schema.js";
-import { eq, or, and, ilike, notInArray, isNull, desc, sql, inArray } from "drizzle-orm";
+import { eq, ne, or, and, not, ilike, notInArray, isNull, desc, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
@@ -41,11 +41,16 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
       .leftJoin(profiles, eq(users.id, profiles.userId))
       .where(
         and(
+          eq(users.isActive, true),
+          not(eq(users.ageVerificationStatus, 'REJECTED_UNDERAGE')),
           or(
             ilike(users.username, `%${q}%`),
             ilike(profiles.displayName, `%${q}%`)
           ),
-          notInArray(users.id, ignoreIds)
+          notInArray(users.id, ignoreIds),
+          currentUserId === -1 
+            ? and(eq(profiles.allowSearchEngineIndexing, true), eq(users.isMinor, false))
+            : sql`TRUE`
         )
       )
       .limit(limit)

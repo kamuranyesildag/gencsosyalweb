@@ -20,8 +20,8 @@ export function Bookmarks() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent">
       {/* Sticky Header */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center gap-2.5 transition-colors">
-        <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+      <header className="sticky top-0 md:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center gap-2.5 transition-colors shadow-xs">
+        <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center">
           <Bookmark className="w-4 h-4" />
         </div>
         <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">

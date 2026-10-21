@@ -128,10 +128,10 @@ export function UserMenu() {
             role="menu"
             aria-orientation="vertical"
             aria-labelledby="user-menu-button"
-            className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#0D121D] rounded-2xl shadow-lg border border-slate-200/80 dark:border-white/[0.08] overflow-hidden z-50 origin-top-right focus:outline-none transition-colors"
+            className="absolute right-0 mt-2 w-72 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/90 dark:border-white/[0.10] overflow-hidden z-50 origin-top-right focus:outline-none transition-colors"
           >
             {/* User Info Header */}
-            <div className="p-3.5 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-[#161E2E]/30">
+            <div className="p-3.5 border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/60 dark:bg-white/[0.03]">
               <Link
                 to={`/profile/${user.username}`}
                 onClick={() => setIsOpen(false)}
@@ -142,7 +142,7 @@ export function UserMenu() {
                   name={user.displayName || user.username}
                   size="md"
                   status="online"
-                  className="ring-1 ring-slate-200 dark:ring-white/[0.12]"
+                  className="ring-1.5 ring-slate-200 dark:ring-white/[0.12]"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -176,7 +176,7 @@ export function UserMenu() {
                     className={`flex items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors group ${
                       item.isAdmin
                         ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50/70 dark:hover:bg-amber-950/30'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#161E2E] hover:text-slate-900 dark:hover:text-white'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -202,7 +202,7 @@ export function UserMenu() {
               <button
                 type="button"
                 onClick={() => toggleTheme()}
-                className="flex items-center justify-between w-full px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#161E2E] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="flex items-center justify-between w-full px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   {actualTheme === 'dark' ? (
@@ -212,14 +212,14 @@ export function UserMenu() {
                   )}
                   <span>{actualTheme === 'dark' ? 'Açık Mod' : 'Koyu Mod'}</span>
                 </div>
-                <span className="text-xs bg-slate-100 dark:bg-[#161E2E] px-2 py-0.5 rounded font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-xs bg-slate-100 dark:bg-white/[0.06] px-2 py-0.5 rounded font-semibold text-slate-500 dark:text-slate-400">
                   {actualTheme === 'dark' ? 'Koyu' : 'Açık'}
                 </span>
               </button>
             </div>
 
             {/* Logout Footer */}
-            <div className="p-1.5 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/50 dark:bg-[#161E2E]/30">
+            <div className="p-1.5 border-t border-slate-100 dark:border-white/[0.06] bg-slate-50/60 dark:bg-white/[0.02]">
               <button
                 type="button"
                 role="menuitem"

@@ -46,16 +46,16 @@ export function Messages() {
   }, [conversations, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] min-h-screen bg-white dark:bg-[#070A10] transition-colors">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
       {/* STICKY HEADER */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/85 dark:bg-[#070A10]/85  border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
+      <header className="sticky top-0 md:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-colors">
         <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Mesajlar
             </h1>
             {totalUnread > 0 && (
-              <span className="px-2 py-0.5 bg-blue-600 dark:bg-blue-500 text-white font-bold text-xs rounded-full">
+              <span className="px-2 py-0.5 bg-blue-600 dark:bg-sky-500 text-white font-bold text-xs rounded-full shadow-xs">
                 {totalUnread} okunmamış
               </span>
             )}
@@ -135,8 +135,8 @@ export function Messages() {
                       to={`/messages/${conv.id}`}
                       className={`flex items-center gap-3.5 sm:gap-4 p-4 sm:p-5 transition-all group relative ${
                         hasUnread
-                          ? "bg-blue-50/40 dark:bg-blue-950/15 hover:bg-blue-50/70 dark:hover:bg-blue-950/25"
-                          : "hover:bg-slate-50 dark:hover:bg-white/[0.02] bg-white dark:bg-[#070A10]"
+                          ? "bg-blue-50/50 dark:bg-sky-950/25 hover:bg-blue-50/80 dark:hover:bg-sky-950/35"
+                          : "hover:bg-white/60 dark:hover:bg-white/[0.04] bg-transparent"
                       }`}
                     >
                       {/* Avatar */}

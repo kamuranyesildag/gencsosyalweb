@@ -31,7 +31,16 @@ export function AppLayout() {
   const isProfilePage = location.pathname.startsWith("/profile");
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070A10] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors relative selection:bg-blue-500/20">
+      {/* Ambient soft glow mesh for frosted glass depth (non-distracting, pure premium aura) */}
+      <div 
+        aria-hidden="true" 
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-60 dark:opacity-30"
+      >
+        <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-blue-100/40 via-sky-50/20 to-transparent dark:from-blue-900/15 dark:via-indigo-950/10 dark:to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-[40%] -left-[10%] w-[600px] h-[500px] bg-gradient-to-r from-blue-50/30 to-transparent dark:from-blue-950/10 dark:to-transparent rounded-full blur-3xl" />
+      </div>
+
       {/* 1. Global Header (Hidden on Profile pages) */}
       {!isProfilePage && <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />}
 
@@ -39,13 +48,13 @@ export function AppLayout() {
       <MobileSidebarDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       {/* 3. Main Multi-Column Shell */}
-      <div className="w-full max-w-7xl mx-auto flex flex-1 relative">
+      <div className="w-full max-w-7xl mx-auto flex flex-1 relative z-10">
         {/* Left Navigation Sidebar (Desktop & Tablet) */}
         <aside
           aria-label="Sol Gezinme Menüsü"
           className={`hidden md:flex flex-col w-20 xl:w-64 sticky ${
             isProfilePage ? "top-0 h-screen" : "top-[60px] h-[calc(100vh-60px)]"
-          } border-r border-slate-200/80 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#070A10]/80 z-20 shrink-0 transition-colors`}
+          } border-r border-slate-200/80 dark:border-white/[0.08] bg-white/40 dark:bg-[#080E1A]/40 backdrop-blur-md z-20 shrink-0 transition-colors`}
         >
           <DesktopSidebar />
         </aside>

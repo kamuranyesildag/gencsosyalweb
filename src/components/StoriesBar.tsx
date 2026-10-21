@@ -91,12 +91,12 @@ export function StoriesBar() {
 
   if (loading) {
     return (
-      <div className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl py-3 px-4 shadow-xs overflow-hidden">
+      <div className="w-full bg-white/85 dark:bg-[#0B1329]/85 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl py-3 px-4 shadow-xs overflow-hidden">
         <div className="flex gap-4 items-center">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 animate-pulse">
-              <div className="w-13 h-13 rounded-full bg-slate-100 dark:bg-slate-800/60" />
-              <div className="w-12 h-2.5 bg-slate-100 dark:bg-slate-800/60 rounded-full" />
+              <div className="w-13 h-13 rounded-full bg-slate-100 dark:bg-white/[0.06]" />
+              <div className="w-12 h-2.5 bg-slate-100 dark:bg-white/[0.06] rounded-full" />
             </div>
           ))}
         </div>
@@ -107,7 +107,7 @@ export function StoriesBar() {
   return (
     <>
       <section
-        className="w-full bg-white dark:bg-[#0D121D] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs py-3 px-3.5 overflow-hidden select-none"
+        className="w-full bg-white/85 dark:bg-[#0B1329]/85 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs py-3 px-3.5 overflow-hidden select-none"
         aria-label="Hikayeler"
       >
         <div className="flex gap-3.5 items-center overflow-x-auto scrollbar-none py-0.5 px-0.5 overscroll-x-contain touch-pan-x">
@@ -129,7 +129,7 @@ export function StoriesBar() {
                 aria-label={currentUserHasStory ? "Hikayeni görüntüle" : "Modern hikaye oluştur"}
                 className={`relative rounded-full p-[2px] transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${
                   currentUserHasStory
-                    ? "ring-2 ring-gradient ring-blue-500 ring-offset-2 dark:ring-offset-[#0D121D] hover:scale-105"
+                    ? "ring-2 ring-gradient ring-blue-500 ring-offset-2 dark:ring-offset-[#0B1329] hover:scale-105"
                     : "hover:opacity-90 active:scale-95"
                 }`}
               >

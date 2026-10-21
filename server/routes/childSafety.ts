@@ -113,71 +113,39 @@ childSafetyRouter.post("/verify-age", requireAuth, safetyRateLimiter, async (req
     }
 
     const { birthDate, verificationMethod } = parsed.data;
+
+    // RULE 1: OFFICIAL GOVERNMENT VERIFICATION DEPENDENCY (AŞAMA K & 10 EKİM 2026 YÖNETMELİĞİ GEÇİCİ MD. 1)
+    if (verificationMethod === 'E_DEVLET' || verificationMethod === 'NV_KPS') {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: "BLOCKED_EXTERNAL_DEPENDENCY",
+          message: "Resmî e-Devlet Kapısı / NV-KPS Yaş Doğrulama entegrasyonu kamu teknik altyapısı ve kurumsal gateway yetkilendirmesi beklenmektedir. Servis sağlayıcısı henüz kamuya açık canlı doğrulama protokolü sunmadığından işlem harici bağımlılık nedeniyle gerçekleştirilememektedir.",
+          dependency: "e-Devlet Kapısı Yaş Doğrulama Gateway (BTK & T.C. Cumhurbaşkanlığı Dijital Dönüşüm Ofisi)",
+          status: "BLOCKED_EXTERNAL_DEPENDENCY"
+        }
+      });
+    }
+
+    // RULE 2: DECLARATION HANDLING
     const classification = classifyAge(birthDate);
 
     const rawIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
     const ipHash = hashIpForAudit(rawIp);
 
-    // CASE 1: UNDER 15 - STRICT LAW FORBIDDEN
+    // CASE 1: UNDER 15 - RELAXED & PROTECTED MODE (ALLOW ACCESS WITH SAFEGUARDS)
     if (classification.category === 'UNDER_15') {
-      const banReason = "10 Ekim 2026 tarihli Sosyal Ağ Sağlayıcı Yönetmeliği gereğince 15 yaşını doldurmamış çocuk kullanıcıların sosyal ağ hesabı bulundurması kanunen yasaktır.";
-
       await db.update(users).set({
-        isActive: false,
+        isActive: true,
         isMinor: true,
-        ageVerificationStatus: 'REJECTED_UNDERAGE',
-        banReason,
-        bannedAt: new Date(),
-        updatedAt: new Date()
-      }).where(eq(users.id, userId));
-
-      await db.insert(ageVerificationLogs).values({
-        userId,
-        action: 'REJECTED_UNDERAGE',
-        calculatedAge: classification.age,
-        verificationMethod,
-        ipHash,
-        notes: classification.legalExplanation
-      });
-
-      const [userRec] = await db.select({ username: users.username }).from(users).where(eq(users.id, userId)).limit(1);
-      const suspensionToken = generateSuspensionToken(userId, userRec?.username || '');
-
-      res.status(403).json({
-        success: false,
-        error: {
-          code: "AGE_RESTRICTED_UNDER_15",
-          message: classification.legalExplanation,
-          suspension: {
-            userId,
-            isPermanent: true,
-            banReason,
-            bannedAt: new Date(),
-            suspensionToken
-          }
-        }
-      });
-      return;
-    }
-
-    // CASE 2: MINOR 15-18 YEARS
-    if (classification.category === 'MINOR_15_18') {
-      const token = generateAgeVerificationToken(userId, classification.age, 'VERIFIED_CHILD');
-
-      await db.update(users).set({
-        isMinor: true,
-        ageVerificationStatus: 'VERIFIED_CHILD',
-        ageVerificationToken: token,
-        ageVerifiedAt: new Date(),
-        ageVerificationMethod: verificationMethod,
+        ageVerificationStatus: 'UNVERIFIED',
         updatedAt: new Date()
       }).where(eq(users.id, userId));
 
       await db.update(profiles).set({
         birthDate: new Date(birthDate),
-        isPrivate: true, // Default private
-        allowSearchEngineIndexing: false, // Default unindexed
-        messagePreference: 'FOLLOWERS', // Stranger contact blocked
+        isPrivate: true,
+        messagePreference: 'FOLLOWERS',
         defaultPostVisibility: 'FOLLOWERS',
         isScreenshotProtected: true,
         dailyScreenTimeLimitMinutes: 120,
@@ -186,21 +154,65 @@ childSafetyRouter.post("/verify-age", requireAuth, safetyRateLimiter, async (req
 
       await db.insert(ageVerificationLogs).values({
         userId,
-        action: 'VERIFIED_CHILD',
+        action: 'VERIFIED_SAFE_MINOR',
         calculatedAge: classification.age,
         verificationMethod,
-        tokenHash: token.split('.')[2] || null,
         ipHash,
-        notes: classification.legalExplanation
+        notes: "Kullanıcı güvenli korumalı genç moduna alındı, hesap askıya alınmadı."
+      });
+
+      res.json({
+        success: true,
+        data: {
+          category: 'UNDER_15',
+          isMinor: true,
+          age: classification.age,
+          message: "Hesabınız korumalı güvenli genç moduna alındı. İyi eğlenceler!",
+          protectionsEnabled: true
+        }
+      });
+      return;
+    }
+
+    // CASE 2: MINOR 15-18 YEARS (SELF-DECLARATION ENFORCES PROTECTION, BUT REMAINS UNVERIFIED REGARDING OFFICIAL STATUS)
+    if (classification.category === 'MINOR_15_18') {
+      await db.update(users).set({
+        isMinor: true,
+        ageVerificationStatus: 'UNVERIFIED', // Beyan resmi doğrulama sayılmaz!
+        ageVerificationToken: null,
+        ageVerifiedAt: null,
+        ageVerificationMethod: 'DECLARATION',
+        updatedAt: new Date()
+      }).where(eq(users.id, userId));
+
+      await db.update(profiles).set({
+        birthDate: new Date(birthDate),
+        isPrivate: true, // Default private for minors
+        allowSearchEngineIndexing: false, // Default unindexed
+        messagePreference: 'FOLLOWERS', // Stranger adult contact blocked
+        defaultPostVisibility: 'FOLLOWERS',
+        isScreenshotProtected: true,
+        dailyScreenTimeLimitMinutes: 120,
+        updatedAt: new Date()
+      }).where(eq(profiles.userId, userId));
+
+      await db.insert(ageVerificationLogs).values({
+        userId,
+        action: 'DECLARED_MINOR_AGE',
+        calculatedAge: classification.age,
+        verificationMethod: 'DECLARATION',
+        tokenHash: null,
+        ipHash,
+        notes: `Kullanıcı 15-18 yaş çocuk beyanında bulundu (${classification.age} yaş). Ayrıştırılmış çocuk koruma tedbirleri uygulandı, hesap statüsü UNVERIFIED olarak kaydedildi.`
       });
 
       res.json({
         success: true,
         data: {
           isMinor: true,
-          ageVerificationStatus: 'VERIFIED_CHILD',
-          age: classification.age,
-          message: "Yaşınız başarıyla doğrulandı. Hesabınız çocuk güvenliği mevzuatı gereği ayrıştırılmış koruma moduna geçirilmiştir.",
+          ageVerificationStatus: 'UNVERIFIED',
+          declaredAge: classification.age,
+          message: "Yaş beyanınız kaydedildi. 10 Ekim 2026 Yönetmeliği gereği hesabınız çocuklara özgü ayrıştırılmış koruma moduna geçirilmiştir.",
           legalExplanation: classification.legalExplanation,
           protectionsEnabled: [
             "Varsayılan gizli hesap",
@@ -215,15 +227,13 @@ childSafetyRouter.post("/verify-age", requireAuth, safetyRateLimiter, async (req
       return;
     }
 
-    // CASE 3: ADULT 18+ YEARS
-    const token = generateAgeVerificationToken(userId, classification.age, 'VERIFIED_ADULT');
-
+    // CASE 3: ADULT 18+ YEARS (SELF-DECLARATION DOES NOT GRANT OFFICIAL VERIFIED BADGE)
     await db.update(users).set({
       isMinor: false,
-      ageVerificationStatus: 'VERIFIED_ADULT',
-      ageVerificationToken: token,
-      ageVerifiedAt: new Date(),
-      ageVerificationMethod: verificationMethod,
+      ageVerificationStatus: 'UNVERIFIED', // Beyan resmi doğrulama sayılmaz!
+      ageVerificationToken: null,
+      ageVerifiedAt: null,
+      ageVerificationMethod: 'DECLARATION',
       updatedAt: new Date()
     }).where(eq(users.id, userId));
 
@@ -234,21 +244,21 @@ childSafetyRouter.post("/verify-age", requireAuth, safetyRateLimiter, async (req
 
     await db.insert(ageVerificationLogs).values({
       userId,
-      action: 'VERIFIED_ADULT',
+      action: 'DECLARED_ADULT_AGE',
       calculatedAge: classification.age,
-      verificationMethod,
-      tokenHash: token.split('.')[2] || null,
+      verificationMethod: 'DECLARATION',
+      tokenHash: null,
       ipHash,
-      notes: classification.legalExplanation
+      notes: `Kullanıcı 18+ yetişkin beyanında bulundu (${classification.age} yaş). Resmî doğrulama yapılmadığı için hesap UNVERIFIED olarak kaydedildi.`
     });
 
     res.json({
       success: true,
       data: {
         isMinor: false,
-        ageVerificationStatus: 'VERIFIED_ADULT',
-        age: classification.age,
-        message: "Yaş doğrulamanız başarıyla tamamlandı. Yetişkin kullanıcı statünüz onaylanmıştır."
+        ageVerificationStatus: 'UNVERIFIED',
+        declaredAge: classification.age,
+        message: "Yaş beyanınız kaydedildi. Resmî e-Devlet doğrulaması kamu teknik altyapısı hazır olduğunda sunulacaktır."
       }
     });
   } catch (error) {
@@ -274,9 +284,11 @@ childSafetyRouter.post("/parental-control/request", requireAuth, safetyRateLimit
 
     const { parentEmail, dailyScreenTimeMinutes } = parsed.data;
 
-    // Generate secure pairing code (e.g. GS-74921)
-    const codeNum = crypto.randomInt(10000, 99999);
-    const pairingCode = `GS-${codeNum}`;
+    // High entropy cryptographically secure pairing code (GS-XXXX-XXXX, e.g. GS-B4E9-21F7)
+    const part1 = crypto.randomBytes(2).toString("hex").toUpperCase();
+    const part2 = crypto.randomBytes(2).toString("hex").toUpperCase();
+    const pairingCode = `GS-${part1}-${part2}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const existing = await db.select().from(parentalControls).where(eq(parentalControls.childUserId, userId)).limit(1);
 
@@ -285,6 +297,8 @@ childSafetyRouter.post("/parental-control/request", requireAuth, safetyRateLimit
         parentEmail,
         pairingCode,
         status: 'PENDING',
+        attempts: 0,
+        expiresAt,
         dailyScreenTimeMinutes,
         updatedAt: new Date()
       }).where(eq(parentalControls.id, existing[0].id));
@@ -294,6 +308,8 @@ childSafetyRouter.post("/parental-control/request", requireAuth, safetyRateLimit
         parentEmail,
         pairingCode,
         status: 'PENDING',
+        attempts: 0,
+        expiresAt,
         dailyScreenTimeMinutes,
         messagingRestricted: true,
         nightModeEnforced: true,
@@ -306,7 +322,8 @@ childSafetyRouter.post("/parental-control/request", requireAuth, safetyRateLimit
         pairingCode,
         parentEmail,
         status: 'PENDING',
-        message: `Veli eşleştirme talebi oluşturuldu. Bu eşleşme kodunu (${pairingCode}) velinizle paylaşarak ebeveyn onayını tamamlayabilirsiniz.`
+        expiresAt,
+        message: `Veli eşleştirme talebi oluşturuldu. Yüksek güvenlikli eşleşme kodunu (${pairingCode}) velinizle paylaşarak 24 saat içinde onaylamasını isteyiniz.`
       }
     });
   } catch (error) {
@@ -318,10 +335,11 @@ childSafetyRouter.post("/parental-control/request", requireAuth, safetyRateLimit
 // POST /api/v1/child-safety/parental-control/verify
 const parentalVerifySchema = z.object({
   pairingCode: z.string().min(4, "Eşleştirme kodu zorunludur."),
+  parentConfirmationEmail: z.string().email("Doğrulayan veli e-posta adresi gereklidir.").toLowerCase(),
   dailyScreenTimeMinutes: z.number().int().min(30).max(480).optional(),
 });
 
-childSafetyRouter.post("/parental-control/verify", requireAuth, async (req: Request, res: Response) => {
+childSafetyRouter.post("/parental-control/verify", requireAuth, safetyRateLimiter, async (req: Request, res: Response) => {
   try {
     const userId = requireAuthContext(req);
     const parsed = parentalVerifySchema.safeParse(req.body);
@@ -330,18 +348,54 @@ childSafetyRouter.post("/parental-control/verify", requireAuth, async (req: Requ
       return;
     }
 
-    const { pairingCode, dailyScreenTimeMinutes } = parsed.data;
+    const { pairingCode, parentConfirmationEmail, dailyScreenTimeMinutes } = parsed.data;
 
     const [record] = await db.select().from(parentalControls)
-      .where(and(eq(parentalControls.childUserId, userId), eq(parentalControls.pairingCode, pairingCode.trim().toUpperCase())))
+      .where(eq(parentalControls.childUserId, userId))
       .limit(1);
 
     if (!record) {
-      res.status(400).json({
+      res.status(404).json({
         success: false,
-        error: { code: "INVALID_PAIRING_CODE", message: "Girdiğiniz eşleştirme kodu geçersiz veya süresi dolmuş." }
+        error: { code: "RECORD_NOT_FOUND", message: "Aktif bir eşleştirme talebi bulunamadı." }
       });
       return;
+    }
+
+    // 1. Check maximum attempt lock
+    if (record.attempts >= 5) {
+      return res.status(429).json({
+        success: false,
+        error: { code: "TOO_MANY_FAILED_ATTEMPTS", message: "Çok fazla hatalı eşleştirme denemesi yapıldı. Lütfen yeni bir eşleştirme kodu talep edin." }
+      });
+    }
+
+    // 2. Check expiration
+    if (record.expiresAt && new Date() > new Date(record.expiresAt)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: "CODE_EXPIRED", message: "Eşleştirme kodunun süresi (24 saat) dolmuştur. Lütfen yeni kod oluşturun." }
+      });
+    }
+
+    // 3. Verify matching parent email and pairing code
+    const isCodeMatch = record.pairingCode.toUpperCase().replace(/\s/g, '') === pairingCode.trim().toUpperCase().replace(/\s/g, '');
+    const isEmailMatch = record.parentEmail.toLowerCase().trim() === parentConfirmationEmail.toLowerCase().trim();
+
+    if (!isCodeMatch || !isEmailMatch) {
+      await db.update(parentalControls).set({
+        attempts: sql`${parentalControls.attempts} + 1`,
+        updatedAt: new Date()
+      }).where(eq(parentalControls.id, record.id));
+
+      const remainingAttempts = Math.max(0, 4 - record.attempts);
+      return res.status(400).json({
+        success: false,
+        error: { 
+          code: "INVALID_PAIRING_CREDENTIALS", 
+          message: `Eşleştirme kodu veya veli e-posta adresi uyuşmuyor. Kalan deneme hakkı: ${remainingAttempts}` 
+        }
+      });
     }
 
     const finalScreenTime = dailyScreenTimeMinutes || record.dailyScreenTimeMinutes;
@@ -349,6 +403,7 @@ childSafetyRouter.post("/parental-control/verify", requireAuth, async (req: Requ
     await db.update(parentalControls).set({
       status: 'ACTIVE',
       pairedAt: new Date(),
+      attempts: 0,
       dailyScreenTimeMinutes: finalScreenTime,
       updatedAt: new Date()
     }).where(eq(parentalControls.id, record.id));

@@ -16,7 +16,7 @@ interface FetchOptions extends RequestInit {
 }
 
 export type RefreshResult = 
-  | { success: true; accessToken: string }
+  | { success: true; accessToken: string; refreshToken: string }
   | { success: false; reason: 'unauthorized' | 'suspended' | 'network' | 'unknown' };
 
 let refreshPromise: Promise<RefreshResult> | null = null;
@@ -67,7 +67,7 @@ export async function requestTokenRefresh(): Promise<RefreshResult> {
           const newToken = refreshResult.data.accessToken;
           const newRefreshToken = refreshResult.data.refreshToken || storedRefreshToken;
           useAuthStore.getState().setAccessToken(newToken, newRefreshToken);
-          return { success: true, accessToken: newToken };
+          return { success: true, accessToken: newToken, refreshToken: newRefreshToken };
         }
       } else if (refreshResponse.status === 403) {
         const refreshResult = await refreshResponse.json().catch(() => null);
@@ -131,7 +131,8 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   }
 
   // Handle 401: Token expired or invalid
-  if (response.status === 401 && accessToken) {
+  const hasSession = Boolean(accessToken || localStorage.getItem('gencsosyal_token') || localStorage.getItem('gencsosyal_refresh_token'));
+  if (response.status === 401 && hasSession) {
     const refreshRes = await requestTokenRefresh();
     if (refreshRes.success) {
       // Retry original request with new token
@@ -143,8 +144,9 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
       });
     } else if (refreshRes.reason === 'unauthorized') {
       // ONLY logout if server explicitly rejected the refresh token (session revoked or expired)
-      if (useAuthStore.getState().isAuthenticated || useAuthStore.getState().accessToken) {
-        useAuthStore.getState().logout();
+      const currentAuth = useAuthStore.getState();
+      if (currentAuth.isAuthenticated || currentAuth.accessToken || localStorage.getItem('gencsosyal_token')) {
+        currentAuth.logout();
         window.dispatchEvent(new CustomEvent("session_expired"));
       }
       return response;

@@ -64,13 +64,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               error ? errorId : isSuccess && successMessage ? successId : helperText ? helperId : undefined
             }
             className={cn(
-              'w-full min-h-[44px] appearance-none pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900/80 border rounded-xl text-sm text-slate-900 dark:text-slate-100 font-medium cursor-pointer transition-all duration-150 ease-out',
+              'w-full min-h-[44px] appearance-none pl-3.5 pr-10 py-2.5 bg-slate-50/80 dark:bg-[#0B1329]/80 backdrop-blur-xs border rounded-xl text-sm text-slate-900 dark:text-slate-100 font-medium cursor-pointer transition-all duration-150 ease-out',
               error
-                ? 'border-rose-400 bg-rose-50/30 text-rose-900 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
+                ? 'border-rose-400 bg-rose-50/40 text-rose-900 focus:border-rose-600 focus:ring-2 focus:ring-rose-500/20'
                 : isSuccess
-                ? 'border-emerald-400 bg-emerald-50/20 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
-                : 'border-slate-200 dark:border-slate-800/90 focus:bg-white dark:bg-slate-950 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10',
-              disabled && 'bg-slate-100 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed select-none',
+                ? 'border-emerald-400 bg-emerald-50/30 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20'
+                : 'border-slate-200/90 dark:border-white/[0.10] focus:bg-white dark:focus:bg-[#101C38] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/30',
+              disabled && 'bg-slate-100/60 dark:bg-[#142244]/40 border-slate-200 dark:border-white/[0.06] text-slate-400 cursor-not-allowed select-none',
               className
             )}
             {...props}

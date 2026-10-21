@@ -19,7 +19,7 @@ import {
   enableTwoFactorSchema,
   disableTwoFactorSchema
 } from "../validators/auth.js";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, generateSuspensionToken, verifySuspensionToken, getEmailTokenSecret } from "../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, generateSuspensionToken, verifySuspensionToken, getEmailTokenSecret, hashRefreshToken } from "../utils/jwt.js";
 import { encryptString, decryptString } from "../utils/encryption.js";
 import { authenticator } from "otplib";
 import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail } from "../utils/mailer.js";
@@ -64,22 +64,11 @@ const getClearCookieOptions = (req: Request) => {
 
 
 // Helper to handle OTP generation and dispatch
-async function handleSendOtp(email: string, displayName: string, username: string, password?: string, birthDate?: string) {
-  // Child Safety Age Pre-Check (10 Ekim 2026 Yönetmeliği)
+async function handleSendOtp(email: string, displayName: string, username: string, password?: string, birthDate?: string | null) {
+  // Child Safety Age Pre-Check - if birthDate is provided, inform or log but allow registration
   if (birthDate) {
-    const ageCheck = classifyAge(birthDate);
-    if (ageCheck.category === 'UNDER_15') {
-      return {
-        status: 403,
-        body: {
-          success: false,
-          error: {
-            code: "AGE_RESTRICTED_UNDER_15",
-            message: ageCheck.legalExplanation
-          }
-        }
-      };
-    }
+    // classified for informational logging
+    classifyAge(birthDate);
   }
 
   // Check if username already exists
@@ -367,21 +356,10 @@ authRouter.post("/register/resend-otp", otpSendRateLimiter, async (req, res) => 
 async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedData: any) {
   const { username, email, password, displayName, otp, birthDate } = parsedData;
 
-  // 0. Age Verification & Child Safety Regulation Check (10 Ekim 2026 Yönetmeliği)
-  const ageClassification = classifyAge(birthDate);
-  if (ageClassification.category === 'UNDER_15') {
-    res.status(403).json({
-      success: false,
-      error: { 
-        code: "AGE_RESTRICTED_UNDER_15", 
-        message: ageClassification.legalExplanation 
-      }
-    });
-    return;
-  }
-
-  const isMinor = ageClassification.category === 'MINOR_15_18';
-  const ageVerificationStatus = isMinor ? 'VERIFIED_CHILD' : 'VERIFIED_ADULT';
+  // 0. Optional Age Classification & Child Safety Preferences
+  const ageClassification = birthDate ? classifyAge(birthDate) : { category: 'ADULT', age: 20, legalExplanation: '' };
+  const isMinor = ageClassification.category === 'MINOR_15_18' || ageClassification.category === 'UNDER_15';
+  const ageVerificationStatus = 'UNVERIFIED';
 
   // 1. Find the active OTP verification record
   const otpRecords = await db.select().from(otpVerifications).where(
@@ -473,18 +451,16 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
         emailVerified: true,
         isActive: true,
         isMinor,
-        ageVerificationStatus,
-        ageVerifiedAt: new Date(),
-        ageVerificationMethod: 'DECLARATION',
+        ageVerificationStatus: 'UNVERIFIED',
+        ageVerifiedAt: null,
+        ageVerificationMethod: 'NONE',
+        ageVerificationToken: null,
       }).returning();
-
-      const verificationToken = generateAgeVerificationToken(createdUser.id, ageClassification.age, ageVerificationStatus);
-      await tx.update(users).set({ ageVerificationToken: verificationToken }).where(eq(users.id, createdUser.id));
 
       await tx.insert(profiles).values({
         userId: createdUser.id,
         displayName,
-        birthDate: new Date(birthDate),
+        birthDate: birthDate ? new Date(birthDate) : null,
         isPrivate: isMinor, // 10 Ekim 2026 Yönetmeliği: Çocuk hesapları varsayılan olarak GİZLİ
         allowSearchEngineIndexing: !isMinor, // Çocuk hesapları için arama motoru dizini varsayılan KAPALI
         messagePreference: isMinor ? 'FOLLOWERS' : 'ANYONE',
@@ -493,16 +469,16 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
         dailyScreenTimeLimitMinutes: isMinor ? 120 : null,
       });
 
-      // Child Safety & Age Audit Log
+      // Child Safety & Age Audit Log: Record declaration without marking account verified
       const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
       await tx.insert(ageVerificationLogs).values({
         userId: createdUser.id,
-        action: ageVerificationStatus,
+        action: 'REGISTERED_UNVERIFIED',
         calculatedAge: ageClassification.age,
         verificationMethod: 'REGISTRATION_DECLARATION',
-        tokenHash: verificationToken.split('.')[2] || null,
+        tokenHash: null,
         ipHash: hashIpForAudit(clientIp),
-        notes: ageClassification.legalExplanation,
+        notes: `Kayıt aşamasında yaş beyanı alındı (${ageClassification.age} yaş). Resmî yaş doğrulaması henüz yapılmadı (UNVERIFIED).`,
       });
 
       // Remove OTP record or mark verified
@@ -535,7 +511,7 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
 
       const accessToken = generateAccessToken(createdUser.id, createdUser.role);
       const refreshToken = generateRefreshToken(createdUser.id, createdUser.role);
-      const tokenHash = await argon2.hash(refreshToken);
+      const tokenHash = hashRefreshToken(refreshToken);
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
@@ -758,7 +734,7 @@ authRouter.post("/login", loginRateLimiter, async (req, res) => {
 
     const accessToken = generateAccessToken(user.id, user.role);
     const refreshToken = generateRefreshToken(user.id, user.role);
-    const tokenHash = await argon2.hash(refreshToken);
+    const tokenHash = hashRefreshToken(refreshToken);
 
     // Detect device info
     const ua = req.headers['user-agent'] || '';
@@ -927,7 +903,7 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
       
       accessToken = generateAccessToken(user.id, user.role);
       refreshToken = generateRefreshToken(user.id, user.role);
-      tokenHash = await argon2.hash(refreshToken);
+      tokenHash = hashRefreshToken(refreshToken);
       return { success: true };
     });
 
@@ -977,6 +953,14 @@ authRouter.post("/login/verify-2fa", loginRateLimiter, async (req, res) => {
       success: true,
       data: {
         accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified
+        }
       }
     });
 
@@ -1183,66 +1167,37 @@ authRouter.post("/refresh", async (req, res) => {
       return;
     }
 
-    // Check if token exists and is valid in DB
-    const activeTokens = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, decoded.userId));
-    
-    let matchedTokenId: number | null = null;
-    let reusedTokenDetected = false;
-    const ROTATION_GRACE_PERIOD_MS = 60 * 1000; // 60s grace period for in-flight concurrent requests
+    // 1. Fast O(1) SHA-256 lookup
+    const tokenSha = hashRefreshToken(refreshToken);
+    const tokenRecords = await db
+      .select()
+      .from(refreshTokens)
+      .where(and(eq(refreshTokens.userId, decoded.userId), eq(refreshTokens.tokenHash, tokenSha)))
+      .limit(1);
 
-    for (const record of activeTokens) {
-      const isValid = await argon2.verify(record.tokenHash, refreshToken).catch(() => false);
-      if (isValid) {
-        if (record.revokedAt) {
-          const revokedAgoMs = Date.now() - new Date(record.revokedAt).getTime();
-          if (revokedAgoMs <= ROTATION_GRACE_PERIOD_MS) {
-            // Token was rotated within the last 60 seconds (parallel request in flight)
-            // Return fresh access token and allow continuous session without destroying tokens
-            const user = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
-            if (user.length > 0 && user[0].isActive) {
-              const newAccessToken = generateAccessToken(user[0].id, user[0].role);
-              return res.json({
-                success: true,
-                data: {
-                  accessToken: newAccessToken,
-                  refreshToken: refreshToken
-                }
-              });
-            }
-          } else {
-            reusedTokenDetected = true;
+    let matchedRecord = tokenRecords[0] || null;
+
+    // Fallback: Check legacy Argon2 hashes if not found by SHA-256
+    if (!matchedRecord) {
+      const activeTokens = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.userId, decoded.userId))
+        .orderBy(desc(refreshTokens.createdAt))
+        .limit(15);
+
+      for (const record of activeTokens) {
+        if (record.tokenHash.startsWith("$argon2")) {
+          const isValid = await argon2.verify(record.tokenHash, refreshToken).catch(() => false);
+          if (isValid) {
+            matchedRecord = record;
+            break;
           }
-        } else if (new Date() <= record.expiresAt) {
-          matchedTokenId = record.id;
         }
-        break;
       }
     }
 
-    if (reusedTokenDetected) {
-      // 1. Revoke ALL tokens for this user
-      await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.userId, decoded.userId));
-      
-      // 2. Log to security audit logs
-      const { securityAuditLogs } = await import("../../src/db/schema.js");
-      await db.insert(securityAuditLogs).values({
-        userId: decoded.userId,
-        action: "refresh_token_reuse",
-        metadata: {
-          details: "İptal edilmiş bir oturum yenileme tokeni tekrar kullanıldı. Olası token hırsızlığına karşı kullanıcının tüm oturumları sonlandırıldı.",
-          ipAddress: (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim().substring(0, 45)
-        }
-      }).catch(console.error);
-
-      res.clearCookie("refreshToken", getClearCookieOptions(req));
-      res.status(401).json({
-        success: false,
-        error: { code: "UNAUTHORIZED", message: "Şüpheli oturum hareketi algılandı. Tüm oturumlarınız güvenlik amacıyla sonlandırıldı, lütfen tekrar giriş yapın." }
-      });
-      return;
-    }
-
-    if (!matchedTokenId) {
+    if (!matchedRecord) {
       res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,
@@ -1251,25 +1206,64 @@ authRouter.post("/refresh", async (req, res) => {
       return;
     }
 
-    // Revoke old token atomically and issue new ones in a transaction
-    const txResult = await db.transaction(async (tx: DbTransaction) => {
-      const updateResult = await tx.update(refreshTokens)
-        .set({ revokedAt: new Date() })
-        .where(and(
-          eq(refreshTokens.id, matchedTokenId),
-          isNull(refreshTokens.revokedAt)
-        ))
-        .returning();
+    // Check expiration
+    if (new Date() > new Date(matchedRecord.expiresAt)) {
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Oturum süresi dolmuş, lütfen tekrar giriş yapın." }
+      });
+      return;
+    }
 
-      if (updateResult.length === 0) {
-        // Handle concurrent rotation gracefully: fetch fresh access token
-        const user = await tx.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+    // Grace Period: If token was rotated within the last 10 minutes (concurrent requests / mobile tab resume)
+    const ROTATION_GRACE_PERIOD_MS = 10 * 60 * 1000;
+    if (matchedRecord.revokedAt) {
+      const revokedAgoMs = Date.now() - new Date(matchedRecord.revokedAt).getTime();
+      if (revokedAgoMs <= ROTATION_GRACE_PERIOD_MS) {
+        // Parallel in-flight request: issue a brand-new valid token pair so the client continues seamlessly
+        const user = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
         if (user.length > 0 && user[0].isActive) {
-          const newAccessToken = generateAccessToken(user[0].id, user[0].role);
-          return { newAccessToken, newRefreshToken: refreshToken };
+          const freshAccessToken = generateAccessToken(user[0].id, user[0].role);
+          const freshRefreshToken = generateRefreshToken(user[0].id, user[0].role);
+          const freshHash = hashRefreshToken(freshRefreshToken);
+          const freshExpires = new Date();
+          freshExpires.setDate(freshExpires.getDate() + 30);
+
+          await db.insert(refreshTokens).values({
+            userId: user[0].id,
+            tokenHash: freshHash,
+            expiresAt: freshExpires,
+            ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
+            deviceInfo: (req.headers["user-agent"] as string) || null,
+          });
+
+          res.cookie("refreshToken", freshRefreshToken, getRefreshTokenCookieOptions(req));
+          return res.json({
+            success: true,
+            data: {
+              accessToken: freshAccessToken,
+              refreshToken: freshRefreshToken,
+            }
+          });
         }
-        return { error: 'race_condition' };
       }
+
+      // Beyond grace period: return 401 without nuking the user's other sessions
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Oturum yenileme süresi dolmuş. Lütfen tekrar giriş yapın." }
+      });
+      return;
+    }
+
+    // Active unrevoked token: perform rotation transaction
+    const txResult = await db.transaction(async (tx: DbTransaction) => {
+      // Mark current token as revoked
+      await tx.update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(eq(refreshTokens.id, matchedRecord.id));
 
       const user = await tx.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
       if (user.length === 0) {
@@ -1304,14 +1298,14 @@ authRouter.post("/refresh", async (req, res) => {
 
       const newAccessToken = generateAccessToken(user[0].id, user[0].role);
       const newRefreshToken = generateRefreshToken(user[0].id, user[0].role);
-      const tokenHash = await argon2.hash(newRefreshToken);
+      const newTokenHash = hashRefreshToken(newRefreshToken);
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // 30 days persistence
 
       await tx.insert(refreshTokens).values({
         userId: user[0].id,
-        tokenHash,
+        tokenHash: newTokenHash,
         expiresAt,
         ipAddress: (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || null,
         deviceInfo: (req.headers["user-agent"] as string) || null,
@@ -1319,14 +1313,6 @@ authRouter.post("/refresh", async (req, res) => {
 
       return { newAccessToken, newRefreshToken };
     });
-
-    if (txResult.error === 'race_condition') {
-      res.status(401).json({
-        success: false,
-        error: { code: "UNAUTHORIZED", message: "Eşzamanlı oturum yenileme algılandı. Lütfen tekrar deneyin." }
-      });
-      return;
-    }
 
     if (txResult.error === 'inactive') {
       res.clearCookie("refreshToken", getClearCookieOptions(req));
@@ -1341,6 +1327,15 @@ authRouter.post("/refresh", async (req, res) => {
             suspensionToken
           }
         }
+      });
+      return;
+    }
+
+    if (txResult.error === 'not_found') {
+      res.clearCookie("refreshToken", getClearCookieOptions(req));
+      res.status(401).json({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Kullanıcı bulunamadı." }
       });
       return;
     }
@@ -1368,21 +1363,14 @@ authRouter.post("/refresh", async (req, res) => {
 
 authRouter.post("/logout", async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = req.body?.refreshToken || (req.headers["x-refresh-token"] as string) || req.cookies?.refreshToken;
     if (refreshToken) {
       try {
         const decoded = verifyRefreshToken(refreshToken);
-        const activeTokens = await db.select().from(refreshTokens).where(eq(refreshTokens.userId, decoded.userId));
-        
-        for (const record of activeTokens) {
-          if (!record.revokedAt) {
-            const isValid = await argon2.verify(record.tokenHash, refreshToken);
-            if (isValid) {
-              await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, record.id));
-              break;
-            }
-          }
-        }
+        const tokenSha = hashRefreshToken(refreshToken);
+        await db.update(refreshTokens)
+          .set({ revokedAt: new Date() })
+          .where(and(eq(refreshTokens.userId, decoded.userId), eq(refreshTokens.tokenHash, tokenSha)));
       } catch (e) {
         // Ignore verify error on logout
       }

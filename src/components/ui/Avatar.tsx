@@ -90,8 +90,8 @@ export function Avatar({
     <div className="relative inline-flex shrink-0">
       <div
         className={cn(
-          'bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-xs select-none',
-          isBordered && 'border-2 border-white ring-1 ring-slate-100',
+          'bg-slate-100 dark:bg-[#101C38] rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-xs select-none',
+          isBordered && 'border-2 border-white dark:border-[#0B1329] ring-1 ring-slate-200/80 dark:ring-white/[0.08]',
           currentSize.container,
           className
         )}
