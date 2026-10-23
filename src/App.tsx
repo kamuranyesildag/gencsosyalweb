@@ -86,7 +86,8 @@ export default function App() {
               </Route>
 
               {/* 2. Standalone Modern Landing Page */}
-              <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+              <Route path="/welcome" element={<Landing />} />
+              <Route path="/landing" element={<Landing />} />
 
               {/* 3. General Informational Pages using BaseLayout */}
               <Route element={<BaseLayout />}>
@@ -96,8 +97,9 @@ export default function App() {
                 <Route path="/account-suspended" element={<AccountSuspended />} />
               </Route>
 
-              {/* Logged In Routes using AppLayout (Sidebars) */}
+              {/* Core Feed & Logged In Routes using AppLayout (Sidebars) */}
               <Route element={<AppLayout />}>
+                <Route path="/" element={<Feed />} />
                 <Route path="/home" element={<Feed />} />
                 <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
                 <Route path="/explore" element={<Explore />} />

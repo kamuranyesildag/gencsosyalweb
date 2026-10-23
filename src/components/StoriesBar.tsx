@@ -107,7 +107,7 @@ export function StoriesBar() {
   return (
     <>
       <section
-        className="w-full bg-white/85 dark:bg-[#0B1329]/85 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl shadow-xs py-3 px-3.5 overflow-hidden select-none"
+        className="w-full bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.08] rounded-3xl shadow-xs py-3.5 px-4 overflow-hidden select-none"
         aria-label="Hikayeler"
       >
         <div className="flex gap-3.5 items-center overflow-x-auto scrollbar-none py-0.5 px-0.5 overscroll-x-contain touch-pan-x">
