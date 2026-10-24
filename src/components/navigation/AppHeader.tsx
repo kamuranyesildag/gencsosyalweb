@@ -140,29 +140,29 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
     >
       <div className="w-full max-w-7xl px-3 sm:px-4 md:px-6 flex justify-between items-center h-full gap-2 md:gap-4">
         {/* ===================== MOBILE HEADER ===================== */}
-        <div className="md:hidden flex items-center justify-between w-full h-full">
-          {/* Left: Drawer Trigger + Brand */}
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="md:hidden flex items-center justify-between w-full h-full gap-2">
+          {/* Left: Drawer Trigger + Unsquished Brand */}
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={onMenuClick}
               aria-label="Gezinme menüsünü aç"
-              className="relative flex items-center justify-center w-10 h-10 -ml-1 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
+              className="relative flex items-center justify-center w-9 h-9 -ml-1 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5 stroke-[2]" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#080E1A]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#080E1A]" />
               )}
             </button>
 
             <Link
               to="/home"
-              className="flex items-center gap-2 select-none group"
+              className="flex items-center gap-2 select-none group min-w-0"
               aria-label="Genç Sosyal Ana Sayfa"
             >
-              <div className="w-8.5 h-8.5 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs shrink-0">
                 <svg
-                  className="w-5 h-5"
+                  className="w-4.5 h-4.5"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -174,13 +174,13 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
                 </svg>
               </div>
-              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="font-bold text-[17px] tracking-tight text-slate-900 dark:text-slate-100 truncate">
                 Genç Sosyal
               </span>
             </Link>
           </div>
 
-          {/* Right Mobile Actions */}
+          {/* Right Mobile Actions (Only most essential) */}
           <div className="flex items-center gap-1 shrink-0">
             {/* Search Icon */}
             <button
@@ -192,21 +192,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               <Search className="w-4.5 h-4.5 stroke-[1.8]" />
             </button>
 
-            {/* Direct Theme Switcher on Mobile */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
-              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
-            >
-              {actualTheme === 'dark' ? (
-                <Sun className="w-4.5 h-4.5 stroke-[1.8] text-amber-400" />
-              ) : (
-                <Moon className="w-4.5 h-4.5 stroke-[1.8] text-slate-600" />
-              )}
-            </button>
-
-            {/* Messages Icon on Mobile */}
+            {/* Messages Icon with Badge */}
             {isAuthenticated && (
               <button
                 type="button"
@@ -220,7 +206,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               >
                 <Mail className="w-4.5 h-4.5 stroke-[1.8]" />
                 {unreadMessages > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A]">
+                  <span className="absolute top-1 right-1 min-w-[15px] h-3.5 px-0.5 rounded-full bg-blue-600 text-[9px] font-bold text-white flex items-center justify-center ring-1.5 ring-white dark:ring-[#080E1A]">
                     {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}
@@ -300,7 +286,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 onFocus={() => setSearchFocused(true)}
                 placeholder="Genç Sosyal'de kişi veya konu ara..."
                 aria-label="Arama Yap"
-                className="w-full pl-10 pr-12 py-2 h-10 bg-slate-100/70 dark:bg-white/[0.05] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#0B1329] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 rounded-xl text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all shadow-2xs"
+                className="w-full pl-10 pr-12 py-2 h-10 bg-slate-100/70 dark:bg-white/[0.05] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/80 dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#0B1329] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 rounded-full text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all shadow-2xs"
               />
 
               {query ? (
@@ -406,7 +392,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               onClick={toggleTheme}
               aria-label={actualTheme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
               title={actualTheme === 'dark' ? 'Açık Tema' : 'Koyu Tema'}
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-9 h-9 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors active:scale-95 cursor-pointer"
             >
               {actualTheme === 'dark' ? (
                 <Sun className="w-4.5 h-4.5 stroke-[1.8] text-amber-400 transition-transform hover:rotate-45" />
@@ -422,7 +408,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   type="button"
                   onClick={() => navigate('/create')}
                   aria-label="Yeni Gönderi Oluştur"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 font-semibold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 font-semibold text-xs transition-all active:scale-95 cursor-pointer shadow-2xs"
                 >
                   <Plus className="w-4 h-4 stroke-[2.2]" />
                   <span className="hidden xl:inline">Yeni Gönderi</span>
@@ -434,7 +420,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   onClick={() => navigate('/messages')}
                   aria-label="Mesajlar"
                   title="Mesajlar"
-                  className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-colors active:scale-95 cursor-pointer ${
                     isMessagesActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
                       : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
@@ -454,7 +440,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                   onClick={() => navigate('/notifications')}
                   aria-label="Bildirimler"
                   title="Bildirimler"
-                  className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-colors active:scale-95 cursor-pointer ${
                     isNotificationsActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
                       : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'

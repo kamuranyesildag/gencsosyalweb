@@ -387,16 +387,16 @@ export function PostDetail() {
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-transparent pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 sm:px-6 py-3.5 flex items-center gap-3 transition-colors">
+      <header className="sticky top-0 md:top-[60px] z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center gap-2.5 transition-colors">
         <button
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Geri"
           className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100 dark:bg-[#161E2E] hover:bg-slate-200/80 dark:hover:bg-[#1f293d] text-slate-700 dark:text-slate-200 transition-colors active:scale-95"
         >
-          <ArrowLeft className="w-5 h-5 stroke-[2]" />
+          <ArrowLeft className="w-4.5 h-4.5 stroke-[2]" />
         </button>
-        <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+        <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           Gönderi
         </h1>
       </header>
@@ -407,7 +407,7 @@ export function PostDetail() {
 
         {/* Collaborators Card */}
         {collaborators.length > 0 || user?.id === post.userId ? (
-          <div className="mt-3 p-4 sm:p-5 bg-slate-50/80 dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]">
+          <div className="mt-3 p-3.5 sm:p-4.5 bg-slate-50 dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]">
             <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-3">
               <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               Ortak Üreticiler
@@ -490,7 +490,7 @@ export function PostDetail() {
               ref={inputRef as any}
               type="text"
               placeholder="Düşünceni veya yanıtını yaz..."
-              className="w-full bg-white dark:bg-[#070A10] border border-slate-200/80 dark:border-white/[0.08] rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all min-h-[44px]"
+              className="w-full bg-white dark:bg-[#070A10] border border-slate-200/80 dark:border-white/[0.08] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all min-h-[42px]"
               value={commentText}
               onClick={() => {
                 if (!isAuthenticated) openModal();
@@ -517,7 +517,7 @@ export function PostDetail() {
             disabled={!commentText.trim() || isSubmitting}
             isLoading={isSubmitting}
             onClick={handleComment}
-            className="rounded-xl px-5 min-h-[44px] font-bold shadow-xs"
+            className="rounded-xl px-4 min-h-[42px] font-semibold text-xs shadow-xs"
             rightIcon={<Send className="w-4 h-4" />}
           >
             Yanıtla

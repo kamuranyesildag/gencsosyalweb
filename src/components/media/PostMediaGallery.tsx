@@ -175,7 +175,7 @@ export function PostMediaGallery({
       <div className={cn("mt-2.5 mb-1 select-none", className)}>
         {/* 1 PHOTO: Natural aspect ratio, sensible max-height, object-contain if tall */}
         {total === 1 && (
-          <div className="w-full rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs bg-slate-100 dark:bg-[#0B1329] max-h-[520px] flex items-center justify-center">
+          <div className="w-full rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs bg-slate-100 dark:bg-[#0B1329] max-h-[520px] flex items-center justify-center">
             <ImageTile
               src={parsedMedia[0].url}
               alt="Gönderi görseli"
@@ -188,7 +188,7 @@ export function PostMediaGallery({
 
         {/* 2 PHOTOS: Clean dual column */}
         {total === 2 && (
-          <div className="grid grid-cols-2 gap-1.5 h-[240px] sm:h-[320px] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+          <div className="grid grid-cols-2 gap-1.5 h-[240px] sm:h-[320px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             <ImageTile
               src={parsedMedia[0].url}
               alt="Görsel 1"
@@ -206,7 +206,7 @@ export function PostMediaGallery({
 
         {/* 3 PHOTOS: Asymmetric balanced layout (1 large on left, 2 stacked on right) */}
         {total === 3 && (
-          <div className="grid grid-cols-3 gap-1.5 h-[270px] sm:h-[350px] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+          <div className="grid grid-cols-3 gap-1.5 h-[270px] sm:h-[350px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             <div className="col-span-2 h-full">
               <ImageTile
                 src={parsedMedia[0].url}
@@ -234,7 +234,7 @@ export function PostMediaGallery({
 
         {/* 4 PHOTOS: 2x2 Balanced Grid */}
         {total === 4 && (
-          <div className="grid grid-cols-2 gap-1.5 h-[280px] sm:h-[360px] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+          <div className="grid grid-cols-2 gap-1.5 h-[280px] sm:h-[360px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             {parsedMedia.map((m, idx) => (
               <ImageTile
                 key={m.url || idx}
@@ -249,7 +249,7 @@ export function PostMediaGallery({
 
         {/* 5+ PHOTOS: First 4 displayed in 2x2 with dynamic +N overlay badge on the 4th */}
         {total >= 5 && (
-          <div className="grid grid-cols-2 gap-1.5 h-[280px] sm:h-[360px] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+          <div className="grid grid-cols-2 gap-1.5 h-[280px] sm:h-[360px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
             {parsedMedia.slice(0, 3).map((m, idx) => (
               <ImageTile
                 key={m.url || idx}

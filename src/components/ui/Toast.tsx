@@ -209,17 +209,17 @@ export function ToastContainer() {
               exit="exit"
               role="status"
               className={cn(
-                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-2xl shadow-slate-900/15 border text-slate-800 dark:text-slate-100 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl select-none',
+                'pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl shadow-2xl shadow-black/80 border border-white/20 text-white bg-gradient-to-r from-[#0F172A] via-[#090D16] to-[#020408] backdrop-blur-2xl select-none',
                 config.border
               )}
             >
-              <div className={cn('shrink-0 w-8 h-8 rounded-xl flex items-center justify-center', config.iconBg)}>
+              <div className={cn('shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border border-white/10', config.iconBg)}>
                 <Icon className={cn('w-4.5 h-4.5', config.iconColor)} aria-hidden="true" />
               </div>
 
               <div className="flex-1 text-sm leading-snug break-words pt-0.5">
-                {title && <p className="font-bold text-slate-900 dark:text-slate-100 mb-0.5 text-sm">{title}</p>}
-                <p className={cn('text-slate-600 dark:text-slate-400', !title && 'font-medium text-slate-800 dark:text-slate-100')}>{t.message}</p>
+                {title && <p className="font-bold text-white mb-0.5 text-sm">{title}</p>}
+                <p className={cn('text-slate-300', !title && 'font-semibold text-white')}>{t.message}</p>
               </div>
 
               {t.action && (
@@ -229,7 +229,7 @@ export function ToastContainer() {
                     t.action?.onClick();
                     removeToast(t.id);
                   }}
-                  className="shrink-0 text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-slate-700 bg-slate-100 dark:bg-white/[0.08] hover:dark:bg-white/[0.14] px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="shrink-0 text-xs font-bold text-white hover:text-slate-200 bg-white/15 hover:bg-white/25 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   {t.action.label}
                 </button>
@@ -239,7 +239,7 @@ export function ToastContainer() {
                 type="button"
                 onClick={() => removeToast(t.id)}
                 aria-label="Bildirimi kapat"
-                className="shrink-0 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                className="shrink-0 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

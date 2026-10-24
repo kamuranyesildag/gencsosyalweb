@@ -86,7 +86,7 @@ export function Explore() {
             <input
               type="text"
               placeholder="Kişiler, gönderiler veya etiketler ara..."
-              className="w-full bg-white/80 dark:bg-[#0B1329]/80 hover:bg-white dark:hover:bg-[#101C38] focus:bg-white dark:focus:bg-[#101C38] rounded-2xl pl-11 pr-10 py-2.5 outline-none border border-slate-200/90 dark:border-white/[0.1] focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-sm sm:text-[15px] shadow-xs"
+              className="w-full bg-white/80 dark:bg-[#0B1329]/80 hover:bg-white dark:hover:bg-[#101C38] focus:bg-white dark:focus:bg-[#101C38] rounded-xl pl-11 pr-10 py-2.5 outline-none border border-slate-200/90 dark:border-white/[0.1] focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-sm sm:text-[15px] shadow-xs"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Keşfet Arama"
@@ -258,7 +258,7 @@ export function Explore() {
                   <div key={user.id}>
                     <Link
                       to={`/profile/${user.username}`}
-                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-sm transition-all group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all group"
                     >
                       <Avatar
                         url={user.avatarUrl}
@@ -313,10 +313,10 @@ export function Explore() {
                   <div key={tag.id || tag.name}>
                     <Link
                       to={`/hashtags/${encodeURIComponent(tag.name)}`}
-                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-sm transition-all group"
+                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all group"
                     >
-                      <div className="w-11 h-11 rounded-2xl bg-blue-50/70 dark:bg-sky-500/10 border border-blue-200/60 dark:border-sky-500/20 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <Hash className="w-5 h-5 text-blue-600 dark:text-sky-400" />
+                      <div className="w-10 h-10 rounded-xl bg-blue-50/70 dark:bg-sky-500/10 border border-blue-200/60 dark:border-sky-500/20 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Hash className="w-4.5 h-4.5 text-blue-600 dark:text-sky-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors truncate">
@@ -326,7 +326,7 @@ export function Explore() {
                           {tag.postCount || 0} gönderi
                         </div>
                       </div>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-white/[0.06] transition-all">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-white/[0.06] transition-all">
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     </Link>

@@ -19,6 +19,7 @@ import { confirmDialog } from "../components/ui/ConfirmDialog";
 import { toast } from "../components/ui/Toast";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
+import { useFollowStore } from "../context/useFollowStore";
 import { usePagination } from "../hooks/usePagination";
 import { useSEO } from "../hooks/useSEO";
 import { 
@@ -91,6 +92,9 @@ export function Profile() {
           setProfile(json.data);
           setFollowing(json.data.isFollowing);
           setFollowStatus(json.data.followStatus || (json.data.isFollowing ? "accepted" : "none"));
+          if (json.data?.id && (json.data.isFollowing || json.data.followStatus === "accepted")) {
+            useFollowStore.getState().syncFromUser(json.data.id, true);
+          }
 
           // Fetch quiz stats
           fetch(`/api/v1/quiz/user/${username}/stats`)
@@ -132,6 +136,7 @@ export function Profile() {
 
     setFollowStatus(nextState);
     setFollowing(nextState === 'accepted');
+    useFollowStore.getState().setFollowing(profile.id, nextState === 'accepted');
 
     // Optimistic follower count update
     if (nextState === 'accepted' || wasFollowing) {
@@ -152,14 +157,16 @@ export function Profile() {
       if (!res.ok || !json.success) {
         throw new Error("Failed");
       } else {
+        const isNowAccepted = json.data?.status ? json.data.status === 'accepted' : nextState === 'accepted';
         if (json.data && json.data.status) {
             setFollowStatus(json.data.status);
-            setFollowing(json.data.status === 'accepted');
+            setFollowing(isNowAccepted);
         }
+        useFollowStore.getState().setFollowing(profile.id, isNowAccepted);
         toast.success(nextState === 'none' ? `İşlem iptal edildi` : json.data.message || `İşlem başarılı`);
         window.dispatchEvent(
           new CustomEvent("user_follow_toggled", {
-            detail: { userId: profile.id, isFollowing: nextState === 'accepted' },
+            detail: { userId: profile.id, isFollowing: isNowAccepted },
           })
         );
       }
@@ -167,6 +174,7 @@ export function Profile() {
       console.error(e);
       setFollowStatus(wasFollowStatus);
       setFollowing(wasFollowing);
+      useFollowStore.getState().setFollowing(profile.id, wasFollowing);
       if (nextState === 'accepted' || wasFollowing) {
         setProfile((prev: any) => ({
           ...prev,
@@ -291,7 +299,7 @@ export function Profile() {
               else navigate("/home");
             }}
             aria-label="Geri Dön"
-            className="w-9 h-9 flex items-center justify-center -ml-1 rounded-xl bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
+            className="w-9 h-9 flex items-center justify-center -ml-1 rounded-full bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
           >
             <ArrowLeft className="w-5 h-5 stroke-[2]" />
           </button>
@@ -319,7 +327,7 @@ export function Profile() {
             type="button"
             onClick={() => setShowShare(true)}
             aria-label="Profili Paylaş"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
           >
             <Share2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="hidden sm:inline">Paylaş</span>
@@ -330,7 +338,7 @@ export function Profile() {
               type="button"
               onClick={() => navigate("/settings")}
               aria-label="Ayarlar"
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] transition-all active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -525,17 +533,17 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Stats Row (Posts, Projects, Following, Followers) - Frosted Glass Chips */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mt-5 text-sm">
+        {/* Stats Row (Posts, Projects, Following, Followers) - Clean Readable Metrics */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 text-sm">
           <button
             type="button"
             onClick={() => setActiveTab("posts")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
-            <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
+            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
               {profile.postsCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 text-xs">
               Gönderi
             </span>
           </button>
@@ -544,12 +552,12 @@ export function Profile() {
             <button
               type="button"
               onClick={() => setActiveTab("projects")}
-              className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
+              className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
             >
-              <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
+              <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
                 {profile.projectsCount}
               </span>
-              <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
+              <span className="text-slate-500 dark:text-slate-400 text-xs">
                 Proje
               </span>
             </button>
@@ -558,12 +566,12 @@ export function Profile() {
           <button
             type="button"
             onClick={() => setActiveTab("following")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
-            <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
+            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
               {profile.followingCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 text-xs">
               Takip Edilen
             </span>
           </button>
@@ -571,12 +579,12 @@ export function Profile() {
           <button
             type="button"
             onClick={() => setActiveTab("followers")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.04] backdrop-blur-md border border-slate-200/60 dark:border-white/[0.06] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] hover:border-blue-500/30 dark:hover:border-blue-400/30 focus:outline-none transition-all active:scale-95"
+            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
           >
-            <span className="font-extrabold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400 transition-colors">
+            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
               {profile.followersCount ?? 0}
             </span>
-            <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/stat:text-slate-700 dark:group-hover/stat:text-slate-200 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 text-xs">
               Takipçi
             </span>
           </button>

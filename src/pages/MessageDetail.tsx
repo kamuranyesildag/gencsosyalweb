@@ -135,7 +135,7 @@ export function MessageDetail() {
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            className="rounded-xl -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shrink-0 min-w-[40px] min-h-[40px]"
+            className="rounded-full -ml-1 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white shrink-0 min-w-[40px] min-h-[40px]"
           >
             <ArrowLeft className="w-5 h-5" />
           </IconButton>
@@ -253,7 +253,7 @@ export function MessageDetail() {
 
       {/* STICKY INPUT BAR */}
       <div className="p-3 sm:p-4 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-t border-slate-200/70 dark:border-white/[0.08]">
-        <div className="flex gap-2 items-center glass-input bg-white/70 hover:bg-white focus-within:bg-white dark:bg-white/[0.05] dark:hover:bg-white/[0.07] dark:focus-within:bg-[#0B1329] rounded-2xl p-1.5 pl-4 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/15 transition-all shadow-xs">
+        <div className="flex gap-2 items-center glass-input bg-white/70 hover:bg-white focus-within:bg-white dark:bg-white/[0.05] dark:hover:bg-white/[0.07] dark:focus-within:bg-[#0B1329] rounded-full p-1.5 pl-5 border border-slate-200/80 dark:border-white/[0.08] focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/15 transition-all shadow-xs">
           <input
             type="text"
             placeholder="Mesajınızı yazın..."
@@ -273,7 +273,7 @@ export function MessageDetail() {
             disabled={!content.trim() || isSending}
             onClick={handleSend}
             aria-label="Mesaj Gönder"
-            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-all active:scale-[0.97] shadow-xs shadow-blue-500/20 shrink-0 cursor-pointer"
+            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all active:scale-[0.97] shadow-xs shadow-blue-500/20 shrink-0 cursor-pointer"
           >
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

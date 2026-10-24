@@ -207,9 +207,10 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
 
   return (
     <div
+      id="home-create-post"
       ref={containerRef}
       className={cn(
-        "w-full bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.08] rounded-3xl shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden",
+        "w-full bg-white dark:bg-[#0B1329] border border-slate-200/80 dark:border-white/[0.07] rounded-2xl shadow-xs transition-all overflow-hidden",
         className
       )}
     >
@@ -223,15 +224,15 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
       />
 
       {!isExpanded ? (
-        /* Collapsed Modern Trigger State with Round / Pill Buttons */
-        <div className="p-3 sm:p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-3">
+        /* Collapsed Modern Trigger State with Balanced Buttons */
+        <div className="p-3 sm:p-3.5 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
             <div className="shrink-0">
               <Avatar
                 url={user?.avatarUrl}
                 name={user?.displayName || user?.username || "Kullanıcı"}
-                size="md"
-                className="w-10 h-10 rounded-full ring-2 ring-blue-500/20 dark:ring-blue-400/20"
+                size="sm"
+                className="w-9 h-9"
               />
             </div>
 
@@ -239,7 +240,7 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
               type="button"
               onClick={() => handleOpenComposer("NORMAL")}
               aria-label="Gönderi yazmaya başla"
-              className="flex-1 text-left px-4 py-2.5 rounded-full bg-slate-100/80 dark:bg-white/[0.05] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium border border-slate-200/70 dark:border-white/[0.06] transition-all cursor-pointer select-none truncate"
+              className="flex-1 text-left px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.07] text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-normal border border-slate-200/70 dark:border-white/[0.06] transition-colors cursor-pointer select-none truncate"
             >
               {user?.displayName
                 ? `Ne düşünüyorsun, ${user.displayName.split(" ")[0]}?`
@@ -247,52 +248,52 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
             </button>
           </div>
 
-          {/* Quick Round Pill Action Buttons Row */}
+          {/* Quick Balanced Action Buttons Row */}
           <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-white/[0.04]">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              {/* Media Pill Button */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Media Button */}
               <button
                 type="button"
                 onClick={() => {
                   if (!isAuthenticated) openModal();
                   else fileInputRef.current?.click();
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-900/40 active:scale-95 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 transition-colors cursor-pointer"
               >
-                <ImageIcon className="w-3.5 h-3.5" />
+                <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
                 <span>Fotoğraf / Video</span>
               </button>
 
-              {/* Poll Pill Button */}
+              {/* Poll Button */}
               <button
                 type="button"
                 onClick={() => handleOpenComposer("POLL")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 border border-purple-200/60 dark:border-purple-900/40 active:scale-95 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50/60 dark:hover:bg-purple-950/30 transition-colors cursor-pointer"
               >
-                <ListOrdered className="w-3.5 h-3.5" />
+                <ListOrdered className="w-3.5 h-3.5 text-purple-500" />
                 <span>Anket</span>
               </button>
 
-              {/* Sensitive Pill Button */}
+              {/* Sensitive Warning Button */}
               <button
                 type="button"
                 onClick={() => handleOpenComposer("SENSITIVE")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/60 dark:border-amber-900/40 active:scale-95 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/60 dark:hover:bg-amber-950/30 transition-colors cursor-pointer"
               >
-                <ShieldAlert className="w-3.5 h-3.5" />
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
                 <span className="hidden sm:inline">Hassas İçerik</span>
                 <span className="sm:hidden">Uyarı</span>
               </button>
             </div>
 
-            {/* Quick Share Round Button */}
+            {/* Quick Share Action Button */}
             <button
               type="button"
               onClick={() => handleOpenComposer("NORMAL")}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/30 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
               title="Gönderi Yaz"
             >
-              <Send className="w-3.5 h-3.5 -translate-x-0.2" />
+              <Send className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -550,10 +551,10 @@ export function HomeCreatePost({ onPostCreated, className }: HomeCreatePostProps
                 disabled={!isFormValid()}
                 onClick={handleSubmit}
                 className={cn(
-                  "px-5 py-2 rounded-full font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer",
+                  "px-4 py-2 rounded-xl font-semibold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer",
                   isFormValid()
-                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25"
-                    : "bg-slate-200 dark:bg-white/[0.08] text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                    : "bg-slate-100 dark:bg-white/[0.06] text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none"
                 )}
               >
                 <Send className="w-3.5 h-3.5" />

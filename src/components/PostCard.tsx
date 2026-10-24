@@ -28,20 +28,31 @@ import { formatTimeAgo, cn } from "../lib/utils";
 import { fetchApi } from "../lib/api";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
+import { useFollowStore } from "../context/useFollowStore";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "./ui/Toast";
 import { confirmDialog } from "./ui/ConfirmDialog";
 import { PostMediaGallery } from "./media/PostMediaGallery";
+import { triggerHaptic } from "../utils/haptics";
 
 interface PostCardProps {
   post: any;
   key?: React.Key;
   className?: string;
+  index?: number;
+  isKeyboardFocused?: boolean;
   onPostDeleted?: (id: number) => void;
   onBookmarkToggled?: (id: number, isSaved: boolean) => void;
 }
 
-export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: PostCardProps) {
+export function PostCard({
+  post,
+  className,
+  index,
+  isKeyboardFocused,
+  onPostDeleted,
+  onBookmarkToggled,
+}: PostCardProps) {
   const navigate = useNavigate();
   const [liked, setLiked] = useState(post.isLiked || false);
   const [reactionType, setReactionType] = useState<string | null>(post.myReaction || null);
@@ -57,14 +68,21 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
   const [isRevealed, setIsRevealed] = useState(false);
   const [pollData, setPollData] = useState(post.pollData);
   const [isVoting, setIsVoting] = useState(false);
-  const [isFollowingUser, setIsFollowingUser] = useState(post.user?.isFollowing || false);
+  const [localFollowOverride, setLocalFollowOverride] = useState<boolean | null>(null);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const { user: currentUser, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
 
+  const isFollowedInStore = useFollowStore((state) => state.isFollowing(post.user?.id));
+  const isFollowingUser = localFollowOverride !== null
+    ? localFollowOverride
+    : Boolean(post.user?.isFollowing || isFollowedInStore);
+
   useEffect(() => {
-    setIsFollowingUser(post.user?.isFollowing || false);
-  }, [post.user?.isFollowing]);
+    if (post.user?.id && post.user?.isFollowing) {
+      useFollowStore.getState().syncFromUser(post.user.id, true);
+    }
+  }, [post.user?.id, post.user?.isFollowing]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
@@ -155,8 +173,9 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
 
   useEffect(() => {
     const handleUserFollowToggled = (e: CustomEvent) => {
-      if (post.user && e.detail.userId === post.user.id) {
-        setIsFollowingUser(e.detail.isFollowing);
+      if (post.user && Number(e.detail?.userId) === Number(post.user.id)) {
+        setLocalFollowOverride(Boolean(e.detail.isFollowing));
+        useFollowStore.getState().setFollowing(Number(post.user.id), Boolean(e.detail.isFollowing));
       }
     };
     window.addEventListener("user_follow_toggled", handleUserFollowToggled as EventListener);
@@ -169,27 +188,31 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
     if (!isAuthenticated) return openModal();
     if (isFollowLoading || !post.user?.id) return;
 
+    const targetUserId = Number(post.user.id);
     setIsFollowLoading(true);
     // Optimistic
-    const prev = isFollowingUser;
-    setIsFollowingUser(true); // Since button disappears when followed
+    setLocalFollowOverride(true);
+    useFollowStore.getState().setFollowing(targetUserId, true);
 
     try {
-      const res = await fetchApi(`/users/${post.user.id}/follow`, { method: "POST" });
+      const res = await fetchApi(`/users/${targetUserId}/follow`, { method: "POST" });
       const json = await res.json();
       if (!json.success) {
-        setIsFollowingUser(prev);
+        setLocalFollowOverride(false);
+        useFollowStore.getState().setFollowing(targetUserId, false);
         toast.error(json.error?.message || "Takip edilemedi");
       } else {
         toast.success("Takip edildi");
+        triggerHaptic("medium");
         window.dispatchEvent(
           new CustomEvent("user_follow_toggled", {
-            detail: { userId: post.user.id, isFollowing: true },
+            detail: { userId: targetUserId, isFollowing: true },
           })
         );
       }
     } catch {
-      setIsFollowingUser(prev);
+      setLocalFollowOverride(false);
+      useFollowStore.getState().setFollowing(targetUserId, false);
       toast.error("Bir hata oluştu");
     } finally {
       setIsFollowLoading(false);
@@ -203,6 +226,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
     if (isLiking) return;
     setIsLiking(true);
     setShowReactionPicker(false);
+    triggerHaptic("light");
 
     const isRemoving = reactionType === type;
     const oldReaction = reactionType;
@@ -435,7 +459,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
 
       <article
         ref={articleRef}
-        id={`post-${post.id}`}
+        id={index !== undefined ? `post-index-${index}` : `post-${post.id}`}
         onClick={(e) => {
           const target = e.target as HTMLElement;
           if (!target.closest("button") && !target.closest("a") && !target.closest("textarea")) {
@@ -443,12 +467,13 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
           }
         }}
         className={cn(
-          "group relative flex flex-col sm:flex-row gap-3.5 sm:gap-4.5 p-4.5 sm:p-5.5 w-full",
-          "bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-xl",
-          "border border-slate-200/90 dark:border-white/[0.08]",
-          "rounded-3xl",
-          "shadow-xs hover:shadow-md hover:shadow-slate-200/40 dark:hover:shadow-black/50 hover:border-slate-300/90 dark:hover:border-white/[0.14]",
-          "cursor-pointer transition-all duration-300",
+          "group relative flex flex-col sm:flex-row gap-3 sm:gap-3.5 p-3.5 sm:p-4.5 w-full",
+          "bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md",
+          "border border-slate-200/80 dark:border-white/[0.08]",
+          "rounded-2xl transition-all duration-200",
+          "shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.18]",
+          "cursor-pointer",
+          isKeyboardFocused && "ring-2 ring-blue-500 border-blue-500 dark:border-blue-500 shadow-blue-500/15 bg-blue-50/20 dark:bg-blue-950/20",
           post.postType === "SENSITIVE" && !isRevealed && "opacity-95",
           className
         )}
@@ -862,11 +887,11 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
           </div>
         )}
 
-        {/* 3. INTERACTION ACTION BAR WITH MODERN ROUNDED PILL BUTTONS */}
-        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 pt-3 mt-1.5 select-none border-t border-slate-100 dark:border-white/[0.06] flex-wrap gap-2">
+        {/* 3. INTERACTION ACTION BAR */}
+        <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 pt-2.5 mt-1 select-none border-t border-slate-100 dark:border-white/[0.05]">
           {/* Left Actions: Comment, Repost, Reaction */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            {/* Comment Pill Button */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Comment Button */}
             <button
               type="button"
               onClick={(e) => {
@@ -874,15 +899,15 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                 navigate(`/post/${post.id}`);
               }}
               aria-label={`${post.commentCount || 0} yorum. Yorum yap.`}
-              className="group/btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/70 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/60 dark:border-white/[0.06] transition-all active:scale-95 cursor-pointer shadow-2xs"
+              className="group/btn inline-flex items-center gap-1.5 py-1 px-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 transition-colors cursor-pointer"
             >
-              <MessageCircle className="w-4 h-4 stroke-[1.75] transition-transform group-hover/btn:scale-110" />
-              <span className="text-xs font-semibold min-w-[14px]">
+              <MessageCircle className="w-4 h-4 stroke-[1.8] transition-transform group-hover/btn:scale-110" />
+              <span className="text-xs font-medium tabular-nums">
                 {post.commentCount || 0}
               </span>
             </button>
 
-            {/* Repost Pill Menu */}
+            {/* Repost Menu */}
             <div onClick={(e) => e.stopPropagation()}>
               <Dropdown>
                 <DropdownTrigger>
@@ -890,19 +915,19 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                     type="button"
                     aria-label={`${repostCount} yeniden paylaşım.`}
                     className={cn(
-                      "group/btn flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                      "group/btn inline-flex items-center gap-1.5 py-1 px-2 rounded-lg transition-colors cursor-pointer",
                       reposted
-                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40 font-bold"
-                        : "text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-white/[0.04] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 border-slate-200/60 dark:border-white/[0.06]"
+                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/30 font-semibold"
+                        : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30"
                     )}
                   >
-                    <Repeat2 className={cn("w-4 h-4 transition-transform group-hover/btn:rotate-45", reposted ? "stroke-[2.2]" : "stroke-[1.75]")} />
-                    <span className="text-xs font-semibold min-w-[14px]">
+                    <Repeat2 className={cn("w-4 h-4 transition-transform group-hover/btn:rotate-45", reposted ? "stroke-[2.2]" : "stroke-[1.8]")} />
+                    <span className="text-xs font-medium tabular-nums">
                       {repostCount}
                     </span>
                   </button>
                 </DropdownTrigger>
-                <DropdownContent align="left" className="w-44 rounded-2xl p-1">
+                <DropdownContent align="left" className="w-44 rounded-xl p-1">
                   <DropdownItem onClick={(e) => { e.stopPropagation(); handleRepost(e); }}>
                     <div className="flex items-center gap-2">
                       <Repeat2 className="w-4 h-4" />
@@ -919,7 +944,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
               </Dropdown>
             </div>
 
-            {/* Reaction Pill Button with Picker */}
+            {/* Reaction Button with Picker */}
             <div 
               className="relative" 
               onMouseEnter={handleMouseEnterPicker} 
@@ -930,7 +955,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                   initial={{ opacity: 0, y: 10, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                  className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#0B1329]/95 border border-slate-200/90 dark:border-white/[0.12] shadow-xl rounded-full z-50 backdrop-blur-xl"
+                  className="absolute bottom-full left-0 mb-2 flex items-center gap-1 p-1 bg-white/95 dark:bg-[#0B1329]/95 border border-slate-200/90 dark:border-white/[0.12] shadow-xl rounded-xl z-50 backdrop-blur-xl"
                 >
                   {[
                     { type: 'like', icon: '👍', color: 'text-blue-500' },
@@ -943,7 +968,7 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                     <button
                       key={r.type}
                       onClick={(e) => handleReaction(e, r.type)}
-                      className="p-2 hover:scale-130 transition-transform origin-bottom text-xl leading-none active:scale-95 cursor-pointer"
+                      className="p-1.5 hover:scale-125 transition-transform origin-bottom text-lg leading-none active:scale-95 cursor-pointer"
                       title={r.type}
                     >
                       {r.icon}
@@ -957,73 +982,73 @@ export function PostCard({ post, className, onPostDeleted, onBookmarkToggled }: 
                 onClick={(e) => handleReaction(e, reactionType || 'like')}
                 aria-label={`${likeCount} tepki.`}
                 className={cn(
-                  "group/btn flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all active:scale-95 cursor-pointer shadow-2xs",
+                  "group/btn inline-flex items-center gap-1.5 py-1 px-2 rounded-lg transition-colors cursor-pointer",
                   reactionType
-                    ? "text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/40 font-bold"
-                    : "text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-white/[0.04] hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 border-slate-200/60 dark:border-white/[0.06]"
+                    ? "text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 font-semibold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/30"
                 )}
               >
                 {reactionType === 'love' ? (
                   <Heart className="w-4 h-4 fill-rose-600 stroke-rose-600 dark:fill-rose-500 dark:stroke-rose-500 transition-transform group-hover/btn:scale-110" />
                 ) : reactionType === 'haha' ? (
-                  <span className="text-[16px] leading-none transition-transform group-hover/btn:scale-110">😂</span>
+                  <span className="text-[15px] leading-none transition-transform group-hover/btn:scale-110">😂</span>
                 ) : reactionType === 'wow' ? (
-                  <span className="text-[16px] leading-none transition-transform group-hover/btn:scale-110">😮</span>
+                  <span className="text-[15px] leading-none transition-transform group-hover/btn:scale-110">😮</span>
                 ) : reactionType === 'sad' ? (
-                  <span className="text-[16px] leading-none transition-transform group-hover/btn:scale-110">😢</span>
+                  <span className="text-[15px] leading-none transition-transform group-hover/btn:scale-110">😢</span>
                 ) : reactionType === 'angry' ? (
-                  <span className="text-[16px] leading-none transition-transform group-hover/btn:scale-110">😡</span>
+                  <span className="text-[15px] leading-none transition-transform group-hover/btn:scale-110">😡</span>
                 ) : reactionType === 'like' ? (
-                  <span className="text-[16px] leading-none transition-transform group-hover/btn:scale-110">👍</span>
+                  <span className="text-[15px] leading-none transition-transform group-hover/btn:scale-110">👍</span>
                 ) : (
-                  <Heart className="w-4 h-4 stroke-[1.75] transition-transform group-hover/btn:scale-110" />
+                  <Heart className="w-4 h-4 stroke-[1.8] transition-transform group-hover/btn:scale-110" />
                 )}
-                <span className="text-xs font-semibold min-w-[14px]">
+                <span className="text-xs font-medium tabular-nums">
                   {likeCount}
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Right Actions: View count, Circular Bookmark & Share */}
-          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            {/* View Count Subtle Pill */}
+          {/* Right Actions: View count, Bookmark & Share */}
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {/* View Count Subtle Text */}
             <div
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-slate-400 dark:text-slate-500 bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/40 dark:border-white/[0.04] text-[11px] font-mono"
+              className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-slate-400 dark:text-slate-500 text-[11px] font-mono mr-1"
               title={`${post.viewCount || 0} görüntülenme`}
             >
               <Eye className="w-3.5 h-3.5 stroke-[1.75]" />
               <span>{post.viewCount || 0}</span>
             </div>
 
-            {/* Circular Bookmark Button */}
+            {/* Bookmark Button */}
             <button
               type="button"
               onClick={handleBookmark}
               aria-label={saved ? "Kaydedilenlerden kaldır" : "Kaydet"}
               className={cn(
-                "w-8 h-8 rounded-full border transition-all active:scale-90 flex items-center justify-center cursor-pointer shadow-2xs",
+                "w-8 h-8 rounded-lg transition-colors flex items-center justify-center cursor-pointer",
                 saved
-                  ? "text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/40"
-                  : "text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/60 dark:border-white/[0.06]"
+                  ? "text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-950/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/70 dark:hover:bg-blue-950/30"
               )}
             >
               <Bookmark
                 className={cn(
-                  "w-3.5 h-3.5 transition-transform group-hover/btn:scale-110",
-                  saved ? "fill-blue-600 dark:fill-blue-400 stroke-blue-600 dark:stroke-blue-400" : "stroke-[1.75]"
+                  "w-4 h-4 transition-transform active:scale-90",
+                  saved ? "fill-blue-600 dark:fill-blue-400 stroke-blue-600 dark:stroke-blue-400" : "stroke-[1.8]"
                 )}
               />
             </button>
 
-            {/* Circular Share Button */}
+            {/* Share Button */}
             <button
               type="button"
               onClick={handleShare}
               aria-label="Paylaş"
-              className="w-8 h-8 rounded-full bg-slate-100/70 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200/60 dark:border-white/[0.06] transition-all active:scale-90 flex items-center justify-center cursor-pointer shadow-2xs"
+              className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 transition-colors flex items-center justify-center cursor-pointer"
             >
-              <Share2 className="w-3.5 h-3.5 stroke-[1.75]" />
+              <Share2 className="w-4 h-4 stroke-[1.8] active:scale-90" />
             </button>
           </div>
         </div>

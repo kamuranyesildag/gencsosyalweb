@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { Skeleton } from "./ui/Skeleton";
+import { useFollowStore } from "../context/useFollowStore";
 
 export interface FeedSuggestedUser {
   id: number;
@@ -99,12 +100,31 @@ export function FeedSuggestedUsers() {
     fetchUsers();
   }, [fetchUsers]);
 
+  useEffect(() => {
+    const handleUserFollowToggled = (e: CustomEvent) => {
+      const targetUserId = Number(e.detail?.userId);
+      const isFollowing = Boolean(e.detail?.isFollowing);
+      if (!targetUserId) return;
+      setFollowingMap((prev) => ({ ...prev, [targetUserId]: isFollowing }));
+    };
+    window.addEventListener("user_follow_toggled", handleUserFollowToggled as EventListener);
+    return () => window.removeEventListener("user_follow_toggled", handleUserFollowToggled as EventListener);
+  }, []);
+
   const handleFollow = async (userId: number) => {
-    const isCurrentlyFollowing = followingMap[userId] || false;
+    const isCurrentlyFollowing = followingMap[userId] !== undefined
+      ? followingMap[userId]
+      : useFollowStore.getState().isFollowing(userId);
     const nextState = !isCurrentlyFollowing;
 
     setFollowingMap((prev) => ({ ...prev, [userId]: nextState }));
     setPendingMap((prev) => ({ ...prev, [userId]: true }));
+    useFollowStore.getState().setFollowing(userId, nextState);
+    window.dispatchEvent(
+      new CustomEvent("user_follow_toggled", {
+        detail: { userId, isFollowing: nextState },
+      })
+    );
 
     try {
       const res = await fetchApi(`/users/${userId}/follow`, {
@@ -122,6 +142,12 @@ export function FeedSuggestedUsers() {
       }
     } catch {
       setFollowingMap((prev) => ({ ...prev, [userId]: isCurrentlyFollowing }));
+      useFollowStore.getState().setFollowing(userId, isCurrentlyFollowing);
+      window.dispatchEvent(
+        new CustomEvent("user_follow_toggled", {
+          detail: { userId, isFollowing: isCurrentlyFollowing },
+        })
+      );
       toast.error("İşlem başarısız oldu. Lütfen tekrar deneyin.");
     } finally {
       setPendingMap((prev) => ({ ...prev, [userId]: false }));
@@ -208,7 +234,9 @@ export function FeedSuggestedUsers() {
           <div className="flex gap-2.5 min-w-max">
             <AnimatePresence mode="popLayout">
               {users.map((user) => {
-                const isFollowing = followingMap[user.id] || false;
+                const isFollowing = followingMap[user.id] !== undefined
+                  ? followingMap[user.id]
+                  : useFollowStore.getState().isFollowing(user.id);
                 const isPending = pendingMap[user.id] || false;
 
                 return (

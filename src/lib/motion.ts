@@ -47,27 +47,27 @@ export const pageInVariants: Variants = {
   exit: { opacity: 0, transition: standardExitTransition },
 };
 
-// Modals & Dialogs
+// Modals & Dialogs (Bottom-sliding on mobile, scale-up on desktop)
 export const modalVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.98, y: 8 },
+  hidden: { opacity: 0, y: 30, scale: 0.96 },
   visible: { 
     opacity: 1, 
     scale: 1, 
     y: 0, 
-    transition: standardTransition 
+    transition: { type: 'spring', stiffness: 400, damping: 32, mass: 0.8 } 
   },
   exit: { 
     opacity: 0, 
-    scale: 0.98, 
-    y: 4, 
-    transition: standardExitTransition 
+    y: 20,
+    scale: 0.96, 
+    transition: { duration: 0.15, ease: easeIn } 
   },
 };
 
 export const backdropVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: standardTransition },
-  exit: { opacity: 0, transition: standardExitTransition },
+  visible: { opacity: 1, transition: { duration: 0.2, ease: easeOut } },
+  exit: { opacity: 0, transition: { duration: 0.15, ease: easeIn } },
 };
 
 // Dropdowns & Popovers
@@ -87,18 +87,18 @@ export const popoverVariants: Variants = {
   },
 };
 
-// Bottom Sheet
+// Bottom Sheet & Slide-up Drawers
 export const sheetVariants: Variants = {
   hidden: { y: '100%', opacity: 0 },
   visible: { 
     y: 0, 
     opacity: 1,
-    transition: pageTransition 
+    transition: { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 } 
   },
   exit: { 
     y: '100%', 
     opacity: 0,
-    transition: { duration: 0.2, ease: easeIn } 
+    transition: { duration: 0.18, ease: easeIn } 
   },
 };
 

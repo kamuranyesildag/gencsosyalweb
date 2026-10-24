@@ -634,7 +634,7 @@ export function QuizRoom() {
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Quiz Odasına Katılınamadı</h2>
           <p className="text-sm text-slate-500 font-medium">{errorMessage || "Bu kodla aktif bir quiz odası bulunamadı veya oda kapatılmış."}</p>
         </div>
-        <Button variant="primary" onClick={() => navigate("/quiz")} className="rounded-xl font-bold">
+        <Button variant="primary" onClick={() => navigate("/quiz")} className="rounded-full font-bold px-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Quiz Ana Sayfasına Dön
         </Button>
@@ -1041,7 +1041,7 @@ export function QuizRoom() {
                   }`}
                 >
                   <span
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 font-black text-xs ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-black text-xs ${
                       isSelected
                         ? "bg-white text-blue-600"
                         : "bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300"

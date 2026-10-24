@@ -66,7 +66,7 @@ export function Messages() {
             size="sm"
             leftIcon={<MessageSquarePlus className="w-4 h-4" />}
             onClick={() => setShowNewMsg(true)}
-            className="rounded-full font-bold shadow-xs shadow-blue-500/20"
+            className="rounded-xl font-bold shadow-xs shadow-blue-500/20"
           >
             Yeni Mesaj
           </Button>

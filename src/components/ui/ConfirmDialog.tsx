@@ -134,7 +134,7 @@ export function ConfirmDialog({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4 overflow-hidden">
           <motion.div
             variants={backdropVariants}
             initial="hidden"
@@ -143,7 +143,7 @@ export function ConfirmDialog({
             onClick={() => {
               if (!isLoading) onClose();
             }}
-            className="fixed inset-0 bg-slate-950/40 "
+            className="fixed inset-0 bg-black/65 backdrop-blur-md"
           />
 
           <motion.div
@@ -155,17 +155,22 @@ export function ConfirmDialog({
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-desc"
-            className="relative w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
+            className="relative w-full sm:max-w-md bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-white rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/90 overflow-hidden z-10 p-5 sm:p-6"
           >
+            {/* Grab Handle */}
+            <div className="pt-1 pb-3 flex justify-center items-center sm:hidden">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+
             <div className="flex items-start gap-4 mb-4">
               <div
                 className={cn(
-                  'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-xs',
+                  'w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md',
                   variant === 'danger'
-                    ? 'bg-rose-100/80 text-rose-600'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                     : variant === 'warning'
-                    ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-white/10 text-white border border-white/15'
                 )}
               >
                 {variant === 'danger' ? (
@@ -177,21 +182,22 @@ export function ConfirmDialog({
                 )}
               </div>
               <div className="flex-1">
-                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h3 id="confirm-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   {title}
                 </h3>
-                <p id="confirm-desc" className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-1">
+                <p id="confirm-desc" className="text-slate-300 text-xs sm:text-sm leading-relaxed mt-1">
                   {message}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-white/10">
               <Button
                 variant="outline"
                 size="md"
                 disabled={isLoading}
                 onClick={onClose}
+                className="rounded-xl border-white/20 text-slate-200 hover:bg-white/10"
               >
                 {cancelLabel}
               </Button>
@@ -200,6 +206,7 @@ export function ConfirmDialog({
                 size="md"
                 isLoading={isLoading}
                 onClick={onConfirm}
+                className="rounded-xl"
               >
                 {confirmLabel}
               </Button>
@@ -238,7 +245,7 @@ export function ConfirmDialogContainer() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4 overflow-hidden">
           <motion.div
             variants={backdropVariants}
             initial="hidden"
@@ -248,7 +255,7 @@ export function ConfirmDialogContainer() {
               onCancel();
               close();
             }}
-            className="fixed inset-0 bg-slate-950/40 "
+            className="fixed inset-0 bg-black/65 backdrop-blur-md"
           />
 
           <motion.div
@@ -260,17 +267,22 @@ export function ConfirmDialogContainer() {
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-desc"
-            className="relative w-full max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800/90 shadow-2xl shadow-slate-950/15 overflow-hidden z-10 p-6"
+            className="relative w-full sm:max-w-md bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-white rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/90 overflow-hidden z-10 p-5 sm:p-6"
           >
+            {/* Grab Handle */}
+            <div className="pt-1 pb-3 flex justify-center items-center sm:hidden">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+
             <div className="flex items-start gap-4 mb-4">
               <div
                 className={cn(
-                  'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-xs',
+                  'w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md',
                   variant === 'danger'
-                    ? 'bg-rose-100/80 text-rose-600'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                     : variant === 'warning'
-                    ? 'bg-amber-100/80 text-amber-600'
-                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-white/10 text-white border border-white/15'
                 )}
               >
                 {variant === 'danger' ? (
@@ -282,16 +294,16 @@ export function ConfirmDialogContainer() {
                 )}
               </div>
               <div className="flex-1">
-                <h3 id="confirm-title" className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h3 id="confirm-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   {title}
                 </h3>
-                <p id="confirm-desc" className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-1">
+                <p id="confirm-desc" className="text-slate-300 text-xs sm:text-sm leading-relaxed mt-1">
                   {message}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-white/10">
               <Button
                 variant="outline"
                 size="md"
@@ -299,6 +311,7 @@ export function ConfirmDialogContainer() {
                   onCancel();
                   close();
                 }}
+                className="rounded-xl border-white/20 text-slate-200 hover:bg-white/10"
               >
                 {cancelLabel || 'İptal'}
               </Button>
@@ -309,6 +322,7 @@ export function ConfirmDialogContainer() {
                   onConfirm();
                   close();
                 }}
+                className="rounded-xl"
               >
                 {confirmLabel || 'Onayla'}
               </Button>

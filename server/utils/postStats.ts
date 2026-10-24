@@ -6,8 +6,8 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
   if (!postsList || postsList.length === 0) return postsList;
   
   const postIds = postsList.map(p => p.id);
-  const authorIds = Array.from(new Set(postsList.map(p => p.user?.id || p.userId).filter(Boolean)));
-  const viewerId = currentUserId ?? -1;
+  const authorIds = Array.from(new Set(postsList.map(p => Number(p.user?.id || p.userId)).filter(id => !isNaN(id) && id > 0)));
+  const viewerId = (currentUserId !== null && currentUserId !== undefined && !isNaN(Number(currentUserId))) ? Number(currentUserId) : -1;
   
   let allMedia: any[] = [];
   let repostStats: any[] = [];
@@ -70,7 +70,8 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
   if (viewerId !== -1 && authorIds.length > 0) {
     followStats = await db.select({
       followerId: follows.followerId,
-      followingId: follows.followingId
+      followingId: follows.followingId,
+      status: follows.status
     }).from(follows)
     .where(
       or(
@@ -117,11 +118,19 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
   }
 
   // Create maps for O(1) lookup
-  const isFollowingMap = new Map();
-  const followsMeMap = new Map();
+  const isFollowingMap = new Map<number, boolean>();
+  const followStatusMap = new Map<number, string>();
+  const followsMeMap = new Map<number, boolean>();
   followStats.forEach(f => {
-    if (f.followerId === viewerId) isFollowingMap.set(f.followingId, true);
-    if (f.followingId === viewerId) followsMeMap.set(f.followerId, true);
+    const fFollower = Number(f.followerId);
+    const fFollowing = Number(f.followingId);
+    if (fFollower === viewerId) {
+      isFollowingMap.set(fFollowing, f.status === 'accepted');
+      followStatusMap.set(fFollowing, f.status);
+    }
+    if (fFollowing === viewerId && f.status === 'accepted') {
+      followsMeMap.set(fFollower, true);
+    }
   });
   const repostsMap = new Map(repostStats.map(s => [s.postId, { count: s.count, isReposted: s.isReposted === 1 }]));
   const reactionsMap = new Map(likeStats.map(s => [s.postId, { count: s.count, myReaction: s.myReaction }]));
@@ -180,10 +189,11 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
       };
     }
 
-    const authorId = p.user?.id || p.userId;
+    const authorId = Number(p.user?.id || p.userId);
     const postUser = p.user ? {
       ...p.user,
       isFollowing: viewerId === -1 || authorId === viewerId ? false : !!isFollowingMap.get(authorId),
+      followStatus: viewerId === -1 || authorId === viewerId ? 'none' : (followStatusMap.get(authorId) || 'none'),
       followsMe: viewerId === -1 || authorId === viewerId ? false : !!followsMeMap.get(authorId)
     } : p.user;
 

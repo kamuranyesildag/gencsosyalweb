@@ -11,24 +11,24 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles: Record<CardVariant, string> = {
   default:
-    'bg-white/90 dark:bg-[#0B1329]/90 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
+    'bg-white dark:bg-[#0B1329] border border-slate-200/80 dark:border-white/[0.07] shadow-xs',
   bordered:
-    'bg-white/90 dark:bg-[#0B1329]/90 border border-slate-200 dark:border-white/[0.12] shadow-none',
+    'bg-white dark:bg-[#0B1329] border border-slate-200 dark:border-white/[0.10] shadow-none',
   flat:
-    'bg-slate-100/70 dark:bg-[#142244]/50 border border-slate-200/60 dark:border-white/[0.06] shadow-none',
+    'bg-slate-50 dark:bg-[#101C38]/60 border border-slate-200/60 dark:border-white/[0.05] shadow-none',
   elevated:
-    'bg-white/95 dark:bg-[#101C38]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.10] shadow-lg dark:shadow-black/50',
+    'bg-white dark:bg-[#0E1730] border border-slate-200/80 dark:border-white/[0.08] shadow-md dark:shadow-black/40',
   interactive:
-    'bg-white/90 dark:bg-[#0B1329]/90 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.16] cursor-pointer active:scale-[0.99] transition-all duration-200 ease-out',
+    'bg-white dark:bg-[#0B1329] border border-slate-200/80 dark:border-white/[0.07] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.14] cursor-pointer transition-all duration-150 ease-out',
   glass:
-    'bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.10] shadow-sm',
+    'bg-white/90 dark:bg-[#0B1329]/90 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs',
 };
 
 const paddingStyles = {
   none: 'p-0',
-  sm: 'p-4',
-  md: 'p-5 sm:p-6',
-  lg: 'p-6 sm:p-8',
+  sm: 'p-3.5',
+  md: 'p-4 sm:p-5',
+  lg: 'p-5 sm:p-6',
 };
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(

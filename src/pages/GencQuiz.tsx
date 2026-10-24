@@ -423,7 +423,7 @@ export function GencQuiz() {
                     setJoinError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/40 text-white placeholder-slate-400 text-center font-mono font-bold tracking-widest text-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full px-5 py-2.5 rounded-full bg-black/40 text-white placeholder-slate-400 text-center font-mono font-bold tracking-widest text-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
               {joinError && (
@@ -431,7 +431,7 @@ export function GencQuiz() {
               )}
               <Button
                 variant="primary"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-full shadow-lg shadow-emerald-500/30"
                 onClick={() => handleJoinByCode()}
                 isLoading={isJoining}
               >
@@ -456,7 +456,7 @@ export function GencQuiz() {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
               activeTab === tab.id
                 ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"

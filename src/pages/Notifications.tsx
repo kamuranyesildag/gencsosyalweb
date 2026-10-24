@@ -212,7 +212,7 @@ export function Notifications() {
               type="button"
               onClick={handleMarkAllAsRead}
               disabled={isMarkingRead}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] transition-all cursor-pointer"
             >
               <CheckCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Tümünü Okundu Say</span>
@@ -312,7 +312,7 @@ export function Notifications() {
                     {/* Icon Badge */}
                     <div className="pt-0.5 shrink-0">
                       <div
-                        className={`w-10 h-10 rounded-xl border flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 ${details.bg}`}
+                        className={`w-10 h-10 rounded-full border flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 ${details.bg}`}
                       >
                         {details.icon}
                       </div>
@@ -372,7 +372,7 @@ export function Notifications() {
                       {notif.type === "follow_request" && (
                         <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <button 
-                            className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-xs"
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-xs cursor-pointer"
                             onClick={async () => {
                               try {
                                 const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/accept`, { method: "POST" });
@@ -385,7 +385,7 @@ export function Notifications() {
                             Kabul Et
                           </button>
                           <button 
-                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-slate-200 px-4 py-1.5 rounded-xl text-xs font-semibold border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-200/80 dark:hover:bg-white/[0.12] active:scale-95 transition-all"
+                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-slate-200 px-4 py-1.5 rounded-xl text-xs font-semibold border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-200/80 dark:hover:bg-white/[0.12] active:scale-95 transition-all cursor-pointer"
                             onClick={async () => {
                               try {
                                 const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/reject`, { method: "POST" });

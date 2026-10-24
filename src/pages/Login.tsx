@@ -247,7 +247,7 @@ export function Login() {
                 type="button"
                 onClick={() => handle2FASubmit()}
                 disabled={loading || otpDigits.some(d => !d)}
-                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Doğrula ve Giriş Yap"}
               </button>
@@ -273,14 +273,14 @@ export function Login() {
                   value={recoveryCode}
                   onChange={(e) => { setRecoveryCode(e.target.value); setError(''); }}
                   placeholder="Örn: 8X4B-91ZA"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-mono transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#0D121D] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-mono transition-all text-center"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || !recoveryCode.trim()}
-                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kurtarma Kodu ile Giriş"}
               </button>
@@ -393,7 +393,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading || !identifier.trim() || !password}
-                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-blue-600/15 hover:shadow-lg hover:shadow-blue-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:scale-[0.98]"
               >
                 {loading ? (
                   <>

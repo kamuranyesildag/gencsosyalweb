@@ -199,7 +199,7 @@ export function Communities() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
                 selectedCategory === cat
                   ? "bg-blue-600 text-white shadow-xs"
                   : "glass-card bg-white/80 dark:bg-[#101C38]/60 border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#142244]"
@@ -221,11 +221,11 @@ export function Communities() {
               <div
                 key={c.id}
                 onClick={() => navigate(`/communities/${c.slug}`)}
-                className="p-5 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/75 backdrop-blur-xl hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between group"
+                className="p-5 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/75 backdrop-blur-xl hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all cursor-pointer flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start gap-3.5 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50/80 dark:bg-sky-500/10 border border-blue-100 dark:border-sky-500/20 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform shadow-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50/80 dark:bg-sky-500/10 border border-blue-100 dark:border-sky-500/20 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-105 transition-transform shadow-xs">
                       {c.avatarUrl ? (
                         <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
                       ) : (
@@ -308,7 +308,7 @@ export function Communities() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative w-full max-w-lg glass-surface bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-white/[0.12] rounded-3xl p-6 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-lg glass-surface bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-white/[0.12] rounded-2xl p-6 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/[0.06] mb-5">
                 <div className="flex items-center gap-2.5">

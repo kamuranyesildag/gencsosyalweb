@@ -96,8 +96,17 @@ followsRouter.post("/me/follow-requests/:id/reject", requireAuth, async (req, re
 // POST /users/:id/follow
 followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res) => {
   try {
-    const targetUserId = parseInt(req.params.id as string);
+    let targetUserId = parseInt(req.params.id as string);
     const currentUserId = requireAuthContext(req);
+    
+    if (isNaN(targetUserId)) {
+      const [u] = await db.select({ id: users.id }).from(users).where(eq(users.username, req.params.id as string)).limit(1);
+      if (u) {
+        targetUserId = u.id;
+      } else {
+        return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }});
+      }
+    }
     
     if (targetUserId === currentUserId) {
       return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Kendinizi takip edemezsiniz." }});
@@ -155,8 +164,17 @@ followsRouter.post("/:id/follow", requireAuth, standardLimiter, async (req, res)
 // DELETE /users/:id/follow
 followsRouter.delete("/:id/follow", requireAuth, async (req, res) => {
   try {
-    const targetUserId = parseInt(req.params.id as string);
+    let targetUserId = parseInt(req.params.id as string);
     const currentUserId = requireAuthContext(req);
+
+    if (isNaN(targetUserId)) {
+      const [u] = await db.select({ id: users.id }).from(users).where(eq(users.username, req.params.id as string)).limit(1);
+      if (u) {
+        targetUserId = u.id;
+      } else {
+        return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Kullanıcı bulunamadı." }});
+      }
+    }
 
     await db.delete(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.followingId, targetUserId)));
 

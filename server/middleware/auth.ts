@@ -130,8 +130,8 @@ export const requireRole = (role: string) => {
 
 export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.split(" ")[1];
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    const token = authHeader.replace(/^bearer\s+/i, "").trim();
     try {
       const decoded = verifyAccessToken(token);
       req.user = decoded;

@@ -51,17 +51,17 @@ export function BottomSheet({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4">
-          {/* Backdrop */}
+          {/* Backdrop with frosted dark blur */}
           <motion.div
             variants={backdropVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md"
           />
 
-          {/* Bottom Sheet Card */}
+          {/* Bottom Sheet Card - Modern Black/Dark Glass Gradient */}
           <motion.div
             variants={sheetVariants}
             initial="hidden"
@@ -71,27 +71,27 @@ export function BottomSheet({
             aria-modal="true"
             aria-labelledby={title ? 'bottom-sheet-title' : undefined}
             className={cn(
-              'relative w-full sm:max-w-lg bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-2xl rounded-t-[28px] sm:rounded-3xl border border-slate-200/90 dark:border-white/[0.12] shadow-2xl overflow-hidden flex flex-col z-10',
+              'relative w-full sm:max-w-lg bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-slate-100 backdrop-blur-2xl rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/80 overflow-hidden flex flex-col z-10',
               maxHeight,
               className
             )}
           >
             {/* Grab Handle */}
-            <div className="pt-3 pb-1 flex justify-center items-center sm:hidden">
-              <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
+            <div className="pt-3.5 pb-1 flex justify-center items-center">
+              <div className="w-12 h-1.5 bg-white/20 hover:bg-white/35 transition-colors rounded-full cursor-grab active:cursor-grabbing" />
             </div>
 
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between px-5 pt-3 pb-3 border-b border-slate-100 dark:border-white/[0.08]">
+              <div className="flex items-start justify-between px-6 pt-2 pb-3.5 border-b border-white/10">
                 <div className="flex flex-col space-y-0.5 pr-4">
                   {title && (
-                    <h3 id="bottom-sheet-title" className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                    <h3 id="bottom-sheet-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
                       {title}
                     </h3>
                   )}
                   {description && (
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
+                    <p className="text-xs sm:text-sm text-slate-400 font-normal leading-relaxed">
                       {description}
                     </p>
                   )}
@@ -102,7 +102,7 @@ export function BottomSheet({
                     type="button"
                     onClick={onClose}
                     aria-label="Kapat"
-                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 dark:hover:text-slate-200 dark:hover:bg-white/[0.06] transition-colors shrink-0 cursor-pointer"
+                    className="p-2 -mr-2 -mt-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all shrink-0 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -111,13 +111,13 @@ export function BottomSheet({
             )}
 
             {/* Content */}
-            <div className="px-5 py-4 overflow-y-auto flex-1 text-slate-800 dark:text-slate-200">
+            <div className="px-6 py-4 overflow-y-auto flex-1 text-slate-200">
               {children}
             </div>
 
             {/* Footer */}
             {footer && (
-              <div className="px-5 py-3.5 bg-slate-50/60 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/[0.08] flex items-center justify-end gap-3 shrink-0">
+              <div className="px-6 py-3.5 bg-black/40 border-t border-white/10 flex items-center justify-end gap-3 shrink-0">
                 {footer}
               </div>
             )}
