@@ -20,3 +20,4 @@ export * from './LoadingState';
 export * from './ErrorState';
 export * from './Divider';
 export * from './ConfirmDialog';
+export * from './InfoModal';

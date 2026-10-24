@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -62,10 +63,12 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center sm:items-center p-0 sm:p-4 overflow-hidden">
           {/* Backdrop with dark blur */}
           <motion.div
             variants={backdropVariants}
@@ -73,10 +76,10 @@ export function Modal({
             animate="visible"
             exit="exit"
             onClick={closeOnBackdropClick ? onClose : undefined}
-            className="fixed inset-0 bg-black/65 backdrop-blur-md"
+            className="fixed inset-0 bg-black/65 backdrop-blur-md z-[9999]"
           />
 
-          {/* Modal Container - Modern Black/Dark Glass Gradient */}
+          {/* Modal Container */}
           <motion.div
             ref={contentRef}
             variants={modalVariants}
@@ -87,19 +90,19 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={title ? 'modal-title' : undefined}
             className={cn(
-              'relative w-full bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-slate-100 backdrop-blur-2xl rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/80 overflow-hidden flex flex-col z-10 max-h-[90vh]',
+              'relative w-full bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-slate-100 backdrop-blur-2xl rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/80 overflow-hidden flex flex-col z-[10000] max-h-[88vh] sm:max-h-[85vh]',
               sizeStyles[size],
               className
             )}
           >
             {/* Grab Handle for Mobile */}
-            <div className="pt-3 pb-1 flex justify-center items-center sm:hidden">
+            <div className="pt-3 pb-1 flex justify-center items-center sm:hidden shrink-0">
               <div className="w-12 h-1.5 bg-white/20 hover:bg-white/35 transition-colors rounded-full" />
             </div>
 
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between px-6 pt-3 sm:pt-6 pb-4 border-b border-white/10">
+              <div className="flex items-start justify-between px-6 pt-3 sm:pt-6 pb-4 border-b border-white/10 shrink-0">
                 <div className="flex flex-col space-y-1 pr-6">
                   {title && (
                     <h3 id="modal-title" className="text-lg sm:text-xl font-bold text-white tracking-tight">
@@ -127,7 +130,7 @@ export function Modal({
             )}
 
             {/* Body */}
-            <div className="px-6 py-4 overflow-y-auto flex-1 text-slate-200">
+            <div className="px-6 py-4 overflow-y-auto flex-1 text-slate-200 min-h-0">
               {children}
             </div>
 
@@ -140,7 +143,8 @@ export function Modal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

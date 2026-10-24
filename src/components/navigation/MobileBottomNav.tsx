@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
 import { Home, Compass, Bell, Plus, User } from 'lucide-react';
 import { useAuthStore } from '../../context/useAuth';
@@ -20,6 +20,17 @@ export function MobileBottomNav() {
   const [showCreate, setShowCreate] = useState(false);
   const isStoryViewerOpen = useStoryViewerStore((s) => s.isOpen);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Monitor body overflow to detect open modals
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsModalOpen(document.body.style.overflow === 'hidden');
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    return () => observer.disconnect();
+  }, []);
+
   // Custom hook to detect scroll direction
   const isVisible = useScrollDirection();
 
@@ -37,7 +48,7 @@ export function MobileBottomNav() {
   return (
     <>
       <AnimatePresence>
-        {isVisible && !isStoryViewerOpen && (
+        {isVisible && !isStoryViewerOpen && !isModalOpen && (
           <motion.nav
             role="navigation"
             aria-label="Mobil Gezinme Çubuğu"
