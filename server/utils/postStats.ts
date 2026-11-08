@@ -50,7 +50,9 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
         userId: users.id, 
         username: users.username, 
         displayName: profiles.displayName, 
-        avatarUrl: profiles.avatarUrl 
+        avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       }).from(postCollaborators)
         .innerJoin(users, eq(postCollaborators.userId, users.id))
         .leftJoin(profiles, eq(users.id, profiles.userId))
@@ -95,6 +97,8 @@ export async function populatePostStats(postsList: any[], currentUserId?: number
         username: users.username,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       }
     })
     .from(posts)

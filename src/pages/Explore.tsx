@@ -17,6 +17,7 @@ import {
 import { fetchApi } from "../lib/api";
 import { Avatar } from "../components/ui/Avatar";
 import { PostCard } from "../components/PostCard";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle, SkeletonList } from "../components/ui/Skeleton";
@@ -267,12 +268,20 @@ export function Explore() {
                         className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-sky-400 transition-all shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors truncate text-sm sm:text-base">
                             {user.displayName || user.username}
                           </span>
                           {user.isVerified && (
-                            <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-sky-400 fill-blue-100 dark:fill-blue-950 shrink-0" />
+                            <VerifiedBadge
+                              iconClassName="w-4 h-4 shrink-0"
+                              showCategoryPill={true}
+                              targetUser={{
+                                username: user.username,
+                                isVerified: !!user.isVerified,
+                                verificationCategory: user.verificationCategory,
+                              }}
+                            />
                           )}
                         </div>
                         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium truncate">

@@ -6,6 +6,12 @@ import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, 
 import { eq, ilike, or, desc, sql, and, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
 import { sendVerificationStatusEmail, sendSmtpTestEmail } from "../utils/mailer.js";
+import {
+  evaluateUserVerificationEligibility,
+  VERIFICATION_CATEGORIES,
+  VERIFICATION_CATEGORY_LABELS,
+  type VerificationCategory,
+} from "./verification.js";
 import argon2 from "argon2";
 
 export const adminRouter = Router();
@@ -28,7 +34,7 @@ adminRouter.get("/stats", async (req: Request, res: Response): Promise<void> => 
     const pendingVerifications = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(verificationRequests)
-      .where(eq(verificationRequests.status, 'pending'));
+      .where(inArray(verificationRequests.status, ['pending', 'under_review', 'info_required']));
     const pendingReports = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(reports)
@@ -63,6 +69,8 @@ adminRouter.get("/users", async (req: Request, res: Response): Promise<void> => 
       role: users.role,
       isActive: users.isActive,
       isVerified: users.isVerified,
+      verificationCategory: users.verificationCategory,
+      verifiedAt: users.verifiedAt,
       isOfficialAccount: users.isOfficialAccount,
       emailVerified: users.emailVerified,
       twoFactorEnabled: users.twoFactorEnabled,
@@ -111,32 +119,94 @@ adminRouter.get("/users", async (req: Request, res: Response): Promise<void> => 
 adminRouter.get("/verifications", async (req: Request, res: Response): Promise<void> => {
   try {
     const status = req.query.status as string;
+    const category = req.query.category as string;
+    const q = req.query.q as string;
     const { limit, offset } = getPagination(req);
     
     let query = db.select({
       id: verificationRequests.id,
       userId: verificationRequests.userId,
+      category: verificationRequests.category,
       status: verificationRequests.status,
       reason: verificationRequests.reason,
+      supportingLinks: verificationRequests.supportingLinks,
+      supportingDocuments: verificationRequests.supportingDocuments,
+      infoRequestMessage: verificationRequests.infoRequestMessage,
+      applicantResponse: verificationRequests.applicantResponse,
+      eligibilitySnapshot: verificationRequests.eligibilitySnapshot,
       adminNote: verificationRequests.adminNote,
       rejectionReason: verificationRequests.rejectionReason,
+      cooldownUntil: verificationRequests.cooldownUntil,
+      reviewedBy: verificationRequests.reviewedBy,
       createdAt: verificationRequests.createdAt,
       reviewedAt: verificationRequests.reviewedAt,
+      updatedAt: verificationRequests.updatedAt,
       username: users.username,
       email: users.email,
+      isVerified: users.isVerified,
+      verificationCategory: users.verificationCategory,
+      verifiedAt: users.verifiedAt,
+      isMinor: users.isMinor,
+      accountCreatedAt: users.createdAt,
       displayName: profiles.displayName,
-      avatarUrl: profiles.avatarUrl
+      avatarUrl: profiles.avatarUrl,
+      bio: profiles.bio,
+      website: profiles.website,
     })
     .from(verificationRequests)
     .innerJoin(users, eq(verificationRequests.userId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId));
     
-    if (status && ['pending', 'under_review', 'approved', 'rejected'].includes(status)) {
-      query = query.where(eq(verificationRequests.status, status)) as any;
+    const conditions = [];
+
+    if (status && ['pending', 'under_review', 'info_required', 'approved', 'rejected', 'revoked'].includes(status)) {
+      conditions.push(eq(verificationRequests.status, status));
+    }
+
+    if (category && VERIFICATION_CATEGORIES.includes(category as VerificationCategory)) {
+      conditions.push(eq(verificationRequests.category, category));
+    }
+
+    if (q && q.trim().length > 0) {
+      const qTerm = `%${q.trim()}%`;
+      conditions.push(
+        or(
+          ilike(users.username, qTerm),
+          ilike(profiles.displayName, qTerm),
+          ilike(users.email, qTerm),
+          ilike(verificationRequests.reason, qTerm)
+        )
+      );
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
     }
     
     const list = await query.limit(limit).offset(offset).orderBy(desc(verificationRequests.createdAt));
-    res.json({ success: true, data: list });
+
+    // Enrich with live eligibility & anti-abuse metrics for admin reviewers
+    const enrichedList = await Promise.all(
+      list.map(async (item: any) => {
+        try {
+          const liveEligibility = await evaluateUserVerificationEligibility(
+            item.userId,
+            item.category || "INDIVIDUAL"
+          );
+          return {
+            ...item,
+            liveEligibility,
+          };
+        } catch (e) {
+          return {
+            ...item,
+            liveEligibility: null,
+          };
+        }
+      })
+    );
+
+    res.json({ success: true, data: enrichedList });
   } catch (error) {
     console.error("Admin verifications error:", error);
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });
@@ -146,61 +216,159 @@ adminRouter.get("/verifications", async (req: Request, res: Response): Promise<v
 // PATCH /api/v1/admin/verifications/:id
 adminRouter.patch("/verifications/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const requestId = parseInt(req.params.id as string);
-    if (isNaN(requestId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
-    const { status, adminNote, rejectionReason } = req.body;
-    const adminId = requireAuthContext(req);
-
-    if (!['pending', 'under_review', 'approved', 'rejected'].includes(status)) {
-      res.status(400).json({ success: false, error: { message: "Geçersiz durum." } });
+    const requestId = parseInt(req.params.id as string, 10);
+    if (isNaN(requestId)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz ID." } });
       return;
     }
-    
-    // Start a basic transaction-like update
+
+    const {
+      status,
+      category,
+      adminNote,
+      rejectionReason,
+      infoRequestMessage,
+      cooldownDays = 14,
+    } = req.body;
+    const adminId = requireAuthContext(req);
+
+    const allowedStatuses = [
+      'pending',
+      'under_review',
+      'info_required',
+      'approved',
+      'rejected',
+      'revoked',
+    ];
+    if (!allowedStatuses.includes(status)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz başvuru durumu." } });
+      return;
+    }
+
+    if (status === 'rejected' && (!rejectionReason || typeof rejectionReason !== 'string' || rejectionReason.trim().length < 5)) {
+      res.status(400).json({
+        success: false,
+        error: { message: "Başvuruyu reddederken kullanıcıya gösterilecek geçerli bir ret gerekçesi (en az 5 karakter) girmelisiniz." },
+      });
+      return;
+    }
+
+    if (status === 'info_required' && (!infoRequestMessage || typeof infoRequestMessage !== 'string' || infoRequestMessage.trim().length < 5)) {
+      res.status(400).json({
+        success: false,
+        error: { message: "Ek bilgi talep ederken kullanıcıya iletilecek açıklamayı (en az 5 karakter) belirtmelisiniz." },
+      });
+      return;
+    }
+
     const vReq = await db.select().from(verificationRequests).where(eq(verificationRequests.id, requestId)).limit(1);
-    
     if (vReq.length === 0) {
       res.status(404).json({ success: false, error: { message: "Başvuru bulunamadı." } });
       return;
     }
 
     const currentReq = vReq[0];
+    const resolvedCategory: VerificationCategory =
+      category && VERIFICATION_CATEGORIES.includes(category as VerificationCategory)
+        ? (category as VerificationCategory)
+        : (VERIFICATION_CATEGORIES.includes(currentReq.category as VerificationCategory)
+            ? (currentReq.category as VerificationCategory)
+            : "INDIVIDUAL");
 
-    // Update the request
+    const parsedCooldownDays = Math.min(90, Math.max(1, Number(cooldownDays) || 14));
+    const computedCooldownUntil =
+      status === 'rejected'
+        ? new Date(Date.now() + parsedCooldownDays * 24 * 60 * 60 * 1000)
+        : null;
+
     await db.update(verificationRequests).set({
       status,
-      adminNote: adminNote || currentReq.adminNote,
-      rejectionReason: status === 'rejected' ? (rejectionReason || null) : null,
+      category: resolvedCategory,
+      adminNote: typeof adminNote === 'string' ? adminNote.trim() : currentReq.adminNote,
+      rejectionReason:
+        status === 'rejected' || status === 'revoked'
+          ? (typeof rejectionReason === 'string' && rejectionReason.trim().length > 0
+              ? rejectionReason.trim()
+              : currentReq.rejectionReason)
+          : null,
+      infoRequestMessage:
+        status === 'info_required'
+          ? infoRequestMessage.trim()
+          : currentReq.infoRequestMessage,
+      cooldownUntil: computedCooldownUntil,
       reviewedBy: adminId,
       reviewedAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }).where(eq(verificationRequests.id, requestId));
 
+    // Synchronize user's verification badge and category
+    if (status === 'approved') {
+      await db.update(users).set({
+        isVerified: true,
+        verificationCategory: resolvedCategory,
+        verifiedAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(users.id, currentReq.userId));
+    } else if (status === 'revoked' || (currentReq.status === 'approved' && status !== 'approved')) {
+      await db.update(users).set({
+        isVerified: false,
+        verificationCategory: null,
+        verifiedAt: null,
+        updatedAt: new Date(),
+      }).where(eq(users.id, currentReq.userId));
+    }
+
+    // Send email if approved or rejected
     if (status === 'approved' || status === 'rejected') {
       const userRecord = await db.select().from(users).where(eq(users.id, currentReq.userId)).limit(1);
       if (userRecord.length > 0) {
-         sendVerificationStatusEmail(userRecord[0].email, userRecord[0].username, status).catch(console.error);
+        sendVerificationStatusEmail(userRecord[0].email, userRecord[0].username, status).catch(console.error);
       }
     }
-    
-    // If approved, update user's isVerified status
-    if (status === 'approved' && currentReq.status !== 'approved') {
-      await db.update(users).set({ isVerified: true }).where(eq(users.id, currentReq.userId));
-    } else if (status !== 'approved' && currentReq.status === 'approved') {
-      // Revert if changed from approved
-      await db.update(users).set({ isVerified: false }).where(eq(users.id, currentReq.userId));
+
+    // Create in-app notification for the applicant
+    if (['approved', 'rejected', 'info_required', 'revoked', 'under_review'].includes(status)) {
+      try {
+        await db.insert(notifications).values({
+          recipientId: currentReq.userId,
+          actorId: adminId,
+          type: `verification_${status}`,
+          isRead: false,
+          createdAt: new Date(),
+        });
+      } catch (notifErr) {
+        console.warn("Verification notification insert warning:", notifErr);
+      }
     }
-    
-    // Audit log
+
+    // Detailed Admin Audit Log
     await db.insert(adminAuditLogs).values({
       adminUserId: adminId,
       action: `verification_${status}`,
       targetType: 'verification_request',
       targetId: requestId.toString(),
-      metadata: { previousStatus: currentReq.status, newStatus: status }
+      metadata: {
+        userId: currentReq.userId,
+        previousStatus: currentReq.status,
+        newStatus: status,
+        category: resolvedCategory,
+        categoryLabel: VERIFICATION_CATEGORY_LABELS[resolvedCategory],
+        adminNote: typeof adminNote === 'string' ? adminNote.trim() : null,
+        rejectionReason: typeof rejectionReason === 'string' ? rejectionReason.trim() : null,
+        infoRequestMessage: typeof infoRequestMessage === 'string' ? infoRequestMessage.trim() : null,
+        cooldownUntil: computedCooldownUntil ? computedCooldownUntil.toISOString() : null,
+        timestamp: new Date().toISOString(),
+      },
     });
-    
-    res.json({ success: true, data: { message: `Başvuru durumu güncellendi: ${status}` } });
+
+    res.json({
+      success: true,
+      data: {
+        message: `Başvuru durumu güncellendi: ${status}`,
+        status,
+        category: resolvedCategory,
+      },
+    });
   } catch (error) {
     console.error("Admin verification update error:", error);
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });
@@ -210,9 +378,12 @@ adminRouter.patch("/verifications/:id", async (req: Request, res: Response): Pro
 // PATCH /api/v1/admin/users/:id/verify
 adminRouter.patch("/users/:id/verify", async (req: Request, res: Response): Promise<void> => {
   try {
-    const targetUserId = parseInt(req.params.id as string);
-    if (isNaN(targetUserId)) { res.status(400).json({ success: false, error: { message: "Geçersiz ID." } }); return; }
-    const { isVerified } = req.body;
+    const targetUserId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetUserId)) {
+      res.status(400).json({ success: false, error: { message: "Geçersiz ID." } });
+      return;
+    }
+    const { isVerified, verificationCategory, reason } = req.body;
     const adminId = requireAuthContext(req);
     
     if (typeof isVerified !== 'boolean') {
@@ -221,23 +392,45 @@ adminRouter.patch("/users/:id/verify", async (req: Request, res: Response): Prom
     }
     
     const userRecord = await db.select().from(users).where(eq(users.id, targetUserId)).limit(1);
-    
     if (userRecord.length === 0) {
       res.status(404).json({ success: false, error: { message: "Kullanıcı bulunamadı." } });
       return;
     }
-    
-    await db.update(users).set({ isVerified }).where(eq(users.id, targetUserId));
+
+    const resolvedCategory: VerificationCategory =
+      verificationCategory && VERIFICATION_CATEGORIES.includes(verificationCategory as VerificationCategory)
+        ? (verificationCategory as VerificationCategory)
+        : (userRecord[0].verificationCategory as VerificationCategory) || "INDIVIDUAL";
+
+    await db.update(users).set({
+      isVerified,
+      verificationCategory: isVerified ? resolvedCategory : null,
+      verifiedAt: isVerified ? new Date() : null,
+      updatedAt: new Date(),
+    }).where(eq(users.id, targetUserId));
     
     await db.insert(adminAuditLogs).values({
       adminUserId: adminId,
-      action: `user_verify_toggle`,
+      action: isVerified ? 'user_verified_manual' : 'user_verification_revoked',
       targetType: 'user',
       targetId: targetUserId.toString(),
-      metadata: { previousStatus: userRecord[0].isVerified, newStatus: isVerified }
+      metadata: {
+        previousStatus: userRecord[0].isVerified,
+        newStatus: isVerified,
+        verificationCategory: isVerified ? resolvedCategory : null,
+        reason: typeof reason === 'string' ? reason.trim() : 'Yönetici tarafından manuel işlem',
+        timestamp: new Date().toISOString(),
+      }
     });
     
-    res.json({ success: true, data: { message: `Kullanıcı doğrulama durumu güncellendi: ${isVerified}` } });
+    res.json({
+      success: true,
+      data: {
+        message: isVerified
+          ? `Kullanıcıya mavi tik (${VERIFICATION_CATEGORY_LABELS[resolvedCategory]}) tanımlandı.`
+          : "Kullanıcının mavi tik doğrulaması kaldırıldı.",
+      },
+    });
   } catch (error) {
     console.error("Admin user verify update error:", error);
     res.status(500).json({ success: false, error: { message: "Sunucu hatası." } });

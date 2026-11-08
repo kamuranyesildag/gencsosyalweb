@@ -460,7 +460,13 @@ export function Profile() {
             {profile.isVerified && (
               <VerifiedBadge
                 iconClassName="w-5 h-5"
-                targetUser={{ username: profile.username, isVerified: !!profile.isVerified }}
+                showCategoryPill={true}
+                targetUser={{
+                  username: profile.username,
+                  isVerified: !!profile.isVerified,
+                  verificationCategory: profile.verificationCategory,
+                  verifiedAt: profile.verifiedAt,
+                }}
               />
             )}
             {profile.isMinor && (

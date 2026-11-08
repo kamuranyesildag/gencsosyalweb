@@ -196,6 +196,7 @@ const getFeedHandler = async (req: any, res: any) => {
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
         isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       }
     })
     .from(posts)
@@ -275,6 +276,7 @@ feedRouter.get("/following", requireAuth, async (req, res) => {
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
         isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       }
     })
     .from(posts)

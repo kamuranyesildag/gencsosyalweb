@@ -4,6 +4,7 @@ import { fetchApi, api } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
 import { motion, AnimatePresence } from "motion/react";
 import { PostCard } from "../components/PostCard";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { RichText } from "../components/RichText";
 import { MentionAutocomplete } from "../components/MentionAutocomplete";
 import { ReportDialog } from "../components/ReportDialog";
@@ -103,6 +104,16 @@ const CommentItem = ({ comment, postId, onDeleted, depth = 0, childrenMap = {}, 
             <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate tracking-tight">
               {comment.user?.displayName || comment.user?.username}
             </span>
+            {comment.user?.isVerified && (
+              <VerifiedBadge
+                iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
+                targetUser={{
+                  username: comment.user.username,
+                  isVerified: !!comment.user.isVerified,
+                  verificationCategory: comment.user.verificationCategory,
+                }}
+              />
+            )}
             <span className="text-slate-500 dark:text-slate-400 font-medium truncate">@{comment.user?.username}</span>
             <span className="text-slate-300 dark:text-slate-600">&bull;</span>
             <span className="text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">{formatTimeAgo(comment.createdAt)}</span>

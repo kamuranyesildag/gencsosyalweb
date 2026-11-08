@@ -35,7 +35,10 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
         id: users.id,
         username: users.username,
         displayName: profiles.displayName,
-        avatarUrl: profiles.avatarUrl
+        avatarUrl: profiles.avatarUrl,
+        bio: profiles.bio,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       })
       .from(users)
       .leftJoin(profiles, eq(users.id, profiles.userId))
@@ -88,7 +91,9 @@ searchRouter.get("/", optionalAuth, standardLimiter, async (req, res) => {
           id: users.id,
           username: users.username,
           displayName: profiles.displayName,
-          avatarUrl: profiles.avatarUrl
+          avatarUrl: profiles.avatarUrl,
+          isVerified: users.isVerified,
+          verificationCategory: users.verificationCategory,
         }
       })
       .from(posts)

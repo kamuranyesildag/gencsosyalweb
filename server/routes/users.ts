@@ -92,6 +92,8 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       id: users.id,
       username: users.username,
       isVerified: users.isVerified,
+      verificationCategory: users.verificationCategory,
+      verifiedAt: users.verifiedAt,
       isMinor: users.isMinor,
       ageVerificationStatus: users.ageVerificationStatus,
       createdAt: users.createdAt,

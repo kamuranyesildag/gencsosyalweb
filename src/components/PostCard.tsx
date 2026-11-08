@@ -596,7 +596,11 @@ export function PostCard({
                     {post.user?.isVerified && (
                       <VerifiedBadge
                         iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
-                        targetUser={{ username: post.user.username, isVerified: !!post.user.isVerified }}
+                        targetUser={{
+                          username: post.user.username,
+                          isVerified: !!post.user.isVerified,
+                          verificationCategory: post.user.verificationCategory,
+                        }}
                       />
                     )}
                   </Link>
@@ -616,7 +620,11 @@ export function PostCard({
                         {firstCollab.isVerified && (
                           <VerifiedBadge
                             iconClassName="w-3.5 h-3.5 text-blue-500 shrink-0"
-                            targetUser={{ username: firstCollab.username, isVerified: !!firstCollab.isVerified }}
+                            targetUser={{
+                              username: firstCollab.username,
+                              isVerified: !!firstCollab.isVerified,
+                              verificationCategory: firstCollab.verificationCategory,
+                            }}
                           />
                         )}
                       </Link>

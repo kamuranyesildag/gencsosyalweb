@@ -36,6 +36,8 @@ commentsRouter.get("/:id/comments", optionalAuth, async (req, res) => {
         username: users.username,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
       }
     })
     .from(comments)

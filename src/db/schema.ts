@@ -14,6 +14,8 @@ export const users = pgTable('users', {
   role: varchar('role', { length: 20 }).default('USER').notNull(), // USER, MODERATOR, ADMIN
   isActive: boolean('is_active').default(true).notNull(),
   isVerified: boolean('is_verified').default(false).notNull(),
+  verificationCategory: varchar('verification_category', { length: 50 }), // INDIVIDUAL, CREATOR, ORGANIZATION, COMMUNITY, PROJECT
+  verifiedAt: timestamp('verified_at'),
   emailVerified: boolean('email_verified').default(false).notNull(),
   isOfficialAccount: boolean('is_official_account').default(false).notNull(),
   officialNotifyEnabled: boolean('official_notify_enabled').default(true).notNull(),
@@ -482,10 +484,17 @@ export const otpVerifications = pgTable('otp_verifications', {
 export const verificationRequests = pgTable('verification_requests', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, under_review, approved, rejected
+  category: varchar('category', { length: 50 }).default('INDIVIDUAL').notNull(), // INDIVIDUAL, CREATOR, ORGANIZATION, COMMUNITY, PROJECT
+  status: varchar('status', { length: 30 }).default('pending').notNull(), // pending, under_review, info_required, approved, rejected, revoked
   reason: text('reason').notNull(),
+  supportingLinks: jsonb('supporting_links').$type<string[]>().default([]).notNull(),
+  supportingDocuments: jsonb('supporting_documents').$type<{ name: string; type: string; summary: string; uploadedAt: string }[]>().default([]).notNull(),
+  infoRequestMessage: text('info_request_message'),
+  applicantResponse: text('applicant_response'),
+  eligibilitySnapshot: jsonb('eligibility_snapshot').$type<Record<string, any>>().default({}).notNull(),
   adminNote: text('admin_note'),
   rejectionReason: text('rejection_reason'),
+  cooldownUntil: timestamp('cooldown_until'),
   reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
   reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -493,6 +502,7 @@ export const verificationRequests = pgTable('verification_requests', {
 }, (t) => ({
   userIdIdx: index('verification_requests_user_id_idx').on(t.userId),
   statusIdx: index('verification_requests_status_idx').on(t.status),
+  categoryIdx: index('verification_requests_category_idx').on(t.category),
 }));
 
 // --- ADMIN AUDIT LOGS ---

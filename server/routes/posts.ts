@@ -83,6 +83,8 @@ postsRouter.get("/:id", optionalAuth, async (req, res) => {
         username: users.username,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory,
         allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
       }
     }).from(posts)

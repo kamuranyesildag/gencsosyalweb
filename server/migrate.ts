@@ -68,7 +68,39 @@ export async function runMigration(isStandalone = false) {
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "banned_at" timestamp;
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "ban_reason" text;
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "ban_expires_at" timestamp;
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "verification_category" varchar(50);
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "verified_at" timestamp;
       UPDATE "users" SET "role" = UPPER("role") WHERE "role" IN ('admin', 'user', 'moderator');
+
+      CREATE TABLE IF NOT EXISTS "verification_requests" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "category" varchar(50) DEFAULT 'INDIVIDUAL' NOT NULL,
+        "status" varchar(30) DEFAULT 'pending' NOT NULL,
+        "reason" text NOT NULL,
+        "supporting_links" jsonb DEFAULT '[]'::jsonb NOT NULL,
+        "supporting_documents" jsonb DEFAULT '[]'::jsonb NOT NULL,
+        "info_request_message" text,
+        "applicant_response" text,
+        "eligibility_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL,
+        "admin_note" text,
+        "rejection_reason" text,
+        "cooldown_until" timestamp,
+        "reviewed_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "reviewed_at" timestamp,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+      );
+
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "category" varchar(50) DEFAULT 'INDIVIDUAL' NOT NULL;
+      ALTER TABLE "verification_requests" ALTER COLUMN "status" TYPE varchar(30);
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "supporting_links" jsonb DEFAULT '[]'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "supporting_documents" jsonb DEFAULT '[]'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "info_request_message" text;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "applicant_response" text;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "eligibility_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "cooldown_until" timestamp;
+      CREATE INDEX IF NOT EXISTS "verification_requests_category_idx" ON "verification_requests" ("category");
 
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "onboarding_completed" boolean DEFAULT false NOT NULL;
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "interests" jsonb DEFAULT '[]'::jsonb;
