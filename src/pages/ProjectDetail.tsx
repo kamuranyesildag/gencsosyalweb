@@ -119,8 +119,12 @@ export function ProjectDetail() {
       ]);
 
       setLikesCount(likesData.totalLikes || 0);
-      if (user) {
+      if (typeof likesData.viewerHasLiked === "boolean") {
+        setHasLiked(likesData.viewerHasLiked);
+      } else if (user) {
         setHasLiked((likesData.likes || []).some((l: any) => l.userId === user.id));
+      } else {
+        setHasLiked(false);
       }
       setComments(commentsData || []);
     } catch (e) {
@@ -129,6 +133,16 @@ export function ProjectDetail() {
       setCommentsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!commentsLoading && comments.length > 0 && window.location.hash.startsWith("#comment-")) {
+      const targetId = window.location.hash.slice(1);
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [commentsLoading, comments]);
 
   const handleToggleLike = async () => {
     if (!isAuthenticated) return openModal();
@@ -456,7 +470,11 @@ export function ProjectDetail() {
             </div>
           ) : (
             comments.map((c) => (
-              <div key={c.id} className="p-4 bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl flex gap-3 relative group">
+              <div
+                key={c.id}
+                id={`comment-${c.id}`}
+                className="p-4 bg-slate-50/70 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl flex gap-3 relative group scroll-mt-24"
+              >
                 <Avatar name={c.username} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">

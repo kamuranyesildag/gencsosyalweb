@@ -468,8 +468,8 @@ export function PostCard({
         }}
         className={cn(
           "group relative flex flex-col sm:flex-row gap-3 sm:gap-3.5 p-3.5 sm:p-4.5 w-full",
-          "bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md",
-          "border border-slate-200/80 dark:border-white/[0.08]",
+          "bg-white dark:bg-[#0B1329]",
+          "border border-slate-200/90 dark:border-white/[0.08]",
           "rounded-2xl transition-all duration-200",
           "shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-white/[0.18]",
           "cursor-pointer",

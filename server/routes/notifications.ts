@@ -28,6 +28,7 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
       postId: notifications.postId,
       projectId: notifications.projectId,
       commentId: notifications.commentId,
+      projectCommentId: notifications.projectCommentId,
       communityId: notifications.communityId,
       isRead: notifications.isRead,
       createdAt: notifications.createdAt,

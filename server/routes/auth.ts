@@ -1145,9 +1145,13 @@ authRouter.post("/2fa/disable", requireAuth, async (req, res) => {
 
 authRouter.post("/refresh", async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || (req.headers["x-refresh-token"] as string);
+    const candidates = [
+      req.body?.refreshToken,
+      typeof req.headers["x-refresh-token"] === "string" ? req.headers["x-refresh-token"] : null,
+      req.cookies?.refreshToken,
+    ].filter((t): t is string => typeof t === "string" && t.trim().length > 10 && t !== "null" && t !== "undefined");
 
-    if (!refreshToken) {
+    if (candidates.length === 0) {
       res.status(401).json({
         success: false,
         error: { code: "UNAUTHORIZED", message: "Oturum süresi dolmuş, lütfen tekrar giriş yapın." }
@@ -1155,10 +1159,21 @@ authRouter.post("/refresh", async (req, res) => {
       return;
     }
 
-    let decoded;
-    try {
-      decoded = verifyRefreshToken(refreshToken);
-    } catch (e) {
+    let refreshToken = candidates[0];
+    let decoded: any = null;
+    for (const candidate of candidates) {
+      try {
+        decoded = verifyRefreshToken(candidate);
+        if (decoded && decoded.userId) {
+          refreshToken = candidate;
+          break;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
+    if (!decoded || !decoded.userId) {
       res.clearCookie("refreshToken", getClearCookieOptions(req));
       res.status(401).json({
         success: false,

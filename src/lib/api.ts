@@ -1,4 +1,4 @@
-import { useAuthStore } from "../context/useAuth";
+import { useAuthStore, sanitizeToken, isJwtExpired } from "../context/useAuth";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -25,6 +25,7 @@ let refreshPromise: Promise<RefreshResult> | null = null;
  * Singleton Single-Flight Refresh Coordinator
  * Ensures all concurrent requests share the exact same refresh promise
  * and isolates network errors from explicit authorization failures.
+ * Supports both localStorage refreshToken and HttpOnly refreshToken cookie.
  */
 export async function requestTokenRefresh(): Promise<RefreshResult> {
   if (refreshPromise) {
@@ -33,24 +34,27 @@ export async function requestTokenRefresh(): Promise<RefreshResult> {
 
   refreshPromise = (async (): Promise<RefreshResult> => {
     try {
-      const storedRefreshToken = useAuthStore.getState().refreshToken || localStorage.getItem('gencsosyal_refresh_token');
-
-      if (!storedRefreshToken) {
-        return { success: false, reason: 'unauthorized' };
-      }
+      const storedRefreshToken =
+        sanitizeToken(useAuthStore.getState().refreshToken) ||
+        sanitizeToken(localStorage.getItem('gencsosyal_refresh_token'));
 
       const controller = new AbortController();
       const timeoutTimer = setTimeout(() => controller.abort(), 8000);
+
+      const refreshHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (storedRefreshToken) {
+        refreshHeaders["x-refresh-token"] = storedRefreshToken;
+      }
 
       let refreshResponse: Response;
       try {
         refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-refresh-token": storedRefreshToken,
-          },
-          body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          credentials: "include",
+          headers: refreshHeaders,
+          body: JSON.stringify(storedRefreshToken ? { refreshToken: storedRefreshToken } : {}),
           signal: controller.signal,
         });
       } catch (netErr: any) {
@@ -65,8 +69,8 @@ export async function requestTokenRefresh(): Promise<RefreshResult> {
         const refreshResult = await refreshResponse.json();
         if (refreshResult.success && refreshResult.data?.accessToken) {
           const newToken = refreshResult.data.accessToken;
-          const newRefreshToken = refreshResult.data.refreshToken || storedRefreshToken;
-          useAuthStore.getState().setAccessToken(newToken, newRefreshToken);
+          const newRefreshToken = refreshResult.data.refreshToken || storedRefreshToken || "";
+          useAuthStore.getState().setAccessToken(newToken, newRefreshToken || null);
           return { success: true, accessToken: newToken, refreshToken: newRefreshToken };
         }
       } else if (refreshResponse.status === 403) {
@@ -100,7 +104,34 @@ export async function requestTokenRefresh(): Promise<RefreshResult> {
 export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   const { data, headers: customHeaders, body: customBody, ...rest } = options;
 
-  let accessToken = useAuthStore.getState().accessToken;
+  let accessToken =
+    sanitizeToken(useAuthStore.getState().accessToken) ||
+    sanitizeToken(localStorage.getItem('gencsosyal_token'));
+
+  const storedRefreshToken =
+    sanitizeToken(useAuthStore.getState().refreshToken) ||
+    sanitizeToken(localStorage.getItem('gencsosyal_refresh_token'));
+
+  const isAuthEndpoint =
+    endpoint.startsWith("/auth/login") ||
+    endpoint.startsWith("/auth/register") ||
+    endpoint.startsWith("/auth/refresh") ||
+    endpoint.startsWith("/auth/logout");
+
+  // Proactively refresh if we know the accessToken is expired or if user is marked authenticated but accessToken expired
+  if (!isAuthEndpoint && ((accessToken && isJwtExpired(accessToken)) || (!accessToken && (storedRefreshToken || useAuthStore.getState().isAuthenticated)))) {
+    const preRefresh = await requestTokenRefresh();
+    if (preRefresh.success) {
+      accessToken = preRefresh.accessToken;
+    } else if (preRefresh.reason === 'unauthorized') {
+      accessToken = null;
+      const currentAuth = useAuthStore.getState();
+      if (currentAuth.isAuthenticated || currentAuth.accessToken || localStorage.getItem('gencsosyal_token')) {
+        currentAuth.logout();
+        window.dispatchEvent(new CustomEvent("session_expired"));
+      }
+    }
+  }
 
   const headers = new Headers(customHeaders);
   if (data && !(data instanceof FormData)) {
@@ -109,8 +140,14 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (accessToken) {
+  if (accessToken && !isJwtExpired(accessToken)) {
     headers.set("Authorization", `Bearer ${accessToken}`);
+  } else {
+    headers.delete("Authorization");
+  }
+
+  if (storedRefreshToken && !headers.has("x-refresh-token")) {
+    headers.set("x-refresh-token", storedRefreshToken);
   }
 
   const finalBody = customBody !== undefined
@@ -120,6 +157,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${endpoint}`, {
+      credentials: "include",
       ...rest,
       headers,
       body: finalBody,
@@ -130,20 +168,29 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     throw networkError;
   }
 
+  // Sync transparently refreshed access token from server middleware if present
+  const serverRefreshedToken = response.headers.get("x-refreshed-access-token");
+  if (serverRefreshedToken) {
+    useAuthStore.getState().setAccessToken(serverRefreshedToken);
+  }
+
   // Handle 401: Token expired or invalid
-  const hasSession = Boolean(accessToken || localStorage.getItem('gencsosyal_token') || localStorage.getItem('gencsosyal_refresh_token'));
-  if (response.status === 401 && hasSession) {
+  if (response.status === 401 && !isAuthEndpoint) {
     const refreshRes = await requestTokenRefresh();
     if (refreshRes.success) {
       // Retry original request with new token
       headers.set("Authorization", `Bearer ${refreshRes.accessToken}`);
+      if (refreshRes.refreshToken) {
+        headers.set("x-refresh-token", refreshRes.refreshToken);
+      }
       response = await fetch(`${API_BASE}${endpoint}`, {
+        credentials: "include",
         ...rest,
         headers,
         body: finalBody,
       });
     } else if (refreshRes.reason === 'unauthorized') {
-      // ONLY logout if server explicitly rejected the refresh token (session revoked or expired)
+      // Server explicitly rejected the refresh token (session revoked or expired)
       const currentAuth = useAuthStore.getState();
       if (currentAuth.isAuthenticated || currentAuth.accessToken || localStorage.getItem('gencsosyal_token')) {
         currentAuth.logout();

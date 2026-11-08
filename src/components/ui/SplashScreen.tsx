@@ -28,7 +28,7 @@ export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
 
     // Check setup mode silently without blocking
     if (window.location.pathname !== '/setup') {
-      fetch('/api/health')
+      fetch('/api/v1/health')
         .then(res => res.json())
         .then(data => {
           if (data?.data?.database === 'setup_mode') {

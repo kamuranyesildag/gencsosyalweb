@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { useAuthStore } from "../context/useAuth";
+import { fetchApi } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
 import { 
   Trophy, 
@@ -89,7 +90,7 @@ export default function YouthLeagueMatch() {
   // Fetch match details
   const fetchMatch = async () => {
     try {
-      const res = await fetch(`/api/v1/league/match/${id}`);
+      const res = await fetchApi(`/league/match/${id}`);
       const json = await res.json();
       if (json.success) {
         setMatch(json.match);
@@ -123,10 +124,9 @@ export default function YouthLeagueMatch() {
             type: "error",
           });
           // Report to server
-          fetch(`/api/v1/league/match/${id}/flag-cheat`, {
+          fetchApi(`/league/match/${id}/flag-cheat`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason: "tab_switch_blur" }),
+            data: { reason: "tab_switch_blur" },
           }).catch(console.error);
           return next;
         });
@@ -183,14 +183,13 @@ export default function YouthLeagueMatch() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/v1/league/match/${match.id}/answer`, {
+      const res = await fetchApi(`/league/match/${match.id}/answer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           questionId: currentQ.questionId,
           selectedOption: optKey === "TIMEOUT" ? null : optKey,
           timeTakenMs,
-        }),
+        },
       });
 
       const json = await res.json();

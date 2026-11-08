@@ -14,7 +14,7 @@ export function CreatePostPage() {
 
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const communityId = searchParams.get("communityId");
   const quoteId = searchParams.get("quoteId");
 
@@ -69,6 +69,11 @@ export function CreatePostPage() {
         <div className="bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 transition-colors">
           <CreatePost
             quoteId={quoteId ? parseInt(quoteId) : undefined}
+            onQuoteRemoved={() => {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete("quoteId");
+              setSearchParams(nextParams, { replace: true });
+            }}
             standalone={true}
             autoFocus={true}
             communityId={communityId ? parseInt(communityId) : undefined}

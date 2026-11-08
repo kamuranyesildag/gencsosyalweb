@@ -54,24 +54,62 @@ interface AuthState {
   setLoading: (isLoading: boolean) => void;
 }
 
+// Sanitize token string to prevent 'null' or 'undefined' literals
+export const sanitizeToken = (token?: string | null): string | null => {
+  if (!token || typeof token !== 'string') return null;
+  const trimmed = token.trim();
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
+  if (trimmed.split('.').length !== 3) return null;
+  return trimmed;
+};
+
+// Check if a JWT access token is expired (or expiring within 5 seconds)
+export const isJwtExpired = (token?: string | null): boolean => {
+  const clean = sanitizeToken(token);
+  if (!clean) return true;
+  try {
+    const base64Url = clean.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const payload = JSON.parse(atob(padded));
+    if (typeof payload.exp === 'number') {
+      return payload.exp * 1000 <= Date.now() + 5000;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+};
+
 // Read persisted session from storage
 const getInitialAuthState = () => {
   try {
     const storedUser = localStorage.getItem('gencsosyal_user');
-    const storedToken = localStorage.getItem('gencsosyal_token');
-    const storedRefreshToken = localStorage.getItem('gencsosyal_refresh_token');
+    const rawToken = sanitizeToken(localStorage.getItem('gencsosyal_token'));
+    const storedRefreshToken = sanitizeToken(localStorage.getItem('gencsosyal_refresh_token'));
     const storedSuspension = sessionStorage.getItem('gencsosyal_suspension');
+
+    // Clean up corrupted literal strings in localStorage if any
+    if (!rawToken && localStorage.getItem('gencsosyal_token')) {
+      localStorage.removeItem('gencsosyal_token');
+    }
+    if (!storedRefreshToken && localStorage.getItem('gencsosyal_refresh_token')) {
+      localStorage.removeItem('gencsosyal_refresh_token');
+    }
+
+    // Only keep accessToken immediately if it has not already expired
+    const validAccessToken = rawToken && !isJwtExpired(rawToken) ? rawToken : null;
 
     const user = storedUser ? JSON.parse(storedUser) : null;
     const suspensionInfo = storedSuspension ? JSON.parse(storedSuspension) : null;
 
-    if (user && (storedToken || storedRefreshToken)) {
+    if (user && (validAccessToken || rawToken || storedRefreshToken)) {
       return {
         user,
-        accessToken: storedToken || null,
-        refreshToken: storedRefreshToken || null,
+        accessToken: validAccessToken,
+        refreshToken: storedRefreshToken,
         isAuthenticated: true,
-        isLoading: false,
+        isLoading: !validAccessToken, // Wait for background token refresh if access token is expired
         suspensionInfo: null,
       };
     }
@@ -79,7 +117,7 @@ const getInitialAuthState = () => {
     return {
       user: null,
       accessToken: null,
-      refreshToken: storedRefreshToken || null,
+      refreshToken: storedRefreshToken,
       isAuthenticated: false,
       isLoading: Boolean(storedRefreshToken), // if refresh token exists, wait for silent background validation
       suspensionInfo,
@@ -107,19 +145,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   suspensionInfo: initial.suspensionInfo,
 
   setAuth: (user, token, refreshToken) => {
+    const cleanAccess = sanitizeToken(token);
+    const cleanRefresh = sanitizeToken(refreshToken) || sanitizeToken(localStorage.getItem('gencsosyal_refresh_token'));
     try {
       localStorage.setItem('gencsosyal_user', JSON.stringify(user));
-      localStorage.setItem('gencsosyal_token', token);
-      if (refreshToken) {
-        localStorage.setItem('gencsosyal_refresh_token', refreshToken);
+      if (cleanAccess) {
+        localStorage.setItem('gencsosyal_token', cleanAccess);
+      }
+      if (cleanRefresh) {
+        localStorage.setItem('gencsosyal_refresh_token', cleanRefresh);
       }
       sessionStorage.removeItem('gencsosyal_suspension');
     } catch {}
 
     set({ 
       user, 
-      accessToken: token, 
-      refreshToken: refreshToken || localStorage.getItem('gencsosyal_refresh_token') || null, 
+      accessToken: cleanAccess, 
+      refreshToken: cleanRefresh, 
       isAuthenticated: true, 
       isLoading: false, 
       suspensionInfo: null 
@@ -127,15 +169,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setAccessToken: (token, refreshToken) => {
+    const cleanAccess = sanitizeToken(token);
+    const cleanRefresh = sanitizeToken(refreshToken) || sanitizeToken(localStorage.getItem('gencsosyal_refresh_token'));
     try {
-      localStorage.setItem('gencsosyal_token', token);
-      if (refreshToken) {
-        localStorage.setItem('gencsosyal_refresh_token', refreshToken);
+      if (cleanAccess) {
+        localStorage.setItem('gencsosyal_token', cleanAccess);
+      }
+      if (cleanRefresh) {
+        localStorage.setItem('gencsosyal_refresh_token', cleanRefresh);
       }
     } catch {}
     set({ 
-      accessToken: token, 
-      refreshToken: refreshToken || localStorage.getItem('gencsosyal_refresh_token') || null, 
+      accessToken: cleanAccess, 
+      refreshToken: cleanRefresh, 
       isAuthenticated: true,
       isLoading: false
     });
@@ -169,7 +215,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('gencsosyal_refresh_token');
       sessionStorage.removeItem('gencsosyal_suspension');
       // Notify backend to clear cookie and revoke token
-      fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {});
+      fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     } catch {}
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, suspensionInfo: null });
   },

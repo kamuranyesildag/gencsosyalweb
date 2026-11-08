@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "../context/useAuth";
+import { fetchApi } from "../lib/api";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
 import { 
@@ -115,7 +116,7 @@ export default function YouthLeague() {
 
   const fetchLeagueData = async () => {
     try {
-      const res = await fetch("/api/v1/league/current");
+      const res = await fetchApi("/league/current");
       const json = await res.json();
       if (json.success) {
         setData(json);
@@ -181,10 +182,9 @@ export default function YouthLeague() {
 
     setIsRegistering(true);
     try {
-      const res = await fetch("/api/v1/league/register", {
+      const res = await fetchApi("/league/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ageGroup: selectedAgeGroup }),
+        data: { ageGroup: selectedAgeGroup },
       });
       const json = await res.json();
       if (json.success) {
@@ -209,9 +209,8 @@ export default function YouthLeague() {
 
     setStartingMatch(true);
     try {
-      const res = await fetch("/api/v1/league/match/start", {
+      const res = await fetchApi("/league/match/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
       });
       const json = await res.json();
       if (json.success && json.match) {

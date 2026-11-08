@@ -66,11 +66,9 @@ export function SettingsProfile({
     else setUploadingCover(true);
 
     try {
-      const token = useAuthStore.getState().accessToken;
-      const res = await fetch("/api/v1/media/upload", {
+      const res = await fetchApi("/media/upload", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        data: formData,
       });
       const json = await res.json();
       if (json.success && json.data?.url) {
@@ -81,15 +79,11 @@ export function SettingsProfile({
         }));
 
         // Auto-save to user profile
-        const updateRes = await fetch("/api/v1/users/me", {
+        const updateRes = await fetchApi("/users/me", {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
+          data: {
             [isAvatar ? "avatarUrl" : "coverUrl"]: uploadedUrl,
-          }),
+          },
         });
 
         if (updateRes.ok) {

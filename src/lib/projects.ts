@@ -121,7 +121,7 @@ export interface ProjectComment {
   fullName: string | null;
 }
 
-export async function getProjectLikes(id: number): Promise<{ totalLikes: number; likes: { userId: number }[] }> {
+export async function getProjectLikes(id: number): Promise<{ totalLikes: number; viewerHasLiked?: boolean; likes?: { userId: number }[] }> {
   const response = await fetchApi(`/projects/${id}/like`);
   if (!response.ok) {
     throw new Error("Beğeniler yüklenemedi.");

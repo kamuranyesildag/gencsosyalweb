@@ -14,10 +14,12 @@ export const hashRefreshToken = (token: string): string => {
 };
 
 export const generateAccessToken = (userId: number, role: string) => {
+  const configuredExpiry = process.env.ACCESS_TOKEN_EXPIRES_IN;
+  const expiresIn = (!configuredExpiry || configuredExpiry === "15m") ? "24h" : configuredExpiry;
   return jwt.sign(
     { userId, role, type: "access", jti: crypto.randomUUID() },
     getAccessTokenSecret(),
-    { expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "24h") as any }
+    { expiresIn: expiresIn as any }
   );
 };
 

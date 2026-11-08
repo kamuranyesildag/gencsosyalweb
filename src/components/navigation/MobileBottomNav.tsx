@@ -56,7 +56,7 @@ export function MobileBottomNav() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 90, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden fixed bottom-4 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm rounded-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-xl border border-white/40 dark:border-white/[0.12] shadow-2xl shadow-black/10 transition-all p-1.5"
+            className="md:hidden fixed bottom-4 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm rounded-full bg-white dark:bg-[#0B1329] border border-slate-200/90 dark:border-white/[0.14] shadow-xl shadow-black/10 transition-all p-1.5"
           >
             <div className="flex justify-around items-center w-full h-12 px-1 relative">
               {/* 1. Home */}

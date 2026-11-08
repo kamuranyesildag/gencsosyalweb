@@ -208,12 +208,9 @@ export function AdminAnnouncements() {
       const uploadData = new FormData();
       uploadData.append('file', file);
 
-      const res = await fetch('/api/v1/media/upload', {
+      const res = await fetchApi('/media/upload', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: uploadData,
+        data: uploadData,
       });
 
       const json = await res.json();

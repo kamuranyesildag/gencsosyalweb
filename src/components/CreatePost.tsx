@@ -30,6 +30,7 @@ export type PostVisibility = "PUBLIC" | "FOLLOWERS" | "PRIVATE";
 
 interface CreatePostProps {
   onPostCreated?: (post: any) => void;
+  onQuoteRemoved?: () => void;
   communityId?: number;
   standalone?: boolean;
   autoFocus?: boolean;
@@ -64,6 +65,7 @@ const VISIBILITY_OPTIONS: {
 
 export function CreatePost({
   onPostCreated,
+  onQuoteRemoved,
   communityId,
   standalone = false,
   autoFocus = false,
@@ -85,13 +87,18 @@ export function CreatePost({
     completedMedia,
   } = useMediaUploadPipeline(4);
   
+  const [activeQuoteId, setActiveQuoteId] = useState<number | null | undefined>(quoteId);
   const [quotedPost, setQuotedPost] = useState<any>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
 
   useEffect(() => {
-    if (quoteId) {
+    setActiveQuoteId(quoteId);
+  }, [quoteId]);
+
+  useEffect(() => {
+    if (activeQuoteId) {
       setLoadingQuote(true);
-      fetchApi(`/posts/${quoteId}`)
+      fetchApi(`/posts/${activeQuoteId}`)
         .then(res => res.json())
         .then(data => {
           if (data.success && data.data) {
@@ -99,8 +106,16 @@ export function CreatePost({
           }
         })
         .finally(() => setLoadingQuote(false));
+    } else {
+      setQuotedPost(null);
     }
-  }, [quoteId]);
+  }, [activeQuoteId]);
+
+  const handleRemoveQuote = () => {
+    setActiveQuoteId(undefined);
+    setQuotedPost(null);
+    if (onQuoteRemoved) onQuoteRemoved();
+  };
   const [postType, setPostType] = useState<PostType>("NORMAL");
   const [contentWarning, setContentWarning] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
@@ -186,10 +201,10 @@ export function CreatePost({
     if (content.length > 2000) return false;
     // If any media items exist, all must be completed
     if (mediaItems.length > 0 && completedMedia.length !== mediaItems.length) return false;
-    if (postType === "NORMAL") return content.trim().length > 0 || completedMedia.length > 0 || !!quoteId;
+    if (postType === "NORMAL") return content.trim().length > 0 || completedMedia.length > 0 || !!activeQuoteId;
     if (postType === "SENSITIVE")
       return (
-        contentWarning.trim().length > 0 && (content.trim().length > 0 || completedMedia.length > 0 || !!quoteId)
+        contentWarning.trim().length > 0 && (content.trim().length > 0 || completedMedia.length > 0 || !!activeQuoteId)
       );
     if (postType === "POLL")
       return content.trim().length > 0 && pollOptions.filter((o) => o.trim()).length >= 2;
@@ -215,7 +230,7 @@ export function CreatePost({
       return;
     }
 
-    if (postType === "NORMAL" && !content.trim() && completedMedia.length === 0 && !quoteId) {
+    if (postType === "NORMAL" && !content.trim() && completedMedia.length === 0 && !activeQuoteId) {
       toast.error("Lütfen bir şeyler yazın veya medya ekleyin.");
       return;
     }
@@ -272,7 +287,7 @@ export function CreatePost({
           postType,
           contentWarning: postType === "SENSITIVE" ? contentWarning : undefined,
           pollOptions: postType === "POLL" ? filteredOptions : undefined,
-          quotedPostId: quoteId || undefined,
+          quotedPostId: activeQuoteId || undefined,
         },
       });
       const json = await res.json();
@@ -284,6 +299,8 @@ export function CreatePost({
         setContentWarning("");
         setPollOptions(["", ""]);
         setCollaboratorUsername("");
+        setActiveQuoteId(undefined);
+        setQuotedPost(null);
         setIsFocused(false);
         setVisibility("PUBLIC");
         toast.success("Gönderiniz paylaşıldı!");
@@ -570,20 +587,41 @@ export function CreatePost({
 
 
           {/* Quote Preview */}
-          {quoteId && quotedPost && (
-             <div className="mb-4 border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-slate-50/70 dark:bg-white/[0.03]">
-                <div className="flex items-center gap-2 mb-2">
-                   <Avatar url={quotedPost.user?.avatarUrl} name={quotedPost.user?.displayName || quotedPost.user?.username} size="sm" />
-                   <div className="flex items-center gap-1.5 text-xs sm:text-sm">
-                      <span className="font-bold text-slate-900 dark:text-slate-100">{quotedPost.user?.displayName || quotedPost.user?.username}</span>
-                      <span className="text-slate-500 dark:text-slate-400">@{quotedPost.user?.username}</span>
-                      <span className="text-slate-400">&bull; {formatTimeAgo(quotedPost.createdAt)}</span>
-                   </div>
+          {activeQuoteId && quotedPost && (
+            <div className="mb-4 relative border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-3 sm:p-4 bg-slate-50/70 dark:bg-white/[0.03] transition-colors">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Avatar
+                    url={quotedPost.user?.avatarUrl}
+                    name={quotedPost.user?.displayName || quotedPost.user?.username}
+                    size="sm"
+                  />
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm min-w-0 flex-wrap">
+                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                      {quotedPost.user?.displayName || quotedPost.user?.username}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400 truncate">
+                      @{quotedPost.user?.username}
+                    </span>
+                    <span className="text-slate-400 shrink-0">
+                      &bull; {formatTimeAgo(quotedPost.createdAt)}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 line-clamp-3">
-                   {quotedPost.content}
-                </div>
-             </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveQuote}
+                  aria-label="Alıntıyı kaldır"
+                  title="Alıntıyı kaldır"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200/60 dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 line-clamp-3">
+                {quotedPost.content}
+              </div>
+            </div>
           )}
 
           {/* Media Previews */}

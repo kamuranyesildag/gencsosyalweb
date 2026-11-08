@@ -327,8 +327,8 @@ export function Feed() {
 
   return (
     <section aria-label="Sosyal Akış" className="w-full min-h-screen">
-      {/* 1. LIQUID GLASS STICKY FEED HEADER */}
-      <header className="sticky top-[54px] md:top-[60px] z-20 bg-white/75 dark:bg-[#080E1A]/75 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all py-2.5 shadow-2xs">
+      {/* 1. STICKY FEED HEADER */}
+      <header className="sticky top-[54px] md:top-[60px] z-20 bg-white dark:bg-[#080E1A] border-b border-slate-200/90 dark:border-white/[0.08] transition-all py-2.5 shadow-2xs">
         <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 flex flex-col gap-2">
           {/* Main Segmented Switcher & Tool Controls */}
           <div className="flex items-center justify-between gap-2">

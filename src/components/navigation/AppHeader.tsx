@@ -136,7 +136,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
   return (
     <header
       role="banner"
-      className="sticky top-0 left-0 right-0 z-40 bg-white/80 dark:bg-[#080E1A]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
+      className="sticky top-0 left-0 right-0 z-40 bg-white dark:bg-[#080E1A] border-b border-slate-200/90 dark:border-white/[0.08] h-[60px] flex items-center justify-center transition-colors"
     >
       <div className="w-full max-w-7xl px-3 sm:px-4 md:px-6 flex justify-between items-center h-full gap-2 md:gap-4">
         {/* ===================== MOBILE HEADER ===================== */}

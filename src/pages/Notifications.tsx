@@ -93,11 +93,6 @@ export function Notifications() {
           bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
           text: "takip isteğini kabul etti.",
         };
-        return {
-          icon: <UserPlus className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
-          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
-          text: "seni takip etmeye başladı.",
-        };
       case "repost":
         return {
           icon: <Repeat2 className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 stroke-[2.5]" />,
@@ -180,7 +175,11 @@ export function Notifications() {
     } else if (notif.postId) {
       navigate(`/post/${notif.postId}`);
     } else if (notif.projectId) {
-      navigate(`/projects/${notif.projectId}`);
+      navigate(
+        notif.projectCommentId
+          ? `/projects/${notif.projectId}#comment-${notif.projectCommentId}`
+          : `/projects/${notif.projectId}`
+      );
     } else if (notif.type === "follow" && notif.actor?.username) {
       navigate(`/profile/${notif.actor.username}`);
     } else if (notif.type === "verification") {

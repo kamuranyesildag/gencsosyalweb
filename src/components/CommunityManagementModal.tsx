@@ -558,7 +558,7 @@ export function CommunityManagementModal({
                   <span>Katılım İstekleri</span>
                 </div>
                 {stats && stats.pendingRequests > 0 && (
-                  <span className="text-[11px] px-1.5 py-0.2 rounded-full font-bold bg-amber-500 text-white animate-pulse">
+                  <span className="text-[11px] px-1.5 py-0.2 rounded-md font-bold bg-amber-500 text-white tabular-nums">
                     {stats.pendingRequests}
                   </span>
                 )}
@@ -637,7 +637,7 @@ export function CommunityManagementModal({
                 </div>
 
                 {/* Metrics Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 tabular-nums">
                   <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02]">
                     <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Toplam Üye</div>
                     <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
@@ -1038,17 +1038,32 @@ export function CommunityManagementModal({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Avatar Görsel URL'si
-                  </label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Avatar Görsel URL'si
+                    </label>
+                    <input
+                      type="url"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Kapak Görsel URL'si
+                    </label>
+                    <input
+                      type="url"
+                      value={coverUrl}
+                      onChange={(e) => setCoverUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div>

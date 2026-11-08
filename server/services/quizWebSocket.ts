@@ -1,6 +1,6 @@
 import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { verifyAccessToken } from "../utils/jwt.js";
+import { verifyAccessToken, verifyRefreshToken } from "../utils/jwt.js";
 import { db } from "../../src/db/index.js";
 import { users, profiles, quizRooms, quizRoomPlayers } from "../../src/db/schema.js";
 import { eq, and } from "drizzle-orm";
@@ -60,15 +60,31 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
       ws.isAlive = true;
     });
 
-    // Check token from query param (e.g. ?token=...)
+    // Check token from query param (e.g. ?token=...) or fallback to refreshToken cookie
     try {
       const url = new URL(req.url || "", `http://${req.headers.host || "localhost"}`);
       const token = url.searchParams.get("token");
-      if (token) {
-        const decoded = verifyAccessToken(token);
-        if (decoded?.userId) {
-          ws.userId = decoded.userId;
-          ws.username = decoded.username || "";
+      if (token && token !== "null" && token !== "undefined") {
+        try {
+          const decoded = verifyAccessToken(token);
+          if (decoded?.userId) {
+            ws.userId = decoded.userId;
+            ws.username = decoded.username || "";
+          }
+        } catch {
+          // Access token expired; check cookie below
+        }
+      }
+      if (!ws.userId && req.headers.cookie) {
+        const match = req.headers.cookie.match(/(?:^|;\s*)refreshToken=([^;]+)/);
+        if (match && match[1]) {
+          try {
+            const refDecoded = verifyRefreshToken(decodeURIComponent(match[1]));
+            if (refDecoded?.userId) {
+              ws.userId = refDecoded.userId;
+              ws.username = refDecoded.username || "";
+            }
+          } catch {}
         }
       }
     } catch (e) {
@@ -87,14 +103,18 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
           }
 
           case "AUTH": {
-            if (payload?.token) {
-              const decoded = verifyAccessToken(payload.token);
-              if (decoded?.userId) {
-                ws.userId = decoded.userId;
-                ws.username = decoded.username || "";
-                ws.send(JSON.stringify({ event: "AUTH_SUCCESS", data: { userId: decoded.userId } }));
-              } else {
-                ws.send(JSON.stringify({ event: "ERROR", data: { message: "Yetkisiz token." } }));
+            if (payload?.token && payload.token !== "null" && payload.token !== "undefined") {
+              try {
+                const decoded = verifyAccessToken(payload.token);
+                if (decoded?.userId) {
+                  ws.userId = decoded.userId;
+                  ws.username = decoded.username || "";
+                  ws.send(JSON.stringify({ event: "AUTH_SUCCESS", data: { userId: decoded.userId } }));
+                } else {
+                  ws.send(JSON.stringify({ event: "ERROR", data: { message: "Yetkisiz token." } }));
+                }
+              } catch {
+                ws.send(JSON.stringify({ event: "ERROR", data: { message: "Oturum süreniz sona erdi. Lütfen sayfayı yenileyin." } }));
               }
             }
             break;
@@ -105,13 +125,17 @@ export function setupQuizWebSocketServer(httpServer: HttpServer) {
             let userId = ws.userId;
             let username = ws.username;
 
-            if (!userId && token) {
-              const decoded = verifyAccessToken(token);
-              if (decoded?.userId) {
-                userId = decoded.userId;
-                username = decoded.username || "";
-                ws.userId = userId;
-                ws.username = username;
+            if (!userId && token && token !== "null" && token !== "undefined") {
+              try {
+                const decoded = verifyAccessToken(token);
+                if (decoded?.userId) {
+                  userId = decoded.userId;
+                  username = decoded.username || "";
+                  ws.userId = userId;
+                  ws.username = username;
+                }
+              } catch {
+                // Token expired; ws.userId may still be populated from cookie
               }
             }
 

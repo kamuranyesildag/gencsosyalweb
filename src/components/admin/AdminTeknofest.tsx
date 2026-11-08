@@ -36,8 +36,8 @@ import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Avatar } from "../ui/Avatar";
 import { toast } from "../ui/Toast";
-import { fetchApi } from "../../lib/api";
-import { useAuthStore } from "../../context/useAuth";
+import { fetchApi, requestTokenRefresh } from "../../lib/api";
+import { useAuthStore, sanitizeToken, isJwtExpired } from "../../context/useAuth";
 
 interface TeknofestEvent {
   id: number;
@@ -423,111 +423,135 @@ export function AdminTeknofest() {
       return;
     }
 
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append("file", item.file);
+    const startItemUpload = async () => {
+      let accessToken =
+        sanitizeToken(useAuthStore.getState().accessToken) ||
+        sanitizeToken(localStorage.getItem("gencsosyal_token"));
+      const refreshToken =
+        sanitizeToken(useAuthStore.getState().refreshToken) ||
+        sanitizeToken(localStorage.getItem("gencsosyal_refresh_token"));
 
-    const accessToken = useAuthStore.getState().accessToken;
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
-        const loadedStr = formatFileSize(e.loaded);
-        const totalStr = formatFileSize(e.total);
-
-        if (e.loaded >= e.total) {
-          updateQueueItem(item.id, {
-            phase: "processing",
-            progress: 100,
-            loadedBytes: e.loaded,
-            totalBytes: e.total,
-            statusMessage: isVideo ? "Video optimize ediliyor ve dönüştürülüyor..." : "Görsel işleniyor..."
-          });
-        } else {
-          updateQueueItem(item.id, {
-            phase: "uploading",
-            progress: percent,
-            loadedBytes: e.loaded,
-            totalBytes: e.total,
-            statusMessage: `%${percent} (${loadedStr} / ${totalStr})`
-          });
+      if (!accessToken || isJwtExpired(accessToken)) {
+        const refreshed = await requestTokenRefresh();
+        if (refreshed.success) {
+          accessToken = refreshed.accessToken;
         }
       }
-    };
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const json = JSON.parse(xhr.responseText);
-          if (json.success && json.data) {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", item.file);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
+          const loadedStr = formatFileSize(e.loaded);
+          const totalStr = formatFileSize(e.total);
+
+          if (e.loaded >= e.total) {
             updateQueueItem(item.id, {
-              phase: "completed",
+              phase: "processing",
               progress: 100,
-              statusMessage: "Yüklendi ✓",
-              uploadedUrl: json.data.url,
-              thumbnailUrl: json.data.thumbnailUrl || null,
-              duration: json.data.duration,
-              width: json.data.width,
-              height: json.data.height
+              loadedBytes: e.loaded,
+              totalBytes: e.total,
+              statusMessage: isVideo ? "Video optimize ediliyor ve dönüştürülüyor..." : "Görsel işleniyor..."
             });
-            return;
           } else {
             updateQueueItem(item.id, {
-              phase: "error",
-              statusMessage: "İşlem başarısız",
-              error: json.error?.message || "Dosya sunucuda işlenemedi."
+              phase: "uploading",
+              progress: percent,
+              loadedBytes: e.loaded,
+              totalBytes: e.total,
+              statusMessage: `%${percent} (${loadedStr} / ${totalStr})`
             });
           }
-        } catch {
+        }
+      };
+
+      xhr.onload = () => {
+        const refreshedHeader = xhr.getResponseHeader("x-refreshed-access-token");
+        if (refreshedHeader) {
+          useAuthStore.getState().setAccessToken(refreshedHeader);
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const json = JSON.parse(xhr.responseText);
+            if (json.success && json.data) {
+              updateQueueItem(item.id, {
+                phase: "completed",
+                progress: 100,
+                statusMessage: "Yüklendi ✓",
+                uploadedUrl: json.data.url,
+                thumbnailUrl: json.data.thumbnailUrl || null,
+                duration: json.data.duration,
+                width: json.data.width,
+                height: json.data.height
+              });
+              return;
+            } else {
+              updateQueueItem(item.id, {
+                phase: "error",
+                statusMessage: "İşlem başarısız",
+                error: json.error?.message || "Dosya sunucuda işlenemedi."
+              });
+            }
+          } catch {
+            updateQueueItem(item.id, {
+              phase: "error",
+              statusMessage: "Yanıt hatası",
+              error: "Sunucudan geçersiz yanıt alındı."
+            });
+          }
+        } else {
+          let errorMsg = "Yükleme başarısız.";
+          try {
+            const errJson = JSON.parse(xhr.responseText);
+            if (errJson.error?.message) errorMsg = errJson.error.message;
+          } catch {}
           updateQueueItem(item.id, {
             phase: "error",
-            statusMessage: "Yanıt hatası",
-            error: "Sunucudan geçersiz yanıt alındı."
+            statusMessage: "Hata",
+            error: errorMsg
           });
         }
-      } else {
-        let errorMsg = "Yükleme başarısız.";
-        try {
-          const errJson = JSON.parse(xhr.responseText);
-          if (errJson.error?.message) errorMsg = errJson.error.message;
-        } catch {}
+      };
+
+      xhr.onerror = () => {
         updateQueueItem(item.id, {
           phase: "error",
-          statusMessage: "Hata",
-          error: errorMsg
+          statusMessage: "Ağ Hatası",
+          error: "Sunucuyla bağlantı kurulamadı."
         });
+      };
+
+      xhr.onabort = () => {
+        updateQueueItem(item.id, {
+          phase: "cancelled",
+          statusMessage: "İptal edildi",
+          error: "Yükleme iptal edildi."
+        });
+      };
+
+      xhr.open("POST", "/api/v1/media/upload", true);
+      xhr.withCredentials = true;
+      if (accessToken) {
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
       }
-    };
+      if (refreshToken) {
+        xhr.setRequestHeader("x-refresh-token", refreshToken);
+      }
 
-    xhr.onerror = () => {
       updateQueueItem(item.id, {
-        phase: "error",
-        statusMessage: "Ağ Hatası",
-        error: "Sunucuyla bağlantı kurulamadı."
+        xhr,
+        phase: "uploading",
+        progress: 0,
+        statusMessage: "Yükleme başlatılıyor..."
       });
+
+      xhr.send(formData);
     };
 
-    xhr.onabort = () => {
-      updateQueueItem(item.id, {
-        phase: "cancelled",
-        statusMessage: "İptal edildi",
-        error: "Yükleme iptal edildi."
-      });
-    };
-
-    xhr.open("POST", "/api/v1/media/upload", true);
-    if (accessToken) {
-      xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-    }
-
-    updateQueueItem(item.id, {
-      xhr,
-      phase: "uploading",
-      progress: 0,
-      statusMessage: "Yükleme başlatılıyor..."
-    });
-
-    xhr.send(formData);
+    startItemUpload();
   };
 
   const updateQueueItem = (id: string, patch: Partial<UploadQueueItem>) => {
@@ -722,7 +746,7 @@ export function AdminTeknofest() {
   };
 
   // Event Cover Photo Direct Upload Handler
-  const handleEventCoverUpload = (file: File) => {
+  const handleEventCoverUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Lütfen geçerli bir görsel dosyası seçin (JPG, PNG, WEBP)");
       return;
@@ -735,11 +759,23 @@ export function AdminTeknofest() {
     setEventCoverUploading(true);
     setEventCoverProgress(0);
 
+    let accessToken =
+      sanitizeToken(useAuthStore.getState().accessToken) ||
+      sanitizeToken(localStorage.getItem("gencsosyal_token"));
+    const refreshToken =
+      sanitizeToken(useAuthStore.getState().refreshToken) ||
+      sanitizeToken(localStorage.getItem("gencsosyal_refresh_token"));
+
+    if (!accessToken || isJwtExpired(accessToken)) {
+      const refreshed = await requestTokenRefresh();
+      if (refreshed.success) {
+        accessToken = refreshed.accessToken;
+      }
+    }
+
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
     formData.append("file", file);
-
-    const accessToken = useAuthStore.getState().accessToken;
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -750,6 +786,10 @@ export function AdminTeknofest() {
 
     xhr.onload = () => {
       setEventCoverUploading(false);
+      const refreshedHeader = xhr.getResponseHeader("x-refreshed-access-token");
+      if (refreshedHeader) {
+        useAuthStore.getState().setAccessToken(refreshedHeader);
+      }
       try {
         const json = JSON.parse(xhr.responseText);
         if (xhr.status >= 200 && xhr.status < 300 && json.success && json.data?.url) {
@@ -769,8 +809,12 @@ export function AdminTeknofest() {
     };
 
     xhr.open("POST", "/api/v1/media/upload");
+    xhr.withCredentials = true;
     if (accessToken) {
       xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    }
+    if (refreshToken) {
+      xhr.setRequestHeader("x-refresh-token", refreshToken);
     }
     xhr.send(formData);
   };

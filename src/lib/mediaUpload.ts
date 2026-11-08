@@ -1,4 +1,5 @@
-import { useAuthStore } from "../context/useAuth";
+import { useAuthStore, sanitizeToken, isJwtExpired } from "../context/useAuth";
+import { requestTokenRefresh } from "./api";
 
 export type UploadPhase = 
   | "idle" 
@@ -49,7 +50,7 @@ export function formatDuration(seconds?: number): string {
 }
 
 export async function inspectVideoMetadata(file: File): Promise<{ duration: number; width: number; height: number }> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
     video.muted = true;
@@ -114,153 +115,189 @@ export function uploadMediaFile(
     return () => {};
   }
 
-  const xhr = new XMLHttpRequest();
-  const formData = new FormData();
-  formData.append("file", item.file);
+  let activeXhr: XMLHttpRequest | null = null;
+  let cancelled = false;
+  let retried = false;
 
-  const accessToken = useAuthStore.getState().accessToken;
+  const startUpload = async () => {
+    let accessToken =
+      sanitizeToken(useAuthStore.getState().accessToken) ||
+      sanitizeToken(localStorage.getItem("gencsosyal_token"));
+    const refreshToken =
+      sanitizeToken(useAuthStore.getState().refreshToken) ||
+      sanitizeToken(localStorage.getItem("gencsosyal_refresh_token"));
 
-  // Real upload progress handler (bytes transferred over the wire)
-  xhr.upload.onprogress = (e) => {
-    if (e.lengthComputable) {
-      const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
-      const loadedStr = formatFileSize(e.loaded);
-      const totalStr = formatFileSize(e.total);
-
-      if (e.loaded >= e.total) {
-        // Upload finished, now server is compressing / processing
-        onUpdate({
-          ...item,
-          xhr,
-          phase: "processing",
-          progress: 100,
-          loadedBytes: e.loaded,
-          totalBytes: e.total,
-          statusMessage: isVideo 
-            ? "Yükleme tamamlandı. Video işleniyor ve optimize ediliyor..." 
-            : "Görsel işleniyor...",
-        });
-      } else {
-        onUpdate({
-          ...item,
-          xhr,
-          phase: "uploading",
-          progress: percent,
-          loadedBytes: e.loaded,
-          totalBytes: e.total,
-          statusMessage: `${isVideo ? "Video" : "Görsel"} yükleniyor... %${percent} (${loadedStr} / ${totalStr})`,
-        });
+    if (!accessToken || isJwtExpired(accessToken)) {
+      const refreshed = await requestTokenRefresh();
+      if (refreshed.success) {
+        accessToken = refreshed.accessToken;
       }
     }
-  };
 
-  // Response arrived from server
-  xhr.onload = () => {
-    if (xhr.status >= 200 && xhr.status < 300) {
-      try {
-        const json = JSON.parse(xhr.responseText);
-        if (json.success && json.data) {
+    if (cancelled) return;
+
+    const xhr = new XMLHttpRequest();
+    activeXhr = xhr;
+    const formData = new FormData();
+    formData.append("file", item.file);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.min(99, Math.round((e.loaded / e.total) * 100));
+        const loadedStr = formatFileSize(e.loaded);
+        const totalStr = formatFileSize(e.total);
+
+        if (e.loaded >= e.total) {
           onUpdate({
             ...item,
-            xhr: undefined,
-            phase: "completed",
+            xhr,
+            phase: "processing",
             progress: 100,
-            statusMessage: "Tamamlandı",
-            result: json.data,
-            duration: json.data.duration || item.duration,
-            width: json.data.width || item.width,
-            height: json.data.height || item.height,
+            loadedBytes: e.loaded,
+            totalBytes: e.total,
+            statusMessage: isVideo 
+              ? "Yükleme tamamlandı. Video işleniyor ve optimize ediliyor..." 
+              : "Görsel işleniyor...",
           });
-          return;
         } else {
+          onUpdate({
+            ...item,
+            xhr,
+            phase: "uploading",
+            progress: percent,
+            loadedBytes: e.loaded,
+            totalBytes: e.total,
+            statusMessage: `${isVideo ? "Video" : "Görsel"} yükleniyor... %${percent} (${loadedStr} / ${totalStr})`,
+          });
+        }
+      }
+    };
+
+    xhr.onload = async () => {
+      const refreshedHeader = xhr.getResponseHeader("x-refreshed-access-token");
+      if (refreshedHeader) {
+        useAuthStore.getState().setAccessToken(refreshedHeader);
+      }
+
+      if (xhr.status === 401 && !retried) {
+        retried = true;
+        const refreshed = await requestTokenRefresh();
+        if (refreshed.success && !cancelled) {
+          startUpload();
+          return;
+        }
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          if (json.success && json.data) {
+            onUpdate({
+              ...item,
+              xhr: undefined,
+              phase: "completed",
+              progress: 100,
+              statusMessage: "Tamamlandı",
+              result: json.data,
+              duration: json.data.duration || item.duration,
+              width: json.data.width || item.width,
+              height: json.data.height || item.height,
+            });
+            return;
+          } else {
+            onUpdate({
+              ...item,
+              xhr: undefined,
+              phase: "error",
+              statusMessage: "İşlem başarısız",
+              error: json.error?.message || "Dosya sunucuda işlenemedi.",
+            });
+          }
+        } catch {
           onUpdate({
             ...item,
             xhr: undefined,
             phase: "error",
-            statusMessage: "İşlem başarısız",
-            error: json.error?.message || "Dosya sunucuda işlenemedi.",
+            statusMessage: "Yanıt okunamadı",
+            error: "Sunucudan geçersiz yanıt alındı.",
           });
         }
-      } catch (parseErr) {
+      } else {
+        let errorMsg = "Yükleme sırasında hata oluştu.";
+        if (xhr.status === 413) {
+          errorMsg = "Dosya boyutu çok büyük (Sunucu sınırı aşıldı).";
+        } else if (xhr.status === 503) {
+          errorMsg = "Video işleme servisi (FFmpeg) şu anda kullanılamıyor.";
+        } else if (xhr.status === 504) {
+          errorMsg = "Video işleme süresi zaman aşımına uğradı.";
+        }
+
+        try {
+          const errJson = JSON.parse(xhr.responseText);
+          if (errJson.error?.message) {
+            errorMsg = errJson.error.message;
+          } else if (errJson.message) {
+            errorMsg = errJson.message;
+          }
+        } catch {}
+
         onUpdate({
           ...item,
           xhr: undefined,
           phase: "error",
-          statusMessage: "Yanıt okunamadı",
-          error: "Sunucudan geçersiz yanıt alındı.",
+          statusMessage: "Hata",
+          error: errorMsg,
         });
       }
-    } else {
-      let errorMsg = "Yükleme sırasında hata oluştu.";
-      if (xhr.status === 413) {
-        errorMsg = "Dosya boyutu çok büyük (Sunucu sınırı aşıldı).";
-      } else if (xhr.status === 503) {
-        errorMsg = "Video işleme servisi (FFmpeg) şu anda kullanılamıyor.";
-      } else if (xhr.status === 504) {
-        errorMsg = "Video işleme süresi zaman aşımına uğradı.";
-      }
+    };
 
-      try {
-        const errJson = JSON.parse(xhr.responseText);
-        if (errJson.error?.message) {
-          errorMsg = errJson.error.message;
-        } else if (errJson.message) {
-          errorMsg = errJson.message;
-        }
-      } catch (e) {}
-
+    xhr.onerror = () => {
       onUpdate({
         ...item,
         xhr: undefined,
         phase: "error",
-        statusMessage: "Hata",
-        error: errorMsg,
+        statusMessage: "Bağlantı hatası",
+        error: "Ağ bağlantısı kesildi. Lütfen tekrar deneyin.",
       });
+    };
+
+    xhr.onabort = () => {
+      onUpdate({
+        ...item,
+        xhr: undefined,
+        phase: "cancelled",
+        statusMessage: "İptal edildi",
+        error: "Yükleme kullanıcı tarafından iptal edildi.",
+      });
+    };
+
+    xhr.open("POST", "/api/v1/media/upload", true);
+    xhr.withCredentials = true;
+    if (accessToken) {
+      xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
     }
-  };
+    if (refreshToken) {
+      xhr.setRequestHeader("x-refresh-token", refreshToken);
+    }
 
-  // Network error
-  xhr.onerror = () => {
     onUpdate({
       ...item,
-      xhr: undefined,
-      phase: "error",
-      statusMessage: "Bağlantı hatası",
-      error: "Ağ bağlantısı kesildi. Lütfen tekrar deneyin.",
+      xhr,
+      phase: "uploading",
+      progress: 0,
+      statusMessage: "Yükleme başlatılıyor...",
     });
+
+    xhr.send(formData);
   };
 
-  // Abort handler
-  xhr.onabort = () => {
-    onUpdate({
-      ...item,
-      xhr: undefined,
-      phase: "cancelled",
-      statusMessage: "İptal edildi",
-      error: "Yükleme kullanıcı tarafından iptal edildi.",
-    });
-  };
-
-  xhr.open("POST", "/api/v1/media/upload", true);
-  if (accessToken) {
-    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-  }
-
-  // Update phase to uploading
-  onUpdate({
-    ...item,
-    xhr,
-    phase: "uploading",
-    progress: 0,
-    statusMessage: "Yükleme başlatılıyor...",
-  });
-
-  xhr.send(formData);
+  startUpload();
 
   // Return cancel function
   return () => {
+    cancelled = true;
     try {
-      xhr.abort();
-    } catch (e) {}
+      activeXhr?.abort();
+    } catch {}
   };
 }

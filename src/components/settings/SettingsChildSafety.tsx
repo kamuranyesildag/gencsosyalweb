@@ -16,6 +16,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useAuthStore } from "../../context/useAuth";
+import { fetchApi } from "../../lib/api";
 
 interface SettingsChildSafetyProps {
   showMsg: (text: string, type?: "success" | "error") => void;
@@ -45,10 +46,7 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
   const loadSafetyStatus = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("gencsosyal_token");
-      const res = await fetch("/api/v1/child-safety/status", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetchApi("/child-safety/status");
       const json = await res.json();
       if (json.success) {
         setSafetyData(json.data);
@@ -71,17 +69,12 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
     }
     setParentalLoading(true);
     try {
-      const token = localStorage.getItem("gencsosyal_token");
-      const res = await fetch("/api/v1/child-safety/parental-control/request", {
+      const res = await fetchApi("/child-safety/parental-control/request", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        data: {
           parentEmail: parentEmail.trim(),
           dailyScreenTimeMinutes: dailyScreenTime
-        })
+        }
       });
       const json = await res.json();
       if (json.success) {
@@ -109,18 +102,13 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
     }
     setParentalLoading(true);
     try {
-      const token = localStorage.getItem("gencsosyal_token");
-      const res = await fetch("/api/v1/child-safety/parental-control/verify", {
+      const res = await fetchApi("/child-safety/parental-control/verify", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        data: {
           pairingCode: pairingCodeInput.trim().toUpperCase(),
           parentConfirmationEmail: parentEmail.trim().toLowerCase(),
           dailyScreenTimeMinutes: dailyScreenTime
-        })
+        }
       });
       const json = await res.json();
       if (json.success) {
@@ -145,17 +133,12 @@ export function SettingsChildSafety({ showMsg }: SettingsChildSafetyProps) {
     }
     setAppealLoading(true);
     try {
-      const token = localStorage.getItem("gencsosyal_token");
-      const res = await fetch("/api/v1/child-safety/appeal", {
+      const res = await fetchApi("/child-safety/appeal", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        data: {
           reason: appealReason.trim(),
           declaredBirthDate: appealBirthDate || undefined
-        })
+        }
       });
       const json = await res.json();
       if (json.success) {

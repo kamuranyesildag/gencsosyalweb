@@ -341,7 +341,7 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
     const contentToModerate = `${data.title} ${data.description} ${data.detailedDescription || ""}`;
     const modResult = await moderateContent(contentToModerate);
     
-    if (modResult.riskLevel === 'HIGH_RISK' || modResult.riskLevel === 'MEDIUM_RISK') {
+    if (modResult.riskLevel === 'HIGH_RISK') {
       await db.insert(moderationLogs).values({
          entityType: 'PROJECT',
          entityId: projectId,
@@ -356,12 +356,17 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
       return;
     }
 
+    let nextStatus = data.status;
+    if (modResult.riskLevel === 'MEDIUM_RISK') {
+      nextStatus = 'PENDING';
+    }
+
     const updated = await db.update(projects).set({
       title: data.title,
       description: data.description,
       detailedDescription: data.detailedDescription || null,
       category: data.category,
-      status: data.status,
+      status: nextStatus,
       projectUrl: data.projectUrl || null,
       githubUrl: data.githubUrl || null,
       imageUrl: data.imageUrl || null,
@@ -371,7 +376,20 @@ projectsRouter.patch("/:id", requireAuth, async (req: Request, res: Response): P
     .where(eq(projects.id, projectId))
     .returning();
 
-    res.json({ success: true, data: { project: updated[0] } });
+    if (modResult.riskLevel === 'MEDIUM_RISK') {
+      await db.insert(moderationLogs).values({
+        entityType: 'PROJECT',
+        entityId: projectId,
+        userId: currentUserId,
+        status: 'PENDING',
+        actionTaken: null,
+        riskLevel: modResult.riskLevel,
+        category: modResult.category,
+        reason: modResult.reason || null
+      });
+    }
+
+    res.json({ success: true, data: { project: updated[0], pending: modResult.riskLevel === 'MEDIUM_RISK' } });
   } catch (error) {
     console.error("Error updating project:", error);
     res.status(500).json({ error: { message: "Proje güncellenirken bir hata oluştu." } });
@@ -428,8 +446,16 @@ projectsRouter.get("/:id/like", optionalAuth, async (req: Request, res: Response
       .where(eq(projectLikes.projectId, projectId));
     const totalLikes = likesCountResult[0].count || 0;
 
+    const currentUserId = optionalAuthContext(req);
     let viewerHasLiked = false;
-    // req.user might be defined by optionalAuth
+    if (currentUserId) {
+      const existingLike = await db
+        .select({ id: projectLikes.id })
+        .from(projectLikes)
+        .where(and(eq(projectLikes.projectId, projectId), eq(projectLikes.userId, currentUserId)))
+        .limit(1);
+      viewerHasLiked = existingLike.length > 0;
+    }
     
     res.json({ success: true, data: { totalLikes, viewerHasLiked } });
   } catch (error) {
@@ -613,7 +639,7 @@ projectsRouter.post("/:id/comments", requireAuth, strictLimiter, async (req: Req
         actorId: userId,
         type: 'project_comment',
         projectId: projectId,
-        // we can reuse commentId if we alter notifications but we don't have projectCommentId, so we just pass projectId
+        projectCommentId: newComment[0].id
       });
     }
 
@@ -788,13 +814,30 @@ projectsRouter.delete("/:id/collaborators/:userId", requireAuth, async (req: Req
 });
 
 // GET /api/v1/projects/:id/collaborators
-projectsRouter.get("/:id/collaborators", async (req: Request, res: Response): Promise<void> => {
+projectsRouter.get("/:id/collaborators", optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const projectId = parseInt(req.params.id as string, 10);
     if (isNaN(projectId)) {
       res.status(400).json({ error: { message: "Geçersiz ID." } });
       return;
     }
+
+    const currentUserId = optionalAuthContext(req);
+    const [proj] = await db
+      .select({ userId: projects.userId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    const isProjectOwner = Boolean(currentUserId && proj && proj.userId === currentUserId);
+    const statusFilter = isProjectOwner
+      ? or(eq(projectCollaborators.status, 'accepted'), eq(projectCollaborators.status, 'pending'))
+      : currentUserId
+        ? or(
+            eq(projectCollaborators.status, 'accepted'),
+            and(eq(projectCollaborators.status, 'pending'), eq(projectCollaborators.userId, currentUserId))
+          )
+        : eq(projectCollaborators.status, 'accepted');
     
     const list = await db.select({
       userId: users.id,
@@ -808,7 +851,7 @@ projectsRouter.get("/:id/collaborators", async (req: Request, res: Response): Pr
     .leftJoin(profiles, eq(users.id, profiles.userId))
     .where(and(
       eq(projectCollaborators.projectId, projectId),
-      or(eq(projectCollaborators.status, 'accepted'), eq(projectCollaborators.status, 'pending'))
+      statusFilter
     ));
     
     res.json({ success: true, data: list });

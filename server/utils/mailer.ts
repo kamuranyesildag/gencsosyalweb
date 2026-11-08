@@ -54,13 +54,16 @@ export const getTransporter = async () => {
       pass: config.pass,
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: process.env.SMTP_ALLOW_INSECURE_TLS !== "true"
     },
     connectionTimeout: 5000,
     greetingTimeout: 5000,
     socketTimeout: 5000
   });
 };
+
+const isProdEnv = () => process.env.NODE_ENV === "production";
+const maskSecretForLog = (secret: string) => (isProdEnv() ? "[REDACTED_IN_PRODUCTION]" : secret);
 
 const escapeHtml = (unsafe: string) => {
   return String(unsafe)
@@ -130,9 +133,9 @@ const baseTemplate = (title: string, preheader: string, content: string) => `
 export const sendOtpVerificationEmail = async (to: string, displayName: string, otpCode: string): Promise<{ sent: boolean }> => {
   const config = await getSmtpConfig();
 
-  // If SMTP is not fully configured, log the OTP clearly to server console for admin
+  // If SMTP is not fully configured, log the OTP clearly in dev or masked in prod
   if (!config.isConfigured) {
-    console.log(`\n=======================================================\n📧 [GENÇ SOSYAL] E-POSTA DOĞRULAMA KODU\nAlıcı: ${to} (${displayName || 'Kullanıcı'})\n🔑 Doğrulama Kodu: ${otpCode}\nℹ️ SMTP sunucusu henüz yapılandırılmadığı için test kodu terminale yazdırıldı.\n=======================================================\n`);
+    console.log(`\n=======================================================\n📧 [GENÇ SOSYAL] E-POSTA DOĞRULAMA KODU\nAlıcı: ${to} (${displayName || 'Kullanıcı'})\n🔑 Doğrulama Kodu: ${maskSecretForLog(otpCode)}\nℹ️ SMTP sunucusu henüz yapılandırılmadığı için bildirim kaydedildi.\n=======================================================\n`);
     return { sent: false };
   }
 
@@ -170,8 +173,10 @@ export const sendOtpVerificationEmail = async (to: string, displayName: string, 
     console.log(`[SMTP] Doğrulama kodu e-postası başarıyla gönderildi: ${to}`);
     return { sent: true };
   } catch (err: any) {
-    console.warn(`[SMTP] E-posta gönderilemedi (${err?.message}). Kod terminale yazdırıldı.`);
-    console.log(`\n=======================================================\n📧 [FALLBACK OTP KODU] Alıcı: ${to}\n🔑 KOD: ${otpCode}\n=======================================================\n`);
+    console.warn(`[SMTP] E-posta gönderilemedi (${err?.message}).`);
+    if (!isProdEnv()) {
+      console.log(`\n=======================================================\n📧 [FALLBACK OTP KODU] Alıcı: ${to}\n🔑 KOD: ${maskSecretForLog(otpCode)}\n=======================================================\n`);
+    }
     return { sent: false };
   }
 };
@@ -179,7 +184,7 @@ export const sendOtpVerificationEmail = async (to: string, displayName: string, 
 export const sendVerificationEmail = async (to: string, displayName: string, verifyLink: string) => {
   const config = await getSmtpConfig();
   if (!config.isConfigured) {
-    console.log(`\n📧 [DOĞRULAMA BAĞLANTISI] Alıcı: ${to} -> ${verifyLink}\n`);
+    console.log(`\n📧 [DOĞRULAMA BAĞLANTISI] Alıcı: ${to} -> ${maskSecretForLog(verifyLink)}\n`);
     return;
   }
 
@@ -209,14 +214,14 @@ export const sendVerificationEmail = async (to: string, displayName: string, ver
       text,
     });
   } catch (err: any) {
-    console.warn(`[SMTP] Doğrulama linki e-postası gönderilemedi (${err?.message}). Link: ${verifyLink}`);
+    console.warn(`[SMTP] Doğrulama linki e-postası gönderilemedi (${err?.message}). Link: ${maskSecretForLog(verifyLink)}`);
   }
 };
 
 export const sendPasswordResetEmail = async (to: string, displayName: string, resetLink: string) => {
   const config = await getSmtpConfig();
   if (!config.isConfigured) {
-    console.log(`\n🔑 [ŞİFRE SIFIRLAMA BAĞLANTISI] Alıcı: ${to} -> ${resetLink}\n`);
+    console.log(`\n🔑 [ŞİFRE SIFIRLAMA BAĞLANTISI] Alıcı: ${to} -> ${maskSecretForLog(resetLink)}\n`);
     return;
   }
 
@@ -246,7 +251,7 @@ export const sendPasswordResetEmail = async (to: string, displayName: string, re
       text,
     });
   } catch (err: any) {
-    console.warn(`[SMTP] Şifre sıfırlama e-postası gönderilemedi (${err?.message}). Link: ${resetLink}`);
+    console.warn(`[SMTP] Şifre sıfırlama e-postası gönderilemedi (${err?.message}). Link: ${maskSecretForLog(resetLink)}`);
   }
 };
 

@@ -38,15 +38,18 @@ function cleanZalgoAndEvasion(text: string): string {
   return cleaned;
 }
 
-function normalizeTurkish(text: string) {
+function normalizeTurkish(text: string): string {
   return text
-    .toLocaleLowerCase('tr-TR')
-    .replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u')
-    .replace(/ş/g, 's')
-    .replace(/ı/g, 'i')
-    .replace(/ö/g, 'o')
-    .replace(/ç/g, 'c');
+    .replace(/\u0130/g, 'i') // İ
+    .replace(/I/g, 'i')
+    .replace(/\u0131/g, 'i') // ı
+    .toLowerCase()
+    .replace(/\u011f/g, 'g') // ğ
+    .replace(/\u00fc/g, 'u') // ü
+    .replace(/\u015f/g, 's') // ş
+    .replace(/\u0131/g, 'i') // ı
+    .replace(/\u00f6/g, 'o') // ö
+    .replace(/\u00e7/g, 'c'); // ç
 }
 
 export async function moderateContent(text: string): Promise<ModerationResult> {

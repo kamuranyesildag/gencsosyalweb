@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { useAuthStore } from "../context/useAuth";
+import { useAuthStore, isJwtExpired } from "../context/useAuth";
+import { fetchApi, requestTokenRefresh } from "../lib/api";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
 import { 
@@ -235,9 +236,7 @@ export function QuizRoom() {
     // 1. Instantly fetch room data via HTTP so UI doesn't hang on CONNECTING
     const fetchRoomDetails = async () => {
       try {
-        const res = await fetch(`/api/v1/quiz/rooms/${code}`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        });
+        const res = await fetchApi(`/quiz/rooms/${code}`);
         const json = await res.json();
         if (!isSubscribed) return;
 
@@ -257,23 +256,33 @@ export function QuizRoom() {
     fetchRoomDetails();
 
     // 2. Connect WebSocket for Realtime Gameplay
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/quiz/ws${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}`;
-
     let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+    const connectWs = async () => {
+      let currentToken = useAuthStore.getState().accessToken;
+      if (!currentToken || isJwtExpired(currentToken)) {
+        const refreshed = await requestTokenRefresh();
+        if (refreshed.success) {
+          currentToken = refreshed.accessToken;
+        }
+      }
+      if (!isSubscribed) return;
 
-      ws.onopen = () => {
-        if (!isSubscribed) return;
-        // Join Room
-        ws?.send(JSON.stringify({
-          event: "JOIN_ROOM",
-          payload: { roomCode: code, token: accessToken },
-        }));
-      };
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/api/v1/quiz/ws${currentToken ? `?token=${encodeURIComponent(currentToken)}` : ""}`;
+
+      try {
+        ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          if (!isSubscribed) return;
+          // Join Room
+          ws?.send(JSON.stringify({
+            event: "JOIN_ROOM",
+            payload: { roomCode: code, token: currentToken },
+          }));
+        };
 
       ws.onmessage = (event) => {
         if (!isSubscribed) return;
@@ -425,9 +434,12 @@ export function QuizRoom() {
       ws.onclose = () => {
         console.log("Quiz WS closed");
       };
-    } catch (wsErr) {
-      console.error("Failed to establish WebSocket connection:", wsErr);
-    }
+      } catch (wsErr) {
+        console.error("Failed to establish WebSocket connection:", wsErr);
+      }
+    };
+
+    connectWs();
 
     return () => {
       isSubscribed = false;
@@ -582,13 +594,9 @@ export function QuizRoom() {
 
     setSendingInvite(true);
     try {
-      const res = await fetch(`/api/v1/quiz/rooms/${code}/invite`, {
+      const res = await fetchApi(`/quiz/rooms/${code}/invite`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({ receiverUsername: inviteUsername.trim() }),
+        data: { receiverUsername: inviteUsername.trim() },
       });
       const json = await res.json();
       if (!res.ok || !json.success) {

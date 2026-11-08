@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Shield, AlertCircle, Calendar, CheckCircle2, ArrowRight, Loader2, X } from "lucide-react";
 import { useAuthStore } from "../../context/useAuth";
+import { fetchApi } from "../../lib/api";
 
 export function AgeGatekeeperModal() {
   const { user, setUser, logout } = useAuthStore();
@@ -50,17 +51,12 @@ export function AgeGatekeeperModal() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("gencsosyal_token");
-      const res = await fetch("/api/v1/child-safety/verify-age", {
+      const res = await fetchApi("/child-safety/verify-age", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+        data: {
           birthDate,
           verificationMethod: "DECLARATION"
-        })
+        }
       });
 
       const data = await res.json();
@@ -73,9 +69,7 @@ export function AgeGatekeeperModal() {
       localStorage.setItem("gencsosyal_skip_age_gate", "true");
 
       // Refresh /me to update store
-      const meRes = await fetch("/api/v1/auth/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const meRes = await fetchApi("/auth/me");
       if (meRes.ok) {
         const meData = await meRes.json();
         if (meData.success && meData.data) {

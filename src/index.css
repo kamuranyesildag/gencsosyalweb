@@ -117,90 +117,78 @@
 }
 
 /* =========================================================================
-   PREMIUM GLASSMORPHISM DESIGN SYSTEM UTILITIES
-   Provides elegant, high-performance frosted surfaces with graceful fallbacks
+   DIJITAL GENÇLIK ATÖLYESI — DESIGN SYSTEM UTILITIES
+   Provides crisp, high-contrast, editorial surfaces with refined borders
    ========================================================================= */
 
 .glass-nav {
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .dark .glass-nav {
-  background-color: rgba(8, 14, 26, 0.85);
+  background-color: #0b1329;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-surface {
-  background-color: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.03), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03);
 }
 
 .dark .glass-surface {
-  background-color: rgba(11, 19, 41, 0.82);
+  background-color: #0b1329;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
 }
 
 .glass-card {
-  background-color: rgba(255, 255, 255, 0.90);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.04), 0 1px 2px 0 rgba(15, 23, 42, 0.02);
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02);
 }
 
 .dark .glass-card {
-  background-color: rgba(11, 19, 41, 0.88);
+  background-color: #0b1329;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.35);
 }
 
 .glass-floating {
-  background-color: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px) saturate(190%);
-  -webkit-backdrop-filter: blur(16px) saturate(190%);
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.10), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.08);
 }
 
 .dark .glass-floating {
-  background-color: rgba(11, 19, 41, 0.88);
+  background-color: #0b1329;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 6px 16px -2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.6);
 }
 
 .glass-dropdown {
-  background-color: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.10);
 }
 
 .dark .glass-dropdown {
-  background-color: rgba(11, 19, 41, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: 0 20px 45px -4px rgba(0, 0, 0, 0.6);
+  background-color: #0b1329;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.65);
 }
 
 .glass-modal {
-  background-color: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.20);
+  background-color: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.18);
 }
 
 .dark .glass-modal {
-  background-color: rgba(11, 19, 41, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.75);
+  background-color: #0b1329;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8);
 }
 
 /* Fallback for environments lacking backdrop-filter support */

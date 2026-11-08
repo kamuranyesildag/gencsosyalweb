@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '../context/useAuth';
+import { fetchApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
 
 const STEPS = [
@@ -84,12 +85,9 @@ export function Onboarding() {
     data.append('file', file);
 
     try {
-      const res = await fetch('/api/v1/media/upload', {
+      const res = await fetchApi('/media/upload', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
-        },
-        body: data,
+        data,
       });
       const json = await res.json();
       if (res.ok && json.success) {
@@ -119,13 +117,9 @@ export function Onboarding() {
         payload.interests = formData.interests;
       }
 
-      const res = await fetch('/api/v1/users/me', {
+      const res = await fetchApi('/users/me', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
-        },
-        body: JSON.stringify(payload),
+        data: payload,
       });
 
       const json = await res.json();
@@ -134,14 +128,11 @@ export function Onboarding() {
       }
       
       // Complete onboarding
-      const completeRes = await fetch('/api/v1/onboarding/complete', {
+      const completeRes = await fetchApi('/onboarding/complete', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
-        }
       });
       if (completeRes.ok) {
-        const completeJson = await completeRes.json();
+        await completeRes.json().catch(() => null);
       }
 
       if (user) {

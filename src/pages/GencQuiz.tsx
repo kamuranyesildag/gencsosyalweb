@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router";
 import { useAuthStore } from "../context/useAuth";
+import { fetchApi } from "../lib/api";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
 import { 
@@ -159,10 +160,9 @@ export function GencQuiz() {
     if (!isAuthenticated) return;
     setLoadingHistory(true);
     try {
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
       const [histRes, statsRes] = await Promise.all([
-        fetch("/api/v1/quiz/history", { headers }),
-        fetch("/api/v1/quiz/stats", { headers }),
+        fetchApi("/quiz/history"),
+        fetchApi("/quiz/stats"),
       ]);
       const [histJson, statsJson] = await Promise.all([histRes.json(), statsRes.json()]);
       if (histJson.success) setQuizHistory(histJson.history || []);
@@ -179,9 +179,7 @@ export function GencQuiz() {
     if (!isAuthenticated) return;
     setLoadingSets(true);
     try {
-      const res = await fetch("/api/v1/quiz/sets", {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      });
+      const res = await fetchApi("/quiz/sets");
       const json = await res.json();
       if (json.success) {
         setMySets(json.sets || []);
@@ -219,7 +217,7 @@ export function GencQuiz() {
     setJoinError(null);
 
     try {
-      const res = await fetch(`/api/v1/quiz/rooms/${rawCode}`);
+      const res = await fetchApi(`/quiz/rooms/${rawCode}`);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -252,13 +250,9 @@ export function GencQuiz() {
     setIsCreatingRoom(true);
 
     try {
-      const res = await fetch("/api/v1/quiz/rooms", {
+      const res = await fetchApi("/quiz/rooms", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
+        data: {
           title: roomTitle.trim(),
           category: roomCategory,
           difficulty: roomDifficulty,
@@ -267,7 +261,7 @@ export function GencQuiz() {
           roomType,
           sourceType: roomSourceType,
           questionSetId: roomSourceType === "QUESTION_SET" ? selectedSetId : null,
-        }),
+        },
       });
 
       const json = await res.json();
@@ -314,13 +308,9 @@ export function GencQuiz() {
     setIsSavingSet(true);
 
     try {
-      const res = await fetch("/api/v1/quiz/sets", {
+      const res = await fetchApi("/quiz/sets", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
+        data: {
           title: newSetTitle.trim(),
           description: newSetDesc.trim(),
           category: newSetCategory,
@@ -331,7 +321,7 @@ export function GencQuiz() {
             explanation: q.explanation.trim(),
             options: q.options.filter((o: any) => o.text.trim().length > 0),
           })),
-        }),
+        },
       });
 
       const json = await res.json();
@@ -370,9 +360,8 @@ export function GencQuiz() {
   const handleDeleteSet = async (id: number) => {
     if (!confirm("Bu soru setini silmek istediğinize emin misiniz?")) return;
     try {
-      const res = await fetch(`/api/v1/quiz/sets/${id}`, {
+      const res = await fetchApi(`/quiz/sets/${id}`, {
         method: "DELETE",
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
       const json = await res.json();
       if (json.success) {

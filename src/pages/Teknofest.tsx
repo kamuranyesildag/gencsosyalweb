@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { useAuthStore } from "../context/useAuth";
+import { useAuthStore, sanitizeToken, isJwtExpired } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
 import { 
@@ -43,7 +43,7 @@ import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Avatar } from "../components/ui/Avatar";
 import { showToast } from "../components/ui/Toast";
-import { fetchApi } from "../lib/api";
+import { fetchApi, requestTokenRefresh } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 
 interface TeknofestEvent {
@@ -400,7 +400,19 @@ export function Teknofest() {
         const uploadFormData = new FormData();
         uploadFormData.append("file", submitFile);
 
-        const accessToken = useAuthStore.getState().accessToken;
+        let accessToken =
+          sanitizeToken(useAuthStore.getState().accessToken) ||
+          sanitizeToken(localStorage.getItem("gencsosyal_token"));
+        const refreshToken =
+          sanitizeToken(useAuthStore.getState().refreshToken) ||
+          sanitizeToken(localStorage.getItem("gencsosyal_refresh_token"));
+
+        if (!accessToken || isJwtExpired(accessToken)) {
+          const refreshed = await requestTokenRefresh();
+          if (refreshed.success) {
+            accessToken = refreshed.accessToken;
+          }
+        }
 
         // Upload with real XHR progress
         const uploadResult: any = await new Promise((resolve, reject) => {
@@ -419,6 +431,10 @@ export function Teknofest() {
           };
 
           xhr.onload = () => {
+            const refreshedHeader = xhr.getResponseHeader("x-refreshed-access-token");
+            if (refreshedHeader) {
+              useAuthStore.getState().setAccessToken(refreshedHeader);
+            }
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
                 const json = JSON.parse(xhr.responseText);
@@ -431,15 +447,24 @@ export function Teknofest() {
                 reject(new Error("Sunucu yanıtı okunamadı"));
               }
             } else {
-              reject(new Error("Yükleme başarısız"));
+              let errMsg = "Yükleme başarısız";
+              try {
+                const errJson = JSON.parse(xhr.responseText);
+                if (errJson.error?.message) errMsg = errJson.error.message;
+              } catch {}
+              reject(new Error(errMsg));
             }
           };
 
           xhr.onerror = () => reject(new Error("Ağ bağlantı hatası"));
 
           xhr.open("POST", "/api/v1/media/upload", true);
+          xhr.withCredentials = true;
           if (accessToken) {
             xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+          }
+          if (refreshToken) {
+            xhr.setRequestHeader("x-refresh-token", refreshToken);
           }
           xhr.send(uploadFormData);
         });

@@ -87,7 +87,7 @@ export function RightSidebar() {
     <div className="flex flex-col gap-4 pb-8">
       {/* 1. Unauthenticated CTA Card */}
       {!isAuthenticated && (
-        <div className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200/80 dark:border-white/[0.08] shadow-xs">
+        <div className="bg-white dark:bg-[#0B1329] rounded-2xl p-5 border border-slate-200/90 dark:border-white/[0.08] shadow-2xs">
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
             <Sparkles className="w-5 h-5 stroke-[2]" />
           </div>
@@ -113,7 +113,7 @@ export function RightSidebar() {
       {isAuthenticated && (
         <section
           aria-labelledby="suggested-users-heading"
-          className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+          className="bg-white dark:bg-[#0B1329] rounded-2xl p-4 border border-slate-200/90 dark:border-white/[0.08] shadow-2xs"
         >
           <div className="flex items-center justify-between mb-3">
             <h3
@@ -137,7 +137,7 @@ export function RightSidebar() {
       {/* 3. Secondary: Trending Topics / Hashtags */}
       <section
         aria-labelledby="trending-heading"
-        className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+        className="bg-white dark:bg-[#0B1329] rounded-2xl p-4 border border-slate-200/90 dark:border-white/[0.08] shadow-2xs"
       >
         <div className="flex items-center justify-between mb-3">
           <h3
@@ -198,7 +198,7 @@ export function RightSidebar() {
       {/* 4. Popular Communities */}
       <section
         aria-labelledby="popular-communities-heading"
-        className="bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/80 dark:border-white/[0.08] shadow-xs"
+        className="bg-white dark:bg-[#0B1329] rounded-2xl p-4 border border-slate-200/90 dark:border-white/[0.08] shadow-2xs"
       >
         <div className="flex items-center justify-between mb-3">
           <h3

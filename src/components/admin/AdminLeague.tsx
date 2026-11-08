@@ -20,6 +20,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { showToast } from "../ui/Toast";
+import { fetchApi } from "../../lib/api";
 
 interface QuestionOption {
   optionKey: string;
@@ -92,7 +93,7 @@ export function AdminLeague() {
       params.append("page", page.toString());
       params.append("limit", "15");
 
-      const res = await fetch(`/api/v1/league/admin/questions?${params.toString()}`);
+      const res = await fetchApi(`/league/admin/questions?${params.toString()}`);
       const json = await res.json();
       if (json.success) {
         setQuestions(json.questions || []);
@@ -111,7 +112,7 @@ export function AdminLeague() {
   const fetchSeason = async () => {
     setLoadingSeason(true);
     try {
-      const res = await fetch("/api/v1/league/current");
+      const res = await fetchApi("/league/current");
       const json = await res.json();
       if (json.success) {
         setSeason(json.season);
@@ -150,10 +151,9 @@ export function AdminLeague() {
 
     setIsSavingQuestion(true);
     try {
-      const res = await fetch("/api/v1/league/admin/questions", {
+      const res = await fetchApi("/league/admin/questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           question: newQuestionText,
           category: newCategory,
           difficulty: newDifficulty,
@@ -161,7 +161,7 @@ export function AdminLeague() {
           explanation: newExplanation,
           options: newOptions,
           status: "ACTIVE",
-        }),
+        },
       });
       const json = await res.json();
       if (json.success) {
@@ -183,10 +183,9 @@ export function AdminLeague() {
 
   const handleApproveQuestion = async (qId: number) => {
     try {
-      const res = await fetch(`/api/v1/league/admin/questions/${qId}`, {
+      const res = await fetchApi(`/league/admin/questions/${qId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "ACTIVE" }),
+        data: { status: "ACTIVE" },
       });
       const json = await res.json();
       if (json.success) {
@@ -201,7 +200,7 @@ export function AdminLeague() {
   const handleDeleteQuestion = async (qId: number) => {
     if (!window.confirm("Bu soruyu silmek istediğinize emin misiniz?")) return;
     try {
-      const res = await fetch(`/api/v1/league/admin/questions/${qId}`, {
+      const res = await fetchApi(`/league/admin/questions/${qId}`, {
         method: "DELETE",
       });
       const json = await res.json();
@@ -217,15 +216,14 @@ export function AdminLeague() {
   const handleGenerateAi = async () => {
     setIsGeneratingAi(true);
     try {
-      const res = await fetch("/api/v1/league/admin/questions/generate-ai", {
+      const res = await fetchApi("/league/admin/questions/generate-ai", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           category: aiCategory,
           difficulty: aiDifficulty,
           ageGroup: aiAgeGroup,
           count: aiCount,
-        }),
+        },
       });
       const json = await res.json();
       if (json.success) {
@@ -249,13 +247,12 @@ export function AdminLeague() {
   const handleUpdateSeason = async (updates: any) => {
     setIsUpdatingSeason(true);
     try {
-      const res = await fetch("/api/v1/league/admin/season/update", {
+      const res = await fetchApi("/league/admin/season/update", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           seasonId: season?.id,
           ...updates,
-        }),
+        },
       });
       const json = await res.json();
       if (json.success) {
@@ -272,10 +269,9 @@ export function AdminLeague() {
   const handleFinalizeSeason = async () => {
     if (!window.confirm("Bu sezonu sonlandırıp şampiyonu taçlandırmak ve rozetleri dağıtmak istediğinize emin misiniz?")) return;
     try {
-      const res = await fetch("/api/v1/league/admin/season/finalize", {
+      const res = await fetchApi("/league/admin/season/finalize", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seasonId: season?.id }),
+        data: { seasonId: season?.id },
       });
       const json = await res.json();
       if (json.success) {

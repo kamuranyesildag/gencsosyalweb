@@ -302,6 +302,7 @@ export const notifications = pgTable('notifications', {
   postId: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }),
   projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
   commentId: integer('comment_id').references(() => comments.id, { onDelete: 'cascade' }),
+  projectCommentId: integer('project_comment_id').references(() => projectComments.id, { onDelete: 'cascade' }),
   communityId: integer('community_id').references(() => communities.id, { onDelete: 'cascade' }),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

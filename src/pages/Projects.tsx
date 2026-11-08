@@ -200,7 +200,7 @@ export function Projects() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-card bg-white/70 dark:bg-[#0B1329]/75 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+      <div className="bg-white dark:bg-[#0B1329] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-2xs space-y-3.5">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -410,7 +410,7 @@ export function Projects() {
             <div
               key={project.id}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-xl border border-slate-200/80 dark:border-white/[0.08] rounded-2xl hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all flex flex-col group overflow-hidden cursor-pointer"
+              className="bg-white dark:bg-[#0B1329] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl hover:border-blue-500/50 dark:hover:border-blue-400/40 hover:shadow-md transition-all flex flex-col group overflow-hidden cursor-pointer"
             >
               {/* Image Header */}
               {project.imageUrl ? (

@@ -1,6 +1,7 @@
 import { db } from "../src/db/index.js";
 import { users, profiles, posts, systemSettings, badges, announcements, communities, communityMembers, projects, hashtags } from "../src/db/schema.js";
 import argon2 from "argon2";
+import crypto from "crypto";
 import { eq } from "drizzle-orm";
 
 export async function seedAnnouncementsIfNeeded() {
@@ -156,14 +157,23 @@ export async function seedInitialDataIfNeeded() {
 
     console.log("🌱 Database is empty. Seeding initial admin and official account...");
 
-    const passwordHash = await argon2.hash("AdminPassword123!");
+    const initialAdminPassword =
+      process.env.INITIAL_ADMIN_PASSWORD && process.env.INITIAL_ADMIN_PASSWORD.trim().length >= 8
+        ? process.env.INITIAL_ADMIN_PASSWORD.trim()
+        : crypto.randomBytes(16).toString("base64url");
+
+    if (!process.env.INITIAL_ADMIN_PASSWORD && process.env.NODE_ENV !== "production") {
+      console.log(`🔐 [SEED] Initial admin password generated for local development (set INITIAL_ADMIN_PASSWORD in .env to customize).`);
+    }
+
+    const passwordHash = await argon2.hash(initialAdminPassword);
 
     // 1. Admin Account
     const [adminUser] = await db.insert(users).values({
       email: "admin@gencsosyal.com",
       username: "admin",
       passwordHash: passwordHash,
-      role: "admin",
+      role: "ADMIN",
       isActive: true,
       isVerified: true,
       emailVerified: true,
@@ -185,7 +195,7 @@ export async function seedInitialDataIfNeeded() {
       email: "iletisim@gencsosyal.com",
       username: "gencsosyal",
       passwordHash: passwordHash,
-      role: "user",
+      role: "USER",
       isActive: true,
       isVerified: true,
       emailVerified: true,
