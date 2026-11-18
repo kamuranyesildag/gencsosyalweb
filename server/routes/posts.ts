@@ -64,7 +64,10 @@ postsRouter.post("/:id/poll/vote", requireAuth, strictLimiter, async (req, res) 
 // GET /posts/:id
 postsRouter.get("/:id", optionalAuth, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id as string);
+    const postId = parseInt(req.params.id as string, 10);
+    if (isNaN(postId)) {
+      return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Gönderi bulunamadı." }});
+    }
     const currentUserId = optionalAuthContext(req);
     const blockedIds = await getBlockedIds(currentUserId);
     

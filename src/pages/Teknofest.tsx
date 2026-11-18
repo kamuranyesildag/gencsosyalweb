@@ -133,9 +133,99 @@ export function Teknofest() {
   const [loadingEvent, setLoadingEvent] = useState(true);
 
   // Tab State
-  const [activeSection, setActiveSection] = useState<"gallery" | "projects" | "memories" | "timeline" | "my-submissions">("gallery");
+  const [activeSection, setActiveSection] = useState<"merkez" | "gallery" | "projects" | "memories" | "timeline" | "my-submissions">("merkez");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"ALL" | "IMAGE" | "VIDEO">("ALL");
+
+  // TEKNOFEST Merkezi Hub State (Mockup 10)
+  const [hubSearchQuery, setHubSearchQuery] = useState("");
+  const [selectedHubCategory, setSelectedHubCategory] = useState<string | null>(null);
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [applyingTeam, setApplyingTeam] = useState<any | null>(null);
+  const [applicationRole, setApplicationRole] = useState("");
+  const [applicationNote, setApplicationNote] = useState("");
+  const [appliedTeamIds, setAppliedTeamIds] = useState<number[]>([]);
+  const [newTeamForm, setNewTeamForm] = useState({
+    name: "",
+    university: "",
+    category: "İnsansız Hava Araçları",
+    openRoles: "",
+  });
+  const [recruitingTeams, setRecruitingTeams] = useState([
+    {
+      id: 1,
+      name: "Göktürk İHA Takımı",
+      university: "İTÜ",
+      category: "İnsansız Hava Araçları",
+      openCount: 2,
+      roles: ["Gömülü Yazılım", "Mekanik Tasarım"],
+      iconBg: "bg-[#0F172A] text-sky-400",
+      icon: "✈️",
+      extraMembers: 5,
+    },
+    {
+      id: 2,
+      name: "Volta Elektrikli Araç",
+      university: "YTÜ",
+      category: "Akıllı Ulaşım",
+      openCount: 1,
+      roles: ["Batarya Yönetimi"],
+      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400",
+      icon: "⚡",
+      extraMembers: 4,
+    },
+    {
+      id: 3,
+      name: "MedSense Biyomedikal",
+      university: "ODTÜ",
+      category: "Sağlık Teknolojileri",
+      openCount: 2,
+      roles: ["Görüntü İşleme", "Veri Bilimi"],
+      iconBg: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400",
+      icon: "❤️",
+      extraMembers: 3,
+    },
+  ]);
+
+  const handleCreateTeamSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTeamForm.name.trim() || !newTeamForm.university.trim()) {
+      showToast({ title: "Lütfen takım adı ve okul/kurum bilgisini girin.", type: "error" });
+      return;
+    }
+    const rolesList = newTeamForm.openRoles
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const created = {
+      id: Date.now(),
+      name: newTeamForm.name.trim(),
+      university: newTeamForm.university.trim(),
+      category: newTeamForm.category,
+      openCount: rolesList.length || 1,
+      roles: rolesList.length > 0 ? rolesList : ["Yazılım Geliştirici"],
+      iconBg: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400",
+      icon: "🚀",
+      extraMembers: 1,
+    };
+    setRecruitingTeams((prev) => [created, ...prev]);
+    setNewTeamForm({ name: "", university: "", category: "İnsansız Hava Araçları", openRoles: "" });
+    setShowCreateTeamModal(false);
+    showToast({ title: "Takım ilanınız TEKNOFEST Merkezi'nde yayınlandı!", type: "success" });
+  };
+
+  const handleApplyToTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!applyingTeam) return;
+    setAppliedTeamIds((prev) => [...prev, applyingTeam.id]);
+    showToast({
+      title: `${applyingTeam.name} takımına başvurunuz iletildi!`,
+      type: "success",
+    });
+    setApplyingTeam(null);
+    setApplicationRole("");
+    setApplicationNote("");
+  };
 
   // Media Gallery State
   const [mediaList, setMediaList] = useState<TeknofestMediaItem[]>([]);
@@ -544,126 +634,120 @@ export function Teknofest() {
     timeline: []
   };
 
+  const filteredRecruitingTeams = recruitingTeams.filter((team) => {
+    const matchesCategory = !selectedHubCategory || team.category === selectedHubCategory;
+    const q = hubSearchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      team.name.toLowerCase().includes(q) ||
+      team.university.toLowerCase().includes(q) ||
+      team.category.toLowerCase().includes(q) ||
+      team.roles.some((r) => r.toLowerCase().includes(q));
+    return matchesCategory && matchesSearch;
+  });
+
   return (
-    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-6 space-y-8 overflow-x-hidden">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 overflow-x-hidden pb-24">
       
-      {/* 1. HERO & EVENT STATUS HEADER */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#080E1A] via-[#0B1329] to-[#172554] text-white p-6 sm:p-10 border border-blue-500/20 shadow-2xl">
-        {/* Subtle geometric glowing background */}
-        <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
-        
-        <div className="relative z-10 space-y-6">
-          {/* Top Bar: Event Switcher & Status Badges */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center gap-1.5 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                TEKNOFEST KÖŞESİ
-              </span>
-
-              {allEvents.length > 1 && (
-                <div className="relative inline-block">
-                  <select
-                    value={currentSlug}
-                    onChange={(e) => navigate(`/teknofest/${e.target.value}`)}
-                    className="appearance-none bg-slate-800/80 hover:bg-slate-800 text-slate-200 text-xs font-bold py-1 px-3 pr-7 rounded-full border border-slate-700 focus:outline-hidden cursor-pointer"
-                  >
-                    {allEvents.map(event => (
-                      <option key={event.slug} value={event.slug}>{event.title}</option>
-                    ))}
-                  </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700">
-                <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                {ev.location}
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700">
-                <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                30 Eylül – 4 Ekim {ev.slug}
-              </span>
-              <Badge variant="outline" className="bg-sky-500/10 text-sky-300 border-sky-500/30">
-                Etkinlik Tamamlandı
-              </Badge>
+      {/* 1. TEKNOFEST MERKEZİ DARK HERO HEADER (Mockup 10) */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#0A1122] text-white p-5 sm:p-8 border border-white/10 shadow-2xl space-y-5">
+        {/* Top Navigation Row inside Hero */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/home")}
+              aria-label="Ana Sayfaya Dön"
+              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-lg sm:text-xl font-black tracking-tight text-white leading-tight">
+                TEKNOFEST Merkezi
+              </h1>
+              <p className="text-xs text-slate-400 font-medium">
+                Genç Sosyal topluluk modülü
+              </p>
             </div>
           </div>
 
-          {/* Hero Typography */}
-          <div className="space-y-3 max-w-2xl">
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-              {ev.title}
-              {ev.theme && (
-                <span className="block text-base sm:text-xl font-medium text-sky-300 mt-1">
-                  {ev.theme}
-                </span>
-              )}
-            </h1>
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-              Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST'te geride kalan fotoğrafları, yarışma projelerini ve gençlerin unutulmaz deneyimlerini keşfet.
+          <button
+            type="button"
+            onClick={() => navigate("/bookmarks")}
+            aria-label="Kaydedilenler"
+            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+          >
+            <Bookmark className="w-4.5 h-4.5" />
+          </button>
+        </div>
+
+        {/* Visual Banner Card with Team Photo & Headline */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 min-h-[170px] sm:min-h-[200px] flex flex-col justify-end p-5">
+          <img
+            src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80"
+            alt="TEKNOFEST Öğrenci Takımları"
+            className="absolute inset-0 w-full h-full object-cover opacity-55"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0A1122] via-[#0A1122]/60 to-transparent" />
+          <div className="relative z-10 space-y-1.5 max-w-xl">
+            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+              Fikrini takıma, takımını projeye dönüştür.
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 font-medium">
+              Yarışmalara hazırlanan öğrenci takımlarını keşfet.
             </p>
           </div>
+        </div>
 
-          {/* Hero Actions & Interactive Buttons */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => setActiveSection("gallery")}
-              className="bg-sky-500 hover:bg-sky-600 text-white shadow-md border-0"
-              leftIcon={<Camera className="w-4 h-4" />}
-            >
-              Fotoğraflara Göz At
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => setActiveSection("memories")}
-              className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700"
-              leftIcon={<Heart className="w-4 h-4 text-rose-400" />}
-            >
-              Anıları Keşfet
-            </Button>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => {
-                if (!isAuthenticated) openModal();
-                else setShowSubmitModal(true);
-              }}
-              className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700"
-              leftIcon={<Plus className="w-4 h-4 text-emerald-400" />}
-            >
-              İçerik Gönder
-            </Button>
+        {/* 3 KPI Stat Cards (1.240 Takım | 3.860 Proje | 9,7B Öğrenci) */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
+            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">1.240</span>
+            <span className="text-xs text-slate-400 font-medium">Takım</span>
           </div>
+          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
+            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">3.860</span>
+            <span className="text-xs text-slate-400 font-medium">Proje</span>
+          </div>
+          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
+            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">9,7B</span>
+            <span className="text-xs text-slate-400 font-medium">Öğrenci</span>
+          </div>
+        </div>
 
-          {/* Festival Summary Stats */}
-          {ev.stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-800/80">
-              <div className="p-3 rounded-xl bg-slate-850/60 border border-slate-800">
-                <span className="block text-lg sm:text-2xl font-black text-sky-400">{ev.stats.visitorCount || "1.5M+"}</span>
-                <span className="text-[11px] text-slate-400 font-medium">Toplam Ziyaretçi</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-850/60 border border-slate-800">
-                <span className="block text-lg sm:text-2xl font-black text-emerald-400">{ev.stats.projectCount || "2,100+"}</span>
-                <span className="text-[11px] text-slate-400 font-medium">Yarışan Proje</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-850/60 border border-slate-800">
-                <span className="block text-lg sm:text-2xl font-black text-amber-400">{ev.stats.competitionsCount || "46"}</span>
-                <span className="text-[11px] text-slate-400 font-medium">Teknoloji Yarışması</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-850/60 border border-slate-800">
-                <span className="block text-lg sm:text-2xl font-black text-purple-400">{ev.stats.teamCount || "32,000+"}</span>
-                <span className="text-[11px] text-slate-400 font-medium">Geliştirici Takımı</span>
-              </div>
-            </div>
-          )}
+        {/* Dual Primary CTAs: Takım Kur & Takım Bul */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAuthenticated) openModal();
+              else setShowCreateTeamModal(true);
+            }}
+            className="py-3.5 px-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+          >
+            <Users className="w-4.5 h-4.5" />
+            <span>Takım Kur</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSection("merkez");
+              const el = document.getElementById("recruiting-teams-section");
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Filter className="w-4 h-4 text-slate-700" />
+            <span>Takım Bul</span>
+          </button>
+        </div>
+
+        {/* Official Disclaimer Notice */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 text-center pt-1">
+          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span>Resmî TEKNOFEST uygulaması değildir · Gösterilen sayılar örnek veridir</span>
         </div>
       </div>
 
@@ -672,10 +756,23 @@ export function Teknofest() {
         <div className="flex gap-1.5 min-w-max">
           <button
             type="button"
+            onClick={() => setActiveSection("merkez")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSection === "merkez"
+                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
+            }`}
+          >
+            <Rocket className="w-4 h-4" />
+            TEKNOFEST Merkezi
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveSection("gallery")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSection === "gallery"
-                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
@@ -686,22 +783,22 @@ export function Teknofest() {
           <button
             type="button"
             onClick={() => setActiveSection("projects")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSection === "projects"
-                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
-            <Rocket className="w-4 h-4" />
-            Projeler
+            <Cpu className="w-4 h-4" />
+            Arşiv Projeleri
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSection("memories")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSection === "memories"
-                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
@@ -712,9 +809,9 @@ export function Teknofest() {
           <button
             type="button"
             onClick={() => setActiveSection("timeline")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSection === "timeline"
-                ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
             }`}
           >
@@ -726,9 +823,9 @@ export function Teknofest() {
             <button
               type="button"
               onClick={() => setActiveSection("my-submissions")}
-              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeSection === "my-submissions"
-                  ? "bg-blue-600 text-white shadow-xs shadow-blue-500/25"
+                  ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
               }`}
             >
@@ -752,6 +849,536 @@ export function Teknofest() {
           </Button>
         </div>
       </div>
+
+      {/* SECTION 0: TEKNOFEST MERKEZİ HUB (Mockup 10) */}
+      {activeSection === "merkez" && (
+        <div className="space-y-6">
+          {/* Search Input Bar */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={hubSearchQuery}
+                onChange={(e) => setHubSearchQuery(e.target.value)}
+                placeholder="Takım, proje veya üniversite ara"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-2xs"
+              />
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+            </div>
+            {selectedHubCategory && (
+              <button
+                type="button"
+                onClick={() => setSelectedHubCategory(null)}
+                className="px-3.5 py-3 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 text-xs font-bold whitespace-nowrap cursor-pointer"
+              >
+                {selectedHubCategory} ✕
+              </button>
+            )}
+          </div>
+
+          {/* 4-Step Competition Preparation Milestone Card */}
+          <div className="rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-extrabold">
+                <Clock className="w-3.5 h-3.5" />
+                Başvurular açık
+              </span>
+              <span className="text-xs font-semibold text-slate-400">Örnek takvim</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                Teknoloji Yarışmaları Hazırlık Dönemi
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                Takım kaydı, ön tasarım raporu ve kritik tasarım aşamalarını tek ekrandan takip et.
+              </p>
+            </div>
+
+            {/* 4-Stage Progress Grid */}
+            <div className="grid grid-cols-4 gap-2.5 pt-1">
+              <div className="space-y-1.5">
+                <div className="h-1.5 rounded-full bg-emerald-500" />
+                <div className="text-xs font-extrabold text-slate-900 dark:text-white">Takım Kaydı</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Tamamlandı</div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-1.5 rounded-full bg-[#2563EB]" />
+                <div className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400">Ön Rapor</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">12 gün kaldı</div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Kritik Tasarım</div>
+                <div className="text-[11px] text-slate-400">Yakında</div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Final</div>
+                <div className="text-[11px] text-slate-400">Yakında</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 8 Competition Categories 2-Column Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { name: "Akıllı Ulaşım", count: "142 takım", icon: "🚗", bg: "bg-blue-50 dark:bg-blue-950/40 text-blue-600" },
+              { name: "Eğitim Teknolojileri", count: "98 takım", icon: "🎓", bg: "bg-sky-50 dark:bg-sky-950/40 text-sky-600" },
+              { name: "Çevre ve Enerji", count: "117 takım", icon: "🌱", bg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600" },
+              { name: "Sağlık Teknolojileri", count: "86 takım", icon: "❤️", bg: "bg-rose-50 dark:bg-rose-950/40 text-rose-600" },
+              { name: "Yapay Zekâ", count: "203 takım", icon: "🧠", bg: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600" },
+              { name: "Robotik ve Otonom", count: "164 takım", icon: "🤖", bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-600" },
+              { name: "İnsansız Hava Araçları", count: "231 takım", icon: "✈️", bg: "bg-slate-900 text-sky-400" },
+              { name: "Tarım Teknolojileri", count: "74 takım", icon: "🌾", bg: "bg-lime-50 dark:bg-lime-950/40 text-lime-600" },
+            ].map((cat) => {
+              const active = selectedHubCategory === cat.name;
+              return (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onClick={() =>
+                    setSelectedHubCategory(active ? null : cat.name)
+                  }
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    active
+                      ? "bg-blue-50/70 dark:bg-blue-950/30 border-[#2563EB] shadow-xs"
+                      : "bg-white dark:bg-[#0D1424] border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300"
+                  }`}
+                >
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0 ${cat.bg}`}>
+                    {cat.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-2">
+                      {cat.name}
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                      {cat.count}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Üye Arayan Takımlar Section */}
+          <div id="recruiting-teams-section" className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                Üye Arayan Takımlar
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedHubCategory(null)}
+                className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                Tümü
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {filteredRecruitingTeams.map((team) => {
+                const isApplied = appliedTeamIds.includes(team.id);
+                return (
+                  <div
+                    key={team.id}
+                    className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${team.iconBg}`}>
+                          {team.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
+                            {team.name}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                            {team.university} · {team.category}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-extrabold shrink-0">
+                        {team.openCount} rol açık
+                      </span>
+                    </div>
+
+                    {/* Open Role Tags */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {team.roles.map((role) => (
+                        <span
+                          key={role}
+                          className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 text-xs font-bold"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Team Avatars & Başvur Button */}
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center -space-x-2">
+                        <img
+                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
+                        />
+                        <img
+                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
+                        />
+                        <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
+                          +{team.extraMembers}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isApplied}
+                        onClick={() => {
+                          if (!isAuthenticated) openModal();
+                          else {
+                            setApplyingTeam(team);
+                            setApplicationRole(team.roles[0] || "");
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                          isApplied
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
+                            : "bg-[#2563EB] hover:bg-blue-700 text-white shadow-xs"
+                        }`}
+                      >
+                        {isApplied ? "Başvuruldu ✓" : "Başvur"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Öne Çıkan Öğrenci Projeleri Carousel */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                Öne Çıkan Öğrenci Projeleri
+              </h3>
+              <button
+                type="button"
+                onClick={() => navigate("/projects")}
+                className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                Tümü
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div
+                onClick={() => navigate("/projects")}
+                className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="relative h-44 w-full overflow-hidden bg-slate-900">
+                  <img
+                    src="https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=900&q=80"
+                    alt="Volta-3 Verimlilik Aracı"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-extrabold shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Test aşaması
+                  </span>
+                </div>
+                <div className="p-4 space-y-1">
+                  <span className="text-xs font-bold text-[#2563EB] dark:text-blue-400">
+                    Akıllı Ulaşım
+                  </span>
+                  <h4 className="text-base font-black text-slate-900 dark:text-white">
+                    Volta-3 Verimlilik Aracı
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Volta Elektrikli Araç Takımı
+                  </p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => navigate("/projects")}
+                className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="relative h-44 w-full overflow-hidden bg-slate-900">
+                  <img
+                    src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=900&q=80"
+                    alt="TarlaSense Akıllı Sulama"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-extrabold shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Prototip
+                  </span>
+                </div>
+                <div className="p-4 space-y-1">
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Tarım Teknolojileri
+                  </span>
+                  <h4 className="text-base font-black text-slate-900 dark:text-white">
+                    TarlaSense — Akıllı Sulama Sistemi
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Anadolu Tarım Teknolojileri Takımı
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Duyurular & Son Proje Güncellemeleri */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Duyurular Card */}
+            <div className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 space-y-4 shadow-2xs">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black text-base">
+                <span className="text-blue-600">📣</span>
+                <span>Duyurular</span>
+              </div>
+              <div className="space-y-3.5 divide-y divide-slate-100 dark:divide-white/[0.06]">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-[#2563EB] mt-1.5 shrink-0" />
+                  <div>
+                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
+                      Ön tasarım raporu şablonu topluluk kaynaklarına eklendi
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      Moderasyon ekibi · 2 sa önce
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 pt-3.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-1.5 shrink-0" />
+                  <div>
+                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
+                      Takım kurma rehberi güncellendi: rol tanımları ve iş bölümü
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      Genç Sosyal · 1 g önce
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Son Proje Güncellemeleri Card */}
+            <div className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 space-y-4 shadow-2xs">
+              <h4 className="font-black text-slate-900 dark:text-white text-base">
+                Son Proje Güncellemeleri
+              </h4>
+              <div className="space-y-3.5">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] flex items-center justify-center text-sm shrink-0">
+                    🧪
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                      <strong className="font-extrabold text-slate-900 dark:text-white">Göktürk İHA</strong> rüzgâr tüneli testlerini tamamladı.
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-medium">45 dk önce</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-sm shrink-0">
+                    📄
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                      <strong className="font-extrabold text-slate-900 dark:text-white">Volta</strong> ön tasarım raporunu paylaştı.
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-medium">3 sa önce</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-sm shrink-0">
+                    👥
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                      <strong className="font-extrabold text-slate-900 dark:text-white">MedSense</strong> takımına 2 yeni üye katıldı.
+                    </p>
+                    <span className="text-[11px] text-slate-400 font-medium">Dün</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Takım Kur Modal */}
+      {showCreateTeamModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200 dark:border-white/10 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Yeni TEKNOFEST Takımı Kur
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCreateTeamModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateTeamSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Takım Adı
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: Kuzgun Otonom İHA"
+                  value={newTeamForm.name}
+                  onChange={(e) => setNewTeamForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Üniversite / Lise / Kurum
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Örn: İTÜ, ODTÜ, Kabataş Erkek Lisesi"
+                  value={newTeamForm.university}
+                  onChange={(e) => setNewTeamForm((p) => ({ ...p, university: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Yarışma Kategorisi
+                </label>
+                <select
+                  value={newTeamForm.category}
+                  onChange={(e) => setNewTeamForm((p) => ({ ...p, category: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                >
+                  <option>İnsansız Hava Araçları</option>
+                  <option>Akıllı Ulaşım</option>
+                  <option>Yapay Zekâ</option>
+                  <option>Robotik ve Otonom</option>
+                  <option>Eğitim Teknolojileri</option>
+                  <option>Çevre ve Enerji</option>
+                  <option>Sağlık Teknolojileri</option>
+                  <option>Tarım Teknolojileri</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Aranan Roller (Virgülle ayırın)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: Gömülü Yazılım, Mekanik Tasarım, Aviyonik"
+                  value={newTeamForm.openRoles}
+                  onChange={(e) => setNewTeamForm((p) => ({ ...p, openRoles: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateTeamModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-xs font-extrabold text-white cursor-pointer"
+                >
+                  Takımı Yayınla
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Takıma Başvur Modal */}
+      {applyingTeam && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200 dark:border-white/10 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  {applyingTeam.name}
+                </h3>
+                <p className="text-xs text-slate-500">{applyingTeam.university} · Takım Başvurusu</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApplyingTeam(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleApplyToTeam} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Başvurulan Rol
+                </label>
+                <select
+                  value={applicationRole}
+                  onChange={(e) => setApplicationRole(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                >
+                  {applyingTeam.roles.map((r: string) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Kısa Not & Deneyiminiz
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Hangi araçları/teknolojileri kullanıyorsunuz? Takıma nasıl katkı sağlayabilirsiniz?"
+                  value={applicationNote}
+                  onChange={(e) => setApplicationNote(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setApplyingTeam(null)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-xs font-extrabold text-white cursor-pointer"
+                >
+                  Başvuruyu Gönder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 3. SECTION 1: PHOTO GALLERY */}
       {activeSection === "gallery" && (

@@ -99,6 +99,12 @@ export function HtmlSitemap() {
               </Link>
             </li>
             <li>
+              <Link to="/kvkk" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
+                <span>KVKK Aydınlatma Metni</span>
+                <FileText className="w-4 h-4 opacity-50" />
+              </Link>
+            </li>
+            <li>
               <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
                 <span>XML Site Haritası (Crawler)</span>
                 <ExternalLink className="w-4 h-4 opacity-50" />

@@ -279,11 +279,15 @@ export function RightSidebar() {
       {/* 7. Subtle Footer */}
       <footer className="px-2 pt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400 dark:text-slate-500">
         <Link to="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-          Kullanım Koşulları
+          Kullanım Şartları
         </Link>
         <span>&bull;</span>
         <Link to="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
           Gizlilik Politikası
+        </Link>
+        <span>&bull;</span>
+        <Link to="/kvkk" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          KVKK Aydınlatma Metni
         </Link>
         <span>&bull;</span>
         <Link to="/projects" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">

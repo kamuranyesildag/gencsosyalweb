@@ -1,35 +1,48 @@
 import { useSEO } from "../hooks/useSEO";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
-import { 
-  Heart, 
-  MessageCircle, 
-  UserPlus, 
-  Bell, 
-  Megaphone, 
-  Repeat2, 
-  CheckCircle2, 
-  Users, 
-  Rocket,
+import {
+  Heart,
+  MessageCircle,
+  UserPlus,
+  Bell,
+  Megaphone,
+  Repeat2,
+  CheckCircle2,
+  Users,
   ShieldCheck,
   CheckCheck,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  AtSign,
+  Award,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { fetchApi } from "../lib/api";
 import { Avatar } from "../components/ui/Avatar";
 import { VerifiedBadge } from "../components/VerifiedBadge";
-import { formatTimeAgo } from "../lib/utils";
+import { formatTimeAgo, cn } from "../lib/utils";
 import { usePagination } from "../hooks/usePagination";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle } from "../components/ui/Skeleton";
+import { toast } from "../components/ui/Toast";
+
+type NotifFilter = "all" | "follow" | "like" | "comment" | "mention";
 
 export function Notifications() {
-  useSEO({ allowIndexing: false });
-  const { data: notifications, loading, loadingMore, hasMore, loadInitial, loadMore, setData } = usePagination("/notifications");
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  useSEO({ allowIndexing: false, title: "Bildirimler | Genç Sosyal" });
+  const {
+    data: notifications,
+    loading,
+    loadingMore,
+    hasMore,
+    loadInitial,
+    loadMore,
+    setData,
+  } = usePagination("/notifications");
+  const [filter, setFilter] = useState<NotifFilter>("all");
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  const [followedBackIds, setFollowedBackIds] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +55,7 @@ export function Notifications() {
     try {
       await fetchApi("/notifications/read", { method: "PUT" });
       setData((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      toast.success("Tüm bildirimler okundu olarak işaretlendi.");
     } catch (err) {
       console.error(err);
     } finally {
@@ -52,107 +66,55 @@ export function Notifications() {
   const getNotificationDetails = (type: string) => {
     switch (type) {
       case "like":
-        return {
-          icon: <Heart className="w-4.5 h-4.5 text-rose-600 fill-rose-600 dark:text-rose-400 dark:fill-rose-400" />,
-          bg: "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40 text-rose-600 dark:text-rose-400",
-          text: "gönderini beğendi.",
-        };
       case "project_like":
         return {
-          icon: <Heart className="w-4.5 h-4.5 text-rose-600 fill-rose-600 dark:text-rose-400 dark:fill-rose-400" />,
-          bg: "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40 text-rose-600 dark:text-rose-400",
-          text: "projeni beğendi.",
+          icon: <Heart className="w-3 h-3 text-white fill-white" />,
+          badgeBg: "bg-rose-500",
+          text: type === "project_like" ? "projeni beğendi." : "gönderini beğendi.",
         };
       case "comment":
-        return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />,
-          bg: "bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40 text-blue-600 dark:text-blue-400",
-          text: "gönderine yorum yaptı.",
-        };
       case "project_comment":
         return {
-          icon: <MessageCircle className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />,
-          bg: "bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40 text-blue-600 dark:text-blue-400",
-          text: "projene yorum yaptı.",
+          icon: <MessageCircle className="w-3 h-3 text-white fill-white" />,
+          badgeBg: "bg-emerald-500",
+          text: type === "project_comment" ? "projene yorum yaptı:" : "yorum yaptı:",
         };
       case "follow":
-        return {
-          icon: <UserPlus className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
-          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
-          text: "seni takip etmeye başladı.",
-        };
       case "follow_request":
-        return {
-          icon: <UserPlus className="w-4.5 h-4.5 text-orange-600 dark:text-orange-400" />,
-          bg: "bg-orange-50/80 dark:bg-orange-950/30 border-orange-200/60 dark:border-orange-900/40 text-orange-600 dark:text-orange-400",
-          text: "sana takip isteği gönderdi.",
-        };
       case "follow_accepted":
         return {
-          icon: <UserPlus className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
-          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
-          text: "takip isteğini kabul etti.",
+          icon: <UserPlus className="w-3 h-3 text-white" />,
+          badgeBg: "bg-blue-600",
+          text:
+            type === "follow_request"
+              ? "sana takip isteği gönderdi."
+              : type === "follow_accepted"
+              ? "takip isteğini kabul etti."
+              : "seni takip etmeye başladı.",
         };
       case "repost":
         return {
-          icon: <Repeat2 className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 stroke-[2.5]" />,
-          bg: "bg-teal-50/80 dark:bg-teal-950/30 border-teal-200/60 dark:border-teal-900/40 text-teal-600 dark:text-teal-400",
+          icon: <Repeat2 className="w-3 h-3 text-white" />,
+          badgeBg: "bg-teal-500",
           text: "gönderini yeniden paylaştı.",
         };
-      case "post":
+      case "mention":
         return {
-          icon: <Megaphone className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />,
-          bg: "bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-200/60 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400",
-          text: "yeni bir duyuru/gönderi paylaştı.",
+          icon: <AtSign className="w-3 h-3 text-white" />,
+          badgeBg: "bg-amber-500",
+          text: "bir gönderide senden bahsetti:",
         };
       case "verification":
       case "verified":
         return {
-          icon: <CheckCircle2 className="w-4.5 h-4.5 text-sky-600 dark:text-sky-400 fill-sky-100 dark:fill-sky-950" />,
-          bg: "bg-sky-50/80 dark:bg-sky-950/30 border-sky-200/60 dark:border-sky-900/40 text-sky-600 dark:text-sky-400",
+          icon: <CheckCircle2 className="w-3 h-3 text-white" />,
+          badgeBg: "bg-sky-500",
           text: "hesap doğrulama durumun güncellendi.",
-        };
-      case "collaborator_invite":
-      case "project_invite":
-        return {
-          icon: <Users className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />,
-          bg: "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-600 dark:text-amber-400",
-          text: "seni bir projede iş birliğine davet etti.",
-        };
-      case "community_join_request":
-        return {
-          icon: <Users className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />,
-          bg: "bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40 text-blue-600 dark:text-blue-400",
-          text: "topluluğuna katılmak için istek gönderdi.",
-        };
-      case "community_request_accepted":
-        return {
-          icon: <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />,
-          bg: "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400",
-          text: "topluluğuna katılım isteğini onayladı.",
-        };
-      case "community_request_rejected":
-        return {
-          icon: <AlertTriangle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400" />,
-          bg: "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200/60 dark:border-rose-900/40 text-rose-600 dark:text-rose-400",
-          text: "topluluğuna katılım isteğini reddetti.",
-        };
-      case "community_role_updated":
-        return {
-          icon: <ShieldCheck className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />,
-          bg: "bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-200/60 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400",
-          text: "topluluk rolünü güncelledi.",
-        };
-      case "community_removed":
-        return {
-          icon: <AlertTriangle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />,
-          bg: "bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/60 dark:border-amber-900/40 text-amber-600 dark:text-amber-400",
-          text: "seni topluluktan çıkardı.",
         };
       default:
         return {
-          icon: <Bell className="w-4.5 h-4.5 text-slate-600 dark:text-slate-400" />,
-          bg: "bg-slate-100 dark:bg-white/[0.05] border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-400",
+          icon: <Bell className="w-3 h-3 text-white" />,
+          badgeBg: "bg-indigo-600",
           text: "yeni bir bildirim gönderdi.",
         };
     }
@@ -161,7 +123,7 @@ export function Notifications() {
   const handleNotificationClick = (notif: any) => {
     if (!notif.isRead) {
       fetchApi(`/notifications/${notif.id}/read`, { method: "POST" }).catch(console.error);
-      setData((prev) => prev.map((n) => n.id === notif.id ? { ...n, isRead: true } : n));
+      setData((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
     }
 
     if (notif.type?.startsWith("community") || notif.community) {
@@ -170,7 +132,10 @@ export function Notifications() {
       } else {
         navigate(`/communities`);
       }
-    } else if (notif.type?.includes("collaborator_invite") || notif.type?.includes("project_invite")) {
+    } else if (
+      notif.type?.includes("collaborator_invite") ||
+      notif.type?.includes("project_invite")
+    ) {
       navigate(`/settings?tab=invites`);
     } else if (notif.postId) {
       navigate(`/post/${notif.postId}`);
@@ -187,253 +152,303 @@ export function Notifications() {
     }
   };
 
+  const handleFollowBack = async (e: React.MouseEvent, actorId: number) => {
+    e.stopPropagation();
+    if (!actorId) return;
+    setFollowedBackIds((prev) => new Set(prev).add(actorId));
+    try {
+      const res = await fetchApi(`/users/${actorId}/follow`, { method: "POST" });
+      if (res.ok) {
+        toast.success("Geri takip edildi!");
+      }
+    } catch {}
+  };
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const filteredNotifications = filter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
+
+  const filteredNotifications = useMemo(() => {
+    if (filter === "all") return notifications;
+    if (filter === "follow") {
+      return notifications.filter((n) => n.type?.startsWith("follow"));
+    }
+    if (filter === "like") {
+      return notifications.filter((n) => n.type?.includes("like"));
+    }
+    if (filter === "comment") {
+      return notifications.filter((n) => n.type?.includes("comment"));
+    }
+    if (filter === "mention") {
+      return notifications.filter(
+        (n) => n.type === "mention" || n.post?.content?.includes("@")
+      );
+    }
+    return notifications;
+  }, [notifications, filter]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/70 dark:border-white/[0.08] min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
-      {/* STICKY HEADER */}
-      <header className="sticky top-0 md:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] transition-colors shadow-xs">
-        <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] transition-colors pb-24">
+      {/* 1. STICKY HEADER (Matching Mockup 8) */}
+      <header className="sticky top-0 md:top-[60px] z-20 bg-[#F8FAFC]/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] px-4 pt-3.5 pb-3 space-y-3 transition-colors">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Bildirimler
             </h1>
-            {unreadCount > 0 && (
-              <span className="px-2 py-0.5 bg-blue-600 dark:bg-blue-500 text-white font-bold text-xs rounded-full shadow-xs shadow-blue-500/30">
-                {unreadCount} yeni
-              </span>
-            )}
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+              {unreadCount > 0
+                ? `${unreadCount} okunmamış bildirimin var`
+                : "Tüm bildirimlerin güncel"}
+            </p>
           </div>
 
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleMarkAllAsRead}
-              disabled={isMarkingRead}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-full bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] transition-all cursor-pointer"
+              disabled={isMarkingRead || unreadCount === 0}
+              title="Tümünü Okundu İşaretle"
+              aria-label="Tümünü okundu işaretle"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 disabled:opacity-45 shadow-2xs transition-all active:scale-95 cursor-pointer"
             >
-              <CheckCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Tümünü Okundu Say</span>
+              <CheckCheck className="w-4.5 h-4.5" />
             </button>
-          )}
+
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              title="Bildirim Ayarları"
+              aria-label="Bildirim ayarları"
+              className="w-10 h-10 rounded-xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Settings className="w-4.5 h-4.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Filter Tabs */}
+        {/* Filter Pills: Tümü | Takip | Beğeni | Yorum | Bahsetme (Matching Mockup 8) */}
         <div
-          className="flex items-center px-4 border-t border-slate-200/60 dark:border-white/[0.06]"
+          className="flex items-center gap-2 overflow-x-auto no-scrollbar"
           role="tablist"
           aria-label="Bildirim Filtresi"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === "all"}
-            onClick={() => setFilter("all")}
-            className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              filter === "all"
-                ? "text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <span>Tümü</span>
-            {filter === "all" && (
-              <motion.div
-                layoutId="notifActiveTab"
-                className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
-                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              />
-            )}
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === "unread"}
-            onClick={() => setFilter("unread")}
-            className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              filter === "unread"
-                ? "text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <span>Okunmamış</span>
-            {filter === "unread" && (
-              <motion.div
-                layoutId="notifActiveTab"
-                className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-600 dark:bg-blue-500 rounded-full"
-                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              />
-            )}
-          </button>
+          {[
+            { id: "all" as NotifFilter, label: "Tümü", count: unreadCount },
+            { id: "follow" as NotifFilter, label: "Takip" },
+            { id: "like" as NotifFilter, label: "Beğeni" },
+            { id: "comment" as NotifFilter, label: "Yorum" },
+            { id: "mention" as NotifFilter, label: "Bahsetme" },
+          ].map((tab) => {
+            const isSelected = filter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setFilter(tab.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border",
+                  isSelected
+                    ? "bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-500 shadow-xs"
+                    : "bg-white dark:bg-[#0D1424] text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100"
+                )}
+              >
+                <span>{tab.label}</span>
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span className="text-sky-400 dark:text-sky-200 font-black">{tab.count}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </header>
 
-      {/* NOTIFICATIONS LIST / SKELETON / EMPTY */}
-      <div className="flex flex-col flex-1 pb-24">
-        {/* Loading Skeleton */}
+      {/* 2. NOTIFICATIONS STREAM WITH TIME SECTIONS */}
+      <div className="flex flex-col flex-1 px-4 pt-4 space-y-5">
         {loading ? (
-          <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex gap-3.5 p-4 sm:p-5 items-start">
-                <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06]">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex gap-3.5 p-4 items-start">
+                <SkeletonCircle size="md" />
                 <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <SkeletonCircle size="sm" />
-                    <Skeleton className="h-4 w-40 rounded-md" />
-                  </div>
+                  <Skeleton className="h-4 w-48 rounded-md" />
                   <Skeleton className="h-3 w-24 rounded-md" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredNotifications.length > 0 ? (
-          <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-            <InfiniteScroll
-              items={filteredNotifications}
-              hasMore={hasMore && filter === "all"}
-              isLoading={loadingMore}
-              onLoadMore={loadMore}
-              renderItem={(notif) => {
-                const details = getNotificationDetails(notif.type);
-                const isUnread = !notif.isRead;
+          <div className="space-y-2">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1">
+              BUGÜN & SON ETKİLEŞİMLER
+            </div>
 
-                return (
-                  <div
-                    key={notif.id}
-                    onClick={() => handleNotificationClick(notif)}
-                    className={`flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 transition-colors cursor-pointer group relative ${
-                      isUnread
-                        ? "bg-blue-50/40 dark:bg-blue-950/15 hover:bg-blue-50/70 dark:hover:bg-blue-950/25"
-                        : "hover:bg-slate-50 dark:hover:bg-white/[0.02] bg-white dark:bg-[#070A10]"
-                    }`}
-                  >
-                    {/* Icon Badge */}
-                    <div className="pt-0.5 shrink-0">
-                      <div
-                        className={`w-10 h-10 rounded-full border flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 ${details.bg}`}
-                      >
-                        {details.icon}
-                      </div>
-                    </div>
+            <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
+              <InfiniteScroll
+                items={filteredNotifications}
+                hasMore={hasMore && filter === "all"}
+                isLoading={loadingMore}
+                onLoadMore={loadMore}
+                renderItem={(notif) => {
+                  const details = getNotificationDetails(notif.type);
+                  const isUnread = !notif.isRead;
+                  const isFollowedBack = followedBackIds.has(Number(notif.actor?.id));
 
-                    {/* Notification Body */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          {notif.actor && (
-                            <Link
-                              to={`/profile/${notif.actor.username}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0"
-                            >
-                              <Avatar
-                                url={notif.actor.avatarUrl}
-                                name={notif.actor.displayName || notif.actor.username}
-                                size="sm"
-                                className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-slate-300 transition-all"
-                              />
-                            </Link>
-                          )}
-                          <Link
-                            to={notif.actor ? `/profile/${notif.actor.username}` : "#"}
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm sm:text-[15px]"
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}
+                      className={cn(
+                        "flex items-center justify-between gap-3 p-4 transition-colors cursor-pointer group",
+                        isUnread
+                          ? "bg-blue-50/35 dark:bg-blue-950/15 hover:bg-blue-50/60"
+                          : "hover:bg-slate-50 dark:hover:bg-white/[0.03]"
+                      )}
+                    >
+                      <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                        {/* Avatar with Type Badge Overlay (Matching Mockup 8) */}
+                        <div className="relative shrink-0">
+                          <Avatar
+                            url={notif.actor?.avatarUrl}
+                            name={
+                              notif.actor?.displayName ||
+                              notif.actor?.username ||
+                              "Genç Sosyal"
+                            }
+                            size="md"
+                            className="w-11 h-11 ring-1 ring-slate-200 dark:ring-white/10"
+                          />
+                          <div
+                            className={cn(
+                              "absolute -bottom-1 -right-1 w-5 h-5 rounded-lg flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]",
+                              details.badgeBg
+                            )}
                           >
-                            {notif.actor?.displayName || notif.actor?.username || "Genç Sosyal"}
-                          </Link>
-                          {notif.actor?.isVerified && (
-                            <VerifiedBadge
-                              iconClassName="w-4 h-4"
-                              withModal={false}
-                              targetUser={{ username: notif.actor.username, isVerified: !!notif.actor.isVerified }}
-                            />
-                          )}
+                            {details.icon}
+                          </div>
                         </div>
 
-                        {/* Unread Status Dot */}
+                        {/* Text & Snippet */}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-snug">
+                            <span className="font-extrabold text-slate-900 dark:text-white">
+                              {notif.actor?.displayName ||
+                                notif.actor?.username ||
+                                "Genç Sosyal"}
+                            </span>{" "}
+                            <span>{details.text}</span>
+                            {notif.post?.content && (
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {" "}
+                                &quot;{notif.post.content.slice(0, 80)}&quot;
+                              </span>
+                            )}
+                          </p>
+
+                          <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-1">
+                            {formatTimeAgo(notif.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Action Button & Unread Dot */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        {notif.type === "follow" && notif.actor?.id && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleFollowBack(e, Number(notif.actor.id))}
+                            className={cn(
+                              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer",
+                              isFollowedBack
+                                ? "bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300"
+                                : "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
+                            )}
+                          >
+                            {isFollowedBack ? "Takip Ediliyor" : "Geri Takip Et"}
+                          </button>
+                        )}
+
                         {isUnread && (
-                          <div className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 ring-4 ring-blue-100 dark:ring-blue-950 shrink-0 mt-1" />
+                          <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
                         )}
-                      </div>
-
-                      {/* Text Description */}
-                      <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
-                        {details.text}
-                        {notif.community && (
-                          <span className="ml-1.5 inline-flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md">
-                            c/{notif.community.slug || notif.community.name}
-                          </span>
-                        )}
-                      </p>
-                      
-                      {/* Follow Request Actions */}
-                      {notif.type === "follow_request" && (
-                        <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-xs cursor-pointer"
-                            onClick={async () => {
-                              try {
-                                const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/accept`, { method: "POST" });
-                                if (res.ok) {
-                                  setData((prev) => prev.filter((n) => n.id !== notif.id));
-                                }
-                              } catch(e) {}
-                            }}
-                          >
-                            Kabul Et
-                          </button>
-                          <button 
-                            className="bg-slate-100 text-slate-700 dark:bg-white/[0.08] dark:text-slate-200 px-4 py-1.5 rounded-xl text-xs font-semibold border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-200/80 dark:hover:bg-white/[0.12] active:scale-95 transition-all cursor-pointer"
-                            onClick={async () => {
-                              try {
-                                const res = await fetchApi(`/users/me/follow-requests/${notif.actor?.id}/reject`, { method: "POST" });
-                                if (res.ok) {
-                                  setData((prev) => prev.filter((n) => n.id !== notif.id));
-                                }
-                              } catch(e) {}
-                            }}
-                          >
-                            Reddet
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Post / Content Snippet if available */}
-                      {notif.post?.content && (
-                        <div className="mt-2.5 p-2.5 bg-slate-100/70 dark:bg-white/[0.04] rounded-xl border border-slate-200/60 dark:border-white/[0.06] text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                          "{notif.post.content}"
-                        </div>
-                      )}
-
-                      {/* Timestamp */}
-                      <div className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium mt-2 flex items-center gap-1">
-                        <span>{formatTimeAgo(notif.createdAt)}</span>
                       </div>
                     </div>
-                  </div>
-                );
+                  );
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] px-6 py-14 text-center shadow-2xs">
+            <EmptyState
+              icon={<Bell className="w-8 h-8 text-slate-400" />}
+              title="Bildirim Bulunamadı"
+              description="Yeni bir beğeni, yorum, takipçi veya topluluk etkileşimi aldığınızda burada listelenecektir."
+              action={{
+                label: "Topluluğu Keşfet",
+                onClick: () => navigate("/explore"),
               }}
             />
           </div>
-        ) : (
-          <div className="px-6 py-16 max-w-md mx-auto text-center">
-            <EmptyState
-              icon={<Bell className="w-8 h-8 text-slate-400" />}
-              title={filter === "unread" ? "Okunmamış Bildirim Yok" : "Henüz Bildirim Yok"}
-              description={
-                filter === "unread"
-                  ? "Tüm bildirimlerinizi okudunuz! Yeni bir bildirim geldiğinde burada göreceksiniz."
-                  : "Yeni bir beğeni, yorum, takipçi veya etkileşim aldığınızda burada listelenecektir."
-              }
-              action={
-                filter === "unread"
-                  ? { label: "Tüm Bildirimleri Gör", onClick: () => setFilter("all") }
-                  : { label: "Topluluğu Keşfet", onClick: () => navigate("/explore") }
-              }
-            />
-          </div>
         )}
+
+        {/* BU HAFTA / PLATFORM UPDATES CARD (Matching Mockup 8) */}
+        <div className="space-y-2">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1">
+            BU HAFTA · PLATFORM & ROZETLER
+          </div>
+
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
+            <div
+              onClick={() => navigate("/communities")}
+              className="flex items-center justify-between gap-3 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+            >
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-slate-900 text-blue-400 flex items-center justify-center font-bold shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-snug">
+                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                      Yapay Zekâ Türkiye
+                    </strong>{" "}
+                    topluluğunda yeni etkinlik: Türkçe LLM atölyesi.
+                  </p>
+                  <span className="text-[11px] text-slate-400 block mt-1">2 g önce</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-bold shrink-0"
+              >
+                Görüntüle
+              </button>
+            </div>
+
+            <div
+              onClick={() => navigate("/quiz")}
+              className="flex items-center justify-between gap-3 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+            >
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-snug">
+                    Tebrikler!{" "}
+                    <strong className="font-extrabold text-slate-900 dark:text-white">
+                      &ldquo;Açık Kaynak Katkıcısı&rdquo;
+                    </strong>{" "}
+                    rozetini kazandın.
+                  </p>
+                  <span className="text-[11px] text-slate-400 block mt-1">
+                    Youth League · Sezon 3
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ import { VerifyEmail } from "./pages/VerifyEmail";
 import { Landing } from "./pages/Landing";
 import { Privacy } from "./pages/Privacy";
 import { Terms } from "./pages/Terms";
+import { KvkkDisclosure } from "./pages/KvkkDisclosure";
 import { AccountSuspended } from "./pages/AccountSuspended";
 import { HtmlSitemap } from "./pages/HtmlSitemap";
 import YouthLeague from "./pages/YouthLeague";
@@ -94,6 +95,8 @@ export default function App() {
                 <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/kvkk" element={<KvkkDisclosure />} />
+                <Route path="/aydinlatma-metni" element={<KvkkDisclosure />} />
                 <Route path="/account-suspended" element={<AccountSuspended />} />
               </Route>
 

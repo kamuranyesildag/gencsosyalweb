@@ -130,8 +130,8 @@ export function AuthLayout() {
           <span>© 2026 Genç Sosyal</span>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="hover:text-slate-300 transition-colors">Gizlilik</Link>
-            <Link to="/terms" className="hover:text-slate-300 transition-colors">Şartlar</Link>
-            <Link to="/explore" className="hover:text-slate-300 transition-colors">Keşfet</Link>
+            <Link to="/terms" className="hover:text-slate-300 transition-colors">Kullanım Şartları</Link>
+            <Link to="/kvkk" className="hover:text-slate-300 transition-colors">KVKK</Link>
           </div>
         </div>
       </aside>
@@ -176,13 +176,17 @@ export function AuthLayout() {
 
         {/* Bottom Helper Links */}
         <footer className="w-full max-w-md mx-auto pt-6 text-center text-xs text-slate-400 dark:text-slate-500">
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <Link to="/privacy" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
               Gizlilik Politikası
             </Link>
             <span>·</span>
             <Link to="/terms" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-              Kullanım Koşulları
+              Kullanım Şartları
+            </Link>
+            <span>·</span>
+            <Link to="/kvkk" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              Aydınlatma Metni
             </Link>
             <span>·</span>
             <Link to="/sitemap" className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">

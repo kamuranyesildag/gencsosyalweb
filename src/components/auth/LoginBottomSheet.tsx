@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 import { X, Hexagon, Sparkles, Heart, MessageCircle, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 import { useAuthModalStore } from '../../context/useAuthModal';
 import { useAuthStore } from '../../context/useAuth';
@@ -145,8 +145,20 @@ export function LoginBottomSheet() {
                 </Button>
               </div>
 
-              <p className="text-center text-xs text-slate-400 mt-4 mb-1">
-                Devam ederek Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursunuz.
+              <p className="text-center text-xs text-slate-400 mt-4 mb-1 leading-relaxed">
+                Devam ederek{' '}
+                <Link to="/terms" onClick={closeModal} className="text-blue-400 hover:underline font-medium">
+                  Kullanım Şartları
+                </Link>
+                ,{' '}
+                <Link to="/privacy" onClick={closeModal} className="text-blue-400 hover:underline font-medium">
+                  Gizlilik Politikası
+                </Link>{' '}
+                ve{' '}
+                <Link to="/kvkk" onClick={closeModal} className="text-blue-400 hover:underline font-medium">
+                  KVKK Aydınlatma Metni
+                </Link>
+                &apos;ni kabul etmiş olursunuz.
               </p>
             </div>
           </motion.div>

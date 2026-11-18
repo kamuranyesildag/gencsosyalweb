@@ -56,6 +56,170 @@ const DIFFICULTIES = ["Kolay", "Orta", "Zor", "Karışık"];
 const QUESTION_COUNTS = [5, 10, 15, 20, 25];
 const TIME_LIMITS = [10, 15, 20, 30, 60];
 
+interface SoloQuestion {
+  id: number;
+  subject: string;
+  difficulty: "Kolay" | "Orta" | "Zor";
+  points: number;
+  question: string;
+  options: { key: "A" | "B" | "C" | "D"; text: string }[];
+  correctKey: "A" | "B" | "C" | "D";
+  explanation: string;
+}
+
+const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
+  {
+    id: 1,
+    subject: "⚛️ Fizik",
+    difficulty: "Orta",
+    points: 40,
+    question: "Bir İHA'nın havada kalmasını sağlayan kaldırma kuvveti, kanat üzerinde hangi prensiple açıklanır?",
+    options: [
+      { key: "A", text: "Arşimet prensibi" },
+      { key: "B", text: "Bernoulli prensibi" },
+      { key: "C", text: "Pascal prensibi" },
+      { key: "D", text: "Ohm yasası" },
+    ],
+    correctKey: "B",
+    explanation: "Kanat üst yüzeyinde hızlanan hava akımı basıncı düşürür (Bernoulli prensibi) ve yukarı yönlü kaldırma kuvveti oluşturur.",
+  },
+  {
+    id: 2,
+    subject: "🤖 Robotik",
+    difficulty: "Orta",
+    points: 40,
+    question: "Otonom araçların eş zamanlı konum belirleme ve haritalama yapmasını sağlayan algoritmik yöntemin kısaltması nedir?",
+    options: [
+      { key: "A", text: "PWM" },
+      { key: "B", text: "SLAM" },
+      { key: "C", text: "PID" },
+      { key: "D", text: "UART" },
+    ],
+    correctKey: "B",
+    explanation: "Simultaneous Localization and Mapping (SLAM), robotların bilinmeyen bir ortamın haritasını çıkarırken kendi konumunu takip etmesini sağlar.",
+  },
+  {
+    id: 3,
+    subject: "💻 Yazılım",
+    difficulty: "Kolay",
+    points: 30,
+    question: "Modern yapay zekâ ve büyük dil modellerinin (LLM) temelini oluşturan derin öğrenme mimarisi hangisidir?",
+    options: [
+      { key: "A", text: "Transformer" },
+      { key: "B", text: "Karar Ağaçları (Decision Tree)" },
+      { key: "C", text: "K-Means Kümeleme" },
+      { key: "D", text: "Lineer Regresyon" },
+    ],
+    correctKey: "A",
+    explanation: "2017 yılında tanıtılan Transformer mimarisi (Self-Attention mekanizması), günümüzdeki LLM modellerinin temelini oluşturur.",
+  },
+  {
+    id: 4,
+    subject: "🚀 Havacılık",
+    difficulty: "Orta",
+    points: 40,
+    question: "Bir roketin Dünya yörüngesine yerleşebilmesi için ulaşması gereken yaklaşık birinci kozmik hız (yörünge hızı) saniyede kaç kilometredir?",
+    options: [
+      { key: "A", text: "1,2 km/sn" },
+      { key: "B", text: "3,4 km/sn" },
+      { key: "C", text: "7,9 km/sn" },
+      { key: "D", text: "18,5 km/sn" },
+    ],
+    correctKey: "C",
+    explanation: "Alçak Dünya Yörüngesi'nde (LEO) tutunabilmek için gereken hız yaklaşık 7,9 km/sn (28.400 km/saat) seviyesindedir.",
+  },
+  {
+    id: 5,
+    subject: "⚡ Elektronik",
+    difficulty: "Kolay",
+    points: 30,
+    question: "Gömülü sistemlerde mikrodenetleyicinin dijital bir pinle analog benzeri güç kontrolü (ör. motor hızı) yapmasını sağlayan teknik hangisidir?",
+    options: [
+      { key: "A", text: "PWM (Darbe Genişlik Modülasyonu)" },
+      { key: "B", text: "I2C Protokolü" },
+      { key: "C", text: "SPI Haberleşmesi" },
+      { key: "D", text: "DNS Çözümleme" },
+    ],
+    correctKey: "A",
+    explanation: "PWM (Pulse Width Modulation), sinyalin görev döngüsünü (duty cycle) değiştirerek motor hızı veya LED parlaklığı kontrolü sağlar.",
+  },
+  {
+    id: 6,
+    subject: "🧬 Biyoteknoloji",
+    difficulty: "Orta",
+    points: 40,
+    question: "DNA dizilerinde hedeflenen bölgeleri yüksek hassasiyetle düzenlemeye olanak tanıyan gen düzenleme teknolojisi hangisidir?",
+    options: [
+      { key: "A", text: "ELISA" },
+      { key: "B", text: "CRISPR-Cas9" },
+      { key: "C", text: "MRG (Manyetik Rezonans)" },
+      { key: "D", text: "Spektrofotometri" },
+    ],
+    correctKey: "B",
+    explanation: "CRISPR-Cas9, genetik materyalin belirli bölgelerini kesip düzenleyebilen moleküler makas teknolojisidir.",
+  },
+  {
+    id: 7,
+    subject: "🛰️ Uzay",
+    difficulty: "Orta",
+    points: 40,
+    question: "Türkiye'nin yerli ve millî imkânlarla geliştirdiği ilk yüksek çözünürlüklü yer gözlem uydusu hangisidir?",
+    options: [
+      { key: "A", text: "İMECE" },
+      { key: "B", text: "Voyager 1" },
+      { key: "C", text: "Hubble" },
+      { key: "D", text: "Galileo" },
+    ],
+    correctKey: "A",
+    explanation: "TÜBİTAK UZAY liderliğinde geliştirilen İMECE, Türkiye'nin metre altı çözünürlüğe sahip ilk yerli gözlem uydusudur.",
+  },
+  {
+    id: 8,
+    subject: "🔋 Enerji",
+    difficulty: "Zor",
+    points: 50,
+    question: "Elektrikli araç batarya yönetim sistemlerinde (BMS) bataryanın kalan kapasitesini ifade eden parametre hangisidir?",
+    options: [
+      { key: "A", text: "SoC (State of Charge)" },
+      { key: "B", text: "RPM (Dakikadaki Devir)" },
+      { key: "C", text: "SNR (Sinyal Gürültü Oranı)" },
+      { key: "D", text: "TTL (Yaşam Süresi)" },
+    ],
+    correctKey: "A",
+    explanation: "State of Charge (SoC), bataryanın doluluk oranını yüzde (%) cinsinden gösteren temel BMS parametresidir.",
+  },
+  {
+    id: 9,
+    subject: "🌐 Siber Güvenlik",
+    difficulty: "Kolay",
+    points: 30,
+    question: "İki uç arasındaki verinin yalnızca gönderici ve alıcı tarafından okunabilmesini sağlayan şifreleme yöntemi nedir?",
+    options: [
+      { key: "A", text: "Uçtan Uca Şifreleme (E2EE)" },
+      { key: "B", text: "Açık Metin Aktarımı (Plaintext)" },
+      { key: "C", text: "Statik Yönlendirme" },
+      { key: "D", text: "ARP Çözümleme" },
+    ],
+    correctKey: "A",
+    explanation: "End-to-End Encryption (E2EE), verinin aradaki sunucular dahil üçüncü taraflarca okunmasını engeller.",
+  },
+  {
+    id: 10,
+    subject: "🧠 Yapay Zekâ",
+    difficulty: "Zor",
+    points: 50,
+    question: "Görüntü işleme ve gerçek zamanlı nesne tespitinde (Object Detection) tek aşamalı mimarisiyle öne çıkan popüler algoritma hangisidir?",
+    options: [
+      { key: "A", text: "YOLO (You Only Look Once)" },
+      { key: "B", text: "Dijkstra Algoritması" },
+      { key: "C", text: "Bubble Sort" },
+      { key: "D", text: "RSA Şifreleme" },
+    ],
+    correctKey: "A",
+    explanation: "YOLO, görüntüyü tek bir sinir ağı geçişinde işleyerek gerçek zamanlı yüksek hızlı nesne tespiti yapar.",
+  },
+];
+
 export function GencQuiz() {
   useSEO({
     title: "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal",
@@ -67,7 +231,105 @@ export function GencQuiz() {
   const { openModal } = useAuthModalStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"hub" | "create" | "sets" | "leaderboard" | "categories" | "history">("hub");
+  const [activeTab, setActiveTab] = useState<"solo" | "hub" | "create" | "sets" | "leaderboard" | "categories" | "history">("solo");
+
+  // Solo Interactive Quiz State (Mockup 9)
+  const [soloIndex, setSoloIndex] = useState(0);
+  const [soloScore, setSoloScore] = useState(120);
+  const [soloSelectedKey, setSoloSelectedKey] = useState<"A" | "B" | "C" | "D" | null>("B");
+  const [soloLocked, setSoloLocked] = useState(false);
+  const [soloTimeLeft, setSoloTimeLeft] = useState(18);
+  const [soloHistory, setSoloHistory] = useState<Array<"correct" | "wrong" | "skipped">>([]);
+  const [soloEliminatedKeys, setSoloEliminatedKeys] = useState<string[]>([]);
+  const [soloFiftyLeft, setSoloFiftyLeft] = useState(1);
+  const [soloFinished, setSoloFinished] = useState(false);
+
+  const currentSoloQ = WEEKLY_SOLO_QUESTIONS[soloIndex] || WEEKLY_SOLO_QUESTIONS[0];
+  const soloCorrectCount = soloHistory.filter((r) => r === "correct").length;
+
+  useEffect(() => {
+    if (activeTab !== "solo" || soloFinished || soloLocked) return;
+    const timer = setInterval(() => {
+      setSoloTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeTab, soloIndex, soloFinished, soloLocked]);
+
+  const handleSoloUseFifty = () => {
+    if (soloFiftyLeft <= 0 || soloLocked || soloEliminatedKeys.length > 0) return;
+    const wrongKeys = currentSoloQ.options
+      .map((o) => o.key)
+      .filter((k) => k !== currentSoloQ.correctKey);
+    const toEliminate = wrongKeys.slice(0, 2);
+    setSoloEliminatedKeys(toEliminate);
+    if (soloSelectedKey && toEliminate.includes(soloSelectedKey)) {
+      setSoloSelectedKey(null);
+    }
+    setSoloFiftyLeft((prev) => prev - 1);
+    toast.success("50:50 jokeri kullanıldı! 2 yanlış şık elendi.");
+  };
+
+  const handleSoloSkip = () => {
+    if (soloLocked) return;
+    const nextHist = [...soloHistory, "skipped" as const];
+    setSoloHistory(nextHist);
+    setSoloEliminatedKeys([]);
+    setSoloSelectedKey(null);
+    setSoloTimeLeft(20);
+    if (soloIndex + 1 >= WEEKLY_SOLO_QUESTIONS.length) {
+      setSoloFinished(true);
+    } else {
+      setSoloIndex((prev) => prev + 1);
+    }
+  };
+
+  const handleSoloConfirm = () => {
+    if (!soloSelectedKey) {
+      toast.error("Lütfen bir şık seçin.");
+      return;
+    }
+    if (soloLocked) return;
+    setSoloLocked(true);
+    const isCorrect = soloSelectedKey === currentSoloQ.correctKey;
+    if (isCorrect) {
+      setSoloScore((prev) => prev + currentSoloQ.points);
+      toast.success(`Doğru cevap! +${currentSoloQ.points} puan`);
+    } else {
+      toast.error(`Yanlış cevap! Doğru şık: ${currentSoloQ.correctKey}`);
+    }
+    const nextHist = [...soloHistory, isCorrect ? ("correct" as const) : ("wrong" as const)];
+    setSoloHistory(nextHist);
+
+    setTimeout(() => {
+      setSoloLocked(false);
+      setSoloEliminatedKeys([]);
+      setSoloSelectedKey(null);
+      setSoloTimeLeft(20);
+      if (soloIndex + 1 >= WEEKLY_SOLO_QUESTIONS.length) {
+        setSoloFinished(true);
+      } else {
+        setSoloIndex((prev) => prev + 1);
+      }
+    }, 950);
+  };
+
+  const handleSoloRestart = () => {
+    setSoloIndex(0);
+    setSoloScore(0);
+    setSoloSelectedKey(null);
+    setSoloLocked(false);
+    setSoloTimeLeft(20);
+    setSoloHistory([]);
+    setSoloEliminatedKeys([]);
+    setSoloFiftyLeft(1);
+    setSoloFinished(false);
+  };
 
   // Join Room Code State
   const [joinCode, setJoinCode] = useState("");
@@ -374,8 +636,283 @@ export function GencQuiz() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-x-hidden">
-      {/* HERO HEADER - DISTINCT GENÇ SOSYAL BRANDING */}
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-x-hidden pb-24">
+      {/* NAVIGATION TABS */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-slate-200 dark:border-white/10">
+        {[
+          { id: "solo", label: "⚡ Haftanın Quiz'i (Bilim & Teknoloji)", icon: Zap },
+          { id: "hub", label: "🎮 Canlı Odalar", icon: Gamepad2 },
+          { id: "create", label: "➕ Oda Oluştur", icon: PlusCircle },
+          { id: "sets", label: "🧠 Soru Setlerim", icon: Layers },
+          { id: "leaderboard", label: "🏆 Sıralama", icon: Trophy },
+          { id: "categories", label: "📚 Kategoriler", icon: Compass },
+          { id: "history", label: "📖 Geçmiş", icon: History },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+              activeTab === tab.id
+                ? "bg-[#2563EB] text-white shadow-md shadow-blue-500/20"
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* TAB 0: SOLO INTERACTIVE QUIZ PLAY SCREEN (Mockup 9) */}
+      {activeTab === "solo" && (
+        <div className="max-w-lg mx-auto">
+          {!soloFinished ? (
+            <div className="rounded-3xl bg-[#F8FAFC] dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-6 shadow-sm space-y-5">
+              {/* Top Quiz Bar */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("hub")}
+                    aria-label="Kapat"
+                    className="w-10 h-10 rounded-2xl bg-white dark:bg-[#152036] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    ✕
+                  </button>
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                      Genç Quiz
+                    </div>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                      Bilim & Teknoloji
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Score Pill */}
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#152036] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
+                  <span className="text-amber-500 text-sm">★</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white tabular-nums">
+                    {soloScore}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress + Segmented Bar + Circular Timer */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-extrabold text-slate-900 dark:text-white">
+                      Soru {soloIndex + 1} <span className="text-slate-400 font-semibold">/ {WEEKLY_SOLO_QUESTIONS.length}</span>
+                    </span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      {soloCorrectCount} doğru
+                    </span>
+                  </div>
+
+                  {/* 10 Segmented Bars */}
+                  <div className="grid grid-cols-10 gap-1.5">
+                    {WEEKLY_SOLO_QUESTIONS.map((q, idx) => {
+                      const status = soloHistory[idx];
+                      let barClass = "bg-slate-200 dark:bg-slate-800";
+                      if (idx < soloIndex) {
+                        barClass =
+                          status === "correct"
+                            ? "bg-emerald-500"
+                            : status === "wrong"
+                            ? "bg-rose-500"
+                            : "bg-amber-400";
+                      } else if (idx === soloIndex) {
+                        barClass = "bg-[#2563EB]";
+                      }
+                      return (
+                        <div
+                          key={q.id}
+                          className={`h-2 rounded-full transition-colors ${barClass}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Circular Countdown Timer */}
+                <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+                  <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                    <circle
+                      cx="28"
+                      cy="28"
+                      r="23"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4.5"
+                      className="text-slate-200 dark:text-slate-800"
+                    />
+                    <circle
+                      cx="28"
+                      cy="28"
+                      r="23"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4.5"
+                      strokeLinecap="round"
+                      strokeDasharray={144.5}
+                      strokeDashoffset={144.5 - (144.5 * soloTimeLeft) / 20}
+                      className={
+                        soloTimeLeft <= 5 ? "text-rose-500 transition-all" : "text-[#2563EB] transition-all"
+                      }
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                    <span className="text-sm font-black text-slate-900 dark:text-white tabular-nums">
+                      {soloTimeLeft}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400">sn</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Question Card */}
+              <div className="rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-2xs space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 text-xs font-bold">
+                      {currentSoloQ.subject}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-bold">
+                      {currentSoloQ.difficulty}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    +{currentSoloQ.points} puan
+                  </span>
+                </div>
+
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-snug">
+                  {currentSoloQ.question}
+                </h3>
+              </div>
+
+              {/* 4 Option Cards (A, B, C, D) */}
+              <div className="space-y-2.5">
+                {currentSoloQ.options.map((opt) => {
+                  const isEliminated = soloEliminatedKeys.includes(opt.key);
+                  const isSelected = soloSelectedKey === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      disabled={isEliminated || soloLocked}
+                      onClick={() => setSoloSelectedKey(opt.key)}
+                      className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isEliminated
+                          ? "opacity-35 bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-white/[0.04] cursor-not-allowed line-through"
+                          : isSelected
+                          ? "bg-blue-50/90 dark:bg-blue-950/40 border-2 border-[#2563EB] shadow-xs"
+                          : "bg-white dark:bg-[#131D31] border-slate-200/90 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-500/40"
+                      }`}
+                    >
+                      <span
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shrink-0 transition-colors ${
+                          isSelected
+                            ? "bg-[#2563EB] text-white"
+                            : "bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200"
+                        }`}
+                      >
+                        {opt.key}
+                      </span>
+                      <span
+                        className={`text-sm sm:text-[15px] font-bold ${
+                          isSelected
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        {opt.text}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Lifeline / Joker Row: 50:50 & Pas geç */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={soloFiftyLeft <= 0 || soloEliminatedKeys.length > 0 || soloLocked}
+                  onClick={handleSoloUseFifty}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] disabled:opacity-45 transition-all cursor-pointer shadow-2xs"
+                >
+                  <span className="text-blue-600">✂️</span>
+                  <span>50:50</span>
+                  <span className="text-slate-400 font-semibold">({soloFiftyLeft})</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={soloLocked}
+                  onClick={handleSoloSkip}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] disabled:opacity-45 transition-all cursor-pointer shadow-2xs"
+                >
+                  <span className="text-slate-500">⏭️</span>
+                  <span>Pas geç</span>
+                </button>
+              </div>
+
+              {/* Bottom Confirm Answer CTA */}
+              <button
+                type="button"
+                disabled={!soloSelectedKey || soloLocked}
+                onClick={handleSoloConfirm}
+                className="w-full py-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 active:scale-[0.99] disabled:opacity-50 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
+              >
+                <span>Cevabı Onayla</span>
+                <ArrowRight className="w-4.5 h-4.5" />
+              </button>
+            </div>
+          ) : (
+            /* Solo Quiz Completion Card */
+            <div className="rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-6 sm:p-8 text-center space-y-5 shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 flex items-center justify-center mx-auto">
+                <Trophy className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563EB] dark:text-blue-400">
+                  Haftanın Quiz'i Tamamlandı
+                </span>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                  Toplam Skorun: {soloScore} Puan
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  {WEEKLY_SOLO_QUESTIONS.length} soruda{" "}
+                  <strong className="text-emerald-600 dark:text-emerald-400">{soloCorrectCount} doğru</strong> yanıt verdin!
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSoloRestart}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Tekrar Oyna
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("hub")}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Canlı Odalara Göz At
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* HERO HEADER - SHOWN ON OTHER TABS */}
+      {activeTab !== "solo" && (
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-900 via-blue-900 to-slate-950 p-5 sm:p-10 text-white shadow-xl border border-white/10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -430,32 +967,7 @@ export function GencQuiz() {
           </div>
         </div>
       </div>
-
-      {/* NAVIGATION TABS */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-slate-200 dark:border-white/10">
-        {[
-          { id: "hub", label: "🎮 Quiz Ana Sayfa", icon: Gamepad2 },
-          { id: "create", label: "➕ Quiz Odası Oluştur", icon: PlusCircle },
-          { id: "sets", label: "🧠 Soru Setlerim", icon: Layers },
-          { id: "leaderboard", label: "🏆 Sıralama", icon: Trophy },
-          { id: "categories", label: "📚 Kategoriler", icon: Compass },
-          { id: "history", label: "📖 Geçmiş Quizlerim", icon: History },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
-              activeTab === tab.id
-                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      )}
 
       {/* TAB 1: HUB (PUBLIC ROOMS + QUICK STATS + CATEGORIES SHORTCUT) */}
       {activeTab === "hub" && (

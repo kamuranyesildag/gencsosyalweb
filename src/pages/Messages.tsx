@@ -1,125 +1,264 @@
 import { useSEO } from "../hooks/useSEO";
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router";
-import { 
-  Mail, 
-  Plus, 
-  CheckCircle2, 
-  MessageSquarePlus, 
-  Sparkles,
+import { Link, useNavigate } from "react-router";
+import {
+  Mail,
+  MessageSquarePlus,
   Search,
-  X
+  X,
+  ArrowLeft,
+  SquarePen,
+  CheckCheck,
+  MessageSquare,
 } from "lucide-react";
 import { Avatar } from "../components/ui/Avatar";
-import { Button } from "../components/ui/Button";
 import { VerifiedBadge } from "../components/VerifiedBadge";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle } from "../components/ui/Skeleton";
-import { formatTimeAgo } from "../lib/utils";
+import { formatTimeAgo, cn } from "../lib/utils";
 import { usePagination } from "../hooks/usePagination";
 import { InfiniteScroll } from "../components/InfiniteScroll";
 import { NewMessageDialog } from "../components/NewMessageDialog";
+import { fetchApi } from "../lib/api";
+
+type MessageTab = "chats" | "groups" | "requests";
 
 export function Messages() {
-  useSEO({ allowIndexing: false });
+  useSEO({ allowIndexing: false, title: "Mesajlar | Genç Sosyal" });
+  const navigate = useNavigate();
   const [showNewMsg, setShowNewMsg] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: conversations, loading, loadingMore, hasMore, loadInitial, loadMore } = usePagination("/messages/conversations");
+  const [activeTab, setActiveTab] = useState<MessageTab>("chats");
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+
+  const {
+    data: conversations,
+    loading,
+    loadingMore,
+    hasMore,
+    loadInitial,
+    loadMore,
+  } = usePagination("/messages/conversations");
 
   useEffect(() => {
     loadInitial();
+    fetchApi("/users/suggested?limit=8")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setOnlineUsers(j.data);
+      })
+      .catch(() => {});
   }, [loadInitial]);
 
   const totalUnread = conversations.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0);
 
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    const q = searchQuery.toLowerCase().trim();
-    return conversations.filter((c) => {
-      const u = c.otherUser;
-      return (
-        u?.displayName?.toLowerCase().includes(q) ||
-        u?.username?.toLowerCase().includes(q) ||
-        c.lastMessage?.content?.toLowerCase().includes(q)
-      );
-    });
-  }, [conversations, searchQuery]);
+    let list = conversations;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((c) => {
+        const u = c.otherUser;
+        return (
+          u?.displayName?.toLowerCase().includes(q) ||
+          u?.username?.toLowerCase().includes(q) ||
+          c.lastMessage?.content?.toLowerCase().includes(q)
+        );
+      });
+    }
+    if (activeTab === "requests") {
+      return list.filter((c) => c.isRequest);
+    }
+    return list;
+  }, [conversations, searchQuery, activeTab]);
 
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
-      {/* STICKY HEADER */}
-      <header className="sticky top-0 md:top-[60px] z-20 bg-white dark:bg-[#080E1A] border-b border-slate-200/90 dark:border-white/[0.08] transition-colors">
-        <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+    <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] transition-colors relative">
+      {/* 1. STICKY HEADER (Matching Mockup 6) */}
+      <header className="sticky top-0 md:top-[60px] z-20 bg-[#F8FAFC]/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] px-4 pt-3.5 pb-3 space-y-3 transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/home")}
+              aria-label="Geri"
+              className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
               Mesajlar
             </h1>
-            {totalUnread > 0 && (
-              <span className="px-2 py-0.5 bg-blue-600 dark:bg-sky-500 text-white font-bold text-xs rounded-full shadow-xs">
-                {totalUnread} okunmamış
-              </span>
-            )}
           </div>
 
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<MessageSquarePlus className="w-4 h-4" />}
+          <button
+            type="button"
             onClick={() => setShowNewMsg(true)}
-            className="rounded-xl font-bold shadow-xs shadow-blue-500/20"
+            aria-label="Yeni Sohbet"
+            title="Yeni Sohbet"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-2xs transition-all active:scale-95 cursor-pointer"
           >
-            Yeni Mesaj
-          </Button>
+            <SquarePen className="w-4.5 h-4.5" />
+          </button>
         </div>
 
-        {/* Quick Search Bar */}
-        {conversations.length > 0 && (
-          <div className="px-4 sm:px-6 pb-3 pt-0.5">
-            <div className="relative group">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Mesajlarda ara..."
-                className="w-full bg-slate-100/70 hover:bg-slate-100 focus:bg-white dark:bg-white/[0.04] dark:hover:bg-white/[0.06] dark:focus:bg-[#0D121D] rounded-xl pl-9.5 pr-8 py-2 outline-none border border-slate-200/80 dark:border-white/[0.08] focus:border-blue-500/50 dark:focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Sohbetlerde Ara"
-              />
-              {searchQuery.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Aramayı temizle"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-white/[0.1] active:scale-95 transition-all"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Search Input */}
+        <div className="relative group">
+          <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Sohbetlerde ara"
+            className="w-full bg-white dark:bg-[#0D1424] rounded-2xl pl-10 pr-9 py-2.5 outline-none border border-slate-200/90 dark:border-white/[0.08] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm shadow-2xs"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Sohbetlerde Ara"
+          />
+          {searchQuery.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              aria-label="Aramayı temizle"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Segmented Tabs: Sohbetler | Gruplar | İstekler (Matching Mockup 6) */}
+        <div className="grid grid-cols-3 p-1 bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
+          {[
+            { id: "chats" as MessageTab, label: "Sohbetler", badge: totalUnread },
+            { id: "groups" as MessageTab, label: "Gruplar", badge: 0 },
+            { id: "requests" as MessageTab, label: "İstekler", badge: 0 },
+          ].map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "py-2 px-3 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                  isSelected
+                    ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                )}
+              >
+                <span>{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      {/* CONVERSATIONS LIST / SKELETON / EMPTY */}
-      <div className="flex flex-col flex-1 pb-24">
-        {/* Loading Skeleton */}
+      {/* 2. "ÇEVRİM İÇİ" HORIZONTAL STRIP (Matching Mockup 6) */}
+      {onlineUsers.length > 0 && (
+        <div className="px-4 pt-4 pb-2 space-y-2.5">
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            ÇEVRİM İÇİ
+          </div>
+          <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
+            {onlineUsers.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetchApi("/messages/conversations", {
+                      method: "POST",
+                      data: { targetUserId: u.id },
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data?.id) {
+                      navigate(`/messages/${json.data.id}`);
+                    }
+                  } catch {}
+                }}
+                className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer"
+              >
+                <div className="relative">
+                  <Avatar
+                    url={u.avatarUrl}
+                    name={u.displayName || u.username}
+                    size="md"
+                    className="w-13 h-13 ring-2 ring-white dark:ring-[#0D1424] group-hover:scale-105 transition-transform"
+                  />
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#080E1A]" />
+                </div>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 max-w-[64px] truncate">
+                  {(u.displayName || u.username || "").split(" ")[0]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. CONVERSATIONS LIST CARD */}
+      <div className="flex flex-col flex-1 px-4 pt-2 pb-28">
         {loading ? (
-          <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3.5 p-4 sm:p-5">
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06]">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3.5 p-4">
                 <SkeletonCircle size="lg" />
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between">
                     <Skeleton className="h-4 w-32 rounded-md" />
-                    <Skeleton className="h-3 w-16 rounded-md" />
+                    <Skeleton className="h-3 w-12 rounded-md" />
                   </div>
                   <Skeleton className="h-3.5 w-48 rounded-md" />
                 </div>
               </div>
             ))}
           </div>
+        ) : activeTab === "groups" ? (
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
+            <Link
+              to="/teknofest"
+              className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-sky-400 flex items-center justify-center font-black text-base shrink-0">
+                🚀
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                    Göktürk İHA Takımı
+                  </span>
+                  <span className="text-xs font-bold text-blue-600">Aktif</span>
+                </div>
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate mt-0.5">
+                  ••• Takım çalışma odası ve görev paylaşımı
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/communities"
+              className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center font-black text-base shrink-0">
+                🤖
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                    Robotik Kulübü - Yönetim
+                  </span>
+                  <span className="text-xs text-slate-400">Topluluk</span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  Cuma toplantısı 18:00&apos;de 👍
+                </p>
+              </div>
+            </Link>
+          </div>
         ) : filteredConversations.length > 0 ? (
-          <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
             <InfiniteScroll
               items={filteredConversations}
               hasMore={hasMore && !searchQuery}
@@ -133,49 +272,48 @@ export function Messages() {
                   <div key={conv.id}>
                     <Link
                       to={`/messages/${conv.id}`}
-                      className={`flex items-center gap-3.5 sm:gap-4 p-4 sm:p-5 transition-all group relative ${
+                      className={cn(
+                        "flex items-center gap-3.5 p-4 transition-all group relative",
                         hasUnread
-                          ? "bg-blue-50/50 dark:bg-sky-950/25 hover:bg-blue-50/80 dark:hover:bg-sky-950/35"
-                          : "hover:bg-white/60 dark:hover:bg-white/[0.04] bg-transparent"
-                      }`}
+                          ? "bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/70"
+                          : "hover:bg-slate-50 dark:hover:bg-white/[0.03]"
+                      )}
                     >
-                      {/* Avatar */}
-                      <Avatar
-                        url={otherUser?.avatarUrl}
-                        name={otherUser?.displayName || otherUser?.username}
-                        size="lg"
-                        className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-slate-300 transition-all shrink-0"
-                      />
+                      <div className="relative shrink-0">
+                        <Avatar
+                          url={otherUser?.avatarUrl}
+                          name={otherUser?.displayName || otherUser?.username}
+                          size="lg"
+                          className="w-12 h-12 ring-1 ring-slate-200 dark:ring-white/10"
+                        />
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#0D1424]" />
+                      </div>
 
-                      {/* Conversation Body */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline gap-2 mb-1">
+                        <div className="flex justify-between items-baseline gap-2 mb-0.5">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span
-                              className={`font-bold truncate text-sm sm:text-base transition-colors ${
-                                hasUnread
-                                  ? "text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                                  : "text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                              }`}
-                            >
+                            <span className="font-extrabold truncate text-sm sm:text-[15px] text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
                               {otherUser?.displayName || otherUser?.username || "Kullanıcı"}
                             </span>
                             {otherUser?.isVerified && (
                               <VerifiedBadge
                                 iconClassName="w-4 h-4"
                                 withModal={false}
-                                targetUser={{ username: otherUser.username, isVerified: !!otherUser.isVerified }}
+                                targetUser={{
+                                  username: otherUser.username,
+                                  isVerified: !!otherUser.isVerified,
+                                }}
                               />
                             )}
-                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate hidden sm:inline">
-                              @{otherUser?.username}
-                            </span>
                           </div>
 
                           <span
-                            className={`text-xs shrink-0 font-medium ${
-                              hasUnread ? "text-blue-600 dark:text-blue-400 font-bold" : "text-slate-400 dark:text-slate-500"
-                            }`}
+                            className={cn(
+                              "text-xs shrink-0",
+                              hasUnread
+                                ? "text-blue-600 dark:text-blue-400 font-bold"
+                                : "text-slate-400 dark:text-slate-500 font-medium"
+                            )}
                           >
                             {formatTimeAgo(conv.updatedAt)}
                           </span>
@@ -183,17 +321,23 @@ export function Messages() {
 
                         <div className="flex justify-between items-center gap-2">
                           <p
-                            className={`truncate text-xs sm:text-sm leading-relaxed ${
+                            className={cn(
+                              "truncate text-xs sm:text-sm leading-relaxed flex items-center gap-1",
                               hasUnread
-                                ? "font-semibold text-slate-900 dark:text-slate-100"
+                                ? "font-bold text-slate-900 dark:text-slate-100"
                                 : "text-slate-500 dark:text-slate-400 font-normal"
-                            }`}
+                            )}
                           >
-                            {conv.lastMessage?.content || "Medya/Ek içerik"}
+                            {!hasUnread && (
+                              <CheckCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                            )}
+                            <span className="truncate">
+                              {conv.lastMessage?.content || "Medya / Ek içerik"}
+                            </span>
                           </p>
 
                           {hasUnread && (
-                            <span className="bg-blue-600 dark:bg-blue-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center shrink-0 shadow-xs">
+                            <span className="bg-blue-600 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-lg min-w-[22px] text-center shrink-0 shadow-2xs">
                               {conv.unreadCount}
                             </span>
                           )}
@@ -205,24 +349,22 @@ export function Messages() {
               }}
             />
           </div>
-        ) : searchQuery.trim().length > 0 ? (
-          <div className="px-6 py-16 max-w-md mx-auto text-center">
-            <EmptyState
-              icon={<Search className="w-8 h-8 text-slate-400" />}
-              title="Sonuç Bulunamadı"
-              description={`"${searchQuery}" ile eşleşen bir sohbet veya mesaj bulunamadı.`}
-              action={{
-                label: "Aramayı Temizle",
-                onClick: () => setSearchQuery(""),
-              }}
-            />
-          </div>
         ) : (
-          <div className="px-6 py-16 max-w-md mx-auto text-center">
+          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] px-6 py-14 text-center shadow-2xs">
             <EmptyState
               icon={<Mail className="w-8 h-8 text-slate-400" />}
-              title="Mesaj Kutunuz Boş"
-              description="Topluluktaki diğer kullanıcılarla doğrudan iletişime geçmek için ilk sohbetinizi başlatın."
+              title={
+                searchQuery.trim()
+                  ? "Sonuç Bulunamadı"
+                  : activeTab === "requests"
+                  ? "Mesaj İsteği Yok"
+                  : "Mesaj Kutunuz Boş"
+              }
+              description={
+                searchQuery.trim()
+                  ? `"${searchQuery}" ile eşleşen bir sohbet bulunamadı.`
+                  : "Topluluktaki diğer üreticilerle doğrudan iletişime geçmek için yeni bir sohbet başlatın."
+              }
               action={{
                 label: "Yeni Sohbet Başlat",
                 onClick: () => setShowNewMsg(true),
@@ -230,6 +372,18 @@ export function Messages() {
             />
           </div>
         )}
+      </div>
+
+      {/* 4. FLOATING "💬 YENİ SOHBET" BUTTON (Matching Mockup 6) */}
+      <div className="fixed bottom-20 md:bottom-8 right-4 sm:right-8 z-30">
+        <button
+          type="button"
+          onClick={() => setShowNewMsg(true)}
+          className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-blue-600/30 active:scale-95 transition-all cursor-pointer"
+        >
+          <MessageSquare className="w-4.5 h-4.5 fill-white" />
+          <span>Yeni Sohbet</span>
+        </button>
       </div>
 
       {/* NEW MESSAGE DIALOG */}

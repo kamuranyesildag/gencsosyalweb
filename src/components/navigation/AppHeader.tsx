@@ -141,8 +141,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       <div className="w-full max-w-7xl px-3 sm:px-4 md:px-6 flex justify-between items-center h-full gap-2 md:gap-4">
         {/* ===================== MOBILE HEADER ===================== */}
         <div className="md:hidden flex items-center justify-between w-full h-full gap-2">
-          {/* Left: Drawer Trigger + Unsquished Brand */}
-          <div className="flex items-center gap-2.5 min-w-0">
+          {/* Left: Drawer Trigger + GS Brand */}
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={onMenuClick}
@@ -150,82 +150,77 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               className="relative flex items-center justify-center w-9 h-9 -ml-1 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5 stroke-[2]" />
-              {unreadNotifications > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#080E1A]" />
-              )}
             </button>
 
             <Link
               to="/home"
-              className="flex items-center gap-2 select-none group min-w-0"
+              className="flex items-center gap-2.5 select-none group min-w-0"
               aria-label="Genç Sosyal Ana Sayfa"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs shrink-0">
-                <svg
-                  className="w-4.5 h-4.5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                  <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                </svg>
+              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs tracking-tight shadow-xs shrink-0">
+                GS
               </div>
-              <span className="font-bold text-[17px] tracking-tight text-slate-900 dark:text-slate-100 truncate">
+              <span className="font-extrabold text-[17px] tracking-tight text-slate-900 dark:text-slate-100 truncate">
                 Genç Sosyal
               </span>
             </Link>
           </div>
 
-          {/* Right Mobile Actions (Only most essential) */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Search Icon */}
-            <button
-              type="button"
-              onClick={() => navigate('/explore')}
-              aria-label="Arama"
-              className="flex items-center justify-center w-9 h-9 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] rounded-xl transition-colors active:scale-95 cursor-pointer"
-            >
-              <Search className="w-4.5 h-4.5 stroke-[1.8]" />
-            </button>
-
-            {/* Messages Icon with Badge */}
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => navigate('/messages')}
-                aria-label="Mesajlar"
-                className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
-                  isMessagesActive
-                    ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
-                }`}
-              >
-                <Mail className="w-4.5 h-4.5 stroke-[1.8]" />
-                {unreadMessages > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[15px] h-3.5 px-0.5 rounded-full bg-blue-600 text-[9px] font-bold text-white flex items-center justify-center ring-1.5 ring-white dark:ring-[#080E1A]">
-                    {unreadMessages > 9 ? '9+' : unreadMessages}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* User Menu or Login on Mobile */}
+          {/* Right Mobile Actions (Matching Mockup: Messages Paper-Plane with blue badge + Bell with red dot) */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {isAuthenticated ? (
-              <div className="ml-0.5">
-                <UserMenu />
-              </div>
+              <>
+                {/* Messages Paper-Plane Icon with Blue Badge */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/messages')}
+                  aria-label="Mesajlar"
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
+                    isMessagesActive
+                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                  </svg>
+                  {unreadMessages > 0 && (
+                    <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-[9.5px] font-extrabold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A]">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Bell Icon with Red Dot */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/notifications')}
+                  aria-label="Bildirimler"
+                  className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95 cursor-pointer ${
+                    isNotificationsActive
+                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <Bell className="w-5 h-5 stroke-[1.9]" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1.5 right-2 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#080E1A]" />
+                  )}
+                </button>
+
+                <div className="ml-0.5">
+                  <UserMenu />
+                </div>
+              </>
             ) : (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => navigate('/login')}
-                className="ml-1 px-3 py-1.5 text-xs font-semibold rounded-xl"
+                className="ml-1 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Giriş
+                Giriş Yap
               </Button>
             )}
           </div>
@@ -240,19 +235,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
               className="flex items-center gap-2.5 select-none group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-xl p-1 -ml-1 transition-transform active:scale-[0.98]"
               aria-label="Genç Sosyal Ana Sayfa"
             >
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-102">
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                  <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                </svg>
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm tracking-tight shadow-xs transition-transform group-hover:scale-102">
+                GS
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">

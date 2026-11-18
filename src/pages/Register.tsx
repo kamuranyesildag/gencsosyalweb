@@ -697,7 +697,7 @@ export function Register() {
               </div>
             </div>
 
-            {/* Kullanım Koşulları Onayı */}
+            {/* Kullanım Şartları ve KVKK Onayı */}
             <div className="pt-1">
               <label className="flex items-start gap-3 cursor-pointer select-none">
                 <input
@@ -708,13 +708,17 @@ export function Register() {
                 />
                 <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   <Link to="/terms" target="_blank" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
-                    Kullanım Koşulları
+                    Kullanım Şartları
                   </Link>
-                  'nı ve{' '}
+                  &apos;nı,{' '}
                   <Link to="/privacy" target="_blank" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
                     Gizlilik Politikası
                   </Link>
-                  'nı okudum, kabul ediyorum.
+                  &apos;nı ve{' '}
+                  <Link to="/kvkk" target="_blank" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                    KVKK Aydınlatma Metni
+                  </Link>
+                  &apos;ni okudum, kabul ediyorum.
                 </span>
               </label>
             </div>

@@ -1,29 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { useSEO } from "../hooks/useSEO";
 import { PostCard } from "../components/PostCard";
 import { StoriesBar } from "../components/StoriesBar";
 import { HomeCreatePost } from "../components/HomeCreatePost";
 import { FeedSuggestedUsers } from "../components/FeedSuggestedUsers";
+import { Avatar } from "../components/ui/Avatar";
+import { VerifiedBadge } from "../components/VerifiedBadge";
 import { fetchApi } from "../lib/api";
 import { useAuthStore } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useFollowStore } from "../context/useFollowStore";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { triggerHaptic } from "../utils/haptics";
+import { toast } from "../components/ui/Toast";
 import {
   Sparkles,
   Users,
   ArrowUp,
   RefreshCw,
   AlertCircle,
-  Image as ImageIcon,
-  BarChart2,
   Flame,
-  Layers,
   Keyboard,
   X,
   Command,
+  Rocket,
+  Brain,
+  ArrowRight,
+  Pin,
+  Heart,
+  MessageCircle,
+  Repeat2,
+  Bookmark,
+  Check,
 } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import { motion, AnimatePresence } from "motion/react";
@@ -45,6 +54,18 @@ interface Post {
   postType?: "NORMAL" | "POLL" | "SENSITIVE";
   contentWarning?: string;
   pollData?: any;
+  community?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  project?: {
+    id: number;
+    title: string;
+    category: string;
+    status?: string;
+    imageUrl?: string;
+  };
   user: {
     id: number;
     username: string;
@@ -56,18 +77,19 @@ interface Post {
   };
 }
 
-type FeedFilter = "all" | "media" | "polls" | "popular";
+type PrimaryFeedTab = "for_you" | "following" | "projects" | "communities";
 
 export function Feed() {
   useSEO({
     title: "Akış — Keşfet ve Paylaş | Genç Sosyal",
-    description: "Genç Sosyal akışında genç yazılımcıların ve üreticilerin en yeni projelerini, güncel fikirlerini ve teknoloji paylaşımlarını canlı takip edin.",
+    description:
+      "Genç Sosyal akışında genç yazılımcıların ve üreticilerin en yeni projelerini, güncel fikirlerini ve teknoloji paylaşımlarını canlı takip edin.",
     canonicalPath: "/home",
   });
 
   const navigate = useNavigate();
+  const [activePrimaryTab, setActivePrimaryTab] = useState<PrimaryFeedTab>("for_you");
   const [feedType, setFeedType] = useState<"for_you" | "following">("for_you");
-  const [activeFilter, setActiveFilter] = useState<FeedFilter>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -76,15 +98,47 @@ export function Feed() {
   const [hasMore, setHasMore] = useState(true);
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
 
+  // Featured Projects & Communities for the dedicated tabs & embedded cards
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+  const [featuredCommunities, setFeaturedCommunities] = useState<any[]>([]);
+  const [workshopJoined, setWorkshopJoined] = useState(false);
+  const [workshopAttendees, setWorkshopAttendees] = useState(324);
+
   // Keyboard Navigation State
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState<boolean>(false);
 
-  const { isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const isFetchingRef = useRef<boolean>(false);
+
+  // Time-based personalized greeting
+  const greetingText = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Günaydın,";
+    if (hour >= 12 && hour < 18) return "İyi günler,";
+    if (hour >= 18 && hour < 23) return "İyi akşamlar,";
+    return "İyi geceler,";
+  }, []);
+
+  // Load projects & communities for rich feed tabs
+  useEffect(() => {
+    fetchApi("/projects?limit=6")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setFeaturedProjects(j.data);
+      })
+      .catch(() => {});
+
+    fetchApi("/communities?limit=6")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setFeaturedCommunities(j.data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Load feed posts
   const loadPosts = useCallback(
@@ -106,7 +160,6 @@ export function Feed() {
             : `/feed/for-you?page=${currentPage}&limit=10`;
 
         let res = await fetchApi(endpoint);
-        // Fallback to /feed if /feed/for-you is not available
         if (!res.ok && type === "for_you") {
           res = await fetchApi(`/feed?page=${currentPage}&limit=10`);
         }
@@ -138,7 +191,6 @@ export function Feed() {
             }));
           }
 
-          // Sync any already followed authors to useFollowStore
           fetchedPosts.forEach((p) => {
             if (p.user?.id && (p.user.isFollowing || type === "following")) {
               useFollowStore.getState().syncFromUser(p.user.id, true);
@@ -255,19 +307,26 @@ export function Feed() {
     loadPosts(1, feedType, true);
   };
 
-  // Client-side quick filter for active tab
+  // Filtered posts based on activePrimaryTab
   const filteredPosts = useMemo(() => {
-    if (activeFilter === "media") {
-      return posts.filter((p) => p.media && p.media.length > 0);
+    if (activePrimaryTab === "projects") {
+      const projFiltered = posts.filter(
+        (p) =>
+          p.project ||
+          /proje|teknofest|github|prototip|sistem|uygulama|kod|yazılım|robot/i.test(p.content)
+      );
+      return projFiltered.length > 0 ? projFiltered : posts;
     }
-    if (activeFilter === "polls") {
-      return posts.filter((p) => p.postType === "POLL");
-    }
-    if (activeFilter === "popular") {
-      return [...posts].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+    if (activePrimaryTab === "communities") {
+      const commFiltered = posts.filter(
+        (p) =>
+          p.community ||
+          /topluluk|kulüp|atölye|etkinlik|takım|buluşma/i.test(p.content)
+      );
+      return commFiltered.length > 0 ? commFiltered : posts;
     }
     return posts;
-  }, [posts, activeFilter]);
+  }, [posts, activePrimaryTab]);
 
   // Keyboard Shortcuts Handlers
   const handleLikeCurrent = useCallback(() => {
@@ -276,9 +335,7 @@ export function Feed() {
     if (!post) return;
     const postElem = document.getElementById(`post-index-${focusedIndex}`);
     const likeBtn = postElem?.querySelector<HTMLButtonElement>('[aria-label*="tepki"]');
-    if (likeBtn) {
-      likeBtn.click();
-    }
+    if (likeBtn) likeBtn.click();
   }, [focusedIndex, filteredPosts]);
 
   const handleRepostCurrent = useCallback(() => {
@@ -287,9 +344,7 @@ export function Feed() {
     if (!post) return;
     const postElem = document.getElementById(`post-index-${focusedIndex}`);
     const repostBtn = postElem?.querySelector<HTMLButtonElement>('[aria-label*="paylaşım"]');
-    if (repostBtn) {
-      repostBtn.click();
-    }
+    if (repostBtn) repostBtn.click();
   }, [focusedIndex, filteredPosts]);
 
   const handleFocusCompose = useCallback(() => {
@@ -313,7 +368,6 @@ export function Feed() {
     loadPosts(1, feedType, true);
   }, [feedType, loadPosts]);
 
-  // Keyboard shortcuts integration
   useKeyboardShortcuts({
     postsLength: filteredPosts.length,
     focusedIndex,
@@ -325,110 +379,22 @@ export function Feed() {
     onRefreshFeed: handleRefreshFeed,
   });
 
+  const handleSelectPrimaryTab = (tab: PrimaryFeedTab) => {
+    triggerHaptic("selection");
+    if (tab === "following") {
+      if (!isAuthenticated) {
+        openModal();
+        return;
+      }
+      setFeedType("following");
+    } else if (tab === "for_you") {
+      setFeedType("for_you");
+    }
+    setActivePrimaryTab(tab);
+  };
+
   return (
-    <section aria-label="Sosyal Akış" className="w-full min-h-screen">
-      {/* 1. STICKY FEED HEADER */}
-      <header className="sticky top-[54px] md:top-[60px] z-20 bg-white dark:bg-[#080E1A] border-b border-slate-200/90 dark:border-white/[0.08] transition-all py-2.5 shadow-2xs">
-        <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 flex flex-col gap-2">
-          {/* Main Segmented Switcher & Tool Controls */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="inline-flex p-1 bg-slate-100/80 dark:bg-white/[0.06] backdrop-blur-md rounded-2xl border border-slate-200/70 dark:border-white/[0.08] shadow-inner">
-              {/* For You Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("selection");
-                  setFeedType("for_you");
-                }}
-                className={cn(
-                  "relative px-4 py-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer select-none",
-                  feedType === "for_you"
-                    ? "bg-white dark:bg-blue-600 text-slate-900 dark:text-white shadow-xs scale-[1.02]"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                )}
-              >
-                <span>Sana Özel</span>
-              </button>
-
-              {/* Following Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("selection");
-                  if (!isAuthenticated) return openModal();
-                  setFeedType("following");
-                }}
-                className={cn(
-                  "relative px-4 py-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer select-none",
-                  feedType === "following"
-                    ? "bg-white dark:bg-blue-600 text-slate-900 dark:text-white shadow-xs scale-[1.02]"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                )}
-              >
-                <span>Takip Edilenler</span>
-              </button>
-            </div>
-
-            {/* Right Header Action Icons */}
-            <div className="flex items-center gap-1.5">
-              {/* Keyboard Shortcuts Trigger */}
-              <button
-                type="button"
-                onClick={handleToggleHelpModal}
-                title="Klavye Kısayolları (?)"
-                aria-label="Klavye kısayollarını göster"
-                className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.12] text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-white/[0.08] transition-all active:scale-95 cursor-pointer"
-              >
-                <Keyboard className="w-4 h-4" />
-              </button>
-
-              {/* Quick Refresh Button */}
-              <button
-                type="button"
-                onClick={handleRefreshFeed}
-                title="Akışı Yenile (.)"
-                aria-label="Akışı yenile"
-                className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.12] text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-white/[0.08] transition-all active:scale-95 cursor-pointer"
-              >
-                <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin text-blue-500")} />
-              </button>
-            </div>
-          </div>
-
-          {/* Liquid Glass Sub-Filter Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {[
-              { id: "all" as FeedFilter, label: "Tümü", icon: Layers },
-              { id: "media" as FeedFilter, label: "Medyalılar", icon: ImageIcon },
-              { id: "polls" as FeedFilter, label: "Anketler", icon: BarChart2 },
-              { id: "popular" as FeedFilter, label: "Popüler", icon: Flame },
-            ].map((f) => {
-              const Icon = f.icon;
-              const isActive = activeFilter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("selection");
-                    setActiveFilter(f.id);
-                  }}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer select-none border",
-                    isActive
-                      ? "bg-blue-600/90 text-white border-blue-500 shadow-xs shadow-blue-500/20 scale-[1.02]"
-                      : "bg-white/60 dark:bg-white/[0.04] hover:bg-slate-100/80 dark:hover:bg-white/[0.08] text-slate-600 dark:text-slate-300 border-slate-200/70 dark:border-white/[0.06]"
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{f.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
+    <section aria-label="Sosyal Akış" className="w-full min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] transition-colors">
       {/* Floating New Posts Pill Notification */}
       <AnimatePresence>
         {newPostsAvailable && (
@@ -436,12 +402,12 @@ export function Feed() {
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="sticky top-[125px] z-30 flex justify-center pointer-events-none py-2"
+            className="sticky top-[70px] z-30 flex justify-center pointer-events-none py-2"
           >
             <button
               type="button"
               onClick={handleRefreshToNewPosts}
-              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 bg-blue-600/90 dark:bg-blue-600/90 hover:bg-blue-700 backdrop-blur-xl active:scale-95 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/30 border border-blue-400/30 transition-all cursor-pointer"
+              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/30 transition-all cursor-pointer"
             >
               <ArrowUp className="w-3.5 h-3.5 animate-bounce" />
               <span>Yeni Gönderiler Var</span>
@@ -450,23 +416,205 @@ export function Feed() {
         )}
       </AnimatePresence>
 
-      {/* 2. FEED CONTENT FLOW */}
-      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-12 flex flex-col gap-3">
+      {/* MAIN FEED CONTAINER */}
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-3.5 pb-16 flex flex-col gap-3.5">
+        {/* 1. PERSONALIZED GREETING & STREAK BANNER (Matching Mockup 5) */}
+        <div className="flex items-center justify-between gap-3 px-0.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link
+              to={user ? `/profile/${user.username}` : "/login"}
+              className="shrink-0 group"
+            >
+              <Avatar
+                url={user?.avatarUrl}
+                name={user?.displayName || user?.username || "Genç Üretici"}
+                size="md"
+                className="w-11 h-11 rounded-2xl ring-2 ring-white dark:ring-white/10 shadow-xs group-hover:scale-105 transition-transform"
+              />
+            </Link>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-tight">
+                {greetingText}
+              </p>
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                {user?.displayName || user?.username || "Genç Üretici"}
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Daily Streak Pill */}
+            <button
+              type="button"
+              onClick={() => navigate("/quiz")}
+              title="Günlük Üretim ve Quiz Serisi"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] shadow-2xs hover:border-amber-400/60 transition-all active:scale-95 cursor-pointer"
+            >
+              <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums">
+                12 gün
+              </span>
+            </button>
+
+            {/* Refresh & Keyboard Help */}
+            <button
+              type="button"
+              onClick={handleRefreshFeed}
+              title="Akışı Yenile"
+              aria-label="Akışı yenile"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-[#0D1424] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.08] transition-all active:scale-95 cursor-pointer"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin text-blue-600")} />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleHelpModal}
+              title="Klavye Kısayolları (?)"
+              aria-label="Klavye kısayollarını göster"
+              className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center bg-white dark:bg-[#0D1424] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.08] transition-all active:scale-95 cursor-pointer"
+            >
+              <Keyboard className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
         {/* Stories Bar */}
         <StoriesBar />
 
-        {/* Inline Create Post Quick Composer */}
+        {/* 2. INLINE QUICK COMPOSER ("Bugün ne üretiyorsun?" + Medya | Proje | Etiket) */}
         <HomeCreatePost onPostCreated={handlePostCreated} />
 
-        {/* 3. POSTS STREAM */}
-        <div role="feed" aria-label="Sosyal akış" className="w-full flex flex-col gap-3">
+        {/* 3. FEED FILTER PILLS: Senin İçin | Takip Edilenler | Projeler | Topluluklar */}
+        <div
+          role="tablist"
+          aria-label="Akış Kategorileri"
+          className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5"
+        >
+          {[
+            { id: "for_you" as PrimaryFeedTab, label: "Senin İçin" },
+            { id: "following" as PrimaryFeedTab, label: "Takip Edilenler" },
+            { id: "projects" as PrimaryFeedTab, label: "Projeler" },
+            { id: "communities" as PrimaryFeedTab, label: "Topluluklar" },
+          ].map((tab) => {
+            const isActive = activePrimaryTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleSelectPrimaryTab(tab.id)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all cursor-pointer select-none border",
+                  isActive
+                    ? "bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-500 shadow-xs"
+                    : "bg-white dark:bg-[#0D1424] hover:bg-slate-100/80 dark:hover:bg-white/[0.06] text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/[0.08]"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 4. "ÖNE ÇIKANLAR" (FEATURED MODULES CAROUSEL - Matching Mockup 5) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-0.5">
+            <h2 className="text-sm sm:text-[15px] font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Öne Çıkanlar
+            </h2>
+            <Link
+              to="/explore"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Tümü
+            </Link>
+          </div>
+
+          <div className="flex items-stretch gap-3 overflow-x-auto no-scrollbar pb-1">
+            {/* Card 1: TEKNOFEST Modülü */}
+            <div
+              onClick={() => navigate("/teknofest")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && navigate("/teknofest")}
+              className="relative min-w-[250px] sm:min-w-[275px] h-[136px] rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-[#0F172A] to-blue-950 p-4 flex flex-col justify-between text-white shadow-sm border border-slate-800/80 cursor-pointer group shrink-0"
+            >
+              <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] group-hover:scale-105 transition-transform duration-300" />
+              <div className="relative z-10 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-md text-[11px] font-bold text-sky-300 border border-white/15">
+                  <Rocket className="w-3.5 h-3.5 text-sky-400" />
+                  <span>TEKNOFEST Modülü</span>
+                </span>
+              </div>
+              <div className="relative z-10">
+                <h3 className="text-sm sm:text-[15px] font-extrabold leading-snug text-white group-hover:text-sky-200 transition-colors">
+                  Takımını kur, projeni topluluğa tanıt
+                </h3>
+              </div>
+            </div>
+
+            {/* Card 2: Haftanın Bilgi Quiz'i */}
+            <div
+              onClick={() => navigate("/quiz")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && navigate("/quiz")}
+              className="min-w-[195px] sm:min-w-[215px] h-[136px] rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] p-4 flex flex-col justify-between shadow-2xs hover:border-blue-500/40 transition-all cursor-pointer group shrink-0"
+            >
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Brain className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+                  Haftanın Bilgi Quiz&apos;i
+                </h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                  10 soru · 5 dk
+                </p>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 mt-1.5 group-hover:translate-x-0.5 transition-transform">
+                  <span>Başla</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: Projeler Vitrini */}
+            <div
+              onClick={() => navigate("/projects")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && navigate("/projects")}
+              className="min-w-[195px] sm:min-w-[215px] h-[136px] rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] p-4 flex flex-col justify-between shadow-2xs hover:border-emerald-500/40 transition-all cursor-pointer group shrink-0"
+            >
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+                  Öğrenci Projeleri
+                </h3>
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                  Açık kaynak & prototipler
+                </p>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 group-hover:translate-x-0.5 transition-transform">
+                  <span>Keşfet</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. POSTS STREAM & CONTEXTUAL SHOWCASE CARDS */}
+        <div role="feed" aria-label="Sosyal akış" className="w-full flex flex-col gap-3.5">
           {loading ? (
-            /* Frosted Skeleton Loading State */
             <div className="w-full flex flex-col gap-3">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="w-full bg-white/70 dark:bg-[#0B1329]/70 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-white/[0.07] p-4 flex flex-col gap-3 shadow-xs"
+                  className="w-full bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200/80 dark:border-white/[0.07] p-4 flex flex-col gap-3 shadow-2xs"
                 >
                   <div className="flex items-center gap-3">
                     <Skeleton className="w-10 h-10 rounded-full shrink-0" />
@@ -478,24 +626,18 @@ export function Feed() {
                   <Skeleton className="h-3.5 w-full rounded-md" />
                   <Skeleton className="h-3.5 w-4/5 rounded-md" />
                   <Skeleton className="h-44 sm:h-56 w-full rounded-xl mt-1" />
-                  <div className="flex items-center gap-2 pt-1">
-                    <Skeleton className="h-7 w-14 rounded-lg" />
-                    <Skeleton className="h-7 w-14 rounded-lg" />
-                    <Skeleton className="h-7 w-14 rounded-lg" />
-                  </div>
                 </div>
               ))}
             </div>
           ) : error ? (
-            /* Liquid Glass Error Card */
-            <div className="w-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md border border-rose-200/80 dark:border-rose-900/40 rounded-2xl p-6 sm:p-8 text-center shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3 border border-rose-200/50 dark:border-rose-900/50">
+            <div className="w-full bg-white dark:bg-[#0B1329] border border-rose-200/80 dark:border-rose-900/40 rounded-2xl p-6 sm:p-8 text-center shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
                 <AlertCircle className="w-6 h-6 stroke-[1.75]" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
                 Akış yüklenemedi
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
                 {error}
               </p>
               <button
@@ -508,9 +650,8 @@ export function Feed() {
               </button>
             </div>
           ) : filteredPosts.length === 0 ? (
-            /* Liquid Glass Empty State */
-            <div className="w-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-7 text-center shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3 border border-blue-200/50 dark:border-blue-900/50">
+            <div className="w-full bg-white dark:bg-[#0B1329] border border-slate-200/80 dark:border-white/[0.08] rounded-2xl p-7 text-center shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3">
                 {feedType === "following" ? (
                   <Users className="w-6 h-6 stroke-[1.75]" />
                 ) : (
@@ -518,34 +659,22 @@ export function Feed() {
                 )}
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
-                {activeFilter !== "all"
-                  ? "Bu filtrede henüz gönderi bulunamadı"
-                  : feedType === "following"
+                {feedType === "following"
                   ? "Takip ettiğin kimse yok"
                   : "Henüz gönderi bulunmuyor"}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-5 leading-relaxed">
-                {activeFilter !== "all"
-                  ? "Filtreyi temizleyerek tüm akış içeriklerini görüntüleyebilirsin."
-                  : feedType === "following"
+                {feedType === "following"
                   ? "İlgini çeken üreticileri ve geliştiricileri takip ederek akışını zenginleştir."
                   : "İlk gönderiyi paylaşarak toplulukta sohbeti başlatabilirsin!"}
               </p>
-              {activeFilter !== "all" ? (
+              {feedType === "following" ? (
                 <button
                   type="button"
-                  onClick={() => setActiveFilter("all")}
+                  onClick={() => handleSelectPrimaryTab("for_you")}
                   className="px-4 py-2 rounded-xl font-semibold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
                 >
-                  Tüm Gönderileri Göster
-                </button>
-              ) : feedType === "following" ? (
-                <button
-                  type="button"
-                  onClick={() => setFeedType("for_you")}
-                  className="px-4 py-2 rounded-xl font-semibold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  Sana Özel Akışa Git
+                  Senin İçin Akışına Git
                 </button>
               ) : (
                 <button
@@ -560,7 +689,6 @@ export function Feed() {
                 </button>
               )}
 
-              {/* Discovery in empty state */}
               {feedType === "following" && (
                 <div className="mt-8 text-left border-t border-slate-100 dark:border-white/[0.06] pt-6">
                   <FeedSuggestedUsers />
@@ -568,16 +696,208 @@ export function Feed() {
               )}
             </div>
           ) : (
-            /* Posts Stream */
             <>
               {filteredPosts.map((post, idx) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  index={idx}
-                  isKeyboardFocused={focusedIndex === idx}
-                  onPostDeleted={handlePostDeleted}
-                />
+                <React.Fragment key={post.id}>
+                  <PostCard
+                    post={post}
+                    index={idx}
+                    isKeyboardFocused={focusedIndex === idx}
+                    onPostDeleted={handlePostDeleted}
+                  />
+
+                  {/* Inject Rich Project Update Card & Community Workshop Announcement after 1st post (Matching Mockup 5) */}
+                  {idx === 0 && (
+                    <>
+                      {/* Rich Project Update Card */}
+                      <article className="bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                              ZK
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-sm text-slate-900 dark:text-white">
+                                  {featuredProjects[0]?.authorDisplayName || "Zeynep Kaya"}
+                                </span>
+                                <VerifiedBadge iconClassName="w-4 h-4 text-blue-500" withModal={false} />
+                                <span className="text-xs text-slate-400">· 3 sa</span>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                yeni bir proje güncellemesi paylaştı
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                          {featuredProjects[0]?.description ||
+                            "Sensörlerimiz Konya'daki pilot tarlada 30 gündür çalışıyor. Sulama verimliliğinde ilk ölçümler umut verici!"}
+                        </p>
+
+                        {/* Embedded Project Showcase Box */}
+                        <div className="rounded-2xl border border-slate-200/90 dark:border-white/[0.08] overflow-hidden bg-slate-50/70 dark:bg-white/[0.03]">
+                          {featuredProjects[0]?.imageUrl && (
+                            <div className="aspect-16/9 w-full bg-slate-100 dark:bg-slate-900 overflow-hidden">
+                              <img
+                                src={featuredProjects[0].imageUrl}
+                                alt={featuredProjects[0].title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="p-3.5 sm:p-4 space-y-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[11px] font-bold">
+                                {featuredProjects[0]?.category || "Tarım Teknolojileri"}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span>Prototip</span>
+                              </span>
+                            </div>
+
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                              {featuredProjects[0]?.title || "TarlaSense — Akıllı Sulama Sistemi"}
+                            </h3>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <div className="flex items-center -space-x-2">
+                                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-[#0B1329]">
+                                  ZK
+                                </div>
+                                <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-[#0B1329]">
+                                  KA
+                                </div>
+                                <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#0B1329]">
+                                  +2
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(
+                                    featuredProjects[0]?.id
+                                      ? `/projects/${featuredProjects[0].id}`
+                                      : "/projects"
+                                  )
+                                }
+                                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                              >
+                                Projeyi İncele
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+
+                      {/* Community Workshop / Live Event Post Card (Matching Mockup 5) */}
+                      <article className="bg-white dark:bg-[#0B1329] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              onClick={() => navigate("/communities")}
+                              className="w-10 h-10 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center font-bold shrink-0 cursor-pointer"
+                            >
+                              <Brain className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <Link
+                                  to={
+                                    featuredCommunities[0]?.slug
+                                      ? `/communities/${featuredCommunities[0].slug}`
+                                      : "/communities"
+                                  }
+                                  className="font-bold text-sm text-slate-900 dark:text-white hover:text-blue-600 truncate"
+                                >
+                                  {featuredCommunities[0]?.name || "Yapay Zekâ Türkiye"}
+                                </Link>
+                                <VerifiedBadge iconClassName="w-4 h-4 text-blue-500" withModal={false} />
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Topluluk · 1 g
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[11px] font-bold">
+                            <Pin className="w-3 h-3 text-slate-500" />
+                            <span>Duyuru</span>
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                          Bu cumartesi 20:00&apos;de &quot;Türkçe dil modelleri ile ilk projeni yap&quot; canlı atölyesi var. Başlangıç seviyesine uygun, katılım ücretsiz.
+                        </p>
+
+                        {/* Workshop Calendar Box */}
+                        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/10 flex flex-col items-center justify-center shrink-0 shadow-2xs">
+                              <span className="text-[9px] font-extrabold uppercase text-blue-600 dark:text-blue-400">
+                                CMT
+                              </span>
+                              <span className="text-base font-black text-slate-900 dark:text-white leading-none mt-0.5">
+                                14
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                                Canlı Atölye · Çevrim içi
+                              </h4>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {workshopAttendees} kişi katılıyor
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              triggerHaptic("medium");
+                              if (workshopJoined) {
+                                setWorkshopJoined(false);
+                                setWorkshopAttendees((n) => n - 1);
+                                toast.info("Atölye kaydınız iptal edildi.");
+                              } else {
+                                setWorkshopJoined(true);
+                                setWorkshopAttendees((n) => n + 1);
+                                toast.success("Canlı atölyeye kaydınız alındı! Etkinlik saatinde bildirim alacaksınız.");
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0 flex items-center gap-1.5",
+                              workshopJoined
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50"
+                                : "bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-500/20"
+                            )}
+                          >
+                            {workshopJoined ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Katıldın</span>
+                              </>
+                            ) : (
+                              <span>Katıl</span>
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          <Link to="/explore?q=yapayzeka" className="hover:underline">
+                            #yapayzeka
+                          </Link>
+                          <Link to="/explore?q=atolye" className="hover:underline">
+                            #atölye
+                          </Link>
+                        </div>
+                      </article>
+                    </>
+                  )}
+                </React.Fragment>
               ))}
 
               {/* End of Feed Discovery */}
@@ -596,7 +916,7 @@ export function Feed() {
           {hasMore && !loading && posts.length > 0 && (
             <div ref={loadMoreRef} className="py-6 flex justify-center">
               {loadingMore && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-[#0B1329]/80 backdrop-blur-md border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#0B1329] border border-slate-200/80 dark:border-white/[0.08] shadow-xs text-xs text-slate-500 dark:text-slate-400 font-semibold">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
                   <span>Daha fazla gönderi yükleniyor...</span>
                 </div>
@@ -606,7 +926,7 @@ export function Feed() {
         </div>
       </div>
 
-      {/* 4. KEYBOARD SHORTCUTS HELP MODAL */}
+      {/* KEYBOARD SHORTCUTS HELP MODAL */}
       <AnimatePresence>
         {showKeyboardHelp && (
           <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 overflow-hidden">
@@ -624,12 +944,10 @@ export function Feed() {
               transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.8 }}
               className="relative w-full max-w-md bg-gradient-to-b from-[#0F172A] via-[#090D16] to-[#020408] text-white backdrop-blur-2xl rounded-t-[32px] sm:rounded-3xl border border-white/15 shadow-2xl shadow-black/90 p-5 sm:p-6 z-10 overflow-hidden"
             >
-              {/* Grab Handle */}
               <div className="pt-1 pb-3 flex justify-center items-center sm:hidden">
                 <div className="w-12 h-1.5 bg-white/20 rounded-full" />
               </div>
 
-              {/* Modal Header */}
               <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-white/10 border border-white/15 text-white flex items-center justify-center">
@@ -654,7 +972,6 @@ export function Feed() {
                 </button>
               </div>
 
-              {/* Shortcuts List */}
               <div className="py-4 space-y-2">
                 {[
                   { keys: ["J", "↓"], label: "Sonraki gönderiye odaklan" },
@@ -669,9 +986,7 @@ export function Feed() {
                     key={i}
                     className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl hover:bg-white/5 transition-colors"
                   >
-                    <span className="text-slate-300 font-medium">
-                      {item.label}
-                    </span>
+                    <span className="text-slate-300 font-medium">{item.label}</span>
                     <div className="flex items-center gap-1">
                       {item.keys.map((k, kIdx) => (
                         <kbd
@@ -686,7 +1001,6 @@ export function Feed() {
                 ))}
               </div>
 
-              {/* Modal Footer */}
               <div className="pt-3 border-t border-white/10 text-center">
                 <button
                   type="button"

@@ -1,18 +1,29 @@
 import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
-import { 
-  Search, 
-  X, 
-  Hash, 
-  Users, 
-  FileText, 
-  Sparkles, 
-  CheckCircle2, 
+import { Link, useNavigate, useSearchParams } from "react-router";
+import {
+  Search,
+  X,
+  Hash,
+  Users,
+  FileText,
+  Sparkles,
   ArrowRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Bookmark,
+  SlidersHorizontal,
+  Code2,
+  Cpu,
+  Bot,
+  FlaskConical,
+  Lightbulb,
+  GraduationCap,
+  PenTool,
+  Rocket,
+  Heart,
+  ChevronRight,
+  Check,
 } from "lucide-react";
 import { fetchApi } from "../lib/api";
 import { Avatar } from "../components/ui/Avatar";
@@ -21,24 +32,156 @@ import { VerifiedBadge } from "../components/VerifiedBadge";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle, SkeletonList } from "../components/ui/Skeleton";
-import { SuggestedUsers } from "../components/SuggestedUsers";
+import { useAuthStore } from "../context/useAuth";
+import { useAuthModalStore } from "../context/useAuthModal";
+import { toast } from "../components/ui/Toast";
+import { cn } from "../lib/utils";
 
-export type ExploreTab = "users" | "posts" | "tags";
+export type ExploreTab = "all" | "users" | "posts" | "tags";
+
+const EXPLORE_CATEGORIES = [
+  {
+    id: "yazilim",
+    label: "Yazılım",
+    query: "yazilim",
+    icon: Code2,
+    bg: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400",
+  },
+  {
+    id: "yapayzeka",
+    label: "Yapay Zekâ",
+    query: "yapayzeka",
+    icon: Cpu,
+    bg: "bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400",
+  },
+  {
+    id: "robotik",
+    label: "Robotik",
+    query: "robotik",
+    icon: Bot,
+    bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400",
+  },
+  {
+    id: "bilim",
+    label: "Bilim",
+    query: "bilim",
+    icon: FlaskConical,
+    bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    id: "girisim",
+    label: "Girişim",
+    query: "girisim",
+    icon: Lightbulb,
+    bg: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400",
+  },
+  {
+    id: "egitim",
+    label: "Eğitim",
+    query: "egitim",
+    icon: GraduationCap,
+    bg: "bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400",
+  },
+  {
+    id: "tasarim",
+    label: "Tasarım",
+    query: "tasarim",
+    icon: PenTool,
+    bg: "bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400",
+  },
+  {
+    id: "teknofest",
+    label: "TEKNOFEST",
+    query: "teknofest",
+    icon: Rocket,
+    bg: "bg-slate-900 dark:bg-blue-600 text-sky-400 dark:text-white",
+    isSpecialRoute: "/teknofest",
+  },
+];
+
+const TREND_TAGS = [
+  { rank: 1, tag: "teknofest2025", category: "Teknoloji", count: "12,8B gönderi" },
+  { rank: 2, tag: "yapayzeka", category: "Bilim", count: "8,4B gönderi" },
+  { rank: 3, tag: "ihatasarım", category: "Mühendislik", count: "3,1B gönderi" },
+  { rank: 4, tag: "yksçalışma", category: "Eğitim", count: "2,7B gönderi" },
+];
 
 export function Explore() {
-  const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<ExploreTab>("users");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialQ = searchParams.get("q") || "";
+
+  const [query, setQuery] = useState(initialQ);
+  const [activeTab, setActiveTab] = useState<ExploreTab>("all");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useSEO({ 
-    title: query.trim() ? `"${query}" Arama Sonuçları | Genç Sosyal` : "Keşfet — Trend Projeler ve Topluluklar | Genç Sosyal", 
-    description: "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.",
+  // Discovery hub state
+  const [projects, setProjects] = useState<any[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [popularPosts, setPopularPosts] = useState<any[]>([]);
+  const [followedIds, setFollowedIds] = useState<Set<number>>(new Set());
+  const [joinedCommIds, setJoinedCommIds] = useState<Set<number>>(new Set());
+
+  const { isAuthenticated } = useAuthStore();
+  const { openModal } = useAuthModalStore();
+
+  useSEO({
+    title: query.trim()
+      ? `"${query}" Arama Sonuçları | Genç Sosyal`
+      : "Keşfet — Trend Projeler ve Topluluklar | Genç Sosyal",
+    description:
+      "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.",
     canonicalPath: "/explore",
-    allowIndexing: !query.trim()
+    allowIndexing: !query.trim(),
   });
 
+  // Load discovery hub sections on mount
+  useEffect(() => {
+    fetchApi("/projects?limit=4")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setProjects(j.data);
+      })
+      .catch(() => {});
+
+    fetchApi("/users/suggested?limit=6")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setSuggestedUsers(j.data);
+      })
+      .catch(() => {});
+
+    fetchApi("/communities?limit=4")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) {
+          setCommunities(j.data);
+          const initialJoined = new Set<number>();
+          j.data.forEach((c: any) => {
+            if (c.isMember) initialJoined.add(c.id);
+          });
+          setJoinedCommIds(initialJoined);
+        }
+      })
+      .catch(() => {});
+
+    fetchApi("/feed?page=1&limit=4")
+      .then((r) => r.json())
+      .then((j) => {
+        const list = Array.isArray(j.data)
+          ? j.data
+          : Array.isArray(j.data?.posts)
+          ? j.data.posts
+          : [];
+        setPopularPosts(list.slice(0, 4));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Live search effect
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {
       setResults([]);
@@ -46,11 +189,15 @@ export function Explore() {
       return;
     }
 
+    const searchType = activeTab === "all" ? "posts" : activeTab;
+
     const timer = setTimeout(async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetchApi(`/search?q=${encodeURIComponent(query.trim())}&type=${activeTab}`);
+        const res = await fetchApi(
+          `/search?q=${encodeURIComponent(query.trim())}&type=${searchType}`
+        );
         const json = await res.json();
         if (json.success) {
           setResults(json.data || []);
@@ -65,7 +212,7 @@ export function Explore() {
       } finally {
         setLoading(false);
       }
-    }, 400);
+    }, 350);
 
     return () => clearTimeout(timer);
   }, [query, activeTab]);
@@ -76,18 +223,82 @@ export function Explore() {
     setError(null);
   };
 
+  const handleFollowToggle = async (targetUser: any) => {
+    if (!isAuthenticated) return openModal();
+    const uid = Number(targetUser.id);
+    const isNowFollowed = !followedIds.has(uid);
+
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (isNowFollowed) next.add(uid);
+      else next.delete(uid);
+      return next;
+    });
+
+    try {
+      const res = await fetchApi(`/users/${uid}/follow`, {
+        method: isNowFollowed ? "POST" : "DELETE",
+      });
+      if (res.ok) {
+        toast.success(isNowFollowed ? "Takip edildi!" : "Takipten çıkıldı");
+      }
+    } catch {
+      toast.error("İşlem gerçekleştirilemedi");
+    }
+  };
+
+  const handleJoinCommunity = async (comm: any) => {
+    if (!isAuthenticated) return openModal();
+    const cid = Number(comm.id);
+    if (joinedCommIds.has(cid)) {
+      navigate(`/communities/${comm.slug}`);
+      return;
+    }
+
+    setJoinedCommIds((prev) => new Set(prev).add(cid));
+    try {
+      const res = await fetchApi(`/communities/${cid}/join`, { method: "POST" });
+      if (res.ok) {
+        toast.success(`${comm.name} topluluğuna katıldınız!`);
+      }
+    } catch {
+      toast.error("Katılım işlemi başarısız");
+    }
+  };
+
+  const isSearching = query.trim().length >= 2;
+
   return (
-    <div className="flex flex-col h-full w-full max-w-2xl mx-auto border-x border-slate-200/80 dark:border-white/[0.08] min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
-      {/* STICKY SEARCH HEADER */}
-      <div className="sticky top-0 md:top-[60px] z-20 bg-white dark:bg-[#080E1A] border-b border-slate-200/90 dark:border-white/[0.08] transition-colors">
-        {/* Search Input Box */}
-        <div className="px-4 pt-3.5 pb-2.5">
-          <div className="relative group">
-            <Search className="w-4.5 h-4.5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-sky-400 transition-colors pointer-events-none" />
+    <div className="flex flex-col w-full max-w-2xl mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] transition-colors pb-24">
+      {/* 1. STICKY HEADER & SEARCH BAR (Matching Mockup 3) */}
+      <div className="sticky top-0 md:top-[60px] z-20 bg-[#F8FAFC]/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] px-4 pt-3.5 pb-3 space-y-3 transition-colors">
+        {/* Title Row */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            Keşfet
+          </h1>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAuthenticated) openModal();
+              else navigate("/bookmarks");
+            }}
+            aria-label="Kaydedilenler"
+            title="Kaydedilenler"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] shadow-2xs transition-all active:scale-95 cursor-pointer"
+          >
+            <Bookmark className="w-4.5 h-4.5" />
+          </button>
+        </div>
+
+        {/* Search Input + Dark Filter Button */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 group">
+            <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
             <input
               type="text"
-              placeholder="Kişiler, gönderiler veya etiketler ara..."
-              className="w-full bg-white/80 dark:bg-[#0B1329]/80 hover:bg-white dark:hover:bg-[#101C38] focus:bg-white dark:focus:bg-[#101C38] rounded-xl pl-11 pr-10 py-2.5 outline-none border border-slate-200/90 dark:border-white/[0.1] focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-sm sm:text-[15px] shadow-xs"
+              placeholder="Kişi, proje, topluluk veya #etiket ara"
+              className="w-full bg-white dark:bg-[#0D1424] rounded-2xl pl-10 pr-9 py-2.5 outline-none border border-slate-200/90 dark:border-white/[0.1] focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm shadow-2xs"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Keşfet Arama"
@@ -97,319 +308,540 @@ export function Explore() {
                 type="button"
                 onClick={handleClear}
                 aria-label="Aramayı temizle"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-white/[0.1] active:scale-95 transition-all"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.1] active:scale-95 transition-all cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const nextTab: Record<ExploreTab, ExploreTab> = {
+                all: "users",
+                users: "posts",
+                posts: "tags",
+                tags: "all",
+              };
+              setActiveTab(nextTab[activeTab]);
+            }}
+            aria-label="Filtrele"
+            title="Sekme Değiştir"
+            className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
+          >
+            <SlidersHorizontal className="w-4.5 h-4.5" />
+          </button>
         </div>
 
-        {/* Tab Selection */}
-        <div 
-          className="flex items-center px-4 border-t border-slate-200/60 dark:border-white/[0.06]"
+        {/* Filter Pills: Tümü | Kullanıcı | Gönderi | Hashtag */}
+        <div
+          className="flex items-center gap-2 overflow-x-auto no-scrollbar"
           role="tablist"
-          aria-label="Keşfet Kategorileri"
+          aria-label="Keşfet Filtreleri"
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "users"}
-            onClick={() => setActiveTab("users")}
-            className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "users"
-                ? "text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5">
-              <Users className="w-4 h-4" />
-              <span>Kişiler</span>
-            </div>
-            {activeTab === "users" && (
-              <motion.div
-                layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-sky-400 rounded-full"
-                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              />
-            )}
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "posts"}
-            onClick={() => setActiveTab("posts")}
-            className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "posts"
-                ? "text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5">
-              <FileText className="w-4 h-4" />
-              <span>Gönderiler</span>
-            </div>
-            {activeTab === "posts" && (
-              <motion.div
-                layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-sky-400 rounded-full"
-                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              />
-            )}
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "tags"}
-            onClick={() => setActiveTab("tags")}
-            className={`relative flex-1 py-3 text-xs sm:text-sm font-bold transition-colors text-center ${
-              activeTab === "tags"
-                ? "text-slate-900 dark:text-white"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-1.5">
-              <Hash className="w-4 h-4" />
-              <span>Etiketler</span>
-            </div>
-            {activeTab === "tags" && (
-              <motion.div
-                layoutId="exploreActiveTab"
-                className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-600 dark:bg-sky-400 rounded-full"
-                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-              />
-            )}
-          </button>
+          {[
+            { id: "all" as ExploreTab, label: "Tümü", icon: null },
+            { id: "users" as ExploreTab, label: "Kullanıcı", icon: Users },
+            { id: "posts" as ExploreTab, label: "Gönderi", icon: FileText },
+            { id: "tags" as ExploreTab, label: "Hashtag", icon: Hash },
+          ].map((t) => {
+            const Icon = t.icon;
+            const isSelected = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border",
+                  isSelected
+                    ? "bg-blue-600 text-white border-blue-600 shadow-xs shadow-blue-500/20"
+                    : "bg-white dark:bg-[#0D1424] text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100"
+                )}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5" />}
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* SEARCH RESULTS / SKELETON / EMPTY CONTENT */}
-      <div className="flex flex-col flex-1 pb-24">
-        {/* 1. Loading Skeleton */}
-        {loading && (
-          <div className="p-4 space-y-3">
-            {activeTab === "users" && (
-              [1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3.5 p-3.5 glass-card bg-white/70 dark:bg-[#0B1329]/70 rounded-2xl border border-slate-200/80 dark:border-white/[0.08]"
-                >
-                  <SkeletonCircle size="md" />
-                  <div className="space-y-1.5 flex-1">
-                    <Skeleton className="h-4 w-36 rounded-md" />
-                    <Skeleton className="h-3 w-20 rounded-md" />
+      {/* 2. SEARCH RESULTS OR RICH DISCOVERY HUB */}
+      <div className="flex-1 px-4 pt-4 space-y-6">
+        {isSearching ? (
+          /* ACTIVE SEARCH RESULTS */
+          <div className="space-y-3">
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3.5 p-3.5 bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]"
+                  >
+                    <SkeletonCircle size="md" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-36 rounded-md" />
+                      <Skeleton className="h-3 w-20 rounded-md" />
+                    </div>
                   </div>
-                  <Skeleton className="h-8 w-20 rounded-full" />
-                </div>
-              ))
-            )}
-
-            {activeTab === "posts" && (
-              <>
-                <SkeletonList count={2} />
-                <SkeletonList count={2} />
-              </>
-            )}
-
-            {activeTab === "tags" && (
-              [1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3.5 p-3.5 glass-card bg-white/70 dark:bg-[#0B1329]/70 rounded-2xl border border-slate-200/80 dark:border-white/[0.08]"
-                >
-                  <Skeleton className="w-11 h-11 rounded-xl" />
-                  <div className="space-y-1.5 flex-1">
-                    <Skeleton className="h-4 w-32 rounded-md" />
-                    <Skeleton className="h-3 w-20 rounded-md" />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* 2. Error State */}
-        {!loading && error && (
-          <div className="px-6 py-12 max-w-md mx-auto text-center">
-            <EmptyState
-              icon={<AlertCircle className="w-8 h-8 text-rose-500" />}
-              title="Arama Başarısız"
-              description={error}
-              action={{
-                label: "Yeniden Dene",
-                onClick: () => {
-                  const q = query;
-                  setQuery("");
-                  setTimeout(() => setQuery(q), 50);
-                },
-              }}
-            />
-          </div>
-        )}
-
-        {/* 3. Results Found */}
-        {!loading && !error && results.length > 0 && (
-          <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-            {/* Users Tab Results */}
-            {activeTab === "users" && (
-              <div className="p-2 sm:p-3 space-y-2">
-                {results.map((user) => (
-                  <div key={user.id}>
-                    <Link
-                      to={`/profile/${user.username}`}
-                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all group"
-                    >
-                      <Avatar
-                        url={user.avatarUrl}
-                        name={user.displayName || user.username}
-                        size="md"
-                        className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-sky-400 transition-all shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors truncate text-sm sm:text-base">
-                            {user.displayName || user.username}
-                          </span>
-                          {user.isVerified && (
-                            <VerifiedBadge
-                              iconClassName="w-4 h-4 shrink-0"
-                              showCategoryPill={true}
-                              targetUser={{
-                                username: user.username,
-                                isVerified: !!user.isVerified,
-                                verificationCategory: user.verificationCategory,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium truncate">
-                          @{user.username}
-                        </p>
-                        {user.bio && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5 line-clamp-1">
-                            {user.bio}
-                          </p>
-                        )}
+                ))}
+              </div>
+            ) : error ? (
+              <EmptyState
+                icon={<AlertCircle className="w-8 h-8 text-rose-500" />}
+                title="Arama Başarısız"
+                description={error}
+                action={{
+                  label: "Tekrar Dene",
+                  onClick: () => {
+                    const q = query;
+                    setQuery("");
+                    setTimeout(() => setQuery(q), 50);
+                  },
+                }}
+              />
+            ) : results.length === 0 ? (
+              <EmptyState
+                icon={<Search className="w-8 h-8 text-slate-400" />}
+                title="Sonuç Bulunamadı"
+                description={`"${query}" aramasıyla eşleşen sonuç bulunamadı.`}
+              />
+            ) : activeTab === "users" ? (
+              <div className="space-y-2.5">
+                {results.map((u) => (
+                  <Link
+                    key={u.id}
+                    to={`/profile/${u.username}`}
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] hover:border-blue-500/40 transition-all group"
+                  >
+                    <Avatar
+                      url={u.avatarUrl}
+                      name={u.displayName || u.username}
+                      size="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                          {u.displayName || u.username}
+                        </span>
+                        {u.isVerified && <VerifiedBadge iconClassName="w-4 h-4" />}
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-xl shrink-0 font-bold group-hover:bg-slate-100 dark:group-hover:bg-white/[0.08] transition-colors"
-                      >
-                        Profili Gör
-                      </Button>
-                    </Link>
-                  </div>
+                      <p className="text-xs text-slate-500 truncate">@{u.username}</p>
+                    </div>
+                    <Button variant="secondary" size="sm" className="rounded-xl text-xs font-bold">
+                      Profili Gör
+                    </Button>
+                  </Link>
                 ))}
               </div>
-            )}
-
-            {/* Posts Tab Results */}
-            {activeTab === "posts" && (
-              <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-                {results.map((post) => (
-                  <PostCard key={post.id} post={post} onPostDeleted={(id) => setResults(prev => prev.filter((p: any) => p.id !== id))} />
-                ))}
-              </div>
-            )}
-
-            {/* Tags Tab Results */}
-            {activeTab === "tags" && (
-              <div className="p-2 sm:p-3 space-y-2">
+            ) : activeTab === "tags" ? (
+              <div className="space-y-2.5">
                 {results.map((tag) => (
-                  <div key={tag.id || tag.name}>
-                    <Link
-                      to={`/hashtags/${encodeURIComponent(tag.name)}`}
-                      className="flex items-center gap-3.5 p-3.5 rounded-2xl glass-card bg-white/70 dark:bg-[#0B1329]/70 border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-500/40 dark:hover:border-sky-400/30 hover:shadow-xs transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-blue-50/70 dark:bg-sky-500/10 border border-blue-200/60 dark:border-sky-500/20 text-slate-900 dark:text-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <Hash className="w-4.5 h-4.5 text-blue-600 dark:text-sky-400" />
+                  <Link
+                    key={tag.id || tag.name}
+                    to={`/hashtags/${encodeURIComponent(tag.name)}`}
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] hover:border-blue-500/40 transition-all"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center shrink-0">
+                      <Hash className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-slate-900 dark:text-white text-sm">
+                        #{tag.name}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base group-hover:text-blue-600 dark:group-hover:text-sky-300 transition-colors truncate">
-                          #{tag.name}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                          {tag.postCount || 0} gönderi
-                        </div>
-                      </div>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:bg-slate-100 dark:group-hover:bg-white/[0.06] transition-all">
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    </Link>
-                  </div>
+                      <div className="text-xs text-slate-500">{tag.postCount || 0} gönderi</div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {results.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onPostDeleted={(id) =>
+                      setResults((prev) => prev.filter((p: any) => p.id !== id))
+                    }
+                  />
                 ))}
               </div>
             )}
           </div>
-        )}
-
-        {/* 4. No Results Found for Query */}
-        {!loading && !error && query.trim().length >= 2 && results.length === 0 && (
-          <div className="px-6 py-14 max-w-md mx-auto text-center">
-            <EmptyState
-              icon={<Search className="w-8 h-8 text-slate-400" />}
-              title="Sonuç Bulunamadı"
-              description={`"${query}" aramasıyla eşleşen herhangi bir ${
-                activeTab === "users" ? "kullanıcı" : activeTab === "posts" ? "gönderi" : "etiket"
-              } bulunamadı.`}
-            />
-          </div>
-        )}
-
-        {/* 5. Starter State (Prompt to Search or Suggested Users) */}
-        {!loading && !error && query.trim().length < 2 && (
-          activeTab === "users" ? (
-            <div className="p-3 sm:p-5 max-w-2xl mx-auto w-full">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-600 dark:text-sky-400" />
-                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Önerilen Kişiler
-                  </h2>
-                </div>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Sana özel öneriler</span>
-              </div>
-              <SuggestedUsers limit={12} />
-            </div>
-          ) : (
-            <div className="px-6 py-14 max-w-md mx-auto text-center flex flex-col items-center">
-              <div className="w-14 h-14 rounded-2xl glass-card bg-blue-50/80 dark:bg-sky-500/10 border border-blue-200/80 dark:border-sky-500/20 text-slate-900 dark:text-slate-100 flex items-center justify-center mb-4 shadow-sm">
-                <Sparkles className="w-7 h-7 text-blue-600 dark:text-sky-400" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">
-                Topluluğu Keşfet
+        ) : (
+          /* RICH DISCOVERY HUB (Matching Mockup 3) */
+          <>
+            {/* SECTION A: KATEGORİLER (8-Item Grid) */}
+            <section className="space-y-3">
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Kategoriler
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-xs mb-6">
-                Yeni yetenekler, projeler, tartışmalar ve popüler etiketleri bulmak için arama yapın.
-              </p>
-
-              {/* Quick Tag Suggestions with Frosted Glass Chips */}
-              <div className="w-full flex flex-col items-center gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>Popüler Etiketler</span>
-                </div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {["yazilim", "yapayzeka", "tasarim", "gencsosyal", "proje", "frontend"].map((sug) => (
+              <div className="grid grid-cols-4 gap-2.5">
+                {EXPLORE_CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  return (
                     <button
-                      key={sug}
+                      key={cat.id}
                       type="button"
                       onClick={() => {
-                        setQuery(sug);
-                        setActiveTab("tags");
+                        if (cat.isSpecialRoute) {
+                          navigate(cat.isSpecialRoute);
+                        } else {
+                          setQuery(cat.query);
+                        }
                       }}
-                      className="px-3.5 py-1.5 glass-card bg-white/80 dark:bg-[#0B1329]/80 hover:bg-blue-50 dark:hover:bg-[#101C38] text-slate-700 dark:text-sky-300 font-semibold text-xs rounded-xl transition-all border border-slate-200/80 dark:border-white/[0.08] hover:border-sky-400 active:scale-95 shadow-xs cursor-pointer"
+                      className="bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] hover:border-blue-500/40 rounded-2xl p-3 flex flex-col items-center justify-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer group"
                     >
-                      #{sug}
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105",
+                          cat.bg
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 text-center truncate w-full">
+                        {cat.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* SECTION B: TREND ETİKETLER (Numbered Card) */}
+            {(activeTab === "all" || activeTab === "tags") && (
+              <section className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+                    <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                      Trend Etiketler
+                    </h2>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400">Türkiye</span>
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+                  {TREND_TAGS.map((item) => (
+                    <button
+                      key={item.tag}
+                      type="button"
+                      onClick={() => {
+                        setQuery(item.tag);
+                        setActiveTab("posts");
+                      }}
+                      className="w-full py-2.5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-white/[0.03] rounded-xl px-1 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <span
+                          className={cn(
+                            "text-sm font-black w-4 text-center tabular-nums",
+                            item.rank <= 2
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-slate-400 dark:text-slate-500"
+                          )}
+                        >
+                          {item.rank}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
+                            #{item.tag}
+                          </div>
+                          <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                            {item.category} · {item.count}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          )
+              </section>
+            )}
+
+            {/* SECTION C: ÖNE ÇIKAN PROJELER CAROUSEL */}
+            {activeTab === "all" && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Öne Çıkan Projeler
+                  </h2>
+                  <Link
+                    to="/projects"
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Tümü
+                  </Link>
+                </div>
+
+                <div className="flex items-stretch gap-3 overflow-x-auto no-scrollbar pb-1">
+                  {(projects.length > 0
+                    ? projects
+                    : [
+                        {
+                          id: 1,
+                          title: "Okuyorum+ — Disleksi Dostu Okuma Uygulaması",
+                          category: "Eğitim Teknolojileri",
+                          authorDisplayName: "Ayşe Çelik ve ekibi",
+                          likesCount: "2,1B",
+                        },
+                        {
+                          id: 2,
+                          title: "TarlaSense — Akıllı Sulama Sistemi",
+                          category: "Tarım Teknolojileri",
+                          authorDisplayName: "Zeynep Kaya",
+                          likesCount: "1,4B",
+                        },
+                      ]
+                  ).map((proj: any, idx: number) => (
+                    <Link
+                      key={proj.id || idx}
+                      to={proj.id && projects.length > 0 ? `/projects/${proj.id}` : "/projects"}
+                      className="min-w-[245px] max-w-[260px] bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between shrink-0 group"
+                    >
+                      <div className="h-28 w-full bg-gradient-to-br from-slate-800 via-blue-950 to-slate-900 relative overflow-hidden">
+                        {proj.imageUrl ? (
+                          <img
+                            src={proj.imageUrl}
+                            alt={proj.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sky-400/80">
+                            <Rocket className="w-8 h-8" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <span
+                            className={cn(
+                              "inline-block px-2 py-0.5 rounded-md text-[10px] font-bold",
+                              idx % 2 === 0
+                                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                                : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                            )}
+                          >
+                            {proj.category || "Teknoloji"}
+                          </span>
+                          <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
+                            {proj.title}
+                          </h3>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                          <span className="truncate font-medium">
+                            {proj.authorDisplayName || proj.authorUsername || "Genç Üretici"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                            <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
+                            <span>{proj.likesCount || proj.likeCount || 48}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* SECTION D: ÖNERİLEN KULLANICILAR HORIZONTAL CARDS */}
+            {(activeTab === "all" || activeTab === "users") && suggestedUsers.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Önerilen Kullanıcılar
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("users")}
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    Tümü
+                  </button>
+                </div>
+
+                <div className="flex items-stretch gap-3 overflow-x-auto no-scrollbar pb-1">
+                  {suggestedUsers.map((u) => {
+                    const isFollowing = followedIds.has(Number(u.id));
+                    return (
+                      <div
+                        key={u.id}
+                        className="min-w-[155px] max-w-[170px] bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-3.5 flex flex-col items-center text-center justify-between shadow-2xs shrink-0"
+                      >
+                        <Link
+                          to={`/profile/${u.username}`}
+                          className="flex flex-col items-center group"
+                        >
+                          <Avatar
+                            url={u.avatarUrl}
+                            name={u.displayName || u.username}
+                            size="lg"
+                            className="w-14 h-14 mb-2 ring-2 ring-slate-100 dark:ring-white/10 group-hover:scale-105 transition-transform"
+                          />
+                          <div className="flex items-center justify-center gap-1 max-w-full">
+                            <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                              {u.displayName || u.username}
+                            </span>
+                            {u.isVerified && (
+                              <VerifiedBadge iconClassName="w-3.5 h-3.5 shrink-0" withModal={false} />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                            {u.bio || `@${u.username}`}
+                          </p>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleFollowToggle(u)}
+                          className={cn(
+                            "w-full mt-3 py-1.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer",
+                            isFollowing
+                              ? "bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-200"
+                              : "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
+                          )}
+                        >
+                          {isFollowing ? "Takip Ediliyor" : "Takip Et"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* SECTION E: AKTİF TOPLULUKLAR */}
+            {activeTab === "all" && (
+              <section className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Aktif Topluluklar
+                  </h2>
+                  <Link
+                    to="/communities"
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Tümü
+                  </Link>
+                </div>
+
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+                  {(communities.length > 0
+                    ? communities.slice(0, 3)
+                    : [
+                        {
+                          id: 1,
+                          name: "Yapay Zekâ Türkiye",
+                          slug: "yapay-zeka",
+                          memberCount: 1840,
+                          onlineCount: 214,
+                        },
+                        {
+                          id: 2,
+                          name: "Robotik Kulübü",
+                          slug: "robotik",
+                          memberCount: 920,
+                          onlineCount: 87,
+                        },
+                        {
+                          id: 3,
+                          name: "Yeşil Enerji Gençleri",
+                          slug: "yesil-enerji",
+                          memberCount: 460,
+                          onlineCount: 31,
+                        },
+                      ]
+                  ).map((comm: any, idx: number) => {
+                    const isMember = joinedCommIds.has(Number(comm.id)) || comm.isMember;
+                    return (
+                      <div
+                        key={comm.id || idx}
+                        className="py-3 flex items-center justify-between gap-3 first:pt-1 last:pb-0"
+                      >
+                        <Link
+                          to={comm.slug ? `/communities/${comm.slug}` : "/communities"}
+                          className="flex items-center gap-3 min-w-0 flex-1 group"
+                        >
+                          <div
+                            className={cn(
+                              "w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold text-sm shrink-0",
+                              idx === 0
+                                ? "bg-slate-900 text-blue-400"
+                                : idx === 1
+                                ? "bg-amber-50 dark:bg-amber-950/60 text-amber-600"
+                                : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600"
+                            )}
+                          >
+                            {comm.avatarUrl ? (
+                              <img
+                                src={comm.avatarUrl}
+                                alt={comm.name}
+                                className="w-full h-full object-cover rounded-2xl"
+                              />
+                            ) : (
+                              <span>{(comm.name || "T").charAt(0)}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
+                              {comm.name}
+                            </h3>
+                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span>
+                                {comm.memberCount || 120} üye · {comm.onlineCount || (idx + 1) * 24}{" "}
+                                çevrim içi
+                              </span>
+                            </p>
+                          </div>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleJoinCommunity(comm)}
+                          className={cn(
+                            "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0",
+                            isMember
+                              ? "bg-white dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10"
+                              : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100"
+                          )}
+                        >
+                          {isMember ? "Üyesin" : "Katıl"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* SECTION F: POPÜLER GÖNDERİLER */}
+            {(activeTab === "all" || activeTab === "posts") && popularPosts.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Popüler Gönderiler
+                </h2>
+                <div className="space-y-3">
+                  {popularPosts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onPostDeleted={(id) =>
+                        setPopularPosts((prev) => prev.filter((p) => p.id !== id))
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

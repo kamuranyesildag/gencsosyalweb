@@ -41,16 +41,21 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-3">Yasal & Kurumsal</h4>
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-3">Yasal &amp; Kurumsal</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
               <li>
-                <Link to="/privacy" className="hover:text-slate-900 dark:text-slate-100 transition-colors">
+                <Link to="/privacy" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
                   Gizlilik Politikası
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-slate-900 dark:text-slate-100 transition-colors">
-                  Kullanım Koşulları
+                <Link to="/terms" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                  Kullanım Şartları
+                </Link>
+              </li>
+              <li>
+                <Link to="/kvkk" className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                  KVKK Aydınlatma Metni
                 </Link>
               </li>
             </ul>

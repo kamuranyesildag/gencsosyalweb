@@ -438,15 +438,25 @@ export function Profile() {
                 </Dropdown>
               </>
             ) : (
-              <Button
-                variant="secondary"
-                size="md"
-                leftIcon={<Settings className="w-4 h-4" />}
-                onClick={() => navigate("/settings")}
-                className="rounded-full px-5 font-bold border-slate-200 dark:border-white/[0.1] hover:bg-slate-100 dark:hover:bg-white/[0.05] text-slate-800 dark:text-slate-100 shadow-xs transition-all"
-              >
-                Profili Düzenle
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Settings className="w-4 h-4" />}
+                  onClick={() => navigate("/settings")}
+                  className="rounded-xl px-4 font-bold bg-[#0F172A] hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white shadow-xs transition-all"
+                >
+                  Profili Düzenle
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => navigate("/bookmarks")}
+                  className="rounded-xl px-4 font-bold border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#131D31] text-slate-800 dark:text-slate-100 shadow-xs transition-all"
+                >
+                  🔖 Kaydedilenler
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -660,6 +670,40 @@ export function Profile() {
         </div>
       ) : (
         <>
+          {/* YOUTH LEAGUE SEZON 3 CARD (Mockup 4) */}
+          <div className="px-4 sm:px-6 pt-4 pb-2">
+            <div
+              onClick={() => navigate("/quiz")}
+              className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs hover:border-blue-300 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center text-lg shrink-0">
+                  🏆
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                    Youth League · Sezon 3
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Sıralama #48 · 6 rozet
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center -space-x-1.5 shrink-0">
+                <span className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/70 text-[#2563EB] dark:text-blue-400 text-xs font-black flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
+                  {"</>"}
+                </span>
+                <span className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
+                  🌱
+                </span>
+                <span className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 text-xs flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
+                  🧠
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* PROFILE TABS */}
           <div
             className="sticky top-[56px] sm:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors shadow-xs"
@@ -673,11 +717,11 @@ export function Profile() {
           onClick={() => setActiveTab("posts")}
           className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
             activeTab === "posts"
-              ? "text-slate-900 dark:text-white"
+              ? "text-[#2563EB] dark:text-blue-400"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
-          <span>Gönderiler</span>
+          <span>Paylaşımlar</span>
           {activeTab === "posts" && (
             <motion.div
               layoutId="profileActiveTabIndicator"
@@ -779,23 +823,84 @@ export function Profile() {
       <div className="flex-1 w-full pb-20">
         {/* 1. Posts Tab */}
         {activeTab === "posts" && (
-          postsQuery.loading ? (
-            <SkeletonList count={3} className="p-4" />
-          ) : postsQuery.data.length > 0 ? (
-            <InfiniteScroll
-              items={postsQuery.data}
-              hasMore={postsQuery.hasMore}
-              isLoading={postsQuery.loadingMore}
-              onLoadMore={postsQuery.loadMore}
-              renderItem={(post) => (
-                <PostCard
-                  key={post.id}
-                  post={post.user ? post : { ...post, user: profile }}
-                  onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))}
-                />
-              )}
-            />
-          ) : (
+          <div className="space-y-4">
+            {/* PROJELERİM HORIZONTAL SHOWCASE STRIP (Mockup 4) */}
+            <div className="px-4 sm:px-6 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  Projelerim
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("projects")}
+                  className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  Tümü ({profile.projectsCount || 2})
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div
+                  onClick={() => setActiveTab("projects")}
+                  className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-900">
+                    <img
+                      src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80"
+                      alt="Otonom Rover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white line-clamp-1">
+                      Otonom Rover
+                    </h4>
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-[10px] font-extrabold">
+                      Geliştirme
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab("projects")}
+                  className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-900">
+                    <img
+                      src="https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80"
+                      alt="Görü Destekli Robot Kol"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-3 space-y-1.5">
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white line-clamp-1">
+                      Görü Destekli Robot Kol
+                    </h4>
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold">
+                      Tamamlandı
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {postsQuery.loading ? (
+              <SkeletonList count={3} className="p-4" />
+            ) : postsQuery.data.length > 0 ? (
+              <InfiniteScroll
+                items={postsQuery.data}
+                hasMore={postsQuery.hasMore}
+                isLoading={postsQuery.loadingMore}
+                onLoadMore={postsQuery.loadMore}
+                renderItem={(post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post.user ? post : { ...post, user: profile }}
+                    onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))}
+                  />
+                )}
+              />
+            ) : (
             <div className="px-4 py-12 max-w-md mx-auto text-center">
               <EmptyState
                 icon={<FileText className="w-7 h-7 text-slate-400" />}
@@ -815,7 +920,8 @@ export function Profile() {
                 }
               />
             </div>
-          )
+            )}
+          </div>
         )}
 
         {/* 2. Projects Tab */}

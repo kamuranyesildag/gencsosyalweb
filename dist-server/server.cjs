@@ -310,6 +310,9 @@ var init_schema = __esm({
       // USER, MODERATOR, ADMIN
       isActive: (0, import_pg_core.boolean)("is_active").default(true).notNull(),
       isVerified: (0, import_pg_core.boolean)("is_verified").default(false).notNull(),
+      verificationCategory: (0, import_pg_core.varchar)("verification_category", { length: 50 }),
+      // INDIVIDUAL, CREATOR, ORGANIZATION, COMMUNITY, PROJECT
+      verifiedAt: (0, import_pg_core.timestamp)("verified_at"),
       emailVerified: (0, import_pg_core.boolean)("email_verified").default(false).notNull(),
       isOfficialAccount: (0, import_pg_core.boolean)("is_official_account").default(false).notNull(),
       officialNotifyEnabled: (0, import_pg_core.boolean)("official_notify_enabled").default(true).notNull(),
@@ -728,18 +731,27 @@ var init_schema = __esm({
     verificationRequests = (0, import_pg_core.pgTable)("verification_requests", {
       id: (0, import_pg_core.serial)("id").primaryKey(),
       userId: (0, import_pg_core.integer)("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-      status: (0, import_pg_core.varchar)("status", { length: 20 }).default("pending").notNull(),
-      // pending, under_review, approved, rejected
+      category: (0, import_pg_core.varchar)("category", { length: 50 }).default("INDIVIDUAL").notNull(),
+      // INDIVIDUAL, CREATOR, ORGANIZATION, COMMUNITY, PROJECT
+      status: (0, import_pg_core.varchar)("status", { length: 30 }).default("pending").notNull(),
+      // pending, under_review, info_required, approved, rejected, revoked
       reason: (0, import_pg_core.text)("reason").notNull(),
+      supportingLinks: (0, import_pg_core.jsonb)("supporting_links").$type().default([]).notNull(),
+      supportingDocuments: (0, import_pg_core.jsonb)("supporting_documents").$type().default([]).notNull(),
+      infoRequestMessage: (0, import_pg_core.text)("info_request_message"),
+      applicantResponse: (0, import_pg_core.text)("applicant_response"),
+      eligibilitySnapshot: (0, import_pg_core.jsonb)("eligibility_snapshot").$type().default({}).notNull(),
       adminNote: (0, import_pg_core.text)("admin_note"),
       rejectionReason: (0, import_pg_core.text)("rejection_reason"),
+      cooldownUntil: (0, import_pg_core.timestamp)("cooldown_until"),
       reviewedBy: (0, import_pg_core.integer)("reviewed_by").references(() => users.id, { onDelete: "set null" }),
       reviewedAt: (0, import_pg_core.timestamp)("reviewed_at"),
       createdAt: (0, import_pg_core.timestamp)("created_at").defaultNow().notNull(),
       updatedAt: (0, import_pg_core.timestamp)("updated_at").defaultNow().notNull()
     }, (t) => ({
       userIdIdx: (0, import_pg_core.index)("verification_requests_user_id_idx").on(t.userId),
-      statusIdx: (0, import_pg_core.index)("verification_requests_status_idx").on(t.status)
+      statusIdx: (0, import_pg_core.index)("verification_requests_status_idx").on(t.status),
+      categoryIdx: (0, import_pg_core.index)("verification_requests_category_idx").on(t.category)
     }));
     systemSettings = (0, import_pg_core.pgTable)("system_settings", {
       key: (0, import_pg_core.varchar)("key", { length: 100 }).primaryKey(),
@@ -2441,7 +2453,39 @@ async function runMigration(isStandalone = false) {
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "banned_at" timestamp;
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "ban_reason" text;
       ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "ban_expires_at" timestamp;
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "verification_category" varchar(50);
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "verified_at" timestamp;
       UPDATE "users" SET "role" = UPPER("role") WHERE "role" IN ('admin', 'user', 'moderator');
+
+      CREATE TABLE IF NOT EXISTS "verification_requests" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "category" varchar(50) DEFAULT 'INDIVIDUAL' NOT NULL,
+        "status" varchar(30) DEFAULT 'pending' NOT NULL,
+        "reason" text NOT NULL,
+        "supporting_links" jsonb DEFAULT '[]'::jsonb NOT NULL,
+        "supporting_documents" jsonb DEFAULT '[]'::jsonb NOT NULL,
+        "info_request_message" text,
+        "applicant_response" text,
+        "eligibility_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL,
+        "admin_note" text,
+        "rejection_reason" text,
+        "cooldown_until" timestamp,
+        "reviewed_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "reviewed_at" timestamp,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+      );
+
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "category" varchar(50) DEFAULT 'INDIVIDUAL' NOT NULL;
+      ALTER TABLE "verification_requests" ALTER COLUMN "status" TYPE varchar(30);
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "supporting_links" jsonb DEFAULT '[]'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "supporting_documents" jsonb DEFAULT '[]'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "info_request_message" text;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "applicant_response" text;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "eligibility_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL;
+      ALTER TABLE "verification_requests" ADD COLUMN IF NOT EXISTS "cooldown_until" timestamp;
+      CREATE INDEX IF NOT EXISTS "verification_requests_category_idx" ON "verification_requests" ("category");
 
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "onboarding_completed" boolean DEFAULT false NOT NULL;
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "interests" jsonb DEFAULT '[]'::jsonb;
@@ -7040,6 +7084,8 @@ var init_users = __esm({
           id: users.id,
           username: users.username,
           isVerified: users.isVerified,
+          verificationCategory: users.verificationCategory,
+          verifiedAt: users.verifiedAt,
           isMinor: users.isMinor,
           ageVerificationStatus: users.ageVerificationStatus,
           createdAt: users.createdAt,
@@ -7569,6 +7615,8 @@ var init_posts = __esm({
             username: users.username,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory,
             allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
           }
         }).from(posts).innerJoin(users, (0, import_drizzle_orm17.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm17.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm17.and)(
@@ -8341,7 +8389,9 @@ async function populatePostStats(postsList, currentUserId) {
         userId: users.id,
         username: users.username,
         displayName: profiles.displayName,
-        avatarUrl: profiles.avatarUrl
+        avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory
       }).from(postCollaborators).innerJoin(users, (0, import_drizzle_orm18.eq)(postCollaborators.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.and)((0, import_drizzle_orm18.inArray)(postCollaborators.postId, postIds), (0, import_drizzle_orm18.eq)(postCollaborators.status, "accepted"))),
       db.select().from(pollOptions).where((0, import_drizzle_orm18.inArray)(pollOptions.postId, postIds)),
       db.select({
@@ -8375,7 +8425,9 @@ async function populatePostStats(postsList, currentUserId) {
         id: users.id,
         username: users.username,
         displayName: profiles.displayName,
-        avatarUrl: profiles.avatarUrl
+        avatarUrl: profiles.avatarUrl,
+        isVerified: users.isVerified,
+        verificationCategory: users.verificationCategory
       }
     }).from(posts).innerJoin(users, (0, import_drizzle_orm18.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm18.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm18.inArray)(posts.id, quotedPostIds));
     const quotedMedia = await db.select().from(postMedia).where((0, import_drizzle_orm18.inArray)(postMedia.postId, quotedPostIds));
@@ -8656,7 +8708,8 @@ var init_feed = __esm({
             username: users.username,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl,
-            isVerified: users.isVerified
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           }
         }).from(posts).innerJoin(users, (0, import_drizzle_orm19.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm19.and)(...whereConditions.filter(Boolean))).orderBy((0, import_drizzle_orm19.desc)(rankScore)).limit(limit).offset(offset);
         const formattedPosts = await populatePostStats(feedPosts, currentUserId ?? -1);
@@ -8717,7 +8770,8 @@ var init_feed = __esm({
             username: users.username,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl,
-            isVerified: users.isVerified
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           }
         }).from(posts).innerJoin(users, (0, import_drizzle_orm19.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm19.eq)(users.id, profiles.userId)).where(
           (0, import_drizzle_orm19.and)(
@@ -8824,7 +8878,9 @@ var init_userPosts = __esm({
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           },
           __repostCreatedAt: import_drizzle_orm20.sql`NULL`,
           __repostUserId: import_drizzle_orm20.sql`NULL`
@@ -8850,7 +8906,9 @@ var init_userPosts = __esm({
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           },
           __repostCreatedAt: reposts.createdAt,
           __repostUserId: reposts.userId
@@ -8876,7 +8934,9 @@ var init_userPosts = __esm({
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           },
           __repostCreatedAt: import_drizzle_orm20.sql`NULL`,
           __repostUserId: import_drizzle_orm20.sql`NULL`
@@ -9264,7 +9324,10 @@ var init_search = __esm({
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            bio: profiles.bio,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           }).from(users).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where(
             (0, import_drizzle_orm24.and)(
               (0, import_drizzle_orm24.eq)(users.isActive, true),
@@ -9304,7 +9367,9 @@ var init_search = __esm({
               id: users.id,
               username: users.username,
               displayName: profiles.displayName,
-              avatarUrl: profiles.avatarUrl
+              avatarUrl: profiles.avatarUrl,
+              isVerified: users.isVerified,
+              verificationCategory: users.verificationCategory
             }
           }).from(posts).innerJoin(users, (0, import_drizzle_orm24.eq)(posts.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm24.eq)(users.id, profiles.userId)).where(
             (0, import_drizzle_orm24.and)(
@@ -11502,7 +11567,9 @@ var init_comments = __esm({
             id: users.id,
             username: users.username,
             displayName: profiles.displayName,
-            avatarUrl: profiles.avatarUrl
+            avatarUrl: profiles.avatarUrl,
+            isVerified: users.isVerified,
+            verificationCategory: users.verificationCategory
           }
         }).from(comments).innerJoin(users, (0, import_drizzle_orm32.eq)(comments.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm32.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm32.and)((0, import_drizzle_orm32.eq)(comments.postId, postId), (0, import_drizzle_orm32.eq)(comments.moderationStatus, "APPROVED"), cursorCondition ? cursorCondition : void 0)).orderBy((0, import_drizzle_orm32.desc)(comments.createdAt), (0, import_drizzle_orm32.desc)(comments.id)).limit(limit);
         let nextCursor = void 0;
@@ -11573,24 +11640,547 @@ var init_reports = __esm({
   }
 });
 
+// server/routes/verification.ts
+var verification_exports = {};
+__export(verification_exports, {
+  VERIFICATION_CATEGORIES: () => VERIFICATION_CATEGORIES,
+  VERIFICATION_CATEGORY_LABELS: () => VERIFICATION_CATEGORY_LABELS,
+  evaluateUserVerificationEligibility: () => evaluateUserVerificationEligibility,
+  verificationRouter: () => verificationRouter
+});
+async function evaluateUserVerificationEligibility(userId, requestedCategory = "INDIVIDUAL") {
+  const category = VERIFICATION_CATEGORIES.includes(
+    requestedCategory
+  ) ? requestedCategory : "INDIVIDUAL";
+  const [userRow] = await db.select({
+    id: users.id,
+    username: users.username,
+    emailVerified: users.emailVerified,
+    isActive: users.isActive,
+    isVerified: users.isVerified,
+    isMinor: users.isMinor,
+    bannedAt: users.bannedAt,
+    banReason: users.banReason,
+    createdAt: users.createdAt,
+    displayName: profiles.displayName,
+    bio: profiles.bio,
+    avatarUrl: profiles.avatarUrl,
+    website: profiles.website
+  }).from(users).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.eq)(users.id, userId)).limit(1);
+  if (!userRow) {
+    throw new Error("Kullan\u0131c\u0131 bulunamad\u0131.");
+  }
+  const now = /* @__PURE__ */ new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1e3);
+  const [followerStats] = await db.select({
+    totalAccepted: import_drizzle_orm34.sql`cast(count(*) as integer)`,
+    recent24h: import_drizzle_orm34.sql`cast(count(*) filter (where ${follows.createdAt} >= ${twentyFourHoursAgo}) as integer)`
+  }).from(follows).innerJoin(users, (0, import_drizzle_orm34.eq)(follows.followerId, users.id)).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(follows.followingId, userId),
+      (0, import_drizzle_orm34.eq)(follows.status, "accepted"),
+      (0, import_drizzle_orm34.eq)(users.isActive, true)
+    )
+  );
+  const [lowQualityFollowerStats] = await db.select({
+    emptyProfileFollowers: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(follows).innerJoin(users, (0, import_drizzle_orm34.eq)(follows.followerId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(follows.followingId, userId),
+      (0, import_drizzle_orm34.eq)(follows.status, "accepted"),
+      (0, import_drizzle_orm34.eq)(users.isActive, true),
+      import_drizzle_orm34.sql`(${profiles.avatarUrl} IS NULL OR ${profiles.avatarUrl} = '') AND (${profiles.bio} IS NULL OR ${profiles.bio} = '')`
+    )
+  );
+  const followerCount = Number(followerStats?.totalAccepted || 0);
+  const followersLast24h = Number(followerStats?.recent24h || 0);
+  const emptyProfileFollowers = Number(lowQualityFollowerStats?.emptyProfileFollowers || 0);
+  const createdAtDate = userRow.createdAt ? new Date(userRow.createdAt) : now;
+  const accountAgeDays = Math.max(
+    0,
+    Math.floor((now.getTime() - createdAtDate.getTime()) / (1e3 * 60 * 60 * 24))
+  );
+  const requiredAccountAgeDays = 90;
+  const hasUsername = Boolean(userRow.username && userRow.username.trim().length >= 3);
+  const hasDisplayName = Boolean(userRow.displayName && userRow.displayName.trim().length >= 2);
+  const hasAvatar = Boolean(userRow.avatarUrl && userRow.avatarUrl.trim().length > 0);
+  const hasBio = Boolean(userRow.bio && userRow.bio.trim().length >= 10);
+  const missingProfileFields = [];
+  if (!hasAvatar) missingProfileFields.push("Profil foto\u011Fraf\u0131");
+  if (!hasUsername) missingProfileFields.push("Kullan\u0131c\u0131 ad\u0131");
+  if (!hasDisplayName) missingProfileFields.push("G\xF6r\xFCnen ad");
+  if (!hasBio) missingProfileFields.push("Biyografi (en az 10 karakter)");
+  const completedFieldsCount = 4 - missingProfileFields.length;
+  const profileCompletionScore = Math.round(completedFieldsCount / 4 * 100);
+  const profileCompletenessPassed = missingProfileFields.length === 0;
+  const [postActivity] = await db.select({
+    postsLast30d: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(posts).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(posts.userId, userId),
+      (0, import_drizzle_orm34.eq)(posts.moderationStatus, "APPROVED"),
+      (0, import_drizzle_orm34.gte)(posts.createdAt, thirtyDaysAgo)
+    )
+  );
+  const [commentActivity] = await db.select({
+    commentsLast30d: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(comments).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(comments.userId, userId),
+      (0, import_drizzle_orm34.eq)(comments.moderationStatus, "APPROVED"),
+      (0, import_drizzle_orm34.gte)(comments.createdAt, thirtyDaysAgo)
+    )
+  );
+  const [projectStats] = await db.select({
+    totalProjects: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(projects).where((0, import_drizzle_orm34.eq)(projects.userId, userId));
+  const [communityStats] = await db.select({
+    ownedCommunities: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(communities).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(communities.ownerId, userId),
+      import_drizzle_orm34.sql`${communities.deletedAt} IS NULL`
+    )
+  );
+  const postsLast30Days = Number(postActivity?.postsLast30d || 0);
+  const commentsLast30Days = Number(commentActivity?.commentsLast30d || 0);
+  const projectsCount = Number(projectStats?.totalProjects || 0);
+  const communitiesOwnedCount = Number(communityStats?.ownedCommunities || 0);
+  const activityPassed = postsLast30Days >= 1 || commentsLast30Days >= 3 || category === "PROJECT" && projectsCount >= 1 || category === "COMMUNITY" && communitiesOwnedCount >= 1;
+  const isFlexibleCategory = category === "PROJECT" || category === "COMMUNITY";
+  const requiredFollowers = 1e3;
+  const hasCategoryEcosystemPresence = category === "PROJECT" && projectsCount >= 1 || category === "COMMUNITY" && communitiesOwnedCount >= 1;
+  const followersPassed = followerCount >= requiredFollowers || isFlexibleCategory && hasCategoryEcosystemPresence && activityPassed && profileCompletenessPassed;
+  const originalityPassed = profileCompletenessPassed && (category === "PROJECT" ? projectsCount >= 1 || followerCount >= 100 : category === "COMMUNITY" ? communitiesOwnedCount >= 1 || followerCount >= 100 : true);
+  const [modStats] = await db.select({
+    rejectedLast30d: import_drizzle_orm34.sql`cast(count(*) filter (where (${moderationLogs.actionTaken} = 'REJECTED' or ${moderationLogs.riskLevel} = 'HIGH_RISK') and ${moderationLogs.createdAt} >= ${thirtyDaysAgo}) as integer)`,
+    highRiskLast90d: import_drizzle_orm34.sql`cast(count(*) filter (where ${moderationLogs.riskLevel} = 'HIGH_RISK' and ${moderationLogs.createdAt} >= ${ninetyDaysAgo}) as integer)`
+  }).from(moderationLogs).where((0, import_drizzle_orm34.eq)(moderationLogs.userId, userId));
+  const [reportStats] = await db.select({
+    resolvedReports: import_drizzle_orm34.sql`cast(count(*) as integer)`
+  }).from(reports).where(
+    (0, import_drizzle_orm34.and)(
+      (0, import_drizzle_orm34.eq)(reports.targetType, "user"),
+      (0, import_drizzle_orm34.eq)(reports.targetId, userId),
+      (0, import_drizzle_orm34.eq)(reports.status, "RESOLVED")
+    )
+  );
+  const rejectedLast30d = Number(modStats?.rejectedLast30d || 0);
+  const highRiskViolationsCount = Number(modStats?.highRiskLast90d || 0);
+  const resolvedUserReports = Number(reportStats?.resolvedReports || 0);
+  const riskFlags = [];
+  let riskScore = 0;
+  if (followerCount >= 50 && followersLast24h >= 100 && followersLast24h / followerCount > 0.6) {
+    riskScore += 45;
+    riskFlags.push("Son 24 saatte ola\u011Fand\u0131\u015F\u0131 takip\xE7i art\u0131\u015F\u0131 (olas\u0131 bot/takip\xE7i sat\u0131n alma sinyali)");
+  }
+  if (followerCount >= 50 && emptyProfileFollowers / followerCount > 0.75) {
+    riskScore += 35;
+    riskFlags.push("Takip\xE7i kitlesinde y\xFCksek oranda bo\u015F/inaktif profil tespit edildi");
+  }
+  if (rejectedLast30d >= 3) {
+    riskScore += 30;
+    riskFlags.push(`Son 30 g\xFCnde ${rejectedLast30d} adet reddedilen i\xE7erik/spam uyar\u0131s\u0131`);
+  }
+  const reliabilityPassed = riskScore < 50 && rejectedLast30d < 5;
+  const isBannedOrInactive = !userRow.isActive || Boolean(userRow.bannedAt);
+  const communityGuidelinesPassed = !isBannedOrInactive && highRiskViolationsCount === 0 && resolvedUserReports === 0;
+  const recentRequests = await db.select().from(verificationRequests).where((0, import_drizzle_orm34.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm34.desc)(verificationRequests.createdAt)).limit(10);
+  const activeRequest = recentRequests.find(
+    (r) => ["pending", "under_review", "info_required"].includes(r.status)
+  );
+  const latestRejected = recentRequests.find((r) => r.status === "rejected");
+  let cooldownUntil = null;
+  let isUnderCooldown = false;
+  if (latestRejected?.cooldownUntil) {
+    const cdDate = new Date(latestRejected.cooldownUntil);
+    if (cdDate.getTime() > now.getTime()) {
+      isUnderCooldown = true;
+      cooldownUntil = cdDate.toISOString();
+    }
+  }
+  const recentApplicationsCount30d = recentRequests.filter(
+    (r) => r.createdAt && new Date(r.createdAt).getTime() >= thirtyDaysAgo.getTime()
+  ).length;
+  const accountAgePassed = accountAgeDays >= requiredAccountAgeDays;
+  const criteria = {
+    followers: {
+      key: "followers",
+      label: "Takip\xE7i Say\u0131s\u0131",
+      passed: followersPassed,
+      currentValue: followerCount,
+      requiredValue: isFlexibleCategory ? `${requiredFollowers} takip\xE7i veya aktif ${VERIFICATION_CATEGORY_LABELS[category].toLowerCase()} faaliyeti` : requiredFollowers,
+      summary: followerCount >= requiredFollowers ? `${followerCount.toLocaleString("tr-TR")} ger\xE7ek takip\xE7i \u015Fart\u0131 kar\u015F\u0131lan\u0131yor.` : isFlexibleCategory && hasCategoryEcosystemPresence ? `${VERIFICATION_CATEGORY_LABELS[category]} kategorisinde aktif proje/topluluk varl\u0131\u011F\u0131 ile de\u011Ferlendirilebilir (${followerCount.toLocaleString("tr-TR")} / 1.000 takip\xE7i).` : `Mevcut: ${followerCount.toLocaleString("tr-TR")} / Gerekli: 1.000 ger\xE7ek takip\xE7i.`,
+      reasonIfUnmet: followersPassed ? void 0 : isFlexibleCategory ? "En az 1.000 ger\xE7ek takip\xE7iye ula\u015Fmal\u0131 veya platformda aktif bir proje/topluluk yay\u0131nlam\u0131\u015F olmal\u0131s\u0131n\u0131z." : `Normal do\u011Frulama ba\u015Fvurusu i\xE7in en az 1.000 ger\xE7ek takip\xE7i gereklidir (\u015Fu an ${followerCount.toLocaleString("tr-TR")}).`
+    },
+    accountAge: {
+      key: "accountAge",
+      label: "Hesap Ya\u015F\u0131",
+      passed: accountAgePassed,
+      currentValue: `${accountAgeDays} g\xFCn`,
+      requiredValue: `${requiredAccountAgeDays} g\xFCn`,
+      summary: accountAgePassed ? `Hesab\u0131n\u0131z ${accountAgeDays} g\xFCnd\xFCr aktif (90 g\xFCn \u015Fart\u0131 kar\u015F\u0131land\u0131).` : `Hesab\u0131n\u0131z ${accountAgeDays} g\xFCnd\xFCr aktif (en az 90 g\xFCn olmal\u0131).`,
+      reasonIfUnmet: accountAgePassed ? void 0 : `Hesab\u0131n\u0131z\u0131n en az 90 g\xFCnd\xFCr aktif olmas\u0131 gerekir. Kalan s\xFCre: ${Math.max(
+        1,
+        requiredAccountAgeDays - accountAgeDays
+      )} g\xFCn.`
+    },
+    profileCompleteness: {
+      key: "profileCompleteness",
+      label: "Profil B\xFCt\xFCnl\xFC\u011F\xFC",
+      passed: profileCompletenessPassed,
+      currentValue: `%${profileCompletionScore}`,
+      requiredValue: "%100",
+      summary: profileCompletenessPassed ? "Profil foto\u011Fraf\u0131, kullan\u0131c\u0131 ad\u0131, g\xF6r\xFCnen ad ve biyografi eksiksiz." : `Eksik alanlar: ${missingProfileFields.join(", ")}.`,
+      reasonIfUnmet: profileCompletenessPassed ? void 0 : `L\xFCtfen \u015Fu profil bilgilerini tamamlay\u0131n: ${missingProfileFields.join(", ")}.`
+    },
+    activity: {
+      key: "activity",
+      label: "Son 30 G\xFCn Aktifli\u011Fi",
+      passed: activityPassed,
+      currentValue: `${postsLast30Days} g\xF6nderi, ${projectsCount} proje`,
+      requiredValue: "D\xFCzenli etkinlik",
+      summary: activityPassed ? `Son 30 g\xFCnde ${postsLast30Days} onayl\u0131 g\xF6nderi ve ${commentsLast30Days} yorum etkinli\u011Fi bulundu.` : "Son 30 g\xFCn i\xE7erisinde d\xFCzenli i\xE7erik veya proje etkinli\u011Fi bulunamad\u0131.",
+      reasonIfUnmet: activityPassed ? void 0 : "Son 30 g\xFCn i\xE7erisinde en az 1 onayl\u0131 g\xF6nderi payla\u015Fm\u0131\u015F veya aktif bir proje sergilemi\u015F olmal\u0131s\u0131n\u0131z."
+    },
+    originality: {
+      key: "originality",
+      label: "\xD6zg\xFCnl\xFCk",
+      passed: originalityPassed,
+      currentValue: originalityPassed ? "Uygun" : "Eksik",
+      requiredValue: "Ger\xE7ek ki\u015Fi, kurum, topluluk veya proje temsili",
+      summary: originalityPassed ? `${VERIFICATION_CATEGORY_LABELS[category]} kategorisi i\xE7in \xF6zg\xFCn profil temsili uygun.` : `${VERIFICATION_CATEGORY_LABELS[category]} kategorisi i\xE7in profil veya proje/topluluk temsili eksik.`,
+      reasonIfUnmet: originalityPassed ? void 0 : category === "PROJECT" ? "Proje kategorisinde ba\u015Fvurmak i\xE7in profilinizde en az 1 proje sergilemeli ve profil bilgilerinizi tamamlamal\u0131s\u0131n\u0131z." : category === "COMMUNITY" ? "Topluluk kategorisinde ba\u015Fvurmak i\xE7in aktif bir topluluk y\xF6netmeli ve profil b\xFCt\xFCnl\xFC\u011F\xFCn\xFC sa\u011Flamal\u0131s\u0131n\u0131z." : "Hesab\u0131n\u0131z ger\xE7ek bir ki\u015Fiyi, i\xE7erik \xFCreticisini veya kurumu \xF6zg\xFCn bi\xE7imde temsil etmelidir."
+    },
+    reliability: {
+      key: "reliability",
+      label: "G\xFCvenilirlik ve Etkile\u015Fim Kalitesi",
+      passed: reliabilityPassed,
+      currentValue: `Risk Puan\u0131: ${riskScore}/100`,
+      requiredValue: "Manip\xFClasyon / spam i\xE7ermemeli",
+      summary: reliabilityPassed ? "Spam, sahte etkile\u015Fim veya takip\xE7i manip\xFClasyonu tespit edilmedi." : `G\xFCvenilirlik uyar\u0131s\u0131: ${riskFlags.join("; ")}`,
+      reasonIfUnmet: reliabilityPassed ? void 0 : "Hesab\u0131n\u0131zda spam veya ola\u011Fand\u0131\u015F\u0131 etkile\u015Fim sinyalleri tespit edildi\u011Fi i\xE7in ba\u015Fvuru yap\u0131lamaz."
+    },
+    communityGuidelines: {
+      key: "communityGuidelines",
+      label: "Topluluk Kurallar\u0131 Uyumu",
+      passed: communityGuidelinesPassed,
+      currentValue: communityGuidelinesPassed ? "Temiz Sicil" : "\u0130hlal Kayd\u0131 Var",
+      requiredValue: "Ciddi/aktif ihlal bulunmamal\u0131",
+      summary: communityGuidelinesPassed ? "Ciddi veya devam eden topluluk kural\u0131 ihlali bulunmuyor." : "Hesab\u0131n\u0131zda ciddi topluluk kural\u0131 ihlali veya yapt\u0131r\u0131m kayd\u0131 bulunuyor.",
+      reasonIfUnmet: communityGuidelinesPassed ? void 0 : "Ciddi ve devam eden topluluk kural\u0131 ihlalleri bulunan hesaplar do\u011Frulama ba\u015Fvurusu yapamaz."
+    }
+  };
+  const isEligible = Object.values(criteria).every((c) => c.passed);
+  let blockingReason = null;
+  if (userRow.isVerified) {
+    blockingReason = "Hesab\u0131n\u0131z zaten do\u011Frulanm\u0131\u015F (Mavi Tik sahibi) durumda.";
+  } else if (activeRequest) {
+    blockingReason = "H\xE2lihaz\u0131rda inceleme s\xFCrecinde olan bir do\u011Frulama ba\u015Fvurunuz bulunuyor.";
+  } else if (isUnderCooldown && cooldownUntil) {
+    blockingReason = `\xD6nceki ba\u015Fvurunuz reddedildi\u011Fi i\xE7in ${new Date(
+      cooldownUntil
+    ).toLocaleDateString("tr-TR")} tarihine kadar yeni ba\u015Fvuru yapamazs\u0131n\u0131z.`;
+  } else if (recentApplicationsCount30d >= 3) {
+    blockingReason = "Son 30 g\xFCn i\xE7erisinde azami ba\u015Fvuru s\u0131n\u0131r\u0131na (3 ba\u015Fvuru) ula\u015Ft\u0131n\u0131z.";
+  } else if (!isEligible) {
+    const firstUnmet = Object.values(criteria).find((c) => !c.passed);
+    blockingReason = firstUnmet?.reasonIfUnmet || "Mavi tik ba\u015Fvurusu i\xE7in asgari uygunluk kriterlerinin tamam\u0131 kar\u015F\u0131lanmal\u0131d\u0131r.";
+  }
+  return {
+    userId,
+    category,
+    isEligible,
+    canApplyNow: isEligible && !blockingReason,
+    blockingReason,
+    cooldownUntil,
+    metrics: {
+      followerCount,
+      requiredFollowers,
+      accountAgeDays,
+      requiredAccountAgeDays,
+      profileCompletionScore,
+      missingProfileFields,
+      postsLast30Days,
+      commentsLast30Days,
+      projectsCount,
+      communitiesOwnedCount,
+      riskScore,
+      riskFlags,
+      highRiskViolationsCount,
+      recentApplicationsCount30d
+    },
+    criteria
+  };
+}
+function containsSensitiveNationalId(text2) {
+  return /\b[1-9][0-9]{10}\b/.test(text2);
+}
+var import_express25, import_drizzle_orm34, verificationRouter, VERIFICATION_CATEGORIES, VERIFICATION_CATEGORY_LABELS;
+var init_verification = __esm({
+  "server/routes/verification.ts"() {
+    "use strict";
+    import_express25 = require("express");
+    init_db();
+    init_schema();
+    init_auth();
+    import_drizzle_orm34 = require("drizzle-orm");
+    verificationRouter = (0, import_express25.Router)();
+    VERIFICATION_CATEGORIES = [
+      "INDIVIDUAL",
+      "CREATOR",
+      "ORGANIZATION",
+      "COMMUNITY",
+      "PROJECT"
+    ];
+    VERIFICATION_CATEGORY_LABELS = {
+      INDIVIDUAL: "Bireysel",
+      CREATOR: "\u0130\xE7erik \xDCreticisi",
+      ORGANIZATION: "Kurum / Marka",
+      COMMUNITY: "Topluluk",
+      PROJECT: "Proje"
+    };
+    verificationRouter.use(requireAuth);
+    verificationRouter.get("/me", async (req, res) => {
+      try {
+        const userId = requireAuthContext(req);
+        const categoryQuery = req.query.category || "INDIVIDUAL";
+        const [userRecord] = await db.select({
+          isVerified: users.isVerified,
+          verificationCategory: users.verificationCategory,
+          verifiedAt: users.verifiedAt,
+          isMinor: users.isMinor
+        }).from(users).where((0, import_drizzle_orm34.eq)(users.id, userId)).limit(1);
+        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm34.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm34.desc)(verificationRequests.createdAt)).limit(10);
+        const eligibility = await evaluateUserVerificationEligibility(userId, categoryQuery);
+        res.json({
+          success: true,
+          data: requests,
+          eligibility,
+          currentVerification: {
+            isVerified: Boolean(userRecord?.isVerified),
+            verificationCategory: userRecord?.verificationCategory || null,
+            verifiedAt: userRecord?.verifiedAt || null,
+            isMinor: Boolean(userRecord?.isMinor)
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching verification status:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+    verificationRouter.post("/", async (req, res) => {
+      try {
+        const userId = requireAuthContext(req);
+        const {
+          category = "INDIVIDUAL",
+          reason,
+          supportingLinks = [],
+          supportingDocuments = []
+        } = req.body;
+        if (!VERIFICATION_CATEGORIES.includes(category)) {
+          res.status(400).json({
+            success: false,
+            error: { message: "Ge\xE7ersiz do\u011Frulama kategorisi se\xE7ildi." }
+          });
+          return;
+        }
+        if (!reason || typeof reason !== "string" || reason.trim().length < 30) {
+          res.status(400).json({
+            success: false,
+            error: {
+              message: "L\xFCtfen ba\u015Fvuru a\xE7\u0131klaman\u0131z\u0131 ve \xF6zg\xFCnl\xFCk gerek\xE7enizi en az 30 karakter olacak \u015Fekilde yaz\u0131n."
+            }
+          });
+          return;
+        }
+        if (reason.trim().length > 1500) {
+          res.status(400).json({
+            success: false,
+            error: { message: "Ba\u015Fvuru a\xE7\u0131klamas\u0131 en fazla 1500 karakter olabilir." }
+          });
+          return;
+        }
+        if (containsSensitiveNationalId(reason)) {
+          res.status(400).json({
+            success: false,
+            error: {
+              message: "G\xFCvenli\u011Finiz ve KVKK/\xE7ocuk g\xFCvenli\u011Fi kurallar\u0131 gere\u011Fi ba\u015Fvuru metninde T.C. Kimlik Numaras\u0131 gibi hassas ki\u015Fisel veriler payla\u015Fmay\u0131n."
+            }
+          });
+          return;
+        }
+        const sanitizedLinks = [];
+        if (Array.isArray(supportingLinks)) {
+          for (const rawLink of supportingLinks.slice(0, 5)) {
+            if (typeof rawLink === "string" && rawLink.trim().length > 0) {
+              const trimmed = rawLink.trim();
+              if (!/^https?:\/\//i.test(trimmed)) {
+                res.status(400).json({
+                  success: false,
+                  error: {
+                    message: `Destekleyici ba\u011Flant\u0131lar http:// veya https:// ile ba\u015Flamal\u0131d\u0131r: ${trimmed}`
+                  }
+                });
+                return;
+              }
+              sanitizedLinks.push(trimmed.slice(0, 300));
+            }
+          }
+        }
+        const sanitizedDocs = [];
+        if (Array.isArray(supportingDocuments)) {
+          for (const doc of supportingDocuments.slice(0, 5)) {
+            if (doc && typeof doc.name === "string" && doc.name.trim().length > 0) {
+              const summaryText = typeof doc.summary === "string" ? doc.summary.trim() : "";
+              if (containsSensitiveNationalId(summaryText) || containsSensitiveNationalId(doc.name)) {
+                res.status(400).json({
+                  success: false,
+                  error: {
+                    message: "Destekleyici belge bilgilerinde T.C. Kimlik Numaras\u0131 veya hassas kimlik verisi yer alamaz."
+                  }
+                });
+                return;
+              }
+              sanitizedDocs.push({
+                name: doc.name.trim().slice(0, 120),
+                type: typeof doc.type === "string" && doc.type.trim().length > 0 ? doc.type.trim().slice(0, 60) : "Resm\xEE / Kurumsal Referans",
+                summary: summaryText.slice(0, 400),
+                uploadedAt: (/* @__PURE__ */ new Date()).toISOString()
+              });
+            }
+          }
+        }
+        const eligibility = await evaluateUserVerificationEligibility(userId, category);
+        if (!eligibility.canApplyNow) {
+          res.status(400).json({
+            success: false,
+            error: {
+              message: eligibility.blockingReason || "Mavi tik ba\u015Fvuru kriterleri hen\xFCz kar\u015F\u0131lanm\u0131yor."
+            },
+            eligibility
+          });
+          return;
+        }
+        const [newReq] = await db.insert(verificationRequests).values({
+          userId,
+          category,
+          reason: reason.trim(),
+          supportingLinks: sanitizedLinks,
+          supportingDocuments: sanitizedDocs,
+          eligibilitySnapshot: eligibility.metrics,
+          status: "pending"
+        }).returning();
+        res.status(201).json({
+          success: true,
+          data: newReq,
+          eligibility
+        });
+      } catch (error) {
+        console.error("Error creating verification request:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+    verificationRouter.patch("/:id/respond", async (req, res) => {
+      try {
+        const userId = requireAuthContext(req);
+        const requestId = parseInt(req.params.id, 10);
+        if (isNaN(requestId)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ba\u015Fvuru ID." } });
+          return;
+        }
+        const { applicantResponse, supportingLinks, supportingDocuments } = req.body;
+        if (!applicantResponse || typeof applicantResponse !== "string" || applicantResponse.trim().length < 10) {
+          res.status(400).json({
+            success: false,
+            error: { message: "L\xFCtfen talep edilen ek bilgiyi en az 10 karakter olarak a\xE7\u0131klay\u0131n." }
+          });
+          return;
+        }
+        if (containsSensitiveNationalId(applicantResponse)) {
+          res.status(400).json({
+            success: false,
+            error: {
+              message: "G\xFCvenli\u011Finiz i\xE7in ek bilgi yan\u0131t\u0131nda T.C. Kimlik Numaras\u0131 gibi hassas ki\u015Fisel veriler payla\u015Fmay\u0131n."
+            }
+          });
+          return;
+        }
+        const [existing] = await db.select().from(verificationRequests).where(
+          (0, import_drizzle_orm34.and)((0, import_drizzle_orm34.eq)(verificationRequests.id, requestId), (0, import_drizzle_orm34.eq)(verificationRequests.userId, userId))
+        ).limit(1);
+        if (!existing) {
+          res.status(404).json({ success: false, error: { message: "Ba\u015Fvuru bulunamad\u0131." } });
+          return;
+        }
+        if (existing.status !== "info_required") {
+          res.status(400).json({
+            success: false,
+            error: {
+              message: "Yaln\u0131zca 'Ek bilgi gerekli' durumundaki ba\u015Fvurulara yan\u0131t g\xF6nderebilirsiniz."
+            }
+          });
+          return;
+        }
+        let updatedLinks = Array.isArray(existing.supportingLinks) ? [...existing.supportingLinks] : [];
+        if (Array.isArray(supportingLinks)) {
+          const validNewLinks = supportingLinks.filter((l) => typeof l === "string" && /^https?:\/\//i.test(l.trim())).map((l) => l.trim().slice(0, 300));
+          updatedLinks = Array.from(/* @__PURE__ */ new Set([...updatedLinks, ...validNewLinks])).slice(0, 8);
+        }
+        let updatedDocs = Array.isArray(existing.supportingDocuments) ? [...existing.supportingDocuments] : [];
+        if (Array.isArray(supportingDocuments)) {
+          for (const doc of supportingDocuments.slice(0, 5)) {
+            if (doc && typeof doc.name === "string" && doc.name.trim().length > 0) {
+              updatedDocs.push({
+                name: doc.name.trim().slice(0, 120),
+                type: typeof doc.type === "string" && doc.type.trim().length > 0 ? doc.type.trim().slice(0, 60) : "Ek Belge / Referans",
+                summary: typeof doc.summary === "string" ? doc.summary.trim().slice(0, 400) : "",
+                uploadedAt: (/* @__PURE__ */ new Date()).toISOString()
+              });
+            }
+          }
+        }
+        const [updated] = await db.update(verificationRequests).set({
+          applicantResponse: applicantResponse.trim().slice(0, 1500),
+          supportingLinks: updatedLinks,
+          supportingDocuments: updatedDocs.slice(0, 8),
+          status: "under_review",
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where((0, import_drizzle_orm34.eq)(verificationRequests.id, requestId)).returning();
+        res.json({
+          success: true,
+          data: updated,
+          message: "Ek bilgileriniz kaydedildi ve ba\u015Fvurunuz tekrar incelemeye al\u0131nd\u0131."
+        });
+      } catch (error) {
+        console.error("Error responding to verification info request:", error);
+        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
+      }
+    });
+  }
+});
+
 // server/routes/admin.ts
 var admin_exports = {};
 __export(admin_exports, {
   adminRouter: () => adminRouter
 });
-var import_express25, import_drizzle_orm34, import_argon24, adminRouter, getPagination, parseParamId;
+var import_express26, import_drizzle_orm35, import_argon24, adminRouter, getPagination, parseParamId;
 var init_admin = __esm({
   "server/routes/admin.ts"() {
     "use strict";
     init_encryption();
-    import_express25 = require("express");
+    import_express26 = require("express");
     init_db();
     init_schema();
-    import_drizzle_orm34 = require("drizzle-orm");
+    import_drizzle_orm35 = require("drizzle-orm");
     init_auth();
     init_mailer();
+    init_verification();
     import_argon24 = __toESM(require("argon2"), 1);
-    adminRouter = (0, import_express25.Router)();
+    adminRouter = (0, import_express26.Router)();
     getPagination = (req) => {
       const page = Math.max(1, parseInt(req.query.page) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
@@ -11599,10 +12189,10 @@ var init_admin = __esm({
     adminRouter.use(requireAuth, requireRole("ADMIN"));
     adminRouter.get("/stats", async (req, res) => {
       try {
-        const totalUsers = await db.select({ count: import_drizzle_orm34.sql`cast(count(*) as integer)` }).from(users);
-        const bannedUsers = await db.select({ count: import_drizzle_orm34.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm34.eq)(users.isActive, false));
-        const pendingVerifications = await db.select({ count: import_drizzle_orm34.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm34.eq)(verificationRequests.status, "pending"));
-        const pendingReports = await db.select({ count: import_drizzle_orm34.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm34.eq)(reports.status, "PENDING"));
+        const totalUsers = await db.select({ count: import_drizzle_orm35.sql`cast(count(*) as integer)` }).from(users);
+        const bannedUsers = await db.select({ count: import_drizzle_orm35.sql`cast(count(*) as integer)` }).from(users).where((0, import_drizzle_orm35.eq)(users.isActive, false));
+        const pendingVerifications = await db.select({ count: import_drizzle_orm35.sql`cast(count(*) as integer)` }).from(verificationRequests).where((0, import_drizzle_orm35.inArray)(verificationRequests.status, ["pending", "under_review", "info_required"]));
+        const pendingReports = await db.select({ count: import_drizzle_orm35.sql`cast(count(*) as integer)` }).from(reports).where((0, import_drizzle_orm35.eq)(reports.status, "PENDING"));
         res.json({
           success: true,
           data: {
@@ -11629,6 +12219,8 @@ var init_admin = __esm({
           role: users.role,
           isActive: users.isActive,
           isVerified: users.isVerified,
+          verificationCategory: users.verificationCategory,
+          verifiedAt: users.verifiedAt,
           isOfficialAccount: users.isOfficialAccount,
           emailVerified: users.emailVerified,
           twoFactorEnabled: users.twoFactorEnabled,
@@ -11638,27 +12230,27 @@ var init_admin = __esm({
           banExpiresAt: users.banExpiresAt,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId));
         const conditions = [];
         if (q && q.trim().length > 0) {
           const qTerm = `%${q.trim()}%`;
           conditions.push(
-            (0, import_drizzle_orm34.or)(
-              (0, import_drizzle_orm34.ilike)(users.username, qTerm),
-              (0, import_drizzle_orm34.ilike)(profiles.displayName, qTerm),
-              (0, import_drizzle_orm34.ilike)(users.email, qTerm)
+            (0, import_drizzle_orm35.or)(
+              (0, import_drizzle_orm35.ilike)(users.username, qTerm),
+              (0, import_drizzle_orm35.ilike)(profiles.displayName, qTerm),
+              (0, import_drizzle_orm35.ilike)(users.email, qTerm)
             )
           );
         }
         if (statusFilter === "ACTIVE") {
-          conditions.push((0, import_drizzle_orm34.eq)(users.isActive, true));
+          conditions.push((0, import_drizzle_orm35.eq)(users.isActive, true));
         } else if (statusFilter === "BANNED") {
-          conditions.push((0, import_drizzle_orm34.eq)(users.isActive, false));
+          conditions.push((0, import_drizzle_orm35.eq)(users.isActive, false));
         }
         if (conditions.length > 0) {
-          query = query.where((0, import_drizzle_orm34.and)(...conditions));
+          query = query.where((0, import_drizzle_orm35.and)(...conditions));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm34.desc)(users.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm35.desc)(users.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin users error:", error);
@@ -11668,26 +12260,81 @@ var init_admin = __esm({
     adminRouter.get("/verifications", async (req, res) => {
       try {
         const status = req.query.status;
+        const category = req.query.category;
+        const q = req.query.q;
         const { limit, offset } = getPagination(req);
         let query = db.select({
           id: verificationRequests.id,
           userId: verificationRequests.userId,
+          category: verificationRequests.category,
           status: verificationRequests.status,
           reason: verificationRequests.reason,
+          supportingLinks: verificationRequests.supportingLinks,
+          supportingDocuments: verificationRequests.supportingDocuments,
+          infoRequestMessage: verificationRequests.infoRequestMessage,
+          applicantResponse: verificationRequests.applicantResponse,
+          eligibilitySnapshot: verificationRequests.eligibilitySnapshot,
           adminNote: verificationRequests.adminNote,
           rejectionReason: verificationRequests.rejectionReason,
+          cooldownUntil: verificationRequests.cooldownUntil,
+          reviewedBy: verificationRequests.reviewedBy,
           createdAt: verificationRequests.createdAt,
           reviewedAt: verificationRequests.reviewedAt,
+          updatedAt: verificationRequests.updatedAt,
           username: users.username,
           email: users.email,
+          isVerified: users.isVerified,
+          verificationCategory: users.verificationCategory,
+          verifiedAt: users.verifiedAt,
+          isMinor: users.isMinor,
+          accountCreatedAt: users.createdAt,
           displayName: profiles.displayName,
-          avatarUrl: profiles.avatarUrl
-        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm34.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId));
-        if (status && ["pending", "under_review", "approved", "rejected"].includes(status)) {
-          query = query.where((0, import_drizzle_orm34.eq)(verificationRequests.status, status));
+          avatarUrl: profiles.avatarUrl,
+          bio: profiles.bio,
+          website: profiles.website
+        }).from(verificationRequests).innerJoin(users, (0, import_drizzle_orm35.eq)(verificationRequests.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId));
+        const conditions = [];
+        if (status && ["pending", "under_review", "info_required", "approved", "rejected", "revoked"].includes(status)) {
+          conditions.push((0, import_drizzle_orm35.eq)(verificationRequests.status, status));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm34.desc)(verificationRequests.createdAt));
-        res.json({ success: true, data: list });
+        if (category && VERIFICATION_CATEGORIES.includes(category)) {
+          conditions.push((0, import_drizzle_orm35.eq)(verificationRequests.category, category));
+        }
+        if (q && q.trim().length > 0) {
+          const qTerm = `%${q.trim()}%`;
+          conditions.push(
+            (0, import_drizzle_orm35.or)(
+              (0, import_drizzle_orm35.ilike)(users.username, qTerm),
+              (0, import_drizzle_orm35.ilike)(profiles.displayName, qTerm),
+              (0, import_drizzle_orm35.ilike)(users.email, qTerm),
+              (0, import_drizzle_orm35.ilike)(verificationRequests.reason, qTerm)
+            )
+          );
+        }
+        if (conditions.length > 0) {
+          query = query.where((0, import_drizzle_orm35.and)(...conditions));
+        }
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm35.desc)(verificationRequests.createdAt));
+        const enrichedList = await Promise.all(
+          list.map(async (item) => {
+            try {
+              const liveEligibility = await evaluateUserVerificationEligibility(
+                item.userId,
+                item.category || "INDIVIDUAL"
+              );
+              return {
+                ...item,
+                liveEligibility
+              };
+            } catch (e) {
+              return {
+                ...item,
+                liveEligibility: null
+              };
+            }
+          })
+        );
+        res.json({ success: true, data: enrichedList });
       } catch (error) {
         console.error("Admin verifications error:", error);
         res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
@@ -11695,50 +12342,126 @@ var init_admin = __esm({
     });
     adminRouter.patch("/verifications/:id", async (req, res) => {
       try {
-        const requestId = parseInt(req.params.id);
+        const requestId = parseInt(req.params.id, 10);
         if (isNaN(requestId)) {
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID." } });
           return;
         }
-        const { status, adminNote, rejectionReason } = req.body;
+        const {
+          status,
+          category,
+          adminNote,
+          rejectionReason,
+          infoRequestMessage,
+          cooldownDays = 14
+        } = req.body;
         const adminId = requireAuthContext(req);
-        if (!["pending", "under_review", "approved", "rejected"].includes(status)) {
-          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz durum." } });
+        const allowedStatuses = [
+          "pending",
+          "under_review",
+          "info_required",
+          "approved",
+          "rejected",
+          "revoked"
+        ];
+        if (!allowedStatuses.includes(status)) {
+          res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ba\u015Fvuru durumu." } });
           return;
         }
-        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm34.eq)(verificationRequests.id, requestId)).limit(1);
+        if (status === "rejected" && (!rejectionReason || typeof rejectionReason !== "string" || rejectionReason.trim().length < 5)) {
+          res.status(400).json({
+            success: false,
+            error: { message: "Ba\u015Fvuruyu reddederken kullan\u0131c\u0131ya g\xF6sterilecek ge\xE7erli bir ret gerek\xE7esi (en az 5 karakter) girmelisiniz." }
+          });
+          return;
+        }
+        if (status === "info_required" && (!infoRequestMessage || typeof infoRequestMessage !== "string" || infoRequestMessage.trim().length < 5)) {
+          res.status(400).json({
+            success: false,
+            error: { message: "Ek bilgi talep ederken kullan\u0131c\u0131ya iletilecek a\xE7\u0131klamay\u0131 (en az 5 karakter) belirtmelisiniz." }
+          });
+          return;
+        }
+        const vReq = await db.select().from(verificationRequests).where((0, import_drizzle_orm35.eq)(verificationRequests.id, requestId)).limit(1);
         if (vReq.length === 0) {
           res.status(404).json({ success: false, error: { message: "Ba\u015Fvuru bulunamad\u0131." } });
           return;
         }
         const currentReq = vReq[0];
+        const resolvedCategory = category && VERIFICATION_CATEGORIES.includes(category) ? category : VERIFICATION_CATEGORIES.includes(currentReq.category) ? currentReq.category : "INDIVIDUAL";
+        const parsedCooldownDays = Math.min(90, Math.max(1, Number(cooldownDays) || 14));
+        const computedCooldownUntil = status === "rejected" ? new Date(Date.now() + parsedCooldownDays * 24 * 60 * 60 * 1e3) : null;
         await db.update(verificationRequests).set({
           status,
-          adminNote: adminNote || currentReq.adminNote,
-          rejectionReason: status === "rejected" ? rejectionReason || null : null,
+          category: resolvedCategory,
+          adminNote: typeof adminNote === "string" ? adminNote.trim() : currentReq.adminNote,
+          rejectionReason: status === "rejected" || status === "revoked" ? typeof rejectionReason === "string" && rejectionReason.trim().length > 0 ? rejectionReason.trim() : currentReq.rejectionReason : null,
+          infoRequestMessage: status === "info_required" ? infoRequestMessage.trim() : currentReq.infoRequestMessage,
+          cooldownUntil: computedCooldownUntil,
           reviewedBy: adminId,
           reviewedAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm34.eq)(verificationRequests.id, requestId));
+        }).where((0, import_drizzle_orm35.eq)(verificationRequests.id, requestId));
+        if (status === "approved") {
+          await db.update(users).set({
+            isVerified: true,
+            verificationCategory: resolvedCategory,
+            verifiedAt: /* @__PURE__ */ new Date(),
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where((0, import_drizzle_orm35.eq)(users.id, currentReq.userId));
+        } else if (status === "revoked" || currentReq.status === "approved" && status !== "approved") {
+          await db.update(users).set({
+            isVerified: false,
+            verificationCategory: null,
+            verifiedAt: null,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where((0, import_drizzle_orm35.eq)(users.id, currentReq.userId));
+        }
         if (status === "approved" || status === "rejected") {
-          const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, currentReq.userId)).limit(1);
+          const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, currentReq.userId)).limit(1);
           if (userRecord.length > 0) {
             sendVerificationStatusEmail(userRecord[0].email, userRecord[0].username, status).catch(console.error);
           }
         }
-        if (status === "approved" && currentReq.status !== "approved") {
-          await db.update(users).set({ isVerified: true }).where((0, import_drizzle_orm34.eq)(users.id, currentReq.userId));
-        } else if (status !== "approved" && currentReq.status === "approved") {
-          await db.update(users).set({ isVerified: false }).where((0, import_drizzle_orm34.eq)(users.id, currentReq.userId));
+        if (["approved", "rejected", "info_required", "revoked", "under_review"].includes(status)) {
+          try {
+            await db.insert(notifications).values({
+              recipientId: currentReq.userId,
+              actorId: adminId,
+              type: `verification_${status}`,
+              isRead: false,
+              createdAt: /* @__PURE__ */ new Date()
+            });
+          } catch (notifErr) {
+            console.warn("Verification notification insert warning:", notifErr);
+          }
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
           action: `verification_${status}`,
           targetType: "verification_request",
           targetId: requestId.toString(),
-          metadata: { previousStatus: currentReq.status, newStatus: status }
+          metadata: {
+            userId: currentReq.userId,
+            previousStatus: currentReq.status,
+            newStatus: status,
+            category: resolvedCategory,
+            categoryLabel: VERIFICATION_CATEGORY_LABELS[resolvedCategory],
+            adminNote: typeof adminNote === "string" ? adminNote.trim() : null,
+            rejectionReason: typeof rejectionReason === "string" ? rejectionReason.trim() : null,
+            infoRequestMessage: typeof infoRequestMessage === "string" ? infoRequestMessage.trim() : null,
+            cooldownUntil: computedCooldownUntil ? computedCooldownUntil.toISOString() : null,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          }
         });
-        res.json({ success: true, data: { message: `Ba\u015Fvuru durumu g\xFCncellendi: ${status}` } });
+        res.json({
+          success: true,
+          data: {
+            message: `Ba\u015Fvuru durumu g\xFCncellendi: ${status}`,
+            status,
+            category: resolvedCategory
+          }
+        });
       } catch (error) {
         console.error("Admin verification update error:", error);
         res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
@@ -11746,31 +12469,48 @@ var init_admin = __esm({
     });
     adminRouter.patch("/users/:id/verify", async (req, res) => {
       try {
-        const targetUserId = parseInt(req.params.id);
+        const targetUserId = parseInt(req.params.id, 10);
         if (isNaN(targetUserId)) {
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz ID." } });
           return;
         }
-        const { isVerified } = req.body;
+        const { isVerified, verificationCategory, reason } = req.body;
         const adminId = requireAuthContext(req);
         if (typeof isVerified !== "boolean") {
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz veri." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
-        await db.update(users).set({ isVerified }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
+        const resolvedCategory = verificationCategory && VERIFICATION_CATEGORIES.includes(verificationCategory) ? verificationCategory : userRecord[0].verificationCategory || "INDIVIDUAL";
+        await db.update(users).set({
+          isVerified,
+          verificationCategory: isVerified ? resolvedCategory : null,
+          verifiedAt: isVerified ? /* @__PURE__ */ new Date() : null,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
-          action: `user_verify_toggle`,
+          action: isVerified ? "user_verified_manual" : "user_verification_revoked",
           targetType: "user",
           targetId: targetUserId.toString(),
-          metadata: { previousStatus: userRecord[0].isVerified, newStatus: isVerified }
+          metadata: {
+            previousStatus: userRecord[0].isVerified,
+            newStatus: isVerified,
+            verificationCategory: isVerified ? resolvedCategory : null,
+            reason: typeof reason === "string" ? reason.trim() : "Y\xF6netici taraf\u0131ndan manuel i\u015Flem",
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          }
         });
-        res.json({ success: true, data: { message: `Kullan\u0131c\u0131 do\u011Frulama durumu g\xFCncellendi: ${isVerified}` } });
+        res.json({
+          success: true,
+          data: {
+            message: isVerified ? `Kullan\u0131c\u0131ya mavi tik (${VERIFICATION_CATEGORY_LABELS[resolvedCategory]}) tan\u0131mland\u0131.` : "Kullan\u0131c\u0131n\u0131n mavi tik do\u011Frulamas\u0131 kald\u0131r\u0131ld\u0131."
+          }
+        });
       } catch (error) {
         console.error("Admin user verify update error:", error);
         res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
@@ -11784,14 +12524,14 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         await db.transaction(async (tx) => {
-          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
-          await tx.delete(recoveryCodes).where((0, import_drizzle_orm34.eq)(recoveryCodes.userId, targetUserId));
+          await tx.update(users).set({ twoFactorEnabled: false, twoFactorSecret: null }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
+          await tx.delete(recoveryCodes).where((0, import_drizzle_orm35.eq)(recoveryCodes.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_2fa_reset",
@@ -11823,7 +12563,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi hesab\u0131n\u0131z\u0131 yasaklayamazs\u0131n\u0131z." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -11842,9 +12582,9 @@ var init_admin = __esm({
             banReason: isActive ? null : finalReason,
             banExpiresAt: isActive ? null : expiresAt,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
           if (!isActive) {
-            await tx.delete(refreshTokens).where((0, import_drizzle_orm34.eq)(refreshTokens.userId, targetUserId));
+            await tx.delete(refreshTokens).where((0, import_drizzle_orm35.eq)(refreshTokens.userId, targetUserId));
           }
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
@@ -11893,7 +12633,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici rol\xFCn\xFCz\xFC d\xFC\u015F\xFCremezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -11904,7 +12644,7 @@ var init_admin = __esm({
           await tx.update(users).set({
             role,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
+          }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_role_change",
@@ -11942,7 +12682,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Yeni parola en az 8 karakter uzunlu\u011Funda olmal\u0131d\u0131r." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
@@ -11953,8 +12693,8 @@ var init_admin = __esm({
           await tx.update(users).set({
             passwordHash,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
-          await tx.delete(refreshTokens).where((0, import_drizzle_orm34.eq)(refreshTokens.userId, targetUserId));
+          }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
+          await tx.delete(refreshTokens).where((0, import_drizzle_orm35.eq)(refreshTokens.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "admin_password_reset",
@@ -11986,15 +12726,15 @@ var init_admin = __esm({
           return;
         }
         const adminId = requireAuthContext(req);
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(posts).where((0, import_drizzle_orm34.eq)(posts.userId, targetUserId));
-          await tx.delete(comments).where((0, import_drizzle_orm34.eq)(comments.userId, targetUserId));
+          await tx.delete(posts).where((0, import_drizzle_orm35.eq)(posts.userId, targetUserId));
+          await tx.delete(comments).where((0, import_drizzle_orm35.eq)(comments.userId, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_content_purged",
@@ -12029,14 +12769,14 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Kendi y\xF6netici hesab\u0131n\u0131z\u0131 silemezsiniz." } });
           return;
         }
-        const userRecord = await db.select().from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+        const userRecord = await db.select().from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
         if (userRecord.length === 0) {
           res.status(404).json({ success: false, error: { message: "Kullan\u0131c\u0131 bulunamad\u0131." } });
           return;
         }
         const targetUser = userRecord[0];
         await db.transaction(async (tx) => {
-          await tx.delete(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
+          await tx.delete(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
           await tx.insert(adminAuditLogs).values({
             adminUserId: adminId,
             action: "user_deleted_permanently",
@@ -12068,7 +12808,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Duyuru mesaj\u0131 bo\u015F olamaz." } });
           return;
         }
-        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm34.eq)(users.isActive, true));
+        const allActiveUsers = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm35.eq)(users.isActive, true));
         if (allActiveUsers.length > 0) {
           const notificationRows = allActiveUsers.map((u) => ({
             recipientId: u.id,
@@ -12111,7 +12851,7 @@ var init_admin = __esm({
           status: reports.status,
           createdAt: reports.createdAt,
           reporterUsername: users.username
-        }).from(reports).leftJoin(users, (0, import_drizzle_orm34.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm34.eq)(reports.status, status)).orderBy((0, import_drizzle_orm34.desc)(reports.createdAt)).limit(limit).offset(offset);
+        }).from(reports).leftJoin(users, (0, import_drizzle_orm35.eq)(reports.reporterId, users.id)).where((0, import_drizzle_orm35.eq)(reports.status, status)).orderBy((0, import_drizzle_orm35.desc)(reports.createdAt)).limit(limit).offset(offset);
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin reports error:", error);
@@ -12123,7 +12863,7 @@ var init_admin = __esm({
         const reportId = parseInt(req.params.id);
         const { status, action } = req.body;
         const adminId = requireAuthContext(req);
-        const r = await db.select().from(reports).where((0, import_drizzle_orm34.eq)(reports.id, reportId)).limit(1);
+        const r = await db.select().from(reports).where((0, import_drizzle_orm35.eq)(reports.id, reportId)).limit(1);
         if (r.length === 0) {
           res.status(404).json({ success: false, error: { message: "Rapor bulunamad\u0131." } });
           return;
@@ -12131,28 +12871,28 @@ var init_admin = __esm({
         const report = r[0];
         if (action === "remove_content") {
           if (report.targetType === "post") {
-            await db.delete(posts).where((0, import_drizzle_orm34.eq)(posts.id, report.targetId));
+            await db.delete(posts).where((0, import_drizzle_orm35.eq)(posts.id, report.targetId));
           } else if (report.targetType === "comment") {
-            await db.delete(comments).where((0, import_drizzle_orm34.eq)(comments.id, report.targetId));
+            await db.delete(comments).where((0, import_drizzle_orm35.eq)(comments.id, report.targetId));
           } else if (report.targetType === "community") {
-            await db.delete(communities).where((0, import_drizzle_orm34.eq)(communities.id, report.targetId));
+            await db.delete(communities).where((0, import_drizzle_orm35.eq)(communities.id, report.targetId));
           }
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(reports.id, reportId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm35.eq)(reports.id, reportId));
         } else if (action === "suspend_user") {
           let uId = report.targetId;
           if (report.targetType !== "user") {
             if (report.targetType === "post") {
-              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm34.eq)(posts.id, report.targetId)).limit(1);
+              const p = await db.select({ userId: posts.userId }).from(posts).where((0, import_drizzle_orm35.eq)(posts.id, report.targetId)).limit(1);
               if (p.length > 0) uId = p[0].userId;
             } else if (report.targetType === "comment") {
-              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm34.eq)(comments.id, report.targetId)).limit(1);
+              const c = await db.select({ userId: comments.userId }).from(comments).where((0, import_drizzle_orm35.eq)(comments.id, report.targetId)).limit(1);
               if (c.length > 0) uId = c[0].userId;
             }
           }
-          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm34.eq)(users.id, uId));
-          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(reports.id, reportId));
+          await db.update(users).set({ isActive: false }).where((0, import_drizzle_orm35.eq)(users.id, uId));
+          await db.update(reports).set({ status: "RESOLVED", resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm35.eq)(reports.id, reportId));
         } else if (status) {
-          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(reports.id, reportId));
+          await db.update(reports).set({ status, resolvedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm35.eq)(reports.id, reportId));
         }
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
@@ -12192,8 +12932,8 @@ var init_admin = __esm({
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
           }
-        }).from(appeals).innerJoin(users, (0, import_drizzle_orm34.eq)(appeals.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).orderBy((0, import_drizzle_orm34.desc)(appeals.createdAt));
-        const appealsList = typeof status === "string" && status !== "ALL" ? await query.where((0, import_drizzle_orm34.eq)(appeals.status, status)) : await query;
+        }).from(appeals).innerJoin(users, (0, import_drizzle_orm35.eq)(appeals.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).orderBy((0, import_drizzle_orm35.desc)(appeals.createdAt));
+        const appealsList = typeof status === "string" && status !== "ALL" ? await query.where((0, import_drizzle_orm35.eq)(appeals.status, status)) : await query;
         res.json({
           success: true,
           data: appealsList
@@ -12216,7 +12956,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz i\u015Flem. 'action' parametresi 'APPROVE' veya 'REJECT' olmal\u0131d\u0131r." } });
           return;
         }
-        const existingAppeal = await db.select().from(appeals).where((0, import_drizzle_orm34.eq)(appeals.id, appealId)).limit(1);
+        const existingAppeal = await db.select().from(appeals).where((0, import_drizzle_orm35.eq)(appeals.id, appealId)).limit(1);
         if (existingAppeal.length === 0) {
           res.status(404).json({ success: false, error: { message: "\u0130tiraz kayd\u0131 bulunamad\u0131." } });
           return;
@@ -12234,8 +12974,8 @@ var init_admin = __esm({
               reviewedBy: adminId,
               reviewedAt: /* @__PURE__ */ new Date(),
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm34.eq)(appeals.id, appealId));
-            const [targetUserRec] = await tx.select({ ageVerificationStatus: users.ageVerificationStatus }).from(users).where((0, import_drizzle_orm34.eq)(users.id, targetUserId)).limit(1);
+            }).where((0, import_drizzle_orm35.eq)(appeals.id, appealId));
+            const [targetUserRec] = await tx.select({ ageVerificationStatus: users.ageVerificationStatus }).from(users).where((0, import_drizzle_orm35.eq)(users.id, targetUserId)).limit(1);
             const resolvedAgeStatus = targetUserRec?.ageVerificationStatus === "REJECTED_UNDERAGE" ? "UNVERIFIED" : targetUserRec?.ageVerificationStatus;
             await tx.update(users).set({
               isActive: true,
@@ -12244,7 +12984,7 @@ var init_admin = __esm({
               bannedAt: null,
               banExpiresAt: null,
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm34.eq)(users.id, targetUserId));
+            }).where((0, import_drizzle_orm35.eq)(users.id, targetUserId));
             await tx.insert(adminAuditLogs).values({
               adminUserId: adminId,
               action: "appeal_approved",
@@ -12280,7 +13020,7 @@ var init_admin = __esm({
               reviewedBy: adminId,
               reviewedAt: /* @__PURE__ */ new Date(),
               updatedAt: /* @__PURE__ */ new Date()
-            }).where((0, import_drizzle_orm34.eq)(appeals.id, appealId));
+            }).where((0, import_drizzle_orm35.eq)(appeals.id, appealId));
             await tx.insert(adminAuditLogs).values({
               adminUserId: adminId,
               action: "appeal_rejected",
@@ -12406,7 +13146,7 @@ var init_admin = __esm({
           officialPriority: users.officialPriority,
           displayName: profiles.displayName,
           avatarUrl: profiles.avatarUrl
-        }).from(users).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm34.desc)(users.createdAt));
+        }).from(users).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(users.isOfficialAccount, true)).orderBy((0, import_drizzle_orm35.desc)(users.createdAt));
         res.json({ success: true, data });
       } catch (error) {
         console.error("GET /official-accounts error:", error);
@@ -12425,7 +13165,7 @@ var init_admin = __esm({
           officialNotifyEnabled: !!officialNotifyEnabled,
           officialPriority: officialPriority || "normal",
           updatedAt: /* @__PURE__ */ new Date()
-        }).where((0, import_drizzle_orm34.eq)(users.id, targetId));
+        }).where((0, import_drizzle_orm35.eq)(users.id, targetId));
         res.json({ success: true, message: "Resmi hesap ayarlar\u0131 g\xFCncellendi." });
       } catch (error) {
         console.error("PUT /official-accounts/:id error:", error);
@@ -12434,7 +13174,7 @@ var init_admin = __esm({
     });
     adminRouter.get("/auto-follow", async (req, res) => {
       try {
-        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm34.eq)(systemSettings.key, "auto_follow_users")).limit(1);
+        const setting = await db.select().from(systemSettings).where((0, import_drizzle_orm35.eq)(systemSettings.key, "auto_follow_users")).limit(1);
         let userIds = [];
         if (setting.length > 0 && setting[0].value) {
           try {
@@ -12466,7 +13206,7 @@ var init_admin = __esm({
             isVerified: users.isVerified,
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl
-          }).from(users).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.inArray)(users.id, userIds));
+          }).from(users).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.inArray)(users.id, userIds));
         }
         res.json({ success: true, data: autoFollowUsers });
       } catch (error) {
@@ -12496,7 +13236,7 @@ var init_admin = __esm({
         try {
           const callerId = optionalAuthContext(req) || requireAuthContext(req);
           if (callerId) {
-            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm34.eq)(users.id, callerId)).limit(1);
+            const check = await db.select({ id: users.id }).from(users).where((0, import_drizzle_orm35.eq)(users.id, callerId)).limit(1);
             if (check.length > 0) {
               adminUserId = callerId;
             }
@@ -12538,11 +13278,11 @@ var init_admin = __esm({
           adminUsername: users.username,
           adminDisplayName: profiles.displayName,
           adminAvatarUrl: profiles.avatarUrl
-        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm34.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId));
+        }).from(adminAuditLogs).leftJoin(users, (0, import_drizzle_orm35.eq)(adminAuditLogs.adminUserId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId));
         if (action && action.trim().length > 0) {
-          query = query.where((0, import_drizzle_orm34.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
+          query = query.where((0, import_drizzle_orm35.ilike)(adminAuditLogs.action, `%${action.trim()}%`));
         }
-        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm34.desc)(adminAuditLogs.createdAt));
+        const list = await query.limit(limit).offset(offset).orderBy((0, import_drizzle_orm35.desc)(adminAuditLogs.createdAt));
         res.json({ success: true, data: list });
       } catch (error) {
         console.error("Admin audit logs error:", error);
@@ -12564,23 +13304,23 @@ var init_admin = __esm({
             username: users.username,
             displayName: profiles.displayName
           }
-        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm34.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm34.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm34.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm34.desc)(moderationLogs.createdAt)).limit(50);
+        }).from(moderationLogs).innerJoin(users, (0, import_drizzle_orm35.eq)(moderationLogs.userId, users.id)).leftJoin(profiles, (0, import_drizzle_orm35.eq)(users.id, profiles.userId)).where((0, import_drizzle_orm35.eq)(moderationLogs.status, "PENDING")).orderBy((0, import_drizzle_orm35.desc)(moderationLogs.createdAt)).limit(50);
         const result = await Promise.all(pendingLogs.map(async (log) => {
           let content = "";
           if (log.entityType === "POST") {
-            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm34.eq)(posts.id, log.entityId)).limit(1);
+            const p = await db.select({ content: posts.content }).from(posts).where((0, import_drizzle_orm35.eq)(posts.id, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].content || "";
           } else if (log.entityType === "COMMENT") {
-            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm34.eq)(comments.id, log.entityId)).limit(1);
+            const c = await db.select({ content: comments.content }).from(comments).where((0, import_drizzle_orm35.eq)(comments.id, log.entityId)).limit(1);
             if (c.length > 0) content = c[0].content || "";
           } else if (log.entityType === "PROFILE") {
-            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm34.eq)(profiles.userId, log.entityId)).limit(1);
+            const p = await db.select({ bio: profiles.bio }).from(profiles).where((0, import_drizzle_orm35.eq)(profiles.userId, log.entityId)).limit(1);
             if (p.length > 0) content = p[0].bio || "";
           } else if (log.entityType === "PROJECT_COMMENT") {
-            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm34.eq)(projectComments.id, log.entityId)).limit(1);
+            const pc = await db.select({ content: projectComments.content }).from(projectComments).where((0, import_drizzle_orm35.eq)(projectComments.id, log.entityId)).limit(1);
             if (pc.length > 0) content = pc[0].content || "";
           } else if (log.entityType === "PROJECT") {
-            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm34.eq)(projects.id, log.entityId)).limit(1);
+            const pj = await db.select({ description: projects.description }).from(projects).where((0, import_drizzle_orm35.eq)(projects.id, log.entityId)).limit(1);
             if (pj.length > 0) content = pj[0].description || "";
           }
           return { ...log, content };
@@ -12599,20 +13339,20 @@ var init_admin = __esm({
         if (action !== "APPROVE" && action !== "REJECT") {
           return res.status(400).json({ success: false, error: { code: "BAD_REQUEST", message: "Ge\xE7ersiz aksiyon." } });
         }
-        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm34.eq)(moderationLogs.id, logId)).limit(1);
+        const logRecord = await db.select().from(moderationLogs).where((0, import_drizzle_orm35.eq)(moderationLogs.id, logId)).limit(1);
         if (logRecord.length === 0) {
           return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Log bulunamad\u0131." } });
         }
         const log = logRecord[0];
         await db.transaction(async (tx) => {
-          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm34.eq)(moderationLogs.id, logId));
+          await tx.update(moderationLogs).set({ status: "RESOLVED", actionTaken: action === "APPROVE" ? "APPROVED" : "REJECTED", adminId, updatedAt: /* @__PURE__ */ new Date() }).where((0, import_drizzle_orm35.eq)(moderationLogs.id, logId));
           const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
           if (log.entityType === "POST") {
-            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm34.eq)(posts.id, log.entityId));
+            await tx.update(posts).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm35.eq)(posts.id, log.entityId));
           } else if (log.entityType === "COMMENT") {
-            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm34.eq)(comments.id, log.entityId));
+            await tx.update(comments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm35.eq)(comments.id, log.entityId));
           } else if (log.entityType === "PROJECT_COMMENT") {
-            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm34.eq)(projectComments.id, log.entityId));
+            await tx.update(projectComments).set({ moderationStatus: newStatus }).where((0, import_drizzle_orm35.eq)(projectComments.id, log.entityId));
           } else if (log.entityType === "PROFILE" || log.entityType === "PROJECT") {
           }
           await tx.insert(adminAuditLogs).values({
@@ -12636,30 +13376,30 @@ var init_admin = __esm({
         const { limit, offset, page } = getPagination(req);
         const now = /* @__PURE__ */ new Date();
         await db.update(announcements).set({ status: "published", updatedAt: now }).where(
-          (0, import_drizzle_orm34.and)(
-            (0, import_drizzle_orm34.eq)(announcements.status, "scheduled"),
-            import_drizzle_orm34.sql`${announcements.startsAt} <= ${now}`
+          (0, import_drizzle_orm35.and)(
+            (0, import_drizzle_orm35.eq)(announcements.status, "scheduled"),
+            import_drizzle_orm35.sql`${announcements.startsAt} <= ${now}`
           )
         ).catch(() => {
         });
         let whereClause = void 0;
         const conditions = [];
         if (status && typeof status === "string" && status !== "ALL") {
-          conditions.push((0, import_drizzle_orm34.eq)(announcements.status, status));
+          conditions.push((0, import_drizzle_orm35.eq)(announcements.status, status));
         }
         if (q && typeof q === "string" && q.trim()) {
           const keyword = `%${q.trim()}%`;
           conditions.push(
-            (0, import_drizzle_orm34.or)(
-              (0, import_drizzle_orm34.ilike)(announcements.title, keyword),
-              (0, import_drizzle_orm34.ilike)(announcements.content, keyword)
+            (0, import_drizzle_orm35.or)(
+              (0, import_drizzle_orm35.ilike)(announcements.title, keyword),
+              (0, import_drizzle_orm35.ilike)(announcements.content, keyword)
             )
           );
         }
         if (conditions.length > 0) {
-          whereClause = (0, import_drizzle_orm34.and)(...conditions);
+          whereClause = (0, import_drizzle_orm35.and)(...conditions);
         }
-        const countRes = await db.select({ count: import_drizzle_orm34.sql`cast(count(*) as integer)` }).from(announcements).where(whereClause);
+        const countRes = await db.select({ count: import_drizzle_orm35.sql`cast(count(*) as integer)` }).from(announcements).where(whereClause);
         const total = countRes[0]?.count || 0;
         const items = await db.select({
           id: announcements.id,
@@ -12677,9 +13417,9 @@ var init_admin = __esm({
           createdBy: announcements.createdBy,
           createdAt: announcements.createdAt,
           updatedAt: announcements.updatedAt,
-          viewsCount: import_drizzle_orm34.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
-          clicksCount: import_drizzle_orm34.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
-        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm34.eq)(announcementViews.announcementId, announcements.id)).where(whereClause).groupBy(announcements.id).orderBy((0, import_drizzle_orm34.desc)(announcements.createdAt)).limit(limit).offset(offset);
+          viewsCount: import_drizzle_orm35.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
+          clicksCount: import_drizzle_orm35.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
+        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm35.eq)(announcementViews.announcementId, announcements.id)).where(whereClause).groupBy(announcements.id).orderBy((0, import_drizzle_orm35.desc)(announcements.createdAt)).limit(limit).offset(offset);
         res.json({
           success: true,
           data: {
@@ -12718,9 +13458,9 @@ var init_admin = __esm({
           createdBy: announcements.createdBy,
           createdAt: announcements.createdAt,
           updatedAt: announcements.updatedAt,
-          viewsCount: import_drizzle_orm34.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
-          clicksCount: import_drizzle_orm34.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
-        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm34.eq)(announcementViews.announcementId, announcements.id)).where((0, import_drizzle_orm34.eq)(announcements.id, id)).groupBy(announcements.id).limit(1);
+          viewsCount: import_drizzle_orm35.sql`cast(count(distinct ${announcementViews.userId}) as integer)`,
+          clicksCount: import_drizzle_orm35.sql`cast(count(distinct case when ${announcementViews.clickedCta} = true then ${announcementViews.userId} end) as integer)`
+        }).from(announcements).leftJoin(announcementViews, (0, import_drizzle_orm35.eq)(announcementViews.announcementId, announcements.id)).where((0, import_drizzle_orm35.eq)(announcements.id, id)).groupBy(announcements.id).limit(1);
         if (!item || item.length === 0) {
           res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
           return;
@@ -12821,7 +13561,7 @@ var init_admin = __esm({
           startsAt,
           endsAt
         } = req.body;
-        const existing = await db.select().from(announcements).where((0, import_drizzle_orm34.eq)(announcements.id, id)).limit(1);
+        const existing = await db.select().from(announcements).where((0, import_drizzle_orm35.eq)(announcements.id, id)).limit(1);
         if (!existing || existing.length === 0) {
           res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
           return;
@@ -12877,7 +13617,7 @@ var init_admin = __esm({
         if (endsAt !== void 0) {
           updateData.endsAt = endsAt ? new Date(endsAt) : null;
         }
-        const [updated] = await db.update(announcements).set(updateData).where((0, import_drizzle_orm34.eq)(announcements.id, id)).returning();
+        const [updated] = await db.update(announcements).set(updateData).where((0, import_drizzle_orm35.eq)(announcements.id, id)).returning();
         await db.insert(adminAuditLogs).values({
           adminUserId: adminId,
           action: "ANNOUNCEMENT_UPDATE",
@@ -12907,9 +13647,9 @@ var init_admin = __esm({
         const now = /* @__PURE__ */ new Date();
         const [updated] = await db.update(announcements).set({
           status: "published",
-          startsAt: import_drizzle_orm34.sql`COALESCE(${announcements.startsAt}, ${now})`,
+          startsAt: import_drizzle_orm35.sql`COALESCE(${announcements.startsAt}, ${now})`,
           updatedAt: now
-        }).where((0, import_drizzle_orm34.eq)(announcements.id, id)).returning();
+        }).where((0, import_drizzle_orm35.eq)(announcements.id, id)).returning();
         if (!updated) {
           res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
           return;
@@ -12939,7 +13679,7 @@ var init_admin = __esm({
         const [updated] = await db.update(announcements).set({
           status: "archived",
           updatedAt: now
-        }).where((0, import_drizzle_orm34.eq)(announcements.id, id)).returning();
+        }).where((0, import_drizzle_orm35.eq)(announcements.id, id)).returning();
         if (!updated) {
           res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
           return;
@@ -12965,7 +13705,7 @@ var init_admin = __esm({
           res.status(400).json({ success: false, error: { message: "Ge\xE7ersiz duyuru ID." } });
           return;
         }
-        const [deleted] = await db.delete(announcements).where((0, import_drizzle_orm34.eq)(announcements.id, id)).returning();
+        const [deleted] = await db.delete(announcements).where((0, import_drizzle_orm35.eq)(announcements.id, id)).returning();
         if (!deleted) {
           res.status(404).json({ success: false, error: { message: "Duyuru bulunamad\u0131." } });
           return;
@@ -12981,64 +13721,6 @@ var init_admin = __esm({
       } catch (error) {
         console.error("Admin delete announcement error:", error);
         res.status(500).json({ success: false, error: { message: "Duyuru silinemedi." } });
-      }
-    });
-  }
-});
-
-// server/routes/verification.ts
-var verification_exports = {};
-__export(verification_exports, {
-  verificationRouter: () => verificationRouter
-});
-var import_express26, import_drizzle_orm35, verificationRouter;
-var init_verification = __esm({
-  "server/routes/verification.ts"() {
-    "use strict";
-    import_express26 = require("express");
-    init_db();
-    init_schema();
-    init_auth();
-    import_drizzle_orm35 = require("drizzle-orm");
-    verificationRouter = (0, import_express26.Router)();
-    verificationRouter.use(requireAuth);
-    verificationRouter.get("/me", async (req, res) => {
-      try {
-        const userId = requireAuthContext(req);
-        const requests = await db.select().from(verificationRequests).where((0, import_drizzle_orm35.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm35.desc)(verificationRequests.createdAt)).limit(10);
-        res.json({ success: true, data: requests });
-      } catch (error) {
-        console.error("Error fetching verification requests:", error);
-        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
-      }
-    });
-    verificationRouter.post("/", async (req, res) => {
-      try {
-        const userId = requireAuthContext(req);
-        const { reason } = req.body;
-        if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
-          res.status(400).json({ success: false, error: { message: "L\xFCtfen ba\u015Fvuru sebebini belirtin." } });
-          return;
-        }
-        if (reason.trim().length > 1e3) {
-          res.status(400).json({ success: false, error: { message: "Ba\u015Fvuru sebebi en fazla 1000 karakter olabilir." } });
-          return;
-        }
-        const existingActive = await db.select().from(verificationRequests).where((0, import_drizzle_orm35.eq)(verificationRequests.userId, userId)).orderBy((0, import_drizzle_orm35.desc)(verificationRequests.createdAt)).limit(5);
-        const hasActive = existingActive.some((r) => r.status === "pending" || r.status === "under_review");
-        if (hasActive) {
-          res.status(400).json({ success: false, error: { message: "Hali haz\u0131rda devam eden bir ba\u015Fvurunuz bulunmaktad\u0131r." } });
-          return;
-        }
-        const newReq = await db.insert(verificationRequests).values({
-          userId,
-          reason: reason.trim(),
-          status: "pending"
-        }).returning();
-        res.status(201).json({ success: true, data: newReq[0] });
-      } catch (error) {
-        console.error("Error creating verification request:", error);
-        res.status(500).json({ success: false, error: { message: "Sunucu hatas\u0131." } });
       }
     });
   }

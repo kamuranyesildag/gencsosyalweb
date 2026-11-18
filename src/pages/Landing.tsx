@@ -963,11 +963,12 @@ export function Landing() {
             {/* Links: Yasal */}
             <div className="space-y-2.5">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                Yasal & Güvenlik
+                Yasal &amp; Güvenlik
               </h4>
               <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                 <li><Link to="/privacy" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Gizlilik Politikası</Link></li>
-                <li><Link to="/terms" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Kullanım Koşulları</Link></li>
+                <li><Link to="/terms" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Kullanım Şartları</Link></li>
+                <li><Link to="/kvkk" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">KVKK Aydınlatma Metni</Link></li>
                 <li><a href="/robots.txt" target="_blank" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Robots.txt</a></li>
                 <li><a href="/sitemap.xml" target="_blank" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Sitemap.xml</a></li>
               </ul>

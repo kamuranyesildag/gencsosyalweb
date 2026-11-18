@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { EyeOff, Save, Shield, UserX, UserCheck, Lock, Globe } from "lucide-react";
+import { Link } from "react-router";
+import { EyeOff, Save, Shield, UserX, UserCheck, Lock, Globe, FileText, Scale, ArrowUpRight } from "lucide-react";
 import { fetchApi } from "../../lib/api";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -323,6 +324,60 @@ export function SettingsPrivacy({
             ))}
           </div>
         )}
+      </div>
+
+      {/* 3. Yasal Metinler ve KVKK Aydınlatma */}
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Scale className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            Yasal Metinler, Gizlilik ve KVKK Hakları
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+            Platformumuzun gizlilik politikası, kullanım şartları ve 6698 sayılı KVKK kapsamındaki aydınlatma metnine aşağıdan ulaşabilirsiniz.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            to="/privacy"
+            className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-200/80 dark:border-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5">
+              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                Gizlilik Politikası
+              </span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
+          </Link>
+
+          <Link
+            to="/terms"
+            className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-200/80 dark:border-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                Kullanım Şartları
+              </span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
+          </Link>
+
+          <Link
+            to="/kvkk"
+            className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-200/80 dark:border-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5">
+              <Scale className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                KVKK Aydınlatma Metni
+              </span>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 shrink-0" />
+          </Link>
+        </div>
       </div>
     </div>
   );

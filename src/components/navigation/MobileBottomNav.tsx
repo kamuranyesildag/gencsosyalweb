@@ -1,220 +1,231 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router';
-import { Home, Compass, Bell, Plus, User } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
-import { Avatar } from '../ui/Avatar';
-import { CreateMenu } from './CreateMenu';
-import { motion, AnimatePresence } from 'motion/react';
-import { useScrollDirection } from '../../hooks/useScrollDirection';
-import { useStoryViewerStore } from '../../context/useStoryViewerStore';
 import { useUnreadStore } from '../../context/useUnreadStore';
+import { Home, Compass, Plus, Bell, User } from 'lucide-react';
+import { Avatar } from '../ui/Avatar';
 import { triggerHaptic } from '../../utils/haptics';
+import { cn } from '../../lib/utils';
 
 export function MobileBottomNav() {
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
-  const { unreadNotifications } = useUnreadStore();
+  const { unreadNotifications, fetchUnread } = useUnreadStore();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showCreate, setShowCreate] = useState(false);
-  const isStoryViewerOpen = useStoryViewerStore((s) => s.isOpen);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Monitor body overflow to detect open modals
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsModalOpen(document.body.style.overflow === 'hidden');
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
-    return () => observer.disconnect();
-  }, []);
+    if (isAuthenticated) {
+      fetchUnread();
+    }
+  }, [isAuthenticated, fetchUnread]);
 
-  // Custom hook to detect scroll direction
-  const isVisible = useScrollDirection();
-
-  const isHomeActive = location.pathname === '/home';
-  const isExploreActive = location.pathname === '/explore';
-  const isNotificationsActive = location.pathname === '/notifications';
-  const isProfileActive =
-    isAuthenticated && user && location.pathname.startsWith(`/profile/${user.username}`);
-  const isMessageThread = location.pathname.startsWith('/messages/') && location.pathname !== '/messages';
-
-  if (isMessageThread) {
-    return <CreateMenu isOpen={showCreate} onClose={() => setShowCreate(false)} />;
+  // Hide on active chat room to give full keyboard space
+  if (/^\/messages\/\d+/.test(location.pathname)) {
+    return null;
   }
 
+  const isActive = (path: string) => {
+    if (path === '/home') return location.pathname === '/home' || location.pathname === '/feed';
+    return location.pathname.startsWith(path);
+  };
+
+  const handleNavClick = (path: string, requiresAuth?: boolean, e?: React.MouseEvent) => {
+    triggerHaptic('selection');
+    if (requiresAuth && !isAuthenticated) {
+      e?.preventDefault();
+      openModal();
+      return;
+    }
+    if (isActive(path)) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const homeActive = isActive('/home');
+  const exploreActive = isActive('/explore');
+  const createActive = isActive('/create');
+  const notifActive = isActive('/notifications');
+  const profilePath = user ? `/profile/${user.username}` : '/login';
+  const profileActive = user ? isActive(`/profile/${user.username}`) : false;
+
   return (
-    <>
-      <AnimatePresence>
-        {isVisible && !isStoryViewerOpen && !isModalOpen && (
-          <motion.nav
-            role="navigation"
-            aria-label="Mobil Gezinme Çubuğu"
-            initial={{ y: 90, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 90, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden fixed bottom-4 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-sm rounded-full bg-white dark:bg-[#0B1329] border border-slate-200/90 dark:border-white/[0.14] shadow-xl shadow-black/10 transition-all p-1.5"
+    <nav
+      aria-label="Mobil Alt Gezinme Çubuğu"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/[0.08] pb-[env(safe-area-inset-bottom)] select-none shadow-[0_-4px_20px_rgba(15,23,42,0.04)] transition-colors"
+    >
+      <div className="grid grid-cols-5 items-center h-[64px] max-w-md mx-auto px-1.5">
+        {/* 1. Ana Sayfa */}
+        <Link
+          to="/home"
+          onClick={(e) => handleNavClick('/home', false, e)}
+          aria-current={homeActive ? 'page' : undefined}
+          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+        >
+          <div
+            className={cn(
+              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              homeActive
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
+            )}
           >
-            <div className="flex justify-around items-center w-full h-12 px-1 relative">
-              {/* 1. Home */}
-              <NavLink
-                to="/home"
-                onClick={() => triggerHaptic("selection")}
-                aria-label="Ana Sayfa"
-                aria-current={isHomeActive ? 'page' : undefined}
-                className={`relative flex items-center justify-center flex-1 h-full rounded-full transition-all ${
-                  isHomeActive
-                    ? 'text-blue-600 dark:text-blue-400 font-bold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="relative flex flex-col items-center">
-                  <Home
-                    className={`w-5 h-5 transition-transform ${
-                      isHomeActive ? 'stroke-[2.2] scale-110' : 'stroke-[1.8]'
-                    }`}
-                  />
-                  {isHomeActive && (
-                    <motion.span
-                      layoutId="bottomNavDot"
-                      className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shadow-xs shadow-blue-500/50"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </div>
-              </NavLink>
+            <Home className={cn('w-5 h-5', homeActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+          </div>
+          <span
+            className={cn(
+              'text-[10.5px] tracking-tight leading-none',
+              homeActive
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : 'font-medium text-slate-500 dark:text-slate-400'
+            )}
+          >
+            Ana Sayfa
+          </span>
+        </Link>
 
-              {/* 2. Explore */}
-              <NavLink
-                to="/explore"
-                onClick={() => triggerHaptic("selection")}
-                aria-label="Keşfet"
-                aria-current={isExploreActive ? 'page' : undefined}
-                className={`relative flex items-center justify-center flex-1 h-full rounded-full transition-all ${
-                  isExploreActive
-                    ? 'text-blue-600 dark:text-blue-400 font-bold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="relative flex flex-col items-center">
-                  <Compass
-                    className={`w-5 h-5 transition-transform ${
-                      isExploreActive ? 'stroke-[2.2] scale-110' : 'stroke-[1.8]'
-                    }`}
-                  />
-                  {isExploreActive && (
-                    <motion.span
-                      layoutId="bottomNavDot"
-                      className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shadow-xs shadow-blue-500/50"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </div>
-              </NavLink>
+        {/* 2. Keşfet */}
+        <Link
+          to="/explore"
+          onClick={(e) => handleNavClick('/explore', false, e)}
+          aria-current={exploreActive ? 'page' : undefined}
+          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+        >
+          <div
+            className={cn(
+              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              exploreActive
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
+            )}
+          >
+            <Compass className={cn('w-5 h-5', exploreActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+          </div>
+          <span
+            className={cn(
+              'text-[10.5px] tracking-tight leading-none',
+              exploreActive
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : 'font-medium text-slate-500 dark:text-slate-400'
+            )}
+          >
+            Keşfet
+          </span>
+        </Link>
 
-              {/* 3. Floating Rounded Center Action Button */}
-              <div className="flex items-center justify-center px-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("medium");
-                    if (!isAuthenticated) openModal();
-                    else setShowCreate(true);
-                  }}
-                  aria-label="İçerik Oluştur"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white shadow-md shadow-blue-500/30 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  <Plus className="w-5 h-5 stroke-[2.5]" />
-                </button>
-              </div>
+        {/* 3. Oluştur (Center Primary Action) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            triggerHaptic('medium');
+            if (!isAuthenticated) {
+              e.preventDefault();
+              openModal();
+              return;
+            }
+            navigate('/create');
+          }}
+          aria-label="Yeni Gönderi Oluştur"
+          className="flex flex-col items-center justify-center h-full gap-1 group active:scale-95 transition-transform cursor-pointer"
+        >
+          <div
+            className={cn(
+              'w-12 h-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md shadow-blue-600/25 transition-all',
+              createActive && 'ring-2 ring-blue-300 dark:ring-blue-800'
+            )}
+          >
+            <Plus className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <span
+            className={cn(
+              'text-[10.5px] tracking-tight leading-none',
+              createActive
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : 'font-medium text-slate-600 dark:text-slate-400'
+            )}
+          >
+            Oluştur
+          </span>
+        </button>
 
-              {/* 4. Notifications */}
-              <NavLink
-                to="/notifications"
-                onClick={(e) => {
-                  triggerHaptic("selection");
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    openModal();
-                  }
-                }}
-                aria-label="Bildirimler"
-                aria-current={isNotificationsActive ? 'page' : undefined}
-                className={`relative flex items-center justify-center flex-1 h-full rounded-full transition-all ${
-                  isNotificationsActive
-                    ? 'text-blue-600 dark:text-blue-400 font-bold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="relative flex flex-col items-center">
-                  <Bell
-                    className={`w-5 h-5 transition-transform ${
-                      isNotificationsActive ? 'stroke-[2.2] scale-110' : 'stroke-[1.8]'
-                    }`}
-                  />
-                  {unreadNotifications > 0 && !isNotificationsActive && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-600 ring-2 ring-white dark:ring-[#0B1329]" />
-                  )}
-                  {isNotificationsActive && (
-                    <motion.span
-                      layoutId="bottomNavDot"
-                      className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shadow-xs shadow-blue-500/50"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </div>
-              </NavLink>
+        {/* 4. Bildirimler */}
+        <Link
+          to="/notifications"
+          onClick={(e) => handleNavClick('/notifications', true, e)}
+          aria-current={notifActive ? 'page' : undefined}
+          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+        >
+          <div
+            className={cn(
+              'relative w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              notifActive
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
+            )}
+          >
+            <Bell className={cn('w-5 h-5', notifActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-0.5 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-600 text-[9.5px] font-extrabold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A]">
+                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+              </span>
+            )}
+          </div>
+          <span
+            className={cn(
+              'text-[10.5px] tracking-tight leading-none',
+              notifActive
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : 'font-medium text-slate-500 dark:text-slate-400'
+            )}
+          >
+            Bildirimler
+          </span>
+        </Link>
 
-              {/* 5. Profile */}
-              <NavLink
-                to={isAuthenticated && user ? `/profile/${user.username}` : '#'}
-                onClick={(e) => {
-                  triggerHaptic("selection");
-                  if (!isAuthenticated) {
-                    e.preventDefault();
-                    openModal();
-                  }
-                }}
-                aria-label="Profilim"
-                aria-current={isProfileActive ? 'page' : undefined}
-                className={`relative flex items-center justify-center flex-1 h-full rounded-full transition-all ${
-                  isProfileActive
-                    ? 'text-blue-600 dark:text-blue-400 font-bold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="relative flex flex-col items-center">
-                  {isAuthenticated && user ? (
-                    <Avatar
-                      url={user.avatarUrl}
-                      name={user.displayName || user.username}
-                      size="sm"
-                      className={`transition-all w-6 h-6 ${
-                        isProfileActive
-                          ? 'ring-2 ring-blue-600 dark:ring-blue-400 scale-105'
-                          : 'ring-transparent opacity-80'
-                      }`}
-                    />
-                  ) : (
-                    <User className="w-5 h-5 stroke-[1.8]" />
-                  )}
-                  {isProfileActive && (
-                    <motion.span
-                      layoutId="bottomNavDot"
-                      className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shadow-xs shadow-blue-500/50"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                </div>
-              </NavLink>
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-      <CreateMenu isOpen={showCreate} onClose={() => setShowCreate(false)} />
-    </>
+        {/* 5. Profil */}
+        <Link
+          to={profilePath}
+          onClick={(e) => handleNavClick(profilePath, true, e)}
+          aria-current={profileActive ? 'page' : undefined}
+          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+        >
+          <div
+            className={cn(
+              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              profileActive
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                : 'text-slate-500 dark:text-slate-400'
+            )}
+          >
+            {isAuthenticated && user ? (
+              <Avatar
+                url={user.avatarUrl}
+                name={user.displayName || user.username}
+                size="xs"
+                className={cn(
+                  'w-6 h-6 transition-all',
+                  profileActive
+                    ? 'ring-2 ring-blue-600 dark:ring-blue-400'
+                    : 'ring-1 ring-slate-200 dark:ring-white/15'
+                )}
+              />
+            ) : (
+              <User className={cn('w-5 h-5', profileActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+            )}
+          </div>
+          <span
+            className={cn(
+              'text-[10.5px] tracking-tight leading-none',
+              profileActive
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : 'font-medium text-slate-500 dark:text-slate-400'
+            )}
+          >
+            Profil
+          </span>
+        </Link>
+      </div>
+    </nav>
   );
 }
