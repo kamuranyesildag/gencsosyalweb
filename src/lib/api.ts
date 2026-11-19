@@ -247,6 +247,25 @@ export const api = {
     }
     return { data: await res.json() };
   },
+  put: async <T = any>(url: string, data?: unknown): Promise<{ data: ApiResponse<T> }> => {
+    const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
+    const res = await fetchApi(endpoint, { method: 'PUT', data });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw { response: { data: err } };
+    }
+    return { data: await res.json() };
+  },
+  upload: async <T = any>(url: string, formData: FormData): Promise<{ data: ApiResponse<T>; url?: string }> => {
+    const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
+    const res = await fetchApi(endpoint, { method: 'POST', data: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw { response: { data: err } };
+    }
+    const json = await res.json();
+    return { data: json, url: json?.data?.url || json?.url };
+  },
   delete: async <T = any>(url: string): Promise<{ data: ApiResponse<T> }> => {
     const endpoint = url.startsWith('/api/v1') ? url.replace('/api/v1', '') : url;
     const res = await fetchApi(endpoint, { method: 'DELETE' });

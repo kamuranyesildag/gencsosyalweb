@@ -107,6 +107,7 @@ export async function runMigration(isStandalone = false) {
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "birth_date" timestamp;
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "is_screenshot_protected" boolean DEFAULT false NOT NULL;
       ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "daily_screen_time_limit_minutes" integer DEFAULT 120;
+      ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "profile_customization" jsonb DEFAULT '{}'::jsonb;
 
       ALTER TABLE "follows" ADD COLUMN IF NOT EXISTS "notification_preference" varchar(20) DEFAULT 'standard' NOT NULL;
 

@@ -12,7 +12,7 @@ import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { authRateLimiter, standardLimiter } from "../middleware/rateLimiter.js";
-import { updateProfileSchema, suggestionQuerySchema } from "../validators/api.js";
+import { updateProfileSchema, suggestionQuerySchema, profileCustomizationSchema } from "../validators/api.js";
 import { moderateContent } from "../services/moderation/index.js";
 import { moderationLogs } from "../../src/db/schema.js";
 import { authenticator } from "otplib";
@@ -20,6 +20,114 @@ import { decryptString } from "../utils/encryption.js";
 import { getFollowSuggestions } from "../services/suggestions.js";
 
 export const usersRouter = Router();
+
+// GET /api/v1/users/me/customization
+usersRouter.get("/me/customization", requireAuth, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const [profile] = await db
+      .select({
+        profileCustomization: profiles.profileCustomization,
+        coverUrl: profiles.coverUrl,
+        avatarUrl: profiles.avatarUrl
+      })
+      .from(profiles)
+      .where(eq(profiles.userId, currentUserId))
+      .limit(1);
+
+    res.json({
+      success: true,
+      data: {
+        profileCustomization: profile?.profileCustomization || {},
+        coverUrl: profile?.coverUrl || null,
+        avatarUrl: profile?.avatarUrl || null
+      }
+    });
+  } catch (error) {
+    console.error("GET /me/customization error:", error);
+    res.status(500).json({
+      success: false,
+      error: { code: "INTERNAL_SERVER_ERROR", message: "Özelleştirme ayarları alınamadı." }
+    });
+  }
+});
+
+// PUT /api/v1/users/me/customization
+usersRouter.put("/me/customization", requireAuth, standardLimiter, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+    const { customization, coverUrl } = req.body || {};
+
+    const parsed = profileCustomizationSchema.safeParse(customization || req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: parsed.error.issues[0]?.message || "Geçersiz özelleştirme verisi."
+        }
+      });
+    }
+
+    const updatePayload: Record<string, any> = {
+      profileCustomization: parsed.data,
+      updatedAt: new Date()
+    };
+
+    if (typeof coverUrl === "string") {
+      updatePayload.coverUrl = coverUrl;
+    }
+
+    await db
+      .update(profiles)
+      .set(updatePayload)
+      .where(eq(profiles.userId, currentUserId));
+
+    res.json({
+      success: true,
+      data: {
+        message: "Profil görünümü başarıyla kaydedildi.",
+        profileCustomization: parsed.data,
+        coverUrl: typeof coverUrl === "string" ? coverUrl : undefined
+      }
+    });
+  } catch (error) {
+    console.error("PUT /me/customization error:", error);
+    res.status(500).json({
+      success: false,
+      error: { code: "INTERNAL_SERVER_ERROR", message: "Özelleştirme kaydedilirken hata oluştu." }
+    });
+  }
+});
+
+// DELETE /api/v1/users/me/customization (Reset to default)
+usersRouter.delete("/me/customization", requireAuth, standardLimiter, async (req, res) => {
+  try {
+    const currentUserId = requireAuthContext(req);
+
+    await db
+      .update(profiles)
+      .set({
+        profileCustomization: {},
+        updatedAt: new Date()
+      })
+      .where(eq(profiles.userId, currentUserId));
+
+    res.json({
+      success: true,
+      data: {
+        message: "Profil görünümü varsayılan ayarlara döndürüldü.",
+        profileCustomization: {}
+      }
+    });
+  } catch (error) {
+    console.error("DELETE /me/customization error:", error);
+    res.status(500).json({
+      success: false,
+      error: { code: "INTERNAL_SERVER_ERROR", message: "Varsayılana döndürülürken hata oluştu." }
+    });
+  }
+});
 
 // GET /api/v1/users/suggestions
 usersRouter.get("/suggestions", requireAuth, standardLimiter, async (req, res) => {
@@ -108,7 +216,8 @@ usersRouter.get("/:username", optionalAuth, async (req, res) => {
       allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
       messagePreference: profiles.messagePreference,
       mentionPreference: profiles.mentionPreference,
-      defaultPostVisibility: profiles.defaultPostVisibility
+      defaultPostVisibility: profiles.defaultPostVisibility,
+      profileCustomization: profiles.profileCustomization
     })
     .from(users)
     .leftJoin(profiles, eq(users.id, profiles.userId))

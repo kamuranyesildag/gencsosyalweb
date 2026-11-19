@@ -30,6 +30,7 @@ export function Messages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<MessageTab>("chats");
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [userCommunities, setUserCommunities] = useState<any[]>([]);
 
   const {
     data: conversations,
@@ -42,10 +43,24 @@ export function Messages() {
 
   useEffect(() => {
     loadInitial();
-    fetchApi("/users/suggested?limit=8")
+    fetchApi("/users/suggestions?limit=8")
       .then((r) => r.json())
       .then((j) => {
-        if (j.success && Array.isArray(j.data)) setOnlineUsers(j.data);
+        const list = Array.isArray(j.data)
+          ? j.data
+          : Array.isArray(j.data?.suggestions)
+          ? j.data.suggestions
+          : [];
+        setOnlineUsers(list);
+      })
+      .catch(() => {});
+
+    fetchApi("/communities?limit=10")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) {
+          setUserCommunities(j.data);
+        }
       })
       .catch(() => {});
   }, [loadInitial]);
@@ -73,7 +88,7 @@ export function Messages() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] transition-colors relative">
-      {/* 1. STICKY HEADER (Matching Mockup 6) */}
+      {/* 1. STICKY HEADER */}
       <header className="sticky top-0 md:top-[60px] z-20 bg-[#F8FAFC]/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] px-4 pt-3.5 pb-3 space-y-3 transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -124,11 +139,11 @@ export function Messages() {
           )}
         </div>
 
-        {/* Segmented Tabs: Sohbetler | Gruplar | İstekler (Matching Mockup 6) */}
+        {/* Segmented Tabs: Sohbetler | Gruplar | İstekler */}
         <div className="grid grid-cols-3 p-1 bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
           {[
             { id: "chats" as MessageTab, label: "Sohbetler", badge: totalUnread },
-            { id: "groups" as MessageTab, label: "Gruplar", badge: 0 },
+            { id: "groups" as MessageTab, label: "Topluluklar", badge: 0 },
             { id: "requests" as MessageTab, label: "İstekler", badge: 0 },
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
@@ -156,11 +171,11 @@ export function Messages() {
         </div>
       </header>
 
-      {/* 2. "ÇEVRİM İÇİ" HORIZONTAL STRIP (Matching Mockup 6) */}
+      {/* 2. "HIZLI SOHBET BAŞLAT" HORIZONTAL STRIP */}
       {onlineUsers.length > 0 && (
         <div className="px-4 pt-4 pb-2 space-y-2.5">
           <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            ÇEVRİM İÇİ
+            HIZLI MESAJ GÖNDER
           </div>
           <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
             {onlineUsers.map((u) => (
@@ -217,46 +232,50 @@ export function Messages() {
             ))}
           </div>
         ) : activeTab === "groups" ? (
-          <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
-            <Link
-              to="/teknofest"
-              className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-sky-400 flex items-center justify-center font-black text-base shrink-0">
-                🚀
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
-                    Göktürk İHA Takımı
-                  </span>
-                  <span className="text-xs font-bold text-blue-600">Aktif</span>
-                </div>
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate mt-0.5">
-                  ••• Takım çalışma odası ve görev paylaşımı
-                </p>
-              </div>
-            </Link>
-            <Link
-              to="/communities"
-              className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center font-black text-base shrink-0">
-                🤖
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
-                    Robotik Kulübü - Yönetim
-                  </span>
-                  <span className="text-xs text-slate-400">Topluluk</span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                  Cuma toplantısı 18:00&apos;de 👍
-                </p>
-              </div>
-            </Link>
-          </div>
+          userCommunities.length > 0 ? (
+            <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
+              {userCommunities.map((comm) => (
+                <Link
+                  key={comm.id}
+                  to={`/communities/${comm.slug}`}
+                  className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 text-sky-400 flex items-center justify-center font-black text-base shrink-0 overflow-hidden">
+                    {comm.avatarUrl ? (
+                      <img src={comm.avatarUrl} alt={comm.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{(comm.name || "T").charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                        {comm.name}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {comm.memberCount ?? 1} üye
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {comm.description || `c/${comm.slug} topluluğu`}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] px-6 py-14 text-center shadow-2xs">
+              <EmptyState
+                icon={<Mail className="w-8 h-8 text-slate-400" />}
+                title="Henüz Topluluk Bulunmuyor"
+                description="Topluluklara katılarak ortak çalışma gruplarına erişebilirsiniz."
+                action={{
+                  label: "Toplulukları Keşfet",
+                  onClick: () => navigate("/communities"),
+                }}
+              />
+            </div>
+          )
         ) : filteredConversations.length > 0 ? (
           <div className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-white/[0.06] overflow-hidden shadow-2xs">
             <InfiniteScroll

@@ -22,6 +22,15 @@ import { useAuthModalStore } from "../context/useAuthModal";
 import { useFollowStore } from "../context/useFollowStore";
 import { usePagination } from "../hooks/usePagination";
 import { useSEO } from "../hooks/useSEO";
+import { getUserProjects, Project } from "../lib/projects";
+import {
+  ProfileCustomizationConfig,
+  normalizeProfileCustomization,
+  hasActiveCustomization,
+  getProfileCustomizationStyles,
+  applySpecialTextTransform
+} from "../lib/profileCustomization";
+import { ProfileCustomizerModal } from "../components/profile/ProfileCustomizerModal";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -31,18 +40,19 @@ import {
   Settings, 
   Users, 
   UserCheck,
-  CheckCircle2, 
   MoreHorizontal, 
   AlertTriangle, 
   Shield, 
   Share2, 
   FileText, 
-  FolderGit2, 
   ExternalLink,
-  Loader2,
   Lock,
   Gamepad2,
   Trophy,
+  Palette,
+  Eye,
+  RotateCcw,
+  Rocket
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -61,10 +71,16 @@ export function Profile() {
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
 
-  const [showVerification, setShowVerification] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [quizStats, setQuizStats] = useState<any>(null);
+  const [userProjects, setUserProjects] = useState<Project[]>([]);
+
+  // Profile Customization states
+  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
+  const [previewConfig, setPreviewConfig] = useState<ProfileCustomizationConfig | null>(null);
+  const [previewCoverUrl, setPreviewCoverUrl] = useState<string | undefined>(undefined);
+  const [showOriginalBio, setShowOriginalBio] = useState(false);
 
   useSEO({
     allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
@@ -85,6 +101,9 @@ export function Profile() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+      setPreviewConfig(null);
+      setPreviewCoverUrl(undefined);
+      setShowOriginalBio(false);
       try {
         const res = await fetchApi(`/users/${username}`);
         const json = await res.json();
@@ -96,7 +115,14 @@ export function Profile() {
             useFollowStore.getState().syncFromUser(json.data.id, true);
           }
 
-          // Fetch quiz stats
+          // Fetch real user projects
+          if (json.data?.id) {
+            getUserProjects(json.data.id)
+              .then((projs) => setUserProjects(Array.isArray(projs) ? projs : []))
+              .catch(() => setUserProjects([]));
+          }
+
+          // Fetch real quiz stats
           fetch(`/api/v1/quiz/user/${username}/stats`)
             .then(r => r.json())
             .then(res => {
@@ -138,7 +164,6 @@ export function Profile() {
     setFollowing(nextState === 'accepted');
     useFollowStore.getState().setFollowing(profile.id, nextState === 'accepted');
 
-    // Optimistic follower count update
     if (nextState === 'accepted' || wasFollowing) {
       setProfile((prev: any) => {
         if (!prev) return prev;
@@ -233,7 +258,6 @@ export function Profile() {
   if (loading) {
     return (
       <div className="flex flex-col w-full min-h-screen bg-white dark:bg-[#070A10] transition-colors">
-        {/* Sticky Header Skeleton */}
         <div className="sticky top-0 z-20 bg-white/90 dark:bg-[#070A10]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-white/[0.08] px-4 py-3 flex items-center gap-3">
           <Skeleton variant="circular" className="w-9 h-9" />
           <div className="space-y-1.5 flex-1">
@@ -241,11 +265,7 @@ export function Profile() {
             <Skeleton className="h-3 w-20 rounded-md" />
           </div>
         </div>
-
-        {/* Cover Skeleton */}
         <Skeleton variant="rectangular" className="h-36 sm:h-48 md:h-56 w-full" />
-
-        {/* Profile Info Skeleton */}
         <div className="px-4 sm:px-6 relative pb-6 border-b border-slate-200/80 dark:border-white/[0.08]">
           <div className="flex justify-between items-end -mt-12 sm:-mt-16 mb-4">
             <div className="p-1 bg-white dark:bg-[#070A10] rounded-full">
@@ -261,8 +281,6 @@ export function Profile() {
             <SkeletonText lines={2} className="mt-3 max-w-lg" />
           </div>
         </div>
-
-        {/* Feed Skeleton */}
         <SkeletonList count={3} className="p-4" />
       </div>
     );
@@ -286,10 +304,71 @@ export function Profile() {
   }
 
   const isMe = currentUser?.username === profile.username;
+  const activeRawCustomization = previewConfig || profile.profileCustomization;
+  const isCustomActive = Boolean(previewConfig) || hasActiveCustomization(profile.profileCustomization);
+  const customStyles = getProfileCustomizationStyles(activeRawCustomization);
+  const { config: customConfig } = customStyles;
+  const effectiveCoverUrl = previewCoverUrl !== undefined ? previewCoverUrl : profile.coverUrl;
+
+  const displayNameText =
+    isCustomActive && customConfig.applyTransformToDisplayName && !showOriginalBio
+      ? applySpecialTextTransform(profile.displayName || profile.username, customConfig.textTransform)
+      : profile.displayName || profile.username;
+
+  const bioText =
+    profile.bio && isCustomActive && customConfig.textTransform !== "none" && !showOriginalBio
+      ? applySpecialTextTransform(profile.bio, customConfig.textTransform)
+      : profile.bio;
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors">
-      {/* STICKY TOP APP BAR (Native Profile Header) */}
+    <div
+      className="relative flex flex-col w-full min-h-screen bg-slate-50/40 dark:bg-[#080E1A] transition-colors"
+      style={isCustomActive ? customStyles.pageContainerStyle : undefined}
+    >
+      {/* Background Pattern or Custom Image Readability Overlay (Scoped strictly to Profile Page) */}
+      {isCustomActive && customStyles.patternOverlayStyle && (
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
+          style={customStyles.patternOverlayStyle}
+        />
+      )}
+      {isCustomActive && customStyles.imageOverlayStyle && (
+        <div
+          className="fixed inset-0 pointer-events-none z-0"
+          style={customStyles.imageOverlayStyle}
+        />
+      )}
+
+      {/* LIVE PREVIEW FLOATING BANNER (When owner clicks "Önizlemeyi Gör") */}
+      {previewConfig && isMe && (
+        <div className="sticky top-0 z-40 bg-[#0F172A] text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg border-b border-white/10">
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <Eye className="w-4 h-4 text-blue-400" />
+            <span>Canlı Profil Önizleme Modu — Yaptığınız değişiklikleri gerçek profil sayfanızda inceliyorsunuz.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPreviewConfig(null);
+                setPreviewCoverUrl(undefined);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors"
+            >
+              Önizlemeyi Kapat
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCustomizerModal(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-[#185EDB] hover:bg-blue-600 text-xs font-extrabold transition-colors"
+            >
+              Düzenlemeye Dön & Kaydet
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STICKY TOP APP BAR */}
       <header className="sticky top-0 z-30 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] h-[56px] sm:h-[60px] px-4 sm:px-6 flex items-center justify-between transition-colors shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -323,6 +402,18 @@ export function Profile() {
 
         {/* Top Right Quick Actions */}
         <div className="flex items-center gap-2">
+          {isMe && (
+            <button
+              type="button"
+              onClick={() => setShowCustomizerModal(true)}
+              aria-label="Profili Özelleştir"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold text-white bg-[#185EDB] hover:bg-blue-700 transition-all active:scale-95 cursor-pointer shadow-xs"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Profili Özelleştir</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowShare(true)}
@@ -346,754 +437,855 @@ export function Profile() {
         </div>
       </header>
 
-      {/* COVER IMAGE */}
-      <div className="relative h-40 sm:h-52 md:h-60 bg-gradient-to-tr from-[#080E1A] via-[#0B1329] to-[#172554] w-full overflow-hidden shrink-0 group border-b border-slate-200/60 dark:border-white/[0.08]">
-        {profile.coverUrl ? (
-          <img src={profile.coverUrl} alt="Kapak" className="w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#080E1A] via-[#0B1329] to-[#1E293B]">
-            <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:20px_20px]" />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-          </div>
-        )}
-      </div>
-
-      {/* PROFILE INFO HEADER */}
-      <div className="px-4 sm:px-6 pb-5 border-b border-slate-200/80 dark:border-white/[0.08] relative">
-        {/* Avatar and Main Actions Row */}
-        <div className="flex justify-between items-end -mt-14 sm:-mt-18 md:-mt-20 mb-3.5">
-          {/* Avatar with Frosted Glass Ring */}
-          <div className="p-1 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md rounded-full shadow-xl shrink-0 z-10 border border-slate-200/60 dark:border-white/[0.12]">
-            <Avatar
-              url={profile.avatarUrl}
-              name={profile.displayName || profile.username}
-              size="xl"
-              className="w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 ring-4 ring-white dark:ring-[#080E1A] bg-white dark:bg-[#080E1A]"
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-2">
-            {!isMe ? (
-              <>
-                <IconButton
-                  aria-label="Mesaj Gönder"
-                  variant="secondary"
-                  size="md"
-                  onClick={handleMessage}
-                  className="rounded-full text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/[0.1] hover:bg-slate-100 dark:hover:bg-white/[0.05] shadow-xs"
-                >
-                  <Mail className="w-4.5 h-4.5" />
-                </IconButton>
-
-                <Button
-                  variant={followStatus !== 'none' ? "secondary" : "primary"}
-                  size="md"
-                  isLoading={isFollowLoading}
-                  onClick={handleFollow}
-                  className={`rounded-full px-5 font-bold transition-all shadow-xs ${
-                    followStatus !== 'none'
-                      ? "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
-                      : "shadow-slate-500/20"
-                  }`}
-                >
-                  {followStatus === 'accepted' ? "Takip Ediliyor" : followStatus === 'pending' ? "İstek Gönderildi" : profile?.followsMe ? "Sende Takip Et" : "Takip Et"}
-                </Button>
-
-                {/* More Menu Dropdown */}
-                <Dropdown>
-                  <DropdownTrigger>
-                    <div
-                      role="button"
-                      aria-label="Daha fazla seçenek"
-                      className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/[0.1] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.05] hover:text-slate-900 dark:hover:text-white transition-colors shadow-xs"
-                    >
-                      <MoreHorizontal className="w-4.5 h-4.5" />
-                    </div>
-                  </DropdownTrigger>
-                  <DropdownContent align="right" width="w-48">
-                    <DropdownItem
-                      icon={<Share2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
-                      onClick={() => setShowShare(true)}
-                    >
-                      Profili Paylaş
-                    </DropdownItem>
-                    <DropdownDivider />
-                    <DropdownItem
-                      icon={<Shield className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
-                      onClick={handleBlock}
-                    >
-                      Kullanıcıyı Engelle
-                    </DropdownItem>
-                    <DropdownItem
-                      icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
-                      isDanger
-                      onClick={() => setShowReportDialog(true)}
-                    >
-                      Profili Bildir
-                    </DropdownItem>
-                  </DropdownContent>
-                </Dropdown>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="primary"
-                  size="md"
-                  leftIcon={<Settings className="w-4 h-4" />}
-                  onClick={() => navigate("/settings")}
-                  className="rounded-xl px-4 font-bold bg-[#0F172A] hover:bg-slate-800 dark:bg-white dark:text-slate-900 text-white shadow-xs transition-all"
-                >
-                  Profili Düzenle
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => navigate("/bookmarks")}
-                  className="rounded-xl px-4 font-bold border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#131D31] text-slate-800 dark:text-slate-100 shadow-xs transition-all"
-                >
-                  🔖 Kaydedilenler
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* User Identity Details */}
-        <div className="mt-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              {profile.displayName || profile.username}
-            </h2>
-            {profile.isVerified && (
-              <VerifiedBadge
-                iconClassName="w-5 h-5"
-                showCategoryPill={true}
-                targetUser={{
-                  username: profile.username,
-                  isVerified: !!profile.isVerified,
-                  verificationCategory: profile.verificationCategory,
-                  verifiedAt: profile.verifiedAt,
+      <div className="relative z-10 flex flex-col flex-1">
+        {/* MAIN PROFILE HERO CARD */}
+        <div
+          className={
+            isCustomActive
+              ? "mx-3 sm:mx-5 mt-3 overflow-hidden transition-all"
+              : "bg-white dark:bg-[#0B1329] border-b border-slate-200/80 dark:border-white/[0.08]"
+          }
+          style={isCustomActive ? customStyles.cardStyle : undefined}
+        >
+          {/* COVER IMAGE */}
+          <div
+            className={`relative ${
+              isCustomActive && customConfig.compactHeader
+                ? "h-32 sm:h-40"
+                : "h-40 sm:h-52 md:h-60"
+            } w-full overflow-hidden shrink-0 group border-b border-slate-200/60 dark:border-white/[0.08]`}
+            style={
+              isCustomActive
+                ? {
+                    backgroundImage: `linear-gradient(135deg, ${customConfig.primaryAccent}, ${customConfig.secondaryAccent})`
+                  }
+                : undefined
+            }
+          >
+            {effectiveCoverUrl ? (
+              <img
+                src={effectiveCoverUrl}
+                alt="Kapak"
+                className="w-full h-full object-cover"
+                style={{
+                  objectPosition: isCustomActive ? customConfig.coverPosition : "center"
                 }}
               />
-            )}
-            {profile.isMinor && (
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 px-2 py-0.5 rounded-full select-none ml-1"
-                title="10 Ekim 2026 Yönetmeliği kapsamında ayrıştırılmış yüksek korumalı genç hesabı"
-              >
-                <Shield className="w-3 h-3 text-blue-500" />
-                <span>15-18 Genç</span>
-              </span>
-            )}
-            {profile.isPrivate && (
-              <span
-                className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium select-none ml-1"
-                title={isMe ? "Hesabınız gizli. Yalnızca takipçileriniz içeriklerinizi görebilir." : "Bu hesap gizlidir."}
-              >
-                <Lock className="w-3 h-3 text-slate-400" />
-                <span>Gizli Hesap</span>
-              </span>
-            )}
-          </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">@{profile.username}</p>
-        </div>
-
-        {/* Badges */}
-        <div className="mt-2.5">
-          <UserBadges userId={profile.id} />
-        </div>
-
-        {/* Bio */}
-        {profile.bio && (
-          <div className="mt-3 text-slate-800 dark:text-slate-200 text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words">
-            <RichText text={profile.bio} />
-          </div>
-        )}
-
-        {/* Meta Info Rows (Location, Website, Date) - Clean Unboxed Typography */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
-          {profile.location && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{profile.location}</span>
-            </div>
-          )}
-
-          {profile.website && (
-            <div className="flex items-center gap-1.5">
-              <LinkIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <a
-                href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold"
-              >
-                <span>{profile.website.replace(/^https?:\/\//, "")}</span>
-                <ExternalLink className="w-3 h-3 opacity-70" />
-              </a>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>
-              {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
-                month: "long",
-                year: "numeric",
-              })}{" "}
-              katıldı
-            </span>
-          </div>
-        </div>
-
-        {/* Stats Row (Posts, Projects, Following, Followers) - Clean Readable Metrics */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 text-sm">
-          <button
-            type="button"
-            onClick={() => setActiveTab("posts")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-          >
-            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
-              {profile.postsCount ?? 0}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400 text-xs">
-              Gönderi
-            </span>
-          </button>
-
-          {profile.projectsCount !== undefined && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("projects")}
-              className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-            >
-              <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
-                {profile.projectsCount}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400 text-xs">
-                Proje
-              </span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("following")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-          >
-            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
-              {profile.followingCount ?? 0}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400 text-xs">
-              Takip Edilen
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("followers")}
-            className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-          >
-            <span className="font-bold text-slate-900 dark:text-slate-100 group-hover/stat:text-blue-600 dark:group-hover/stat:text-blue-400">
-              {profile.followersCount ?? 0}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400 text-xs">
-              Takipçi
-            </span>
-          </button>
-        </div>
-
-        {/* Mutual Followers Display */}
-        {profile.mutualFollowers && profile.mutualFollowers.length > 0 && (
-          <div className="flex items-center gap-2.5 mt-3.5 pt-3 border-t border-slate-200/60 dark:border-white/[0.06]">
-            <div className="flex -space-x-2 shrink-0">
-              {profile.mutualFollowers.slice(0, 3).map((mf: any) => (
-                <Avatar
-                  key={mf.id}
-                  url={mf.avatarUrl}
-                  name={mf.displayName || mf.username}
-                  size="sm"
-                  className="ring-2 ring-white dark:ring-[#070A10]"
-                />
-              ))}
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight">
-              <span className="font-bold text-slate-900 dark:text-slate-200">
-                {profile.mutualFollowers[0].displayName || profile.mutualFollowers[0].username}
-              </span>
-              {profile.mutualFollowersCount > 1 && (
-                <span>
-                  {" "}ve{" "}
-                  <span className="font-bold text-slate-900 dark:text-slate-200">
-                    {profile.mutualFollowersCount - 1} diğer takip ettiğin kişi
-                  </span>
-                </span>
-              )}{" "}
-              takip ediyor
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* PRIVATE ACCOUNT LOCK OR PROFILE TABS */}
-      {profile.isPrivate && !isMe && followStatus !== 'accepted' ? (
-        <div className="my-12 sm:my-16 px-4 max-w-md mx-auto text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 shadow-xs">
-            <Lock className="w-8 h-8 stroke-[2]" />
-          </div>
-          <div className="space-y-1.5">
-            <h3 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-              Bu Hesap Gizli
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto leading-relaxed">
-              {followStatus === 'pending'
-                ? "Takip isteğin iletildi. Hesap sahibi onayladığında gönderilerini ve projelerini görebileceksin."
-                : "Fotoğraflarını, videolarını ve projelerini görmek için bu hesabı takip et."}
-            </p>
-          </div>
-          {followStatus === 'none' && (
-            <div className="pt-2">
-              <Button
-                variant="primary"
-                size="md"
-                isLoading={isFollowLoading}
-                onClick={handleFollow}
-                className="rounded-full px-6 font-bold"
-              >
-                Takip İsteği Gönder
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          {/* YOUTH LEAGUE SEZON 3 CARD (Mockup 4) */}
-          <div className="px-4 sm:px-6 pt-4 pb-2">
-            <div
-              onClick={() => navigate("/quiz")}
-              className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs hover:border-blue-300 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center text-lg shrink-0">
-                  🏆
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
-                    Youth League · Sezon 3
-                  </div>
-                  <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Sıralama #48 · 6 rozet
-                  </div>
-                </div>
+            ) : !isCustomActive ? (
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#080E1A] via-[#0B1329] to-[#1E293B]">
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:20px_20px]" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
               </div>
-
-              <div className="flex items-center -space-x-1.5 shrink-0">
-                <span className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/70 text-[#2563EB] dark:text-blue-400 text-xs font-black flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
-                  {"</>"}
-                </span>
-                <span className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 text-xs flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
-                  🌱
-                </span>
-                <span className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 text-xs flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
-                  🧠
-                </span>
-              </div>
-            </div>
+            ) : null}
           </div>
 
-          {/* PROFILE TABS */}
+          {/* PROFILE INFO HEADER */}
           <div
-            className="sticky top-[56px] sm:top-[60px] z-20 glass-nav bg-white/85 dark:bg-[#080E1A]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors shadow-xs"
-            role="tablist"
-            aria-label="Profil Sekmeleri"
+            className={`relative ${
+              isCustomActive
+                ? customConfig.cardPadding === "compact"
+                  ? "px-4 pb-4"
+                  : customConfig.cardPadding === "spacious"
+                  ? "px-6 sm:px-8 pb-7"
+                  : "px-4 sm:px-6 pb-5"
+                : "px-4 sm:px-6 pb-5"
+            }`}
           >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "posts"}
-          onClick={() => setActiveTab("posts")}
-          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "posts"
-              ? "text-[#2563EB] dark:text-blue-400"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          <span>Paylaşımlar</span>
-          {activeTab === "posts" && (
-            <motion.div
-              layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-            />
-          )}
-        </button>
+            {/* Avatar and Main Actions Row */}
+            <div className="flex justify-between items-end -mt-14 sm:-mt-18 md:-mt-20 mb-3.5 flex-wrap gap-2">
+              {/* Avatar with Custom Frame Support */}
+              <div
+                className="p-1 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md shadow-xl shrink-0 z-10 border border-slate-200/60 dark:border-white/[0.12] transition-all"
+                style={
+                  isCustomActive
+                    ? customStyles.avatarFrameStyle
+                    : { borderRadius: "9999px" }
+                }
+              >
+                <Avatar
+                  url={profile.avatarUrl}
+                  name={profile.displayName || profile.username}
+                  size="xl"
+                  className="w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-white dark:bg-[#080E1A]"
+                />
+              </div>
 
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "projects"}
-          onClick={() => setActiveTab("projects")}
-          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "projects"
-              ? "text-slate-900 dark:text-white"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          <span>Projeler</span>
-          {activeTab === "projects" && (
-            <motion.div
-              layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-            />
-          )}
-        </button>
+              {/* Action Buttons */}
+              <div className="flex items-center flex-wrap gap-2 pt-2">
+                {!isMe ? (
+                  <>
+                    <IconButton
+                      aria-label="Mesaj Gönder"
+                      variant="secondary"
+                      size="md"
+                      onClick={handleMessage}
+                      className="rounded-full text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/[0.1] hover:bg-slate-100 dark:hover:bg-white/[0.05] shadow-xs"
+                    >
+                      <Mail className="w-4.5 h-4.5" />
+                    </IconButton>
 
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "followers"}
-          onClick={() => setActiveTab("followers")}
-          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "followers"
-              ? "text-slate-900 dark:text-white"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          <span>Takipçiler</span>
-          {activeTab === "followers" && (
-            <motion.div
-              layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-            />
-          )}
-        </button>
+                    <button
+                      type="button"
+                      disabled={isFollowLoading}
+                      onClick={handleFollow}
+                      style={
+                        isCustomActive && followStatus === "none"
+                          ? customStyles.primaryButtonStyle
+                          : undefined
+                      }
+                      className={`rounded-full px-5 py-2 text-sm font-bold transition-all shadow-xs cursor-pointer ${
+                        followStatus !== "none"
+                          ? "bg-slate-100 text-slate-800 border border-slate-200 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                          : "bg-[#185EDB] text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      {followStatus === "accepted"
+                        ? "Takip Ediliyor"
+                        : followStatus === "pending"
+                        ? "İstek Gönderildi"
+                        : profile?.followsMe
+                        ? "Sen de Takip Et"
+                        : "Takip Et"}
+                    </button>
 
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "following"}
-          onClick={() => setActiveTab("following")}
-          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "following"
-              ? "text-slate-900 dark:text-white"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          <span>Takip Edilenler</span>
-          {activeTab === "following" && (
-            <motion.div
-              layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-            />
-          )}
-        </button>
+                    {/* More Menu Dropdown */}
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <div
+                          role="button"
+                          aria-label="Daha fazla seçenek"
+                          className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/[0.1] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.05] hover:text-slate-900 dark:hover:text-white transition-colors shadow-xs"
+                        >
+                          <MoreHorizontal className="w-4.5 h-4.5" />
+                        </div>
+                      </DropdownTrigger>
+                      <DropdownContent align="right" width="w-48">
+                        <DropdownItem
+                          icon={<Share2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                          onClick={() => setShowShare(true)}
+                        >
+                          Profili Paylaş
+                        </DropdownItem>
+                        <DropdownDivider />
+                        <DropdownItem
+                          icon={<Shield className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                          onClick={handleBlock}
+                        >
+                          Kullanıcıyı Engelle
+                        </DropdownItem>
+                        <DropdownItem
+                          icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
+                          isDanger
+                          onClick={() => setShowReportDialog(true)}
+                        >
+                          Profili Bildir
+                        </DropdownItem>
+                      </DropdownContent>
+                    </Dropdown>
+                  </>
+                ) : (
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Button
+                      variant="primary"
+                      size="md"
+                      leftIcon={<Palette className="w-4 h-4" />}
+                      onClick={() => setShowCustomizerModal(true)}
+                      style={isCustomActive ? customStyles.primaryButtonStyle : undefined}
+                      className="rounded-xl px-4 font-bold bg-[#185EDB] hover:bg-blue-700 text-white shadow-xs transition-all"
+                    >
+                      Profili Özelleştir
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      leftIcon={<Settings className="w-4 h-4" />}
+                      onClick={() => navigate("/settings")}
+                      className="rounded-xl px-4 font-bold border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#131D31] text-slate-800 dark:text-slate-100 shadow-xs transition-all"
+                    >
+                      Profili Düzenle
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={() => navigate("/bookmarks")}
+                      className="rounded-xl px-4 font-bold border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#131D31] text-slate-800 dark:text-slate-100 shadow-xs transition-all"
+                    >
+                      Kaydedilenler
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "quiz"}
-          onClick={() => setActiveTab("quiz")}
-          className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center ${
-            activeTab === "quiz"
-              ? "text-slate-900 dark:text-white"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            <Gamepad2 className="w-3.5 h-3.5 text-blue-500" />
-            <span>Genç Quiz</span>
-          </span>
-          {activeTab === "quiz" && (
-            <motion.div
-              layoutId="profileActiveTabIndicator"
-              className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
-              transition={{ type: "spring", stiffness: 450, damping: 35 }}
-            />
-          )}
-        </button>
-      </div>
+            {/* User Identity Details */}
+            <div className="mt-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2
+                  className="text-xl sm:text-2xl font-black tracking-tight"
+                  aria-label={profile.displayName || profile.username}
+                  style={
+                    isCustomActive
+                      ? { fontFamily: customStyles.typographyStyle.fontFamily }
+                      : undefined
+                  }
+                >
+                  {displayNameText}
+                </h2>
+                {profile.isVerified && (
+                  <VerifiedBadge
+                    iconClassName="w-5 h-5"
+                    showCategoryPill={true}
+                    targetUser={{
+                      username: profile.username,
+                      isVerified: !!profile.isVerified,
+                      verificationCategory: profile.verificationCategory,
+                      verifiedAt: profile.verifiedAt,
+                    }}
+                  />
+                )}
+                {profile.isMinor && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 px-2 py-0.5 rounded-full select-none ml-1"
+                    title="10 Ekim 2026 Yönetmeliği kapsamında ayrıştırılmış yüksek korumalı genç hesabı"
+                  >
+                    <Shield className="w-3 h-3 text-blue-500" />
+                    <span>15-18 Genç</span>
+                  </span>
+                )}
+                {profile.isPrivate && (
+                  <span
+                    className="inline-flex items-center gap-1 text-xs opacity-75 font-medium select-none ml-1"
+                    title={isMe ? "Hesabınız gizli. Yalnızca takipçileriniz içeriklerinizi görebilir." : "Bu hesap gizlidir."}
+                  >
+                    <Lock className="w-3 h-3" />
+                    <span>Gizli Hesap</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-medium opacity-70">@{profile.username}</p>
+            </div>
 
-      {/* TAB CONTENT STREAM */}
-      <div className="flex-1 w-full pb-20">
-        {/* 1. Posts Tab */}
-        {activeTab === "posts" && (
-          <div className="space-y-4">
-            {/* PROJELERİM HORIZONTAL SHOWCASE STRIP (Mockup 4) */}
-            <div className="px-4 sm:px-6 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                  Projelerim
-                </h3>
+            {/* Badges */}
+            <div className="mt-2.5">
+              <UserBadges userId={profile.id} />
+            </div>
+
+            {/* Bio with Custom Typography & Reversible Special Text Transform */}
+            {profile.bio && (
+              <div className="mt-3 space-y-1.5">
+                <div
+                  aria-label={profile.bio}
+                  style={isCustomActive ? customStyles.typographyStyle : undefined}
+                  className="text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words"
+                >
+                  {isCustomActive && customConfig.textTransform !== "none" && !showOriginalBio ? (
+                    <span>{bioText}</span>
+                  ) : (
+                    <RichText text={profile.bio} />
+                  )}
+                </div>
+                {isCustomActive && customConfig.textTransform !== "none" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginalBio((prev) => !prev)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold opacity-75 hover:opacity-100 underline cursor-pointer"
+                    style={customStyles.linkStyle}
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    {showOriginalBio ? "Özel Yazı Stiline Dön" : "Normal Metni Göster"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Meta Info Rows (Location, Website, Date) */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-xs sm:text-[13px] opacity-80 font-medium">
+              {profile.location && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                  <span>{profile.location}</span>
+                </div>
+              )}
+
+              {profile.website && (
+                <div className="flex items-center gap-1.5">
+                  <LinkIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                  <a
+                    href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={isCustomActive ? customStyles.linkStyle : undefined}
+                    className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold"
+                  >
+                    <span>{profile.website.replace(/^https?:\/\//, "")}</span>
+                    <ExternalLink className="w-3 h-3 opacity-70" />
+                  </a>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                <span>
+                  {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
+                    month: "long",
+                    year: "numeric",
+                  })}{" "}
+                  katıldı
+                </span>
+              </div>
+            </div>
+
+            {/* Stats Row (Posts, Projects, Following, Followers) */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 text-sm">
+              <button
+                type="button"
+                onClick={() => setActiveTab("posts")}
+                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <span className="font-bold">
+                  {profile.postsCount ?? 0}
+                </span>
+                <span className="opacity-70 text-xs">
+                  Gönderi
+                </span>
+              </button>
+
+              {profile.projectsCount !== undefined && (
                 <button
                   type="button"
                   onClick={() => setActiveTab("projects")}
-                  className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
+                  className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                 >
-                  Tümü ({profile.projectsCount || 2})
+                  <span className="font-bold">
+                    {profile.projectsCount}
+                  </span>
+                  <span className="opacity-70 text-xs">
+                    Proje
+                  </span>
                 </button>
-              </div>
+              )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div
-                  onClick={() => setActiveTab("projects")}
-                  className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-900">
-                    <img
-                      src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80"
-                      alt="Otonom Rover"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-3 space-y-1.5">
-                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white line-clamp-1">
-                      Otonom Rover
-                    </h4>
-                    <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-[10px] font-extrabold">
-                      Geliştirme
-                    </span>
-                  </div>
-                </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("following")}
+                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <span className="font-bold">
+                  {profile.followingCount ?? 0}
+                </span>
+                <span className="opacity-70 text-xs">
+                  Takip Edilen
+                </span>
+              </button>
 
-                <div
-                  onClick={() => setActiveTab("projects")}
-                  className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-900">
-                    <img
-                      src="https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80"
-                      alt="Görü Destekli Robot Kol"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-3 space-y-1.5">
-                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white line-clamp-1">
-                      Görü Destekli Robot Kol
-                    </h4>
-                    <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold">
-                      Tamamlandı
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("followers")}
+                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <span className="font-bold">
+                  {profile.followersCount ?? 0}
+                </span>
+                <span className="opacity-70 text-xs">
+                  Takipçi
+                </span>
+              </button>
             </div>
 
-            {postsQuery.loading ? (
-              <SkeletonList count={3} className="p-4" />
-            ) : postsQuery.data.length > 0 ? (
-              <InfiniteScroll
-                items={postsQuery.data}
-                hasMore={postsQuery.hasMore}
-                isLoading={postsQuery.loadingMore}
-                onLoadMore={postsQuery.loadMore}
-                renderItem={(post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post.user ? post : { ...post, user: profile }}
-                    onPostDeleted={(id) => postsQuery.setData(prev => prev.filter(p => p.id !== id))}
-                  />
-                )}
-              />
-            ) : (
-            <div className="px-4 py-12 max-w-md mx-auto text-center">
-              <EmptyState
-                icon={<FileText className="w-7 h-7 text-slate-400" />}
-                title="Henüz Gönderi Yok"
-                description={
-                  isMe
-                    ? "Düşüncelerini, projelerini veya güncellemelerini toplulukla paylaşmak için yeni bir gönderi oluştur."
-                    : "Bu kullanıcı henüz hiçbir gönderi paylaşmadı."
-                }
-                action={
-                  isMe
-                    ? {
-                        label: "Gönderi Oluştur",
-                        onClick: () => navigate("/create"),
-                      }
-                    : undefined
-                }
-              />
-            </div>
+            {/* Mutual Followers Display */}
+            {profile.mutualFollowers && profile.mutualFollowers.length > 0 && (
+              <div className="flex items-center gap-2.5 mt-3.5 pt-3 border-t border-slate-200/60 dark:border-white/[0.06]">
+                <div className="flex -space-x-2 shrink-0">
+                  {profile.mutualFollowers.slice(0, 3).map((mf: any) => (
+                    <Avatar
+                      key={mf.id}
+                      url={mf.avatarUrl}
+                      name={mf.displayName || mf.username}
+                      size="sm"
+                      className="ring-2 ring-white dark:ring-[#070A10]"
+                    />
+                  ))}
+                </div>
+                <div className="text-xs opacity-75 font-medium leading-tight">
+                  <span className="font-bold">
+                    {profile.mutualFollowers[0].displayName || profile.mutualFollowers[0].username}
+                  </span>
+                  {profile.mutualFollowersCount > 1 && (
+                    <span>
+                      {" "}ve{" "}
+                      <span className="font-bold">
+                        {profile.mutualFollowersCount - 1} diğer takip ettiğin kişi
+                      </span>
+                    </span>
+                  )}{" "}
+                  takip ediyor
+                </div>
+              </div>
             )}
           </div>
-        )}
+        </div>
 
-        {/* 2. Projects Tab */}
-        {activeTab === "projects" && profile && <ProfileProjects userId={profile.id} />}
-
-        {/* 3. Followers / Following Tabs */}
-        {(activeTab === "followers" || activeTab === "following") && (
-          (activeTab === "followers" ? followersQuery : followingQuery).loading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3.5 bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]"
-                >
-                  <SkeletonCircle size="md" />
-                  <div className="space-y-1.5 flex-1">
-                    <Skeleton className="h-4 w-36 rounded-md" />
-                    <Skeleton className="h-3 w-20 rounded-md" />
-                  </div>
-                </div>
-              ))}
+        {/* PRIVATE ACCOUNT LOCK OR PROFILE TABS */}
+        {profile.isPrivate && !isMe && followStatus !== 'accepted' ? (
+          <div className="my-12 sm:my-16 px-4 max-w-md mx-auto text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 shadow-xs">
+              <Lock className="w-8 h-8 stroke-[2]" />
             </div>
-          ) : (activeTab === "followers" ? followersQuery : followingQuery).data.length > 0 ? (
-            <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-              <InfiniteScroll
-                items={(activeTab === "followers" ? followersQuery : followingQuery).data}
-                hasMore={(activeTab === "followers" ? followersQuery : followingQuery).hasMore}
-                isLoading={(activeTab === "followers" ? followersQuery : followingQuery).loadingMore}
-                onLoadMore={(activeTab === "followers" ? followersQuery : followingQuery).loadMore}
-                renderItem={(u) => {
-                  const user = u.follower || u.following || u;
-                  return (
-                    <Link
-                      key={user.id}
-                      to={`/profile/${user.username}`}
-                      className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group"
-                    >
-                      <Avatar
-                        url={user.avatarUrl}
-                        name={user.displayName || user.username}
-                        size="md"
-                        className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-slate-300 transition-all shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate text-sm sm:text-base">
-                            {user.displayName || user.username}
-                          </span>
-                          {user.isVerified && (
-                            <VerifiedBadge
-                              iconClassName="w-4 h-4"
-                              withModal={false}
-                              targetUser={{ username: user.username, isVerified: !!user.isVerified }}
-                            />
-                          )}
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
-                          @{user.username}
-                        </p>
-                        {user.bio && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5 line-clamp-1">
-                            {user.bio}
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-full font-bold text-xs shrink-0"
-                      >
-                        Profili Gör
-                      </Button>
-                    </Link>
-                  );
-                }}
-              />
+            <div className="space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Bu Hesap Gizli
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto leading-relaxed">
+                {followStatus === 'pending'
+                  ? "Takip isteğin iletildi. Hesap sahibi onayladığında gönderilerini ve projelerini görebileceksin."
+                  : "Fotoğraflarını, videolarını ve projelerini görmek için bu hesabı takip et."}
+              </p>
             </div>
-          ) : (
-            <div className="px-4 py-12 max-w-md mx-auto text-center">
-              <EmptyState
-                icon={activeTab === "followers" ? <Users className="w-7 h-7 text-slate-400" /> : <UserCheck className="w-7 h-7 text-slate-400" />}
-                title={activeTab === "followers" ? "Henüz Takipçi Yok" : "Takip Edilen Kimse Yok"}
-                description={
-                  activeTab === "followers"
-                    ? "Bu kullanıcının henüz takipçisi bulunmuyor."
-                    : "Bu kullanıcı henüz kimseyi takip etmiyor."
-                }
-              />
-            </div>
-          )
-        )}
-
-        {/* 4. Genç Quiz Tab */}
-        {activeTab === "quiz" && (
-          <div className="p-4 sm:p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Gamepad2 className="w-5 h-5 text-blue-600" />
-                  <span>Genç Quiz İstatistikleri</span>
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {profile.displayName || profile.username} kullanıcısının bilgi yarışması performansı.
-                </p>
-              </div>
-
-              {isMe && (
+            {followStatus === 'none' && (
+              <div className="pt-2">
                 <Button
                   variant="primary"
-                  size="sm"
-                  onClick={() => navigate("/quiz")}
-                  className="rounded-xl font-bold text-xs"
+                  size="md"
+                  isLoading={isFollowLoading}
+                  onClick={handleFollow}
+                  className="rounded-full px-6 font-bold"
                 >
-                  Quiz Odalarına Git ➔
+                  Takip İsteği Gönder
                 </Button>
-              )}
-            </div>
-
-            {quizStats && quizStats.totalQuizes > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Katıldığı Quiz</span>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white">{quizStats.totalQuizes}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kazandığı Quiz</span>
-                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{quizStats.wins || 0}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Toplam Puan</span>
-                  <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{quizStats.totalScore?.toLocaleString() || 0}</p>
-                </div>
-
-                <div className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Doğruluk Oranı</span>
-                  <p className="text-2xl font-black text-blue-600 dark:text-blue-400">%{quizStats.accuracyRate || 0}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 mx-auto flex items-center justify-center">
-                  <Gamepad2 className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">Henüz Tamamlanan Quiz Yok</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    {isMe 
-                      ? "Genç Quiz odalarına katılarak veya yeni bir oda kurarak yarışmaya başlayabilir ve ilk puanlarını kazanabilirsin!"
-                      : "Bu kullanıcı henüz kayıtlı bir quiz yarışmasına katılmadı."}
-                  </p>
-                </div>
-                {isMe && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => navigate("/quiz")}
-                    className="rounded-xl font-bold text-xs"
-                  >
-                    Quiz'e Başla 🚀
-                  </Button>
-                )}
               </div>
             )}
           </div>
+        ) : (
+          <>
+            {/* REAL QUIZ / YOUTH LEAGUE SUMMARY CARD (Only shown if user has real quiz activity) */}
+            {quizStats && quizStats.totalQuizes > 0 && (
+              <div className="px-3 sm:px-5 pt-3 pb-1">
+                <div
+                  onClick={() => setActiveTab("quiz")}
+                  style={isCustomActive ? customStyles.cardStyle : undefined}
+                  className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs hover:border-blue-300 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 flex items-center justify-center shrink-0"
+                      style={isCustomActive ? customStyles.accentBadgeStyle : undefined}
+                    >
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-black truncate">
+                        Genç Quiz Performansı
+                      </div>
+                      <div className="text-[11px] sm:text-xs font-medium opacity-75">
+                        {quizStats.totalScore?.toLocaleString() || 0} Puan · {quizStats.wins || 0} Galibiyet · %{quizStats.accuracyRate || 0} Doğruluk
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PROFILE TABS */}
+            <div
+              className={`sticky top-[56px] sm:top-[60px] z-20 glass-nav backdrop-blur-xl border-b border-slate-200/70 dark:border-white/[0.08] flex items-center px-2 sm:px-4 transition-colors shadow-xs ${
+                isCustomActive
+                  ? "mx-3 sm:mx-5 mt-3 rounded-2xl"
+                  : "bg-white/85 dark:bg-[#080E1A]/85"
+              }`}
+              style={isCustomActive ? customStyles.cardStyle : undefined}
+              role="tablist"
+              aria-label="Profil Sekmeleri"
+            >
+              {(
+                [
+                  { id: "posts", label: "Paylaşımlar" },
+                  { id: "projects", label: "Projeler" },
+                  { id: "followers", label: "Takipçiler" },
+                  { id: "following", label: "Takip Edilenler" },
+                  { id: "quiz", label: "Genç Quiz" }
+                ] as { id: ProfileTab; label: string }[]
+              ).map((tab) => {
+                const isSelected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    onClick={() => setActiveTab(tab.id)}
+                    style={
+                      isSelected && isCustomActive
+                        ? { color: customConfig.primaryAccent }
+                        : undefined
+                    }
+                    className={`relative flex-1 py-3.5 text-xs sm:text-sm font-bold transition-colors text-center cursor-pointer ${
+                      isSelected
+                        ? "text-[#185EDB] dark:text-blue-400"
+                        : "opacity-65 hover:opacity-100"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isSelected && (
+                      <motion.div
+                        layoutId="profileActiveTabIndicator"
+                        style={
+                          isCustomActive
+                            ? { backgroundColor: customConfig.primaryAccent }
+                            : undefined
+                        }
+                        className="absolute bottom-0 inset-x-2 sm:inset-x-4 h-[3px] bg-blue-600 dark:bg-blue-500 rounded-t-full"
+                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* TAB CONTENT STREAM */}
+            <div className="flex-1 w-full pb-20">
+              {/* 1. Posts Tab */}
+              {activeTab === "posts" && (
+                <div className="space-y-4">
+                  {/* REAL USER PROJECTS SHOWCASE STRIP (Only shown if user has real projects in DB) */}
+                  {userProjects.length > 0 && (
+                    <div className="px-3 sm:px-5 pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3
+                          className={`text-base font-black tracking-tight ${
+                            isCustomActive && customStyles.isDarkSurface
+                              ? "text-white"
+                              : "text-slate-900 dark:text-white"
+                          }`}
+                        >
+                          Projeler
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("projects")}
+                          style={isCustomActive ? customStyles.linkStyle : undefined}
+                          className="text-xs font-extrabold text-[#185EDB] dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Tümü ({userProjects.length})
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {userProjects.slice(0, 2).map((proj) => (
+                          <div
+                            key={proj.id}
+                            onClick={() => navigate(`/projects/${proj.id}`)}
+                            style={isCustomActive ? customStyles.cardStyle : undefined}
+                            className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+                          >
+                            {proj.imageUrl ? (
+                              <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-900">
+                                <img
+                                  src={proj.imageUrl}
+                                  alt={proj.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-24 w-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                                <Rocket className="w-6 h-6 text-slate-400" />
+                              </div>
+                            )}
+                            <div className="p-3 space-y-1.5">
+                              <h4 className="text-xs sm:text-sm font-black line-clamp-1">
+                                {proj.title}
+                              </h4>
+                              <span
+                                style={isCustomActive ? customStyles.accentBadgeStyle : undefined}
+                                className="inline-block px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-[10px] font-extrabold border border-transparent"
+                              >
+                                {proj.category || proj.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {postsQuery.loading ? (
+                    <SkeletonList count={3} className="p-4" />
+                  ) : postsQuery.data.length > 0 ? (
+                    <div className={isCustomActive ? "px-3 sm:px-5 space-y-3 pt-3" : ""}>
+                      <InfiniteScroll
+                        items={postsQuery.data}
+                        hasMore={postsQuery.hasMore}
+                        isLoading={postsQuery.loadingMore}
+                        onLoadMore={postsQuery.loadMore}
+                        renderItem={(post) => (
+                          <div
+                            key={post.id}
+                            style={isCustomActive ? customStyles.cardStyle : undefined}
+                            className={isCustomActive ? "overflow-hidden mb-3" : ""}
+                          >
+                            <PostCard
+                              post={post.user ? post : { ...post, user: profile }}
+                              onPostDeleted={(id) =>
+                                postsQuery.setData((prev) => prev.filter((p) => p.id !== id))
+                              }
+                            />
+                          </div>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="px-4 py-12 max-w-md mx-auto text-center">
+                      <EmptyState
+                        icon={<FileText className="w-7 h-7 text-slate-400" />}
+                        title="Henüz Gönderi Yok"
+                        description={
+                          isMe
+                            ? "Düşüncelerini, projelerini veya güncellemelerini toplulukla paylaşmak için yeni bir gönderi oluştur."
+                            : "Bu kullanıcı henüz hiçbir gönderi paylaşmadı."
+                        }
+                        action={
+                          isMe
+                            ? {
+                                label: "Gönderi Oluştur",
+                                onClick: () => navigate("/create"),
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 2. Projects Tab */}
+              {activeTab === "projects" && profile && <ProfileProjects userId={profile.id} />}
+
+              {/* 3. Followers / Following Tabs */}
+              {(activeTab === "followers" || activeTab === "following") && (
+                (activeTab === "followers" ? followersQuery : followingQuery).loading ? (
+                  <div className="p-4 space-y-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 p-3.5 bg-white dark:bg-[#0D121D] rounded-2xl border border-slate-200/80 dark:border-white/[0.08]"
+                      >
+                        <SkeletonCircle size="md" />
+                        <div className="space-y-1.5 flex-1">
+                          <Skeleton className="h-4 w-36 rounded-md" />
+                          <Skeleton className="h-3 w-20 rounded-md" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (activeTab === "followers" ? followersQuery : followingQuery).data.length > 0 ? (
+                  <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08] p-3 sm:p-5 space-y-2">
+                    <InfiniteScroll
+                      items={(activeTab === "followers" ? followersQuery : followingQuery).data}
+                      hasMore={(activeTab === "followers" ? followersQuery : followingQuery).hasMore}
+                      isLoading={(activeTab === "followers" ? followersQuery : followingQuery).loadingMore}
+                      onLoadMore={(activeTab === "followers" ? followersQuery : followingQuery).loadMore}
+                      renderItem={(u) => {
+                        const user = u.follower || u.following || u;
+                        return (
+                          <Link
+                            key={user.id}
+                            to={`/profile/${user.username}`}
+                            style={isCustomActive ? customStyles.cardStyle : undefined}
+                            className="flex items-center gap-3.5 p-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group rounded-2xl mb-2"
+                          >
+                            <Avatar
+                              url={user.avatarUrl}
+                              name={user.displayName || user.username}
+                              size="md"
+                              className="ring-1 ring-slate-200 dark:ring-white/[0.1] group-hover:ring-slate-300 transition-all shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate text-sm sm:text-base">
+                                  {user.displayName || user.username}
+                                </span>
+                                {user.isVerified && (
+                                  <VerifiedBadge
+                                    iconClassName="w-4 h-4"
+                                    withModal={false}
+                                    targetUser={{ username: user.username, isVerified: !!user.isVerified }}
+                                  />
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm opacity-70 truncate">
+                                @{user.username}
+                              </p>
+                              {user.bio && (
+                                <p className="text-xs opacity-80 truncate mt-0.5 line-clamp-1">
+                                  {user.bio}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="rounded-full font-bold text-xs shrink-0"
+                            >
+                              Profili Gör
+                            </Button>
+                          </Link>
+                        );
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="px-4 py-12 max-w-md mx-auto text-center">
+                    <EmptyState
+                      icon={activeTab === "followers" ? <Users className="w-7 h-7 text-slate-400" /> : <UserCheck className="w-7 h-7 text-slate-400" />}
+                      title={activeTab === "followers" ? "Henüz Takipçi Yok" : "Takip Edilen Kimse Yok"}
+                      description={
+                        activeTab === "followers"
+                          ? "Bu kullanıcının henüz takipçisi bulunmuyor."
+                          : "Bu kullanıcı henüz kimseyi takip etmiyor."
+                      }
+                    />
+                  </div>
+                )
+              )}
+
+              {/* 4. Genç Quiz Tab */}
+              {activeTab === "quiz" && (
+                <div className="p-4 sm:p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <Gamepad2 className="w-5 h-5 text-blue-600" />
+                        <span>Genç Quiz İstatistikleri</span>
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {profile.displayName || profile.username} kullanıcısının bilgi yarışması performansı.
+                      </p>
+                    </div>
+
+                    {isMe && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate("/quiz")}
+                        className="rounded-xl font-bold text-xs"
+                      >
+                        Quiz Odalarına Git ➔
+                      </Button>
+                    )}
+                  </div>
+
+                  {quizStats && quizStats.totalQuizes > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                      <div
+                        style={isCustomActive ? customStyles.cardStyle : undefined}
+                        className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1"
+                      >
+                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Katıldığı Quiz</span>
+                        <p className="text-2xl font-black">{quizStats.totalQuizes}</p>
+                      </div>
+
+                      <div
+                        style={isCustomActive ? customStyles.cardStyle : undefined}
+                        className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1"
+                      >
+                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Kazandığı Quiz</span>
+                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{quizStats.wins || 0}</p>
+                      </div>
+
+                      <div
+                        style={isCustomActive ? customStyles.cardStyle : undefined}
+                        className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1"
+                      >
+                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Toplam Puan</span>
+                        <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{quizStats.totalScore?.toLocaleString() || 0}</p>
+                      </div>
+
+                      <div
+                        style={isCustomActive ? customStyles.cardStyle : undefined}
+                        className="p-4 rounded-2xl glass-card bg-white/75 dark:bg-[#0B1329]/75 backdrop-blur-md border border-slate-200/70 dark:border-white/[0.08] shadow-xs text-center space-y-1"
+                      >
+                        <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">Doğruluk Oranı</span>
+                        <p className="text-2xl font-black text-blue-600 dark:text-blue-400">%{quizStats.accuracyRate || 0}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={isCustomActive ? customStyles.cardStyle : undefined}
+                      className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/[0.08] space-y-3"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 mx-auto flex items-center justify-center">
+                        <Gamepad2 className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-sm">Henüz Tamamlanan Quiz Yok</h4>
+                        <p className="text-xs opacity-75 max-w-sm mx-auto">
+                          {isMe 
+                            ? "Genç Quiz odalarına katılarak veya yeni bir oda kurarak yarışmaya başlayabilir ve ilk puanlarını kazanabilirsin!"
+                            : "Bu kullanıcı henüz kayıtlı bir quiz yarışmasına katılmadı."}
+                        </p>
+                      </div>
+                      {isMe && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => navigate("/quiz")}
+                          className="rounded-xl font-bold text-xs"
+                        >
+                          Quiz'e Başla
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
-      </>
-      )}
 
       {/* MODALS AND SHEETS */}
+      {isMe && (
+        <ProfileCustomizerModal
+          isOpen={showCustomizerModal}
+          onClose={() => setShowCustomizerModal(false)}
+          initialConfig={normalizeProfileCustomization(
+            previewConfig || profile.profileCustomization
+          )}
+          profileData={{
+            username: profile.username,
+            displayName: profile.displayName,
+            bio: profile.bio,
+            avatarUrl: profile.avatarUrl,
+            coverUrl: effectiveCoverUrl,
+            location: profile.location,
+            website: profile.website,
+            isVerified: !!profile.isVerified,
+            followersCount: profile.followersCount,
+            followingCount: profile.followingCount,
+            postsCount: profile.postsCount
+          }}
+          onPreviewOnPage={(draft, draftCover) => {
+            setPreviewConfig(draft);
+            setPreviewCoverUrl(draftCover);
+            setShowCustomizerModal(false);
+            toast.success("Canlı önizleme profil sayfanıza uygulandı.");
+          }}
+          onSaved={(savedConfig, savedCoverUrl) => {
+            setProfile((prev: any) => ({
+              ...prev,
+              profileCustomization: savedConfig,
+              coverUrl: savedCoverUrl !== undefined ? savedCoverUrl : prev?.coverUrl
+            }));
+            setPreviewConfig(null);
+            setPreviewCoverUrl(undefined);
+            setShowCustomizerModal(false);
+            toast.success("Profil görünümünüz kaydedildi!");
+          }}
+        />
+      )}
+
       <ProfileShareSheet
         isOpen={showShare}
         onClose={() => setShowShare(false)}
@@ -1108,3 +1300,4 @@ export function Profile() {
     </div>
   );
 }
+

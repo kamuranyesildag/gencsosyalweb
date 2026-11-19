@@ -664,102 +664,67 @@ export function CommunityDetail() {
                   </div>
                 ) : (
                   <>
-                    {/* 📌 SABİTLENMİŞ RESOURCES & EVENTS STRIP (Mockup 7) */}
-                    <div className="space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                        <span className="text-[#2563EB]">📌</span>
-                        <span>Sabitlenmiş</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 flex items-center justify-center">
-                            <BookOpen className="w-4.5 h-4.5" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug">
-                              Yeni başlayanlar için kaynak listesi
+                    {/* MOBILE/INLINE RULES & MANAGERS CARDS (Real Community Data) */}
+                    {(parsedRules.length > 0 || community.owner) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+                        {parsedRules.length > 0 && (
+                          <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-2.5">
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                              Topluluk Kuralları
                             </h4>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                              {community.owner?.displayName || community.owner?.username || "Mert Demir"} · 1,2B kayıt
-                            </p>
+                            <ol className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                              {parsedRules.slice(0, 3).map((rule: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-extrabold text-[11px] flex items-center justify-center shrink-0">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="leading-snug">
+                                    {rule.replace(/^\d+[\.\)\-]\s*/, "")}
+                                  </span>
+                                </li>
+                              ))}
+                            </ol>
                           </div>
-                        </div>
+                        )}
 
-                        <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-2.5">
-                          <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                            <Calendar className="w-4.5 h-4.5" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug">
-                              Aylık etkinlik ve atölye takvimi
+                        {community.owner && (
+                          <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-3">
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                              Yöneticiler
                             </h4>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                              Yönetim · 4 etkinlik
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* MOBILE/INLINE RULES & MANAGERS CARDS (Mockup 7) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-                      <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-2.5">
-                        <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Topluluk Kuralları
-                        </h4>
-                        <ol className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
-                          {(parsedRules.length > 0
-                            ? parsedRules.slice(0, 3)
-                            : [
-                                "Saygılı ve yapıcı teknik tartışma yürüt.",
-                                "Kaynak paylaşırken lisans ve atıf belirt.",
-                                "Reklam ve spam içerik yasaktır.",
-                              ]
-                          ).map((rule: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-extrabold text-[11px] flex items-center justify-center shrink-0">
-                                {idx + 1}
-                              </span>
-                              <span className="leading-snug">
-                                {rule.replace(/^\d+[\.\)\-]\s*/, "")}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs space-y-3">
-                        <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                          Yöneticiler
-                        </h4>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <Avatar
-                                url={community.owner?.avatarUrl}
-                                name={community.owner?.displayName || community.owner?.username || "Mert Demir"}
-                                size="sm"
-                              />
-                              <div className="min-w-0">
-                                <div className="text-xs font-black text-slate-900 dark:text-white truncate">
-                                  {community.owner?.displayName || community.owner?.username || "Mert Demir"}
-                                </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                  Kurucu
-                                </div>
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <Link
+                                  to={`/profile/${community.owner.username}`}
+                                  className="flex items-center gap-2.5 min-w-0"
+                                >
+                                  <Avatar
+                                    url={community.owner.avatarUrl}
+                                    name={community.owner.displayName || community.owner.username}
+                                    size="sm"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                      {community.owner.displayName || community.owner.username}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                      Kurucu
+                                    </div>
+                                  </div>
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/profile/${community.owner.username}`)}
+                                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/[0.1] text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.05] cursor-pointer shrink-0"
+                                >
+                                  Profili Gör
+                                </button>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => navigate("/messages")}
-                              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/[0.1] text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.05] cursor-pointer shrink-0"
-                            >
-                              ✈️ Mesaj
-                            </button>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
+                    )}
 
                     {/* Post Composer for Community Members */}
                     {community.isMember && (

@@ -99,13 +99,6 @@ const EXPLORE_CATEGORIES = [
   },
 ];
 
-const TREND_TAGS = [
-  { rank: 1, tag: "teknofest2025", category: "Teknoloji", count: "12,8B gönderi" },
-  { rank: 2, tag: "yapayzeka", category: "Bilim", count: "8,4B gönderi" },
-  { rank: 3, tag: "ihatasarım", category: "Mühendislik", count: "3,1B gönderi" },
-  { rank: 4, tag: "yksçalışma", category: "Eğitim", count: "2,7B gönderi" },
-];
-
 export function Explore() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -117,7 +110,8 @@ export function Explore() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Discovery hub state
+  // Discovery hub state (100% real database records)
+  const [trendingTags, setTrendingTags] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [communities, setCommunities] = useState<any[]>([]);
@@ -138,8 +132,15 @@ export function Explore() {
     allowIndexing: !query.trim(),
   });
 
-  // Load discovery hub sections on mount
+  // Load discovery hub sections on mount from real endpoints
   useEffect(() => {
+    fetchApi("/hashtags/trending/top?limit=6")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setTrendingTags(j.data);
+      })
+      .catch(() => {});
+
     fetchApi("/projects?limit=4")
       .then((r) => r.json())
       .then((j) => {
@@ -147,10 +148,15 @@ export function Explore() {
       })
       .catch(() => {});
 
-    fetchApi("/users/suggested?limit=6")
+    fetchApi("/users/suggestions?limit=6")
       .then((r) => r.json())
       .then((j) => {
-        if (j.success && Array.isArray(j.data)) setSuggestedUsers(j.data);
+        const list = Array.isArray(j.data)
+          ? j.data
+          : Array.isArray(j.data?.suggestions)
+          ? j.data.suggestions
+          : [];
+        setSuggestedUsers(list);
       })
       .catch(() => {});
 
@@ -514,8 +520,8 @@ export function Explore() {
               </div>
             </section>
 
-            {/* SECTION B: TREND ETİKETLER (Numbered Card) */}
-            {(activeTab === "all" || activeTab === "tags") && (
+            {/* SECTION B: TREND ETİKETLER (Real Trending Hashtags from DB) */}
+            {(activeTab === "all" || activeTab === "tags") && trendingTags.length > 0 && (
               <section className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -524,49 +530,54 @@ export function Explore() {
                       Trend Etiketler
                     </h2>
                   </div>
-                  <span className="text-xs font-semibold text-slate-400">Türkiye</span>
+                  <span className="text-xs font-semibold text-slate-400">Canlı</span>
                 </div>
 
                 <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
-                  {TREND_TAGS.map((item) => (
-                    <button
-                      key={item.tag}
-                      type="button"
-                      onClick={() => {
-                        setQuery(item.tag);
-                        setActiveTab("posts");
-                      }}
-                      className="w-full py-2.5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-white/[0.03] rounded-xl px-1 transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <span
-                          className={cn(
-                            "text-sm font-black w-4 text-center tabular-nums",
-                            item.rank <= 2
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-slate-400 dark:text-slate-500"
-                          )}
-                        >
-                          {item.rank}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
-                            #{item.tag}
-                          </div>
-                          <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                            {item.category} · {item.count}
+                  {trendingTags.map((item, index) => {
+                    const tagName = item.name || item.tag;
+                    const count = item.postCount ?? item.count ?? 0;
+                    const rank = index + 1;
+                    return (
+                      <button
+                        key={tagName || index}
+                        type="button"
+                        onClick={() => {
+                          setQuery(tagName);
+                          setActiveTab("posts");
+                        }}
+                        className="w-full py-2.5 flex items-center justify-between gap-3 text-left hover:bg-slate-50/70 dark:hover:bg-white/[0.03] rounded-xl px-1 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <span
+                            className={cn(
+                              "text-sm font-black w-4 text-center tabular-nums",
+                              rank <= 2
+                                ? "text-blue-600 dark:text-blue-400"
+                                : "text-slate-400 dark:text-slate-500"
+                            )}
+                          >
+                            {rank}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
+                              #{tagName}
+                            </div>
+                            <div className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                              {count} gönderi
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    </button>
-                  ))}
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             )}
 
-            {/* SECTION C: ÖNE ÇIKAN PROJELER CAROUSEL */}
-            {activeTab === "all" && (
+            {/* SECTION C: ÖNE ÇIKAN PROJELER CAROUSEL (Real DB Projects) */}
+            {activeTab === "all" && projects.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -581,28 +592,10 @@ export function Explore() {
                 </div>
 
                 <div className="flex items-stretch gap-3 overflow-x-auto no-scrollbar pb-1">
-                  {(projects.length > 0
-                    ? projects
-                    : [
-                        {
-                          id: 1,
-                          title: "Okuyorum+ — Disleksi Dostu Okuma Uygulaması",
-                          category: "Eğitim Teknolojileri",
-                          authorDisplayName: "Ayşe Çelik ve ekibi",
-                          likesCount: "2,1B",
-                        },
-                        {
-                          id: 2,
-                          title: "TarlaSense — Akıllı Sulama Sistemi",
-                          category: "Tarım Teknolojileri",
-                          authorDisplayName: "Zeynep Kaya",
-                          likesCount: "1,4B",
-                        },
-                      ]
-                  ).map((proj: any, idx: number) => (
+                  {projects.map((proj: any, idx: number) => (
                     <Link
                       key={proj.id || idx}
-                      to={proj.id && projects.length > 0 ? `/projects/${proj.id}` : "/projects"}
+                      to={`/projects/${proj.id}`}
                       className="min-w-[245px] max-w-[260px] bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between shrink-0 group"
                     >
                       <div className="h-28 w-full bg-gradient-to-br from-slate-800 via-blue-950 to-slate-900 relative overflow-hidden">
@@ -639,10 +632,12 @@ export function Explore() {
                           <span className="truncate font-medium">
                             {proj.authorDisplayName || proj.authorUsername || "Genç Üretici"}
                           </span>
-                          <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                            <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-                            <span>{proj.likesCount || proj.likeCount || 48}</span>
-                          </span>
+                          {(proj.likesCount !== undefined || proj.likeCount !== undefined) && (
+                            <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                              <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
+                              <span>{proj.likesCount ?? proj.likeCount ?? 0}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     </Link>
@@ -717,8 +712,8 @@ export function Explore() {
               </section>
             )}
 
-            {/* SECTION E: AKTİF TOPLULUKLAR */}
-            {activeTab === "all" && (
+            {/* SECTION E: AKTİF TOPLULUKLAR (Real DB Communities) */}
+            {activeTab === "all" && communities.length > 0 && (
               <section className="bg-white dark:bg-[#0D1424] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -733,32 +728,7 @@ export function Explore() {
                 </div>
 
                 <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
-                  {(communities.length > 0
-                    ? communities.slice(0, 3)
-                    : [
-                        {
-                          id: 1,
-                          name: "Yapay Zekâ Türkiye",
-                          slug: "yapay-zeka",
-                          memberCount: 1840,
-                          onlineCount: 214,
-                        },
-                        {
-                          id: 2,
-                          name: "Robotik Kulübü",
-                          slug: "robotik",
-                          memberCount: 920,
-                          onlineCount: 87,
-                        },
-                        {
-                          id: 3,
-                          name: "Yeşil Enerji Gençleri",
-                          slug: "yesil-enerji",
-                          memberCount: 460,
-                          onlineCount: 31,
-                        },
-                      ]
-                  ).map((comm: any, idx: number) => {
+                  {communities.slice(0, 4).map((comm: any, idx: number) => {
                     const isMember = joinedCommIds.has(Number(comm.id)) || comm.isMember;
                     return (
                       <div
@@ -795,10 +765,7 @@ export function Explore() {
                             </h3>
                             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              <span>
-                                {comm.memberCount || 120} üye · {comm.onlineCount || (idx + 1) * 24}{" "}
-                                çevrim içi
-                              </span>
+                              <span>{comm.memberCount ?? 1} üye</span>
                             </p>
                           </div>
                         </Link>

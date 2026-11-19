@@ -55,6 +55,7 @@ export const profiles = pgTable('profiles', {
   // Minor safety features
   isScreenshotProtected: boolean('is_screenshot_protected').default(false).notNull(),
   dailyScreenTimeLimitMinutes: integer('daily_screen_time_limit_minutes').default(120),
+  profileCustomization: jsonb('profile_customization').default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
