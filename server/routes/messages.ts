@@ -7,6 +7,7 @@ import { standardLimiter } from "../middleware/rateLimiter.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { paginationSchema } from "../validators/api.js";
 import { z } from "zod";
+import { sendNewMessageEmail, getEmailRecipientIfAllowed } from "../utils/mailer.js";
 
 export const messagesRouter = Router();
 
@@ -317,6 +318,43 @@ messagesRouter.post("/conversations/:id/messages", requireAuth, standardLimiter,
     }).returning();
 
     await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, conversationId));
+
+    // Fire-and-forget direct message email notification (respects user preferences + anti-spam cooldown)
+    if (otherMembers.length > 0) {
+      setImmediate(async () => {
+        try {
+          const [senderInfo] = await db
+            .select({
+              username: users.username,
+              displayName: profiles.displayName,
+            })
+            .from(users)
+            .leftJoin(profiles, eq(users.id, profiles.userId))
+            .where(eq(users.id, currentUserId))
+            .limit(1);
+
+          if (!senderInfo) return;
+
+          for (const other of otherMembers) {
+            const recipient = await getEmailRecipientIfAllowed(other.id, "messages");
+            if (!recipient) continue;
+
+            await sendNewMessageEmail({
+              recipientId: other.id,
+              to: recipient.email,
+              recipientName: recipient.displayName,
+              senderName: senderInfo.displayName || senderInfo.username,
+              senderUsername: senderInfo.username,
+              messagePreview: parsed.data.content || null,
+              hasMedia: Boolean(parsed.data.mediaUrl),
+              conversationId,
+            });
+          }
+        } catch (err) {
+          console.warn("[Messages] Yeni mesaj e-postası gönderilemedi:", err);
+        }
+      });
+    }
 
     res.status(201).json({ success: true, data: msg });
   } catch (error) {

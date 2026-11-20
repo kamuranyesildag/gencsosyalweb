@@ -126,8 +126,8 @@ export function SettingsNotifications({ showMsg }: SettingsNotificationsProps) {
               onChange={(c) => setSettings({ ...settings, pushEnabled: c })}
             />
             <ToggleRow
-              label="E-posta Özetleri"
-              description="Haftalık bülten ve önemli hesap güncellemeleri"
+              label="E-posta Bildirimleri"
+              description="Takipçi, yorum, beğeni, direkt mesaj, Genç Quiz davetleri ve önemli hesap bildirimlerini e-posta ile alın"
               checked={settings.emailEnabled}
               onChange={(c) => setSettings({ ...settings, emailEnabled: c })}
             />

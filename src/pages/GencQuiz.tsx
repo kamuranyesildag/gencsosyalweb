@@ -1,39 +1,54 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation, Link } from "react-router";
 import { useAuthStore } from "../context/useAuth";
 import { fetchApi } from "../lib/api";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
-import { 
-  Gamepad2, 
-  PlusCircle, 
-  Layers, 
-  Trophy, 
-  Compass, 
-  History, 
-  Users, 
-  Sparkles, 
-  Copy, 
-  Check, 
-  Clock, 
-  ArrowRight, 
-  ShieldCheck, 
-  HelpCircle, 
-  Search,
+import {
+  Gamepad2,
+  Plus,
+  Layers,
+  Trophy,
+  Compass,
+  History,
+  Users,
+  Check,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
   BookOpen,
   Zap,
   Globe,
   Lock,
-  Share2,
   Trash2,
-  AlertCircle
+  CheckCircle2,
+  XCircle,
+  Target,
+  Award,
+  Sparkles,
+  RefreshCw,
+  Scissors,
+  SkipForward,
+  RotateCcw,
+  X,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
-import { Card } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
 import { Avatar } from "../components/ui/Avatar";
 import { toast } from "../components/ui/Toast";
-import { motion, AnimatePresence } from "motion/react";
+import { confirmDialog } from "../components/ui/ConfirmDialog";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import {
+  CircularTimer,
+  SegmentedProgress,
+  QuizOptionCard,
+  AnimatedScore,
+  SixCharCodeInput,
+  QuizStatePanel,
+  QuizErrorBanner,
+  type OptionVisualState,
+} from "../components/quiz/QuizPrimitives";
+import { cn } from "../lib/utils";
 
 const CATEGORIES = [
   "Genel Kültür",
@@ -49,7 +64,7 @@ const CATEGORIES = [
   "Türkiye",
   "Uzay",
   "Doğa",
-  "Karışık"
+  "Karışık",
 ];
 
 const DIFFICULTIES = ["Kolay", "Orta", "Zor", "Karışık"];
@@ -70,7 +85,7 @@ interface SoloQuestion {
 const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   {
     id: 1,
-    subject: "⚛️ Fizik",
+    subject: "Fizik",
     difficulty: "Orta",
     points: 40,
     question: "Bir İHA'nın havada kalmasını sağlayan kaldırma kuvveti, kanat üzerinde hangi prensiple açıklanır?",
@@ -85,7 +100,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 2,
-    subject: "🤖 Robotik",
+    subject: "Robotik",
     difficulty: "Orta",
     points: 40,
     question: "Otonom araçların eş zamanlı konum belirleme ve haritalama yapmasını sağlayan algoritmik yöntemin kısaltması nedir?",
@@ -100,7 +115,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 3,
-    subject: "💻 Yazılım",
+    subject: "Yazılım",
     difficulty: "Kolay",
     points: 30,
     question: "Modern yapay zekâ ve büyük dil modellerinin (LLM) temelini oluşturan derin öğrenme mimarisi hangisidir?",
@@ -115,7 +130,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 4,
-    subject: "🚀 Havacılık",
+    subject: "Havacılık",
     difficulty: "Orta",
     points: 40,
     question: "Bir roketin Dünya yörüngesine yerleşebilmesi için ulaşması gereken yaklaşık birinci kozmik hız (yörünge hızı) saniyede kaç kilometredir?",
@@ -130,7 +145,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 5,
-    subject: "⚡ Elektronik",
+    subject: "Elektronik",
     difficulty: "Kolay",
     points: 30,
     question: "Gömülü sistemlerde mikrodenetleyicinin dijital bir pinle analog benzeri güç kontrolü (ör. motor hızı) yapmasını sağlayan teknik hangisidir?",
@@ -145,7 +160,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 6,
-    subject: "🧬 Biyoteknoloji",
+    subject: "Biyoteknoloji",
     difficulty: "Orta",
     points: 40,
     question: "DNA dizilerinde hedeflenen bölgeleri yüksek hassasiyetle düzenlemeye olanak tanıyan gen düzenleme teknolojisi hangisidir?",
@@ -160,7 +175,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 7,
-    subject: "🛰️ Uzay",
+    subject: "Uzay",
     difficulty: "Orta",
     points: 40,
     question: "Türkiye'nin yerli ve millî imkânlarla geliştirdiği ilk yüksek çözünürlüklü yer gözlem uydusu hangisidir?",
@@ -175,7 +190,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 8,
-    subject: "🔋 Enerji",
+    subject: "Enerji",
     difficulty: "Zor",
     points: 50,
     question: "Elektrikli araç batarya yönetim sistemlerinde (BMS) bataryanın kalan kapasitesini ifade eden parametre hangisidir?",
@@ -190,7 +205,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 9,
-    subject: "🌐 Siber Güvenlik",
+    subject: "Siber Güvenlik",
     difficulty: "Kolay",
     points: 30,
     question: "İki uç arasındaki verinin yalnızca gönderici ve alıcı tarafından okunabilmesini sağlayan şifreleme yöntemi nedir?",
@@ -205,7 +220,7 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
   {
     id: 10,
-    subject: "🧠 Yapay Zekâ",
+    subject: "Yapay Zekâ",
     difficulty: "Zor",
     points: 50,
     question: "Görüntü işleme ve gerçek zamanlı nesne tespitinde (Object Detection) tek aşamalı mimarisiyle öne çıkan popüler algoritma hangisidir?",
@@ -220,25 +235,49 @@ const WEEKLY_SOLO_QUESTIONS: SoloQuestion[] = [
   },
 ];
 
+type QuizTabId = "hub" | "solo" | "sets" | "leaderboard" | "history" | "create" | "categories";
+
+const MAIN_TABS: { id: "solo" | "hub" | "sets" | "leaderboard" | "history"; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "hub", label: "Quiz Merkezi", icon: Gamepad2 },
+  { id: "solo", label: "Haftanın Quiz'i", icon: Zap },
+  { id: "sets", label: "Soru Setlerim", icon: Layers },
+  { id: "leaderboard", label: "Liderlik Tablosu", icon: Trophy },
+  { id: "history", label: "Quiz Geçmişim", icon: History },
+];
+
 export function GencQuiz() {
   useSEO({
     title: "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal",
-    description: "Arkadaşlarınla canlı bilgi yarışması odaları kur, oda kodunu paylaş, genel kültür ve teknoloji sorularıyla 1v1 düellolara katıl ve zirveye yerleş!",
-    canonicalPath: "/quiz"
+    description:
+      "Arkadaşlarınla canlı bilgi yarışması odaları kur, oda kodunu paylaş, genel kültür ve teknoloji sorularıyla yarış ve zirveye yerleş!",
+    canonicalPath: "/quiz",
   });
 
-  const { user, isAuthenticated, accessToken } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
 
-  const [activeTab, setActiveTab] = useState<"solo" | "hub" | "create" | "sets" | "leaderboard" | "categories" | "history">("solo");
+  const initialTabFromState = (location.state as { tab?: QuizTabId } | null)?.tab;
+  const [activeTab, setActiveTab] = useState<QuizTabId>(initialTabFromState || "hub");
 
-  // Solo Interactive Quiz State (Mockup 9)
+  useEffect(() => {
+    const requestedTab = (location.state as { tab?: QuizTabId } | null)?.tab;
+    if (requestedTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [location.state]);
+
+  // =========================================================================
+  // SOLO WEEKLY QUIZ STATE (Preserved business logic, clean zero-fake start)
+  // =========================================================================
   const [soloIndex, setSoloIndex] = useState(0);
-  const [soloScore, setSoloScore] = useState(120);
-  const [soloSelectedKey, setSoloSelectedKey] = useState<"A" | "B" | "C" | "D" | null>("B");
+  const [soloScore, setSoloScore] = useState(0);
+  const [soloSelectedKey, setSoloSelectedKey] = useState<"A" | "B" | "C" | "D" | null>(null);
   const [soloLocked, setSoloLocked] = useState(false);
-  const [soloTimeLeft, setSoloTimeLeft] = useState(18);
+  const [soloLastOutcome, setSoloLastOutcome] = useState<"correct" | "wrong" | "timeout" | null>(null);
+  const [soloTimeLeft, setSoloTimeLeft] = useState(20);
   const [soloHistory, setSoloHistory] = useState<Array<"correct" | "wrong" | "skipped">>([]);
   const [soloEliminatedKeys, setSoloEliminatedKeys] = useState<string[]>([]);
   const [soloFiftyLeft, setSoloFiftyLeft] = useState(1);
@@ -253,6 +292,9 @@ export function GencQuiz() {
       setSoloTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          setSoloLocked(true);
+          setSoloLastOutcome("timeout");
+          setSoloHistory((h) => [...h, "wrong"]);
           return 0;
         }
         return prev - 1;
@@ -272,13 +314,12 @@ export function GencQuiz() {
       setSoloSelectedKey(null);
     }
     setSoloFiftyLeft((prev) => prev - 1);
-    toast.success("50:50 jokeri kullanıldı! 2 yanlış şık elendi.");
+    toast.success("50:50 yardımı kullanıldı, 2 yanlış şık elendi.");
   };
 
-  const handleSoloSkip = () => {
-    if (soloLocked) return;
-    const nextHist = [...soloHistory, "skipped" as const];
-    setSoloHistory(nextHist);
+  const advanceSoloQuestion = useCallback(() => {
+    setSoloLocked(false);
+    setSoloLastOutcome(null);
     setSoloEliminatedKeys([]);
     setSoloSelectedKey(null);
     setSoloTimeLeft(20);
@@ -287,11 +328,17 @@ export function GencQuiz() {
     } else {
       setSoloIndex((prev) => prev + 1);
     }
+  }, [soloIndex]);
+
+  const handleSoloSkip = () => {
+    if (soloLocked) return;
+    setSoloHistory((prev) => [...prev, "skipped"]);
+    advanceSoloQuestion();
   };
 
   const handleSoloConfirm = () => {
     if (!soloSelectedKey) {
-      toast.error("Lütfen bir şık seçin.");
+      toast.error("Lütfen bir seçenek belirleyin.");
       return;
     }
     if (soloLocked) return;
@@ -299,24 +346,11 @@ export function GencQuiz() {
     const isCorrect = soloSelectedKey === currentSoloQ.correctKey;
     if (isCorrect) {
       setSoloScore((prev) => prev + currentSoloQ.points);
-      toast.success(`Doğru cevap! +${currentSoloQ.points} puan`);
+      setSoloLastOutcome("correct");
     } else {
-      toast.error(`Yanlış cevap! Doğru şık: ${currentSoloQ.correctKey}`);
+      setSoloLastOutcome("wrong");
     }
-    const nextHist = [...soloHistory, isCorrect ? ("correct" as const) : ("wrong" as const)];
-    setSoloHistory(nextHist);
-
-    setTimeout(() => {
-      setSoloLocked(false);
-      setSoloEliminatedKeys([]);
-      setSoloSelectedKey(null);
-      setSoloTimeLeft(20);
-      if (soloIndex + 1 >= WEEKLY_SOLO_QUESTIONS.length) {
-        setSoloFinished(true);
-      } else {
-        setSoloIndex((prev) => prev + 1);
-      }
-    }, 950);
+    setSoloHistory((prev) => [...prev, isCorrect ? "correct" : "wrong"]);
   };
 
   const handleSoloRestart = () => {
@@ -324,6 +358,7 @@ export function GencQuiz() {
     setSoloScore(0);
     setSoloSelectedKey(null);
     setSoloLocked(false);
+    setSoloLastOutcome(null);
     setSoloTimeLeft(20);
     setSoloHistory([]);
     setSoloEliminatedKeys([]);
@@ -331,27 +366,30 @@ export function GencQuiz() {
     setSoloFinished(false);
   };
 
-  // Join Room Code State
+  // =========================================================================
+  // HUB / ROOMS / STATS / SETS / LEADERBOARD / HISTORY STATE
+  // =========================================================================
   const [joinCode, setJoinCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Public Rooms State
   const [publicRooms, setPublicRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
 
-  // Leaderboard State
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
-  // User Stats & History
   const [quizStats, setQuizStats] = useState<any>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [quizHistory, setQuizHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
-  // User Question Sets State
   const [mySets, setMySets] = useState<any[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
+  const [setsError, setSetsError] = useState<string | null>(null);
   const [showCreateSetModal, setShowCreateSetModal] = useState(false);
 
   // Create Room Form State
@@ -380,94 +418,120 @@ export function GencQuiz() {
         { key: "B", text: "", isCorrect: false },
         { key: "C", text: "", isCorrect: false },
         { key: "D", text: "", isCorrect: false },
-      ]
-    }
+      ],
+    },
   ]);
   const [isSavingSet, setIsSavingSet] = useState(false);
 
   // Fetch Public Rooms
-  const fetchPublicRooms = async () => {
+  const fetchPublicRooms = useCallback(async () => {
     setLoadingRooms(true);
+    setRoomsError(null);
     try {
       const res = await fetch("/api/v1/quiz/rooms/public");
       const json = await res.json();
-      if (json.success) {
-        setPublicRooms(json.rooms || []);
+      if (!res.ok || !json.success) {
+        setRoomsError(json.error?.message || "Açık odalar yüklenirken bir hata oluştu.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
+      setPublicRooms(json.rooms || []);
+    } catch {
+      setRoomsError("Sunucuya bağlanılamadı. Açık odalar alınamadı.");
     } finally {
       setLoadingRooms(false);
     }
-  };
+  }, []);
 
   // Fetch Leaderboard
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     setLoadingLeaderboard(true);
+    setLeaderboardError(null);
     try {
       const res = await fetch("/api/v1/quiz/leaderboard");
       const json = await res.json();
-      if (json.success) {
-        setLeaderboard(json.leaderboard || []);
+      if (!res.ok || !json.success) {
+        setLeaderboardError(json.error?.message || "Liderlik tablosu alınamadı.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
+      setLeaderboard(json.leaderboard || []);
+    } catch {
+      setLeaderboardError("Bağlantı hatası: Liderlik tablosu yüklenemedi.");
     } finally {
       setLoadingLeaderboard(false);
     }
-  };
+  }, []);
 
   // Fetch User History & Stats
-  const fetchHistoryAndStats = async () => {
+  const fetchHistoryAndStats = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoadingHistory(true);
+    setHistoryError(null);
+    setStatsError(null);
     try {
       const [histRes, statsRes] = await Promise.all([
         fetchApi("/quiz/history"),
         fetchApi("/quiz/stats"),
       ]);
       const [histJson, statsJson] = await Promise.all([histRes.json(), statsRes.json()]);
-      if (histJson.success) setQuizHistory(histJson.history || []);
-      if (statsJson.success) setQuizStats(statsJson.stats || null);
-    } catch (err) {
-      console.error(err);
+      if (histRes.ok && histJson.success) {
+        setQuizHistory(histJson.history || []);
+      } else {
+        setHistoryError(histJson.error?.message || "Quiz geçmişi yüklenemedi.");
+      }
+      if (statsRes.ok && statsJson.success) {
+        setQuizStats(statsJson.stats || null);
+      } else {
+        setStatsError(statsJson.error?.message || "Quiz istatistikleri yüklenemedi.");
+      }
+    } catch {
+      setHistoryError("Bağlantı hatası: Quiz geçmişi alınamadı.");
+      setStatsError("Bağlantı hatası: İstatistikler alınamadı.");
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [isAuthenticated]);
 
   // Fetch User Question Sets
-  const fetchMySets = async () => {
+  const fetchMySets = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoadingSets(true);
+    setSetsError(null);
     try {
       const res = await fetchApi("/quiz/sets");
       const json = await res.json();
-      if (json.success) {
-        setMySets(json.sets || []);
+      if (!res.ok || !json.success) {
+        setSetsError(json.error?.message || "Soru setleri yüklenemedi.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
+      setMySets(json.sets || []);
+    } catch {
+      setSetsError("Bağlantı hatası: Soru setleri alınamadı.");
     } finally {
       setLoadingSets(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchPublicRooms();
-  }, []);
+  }, [fetchPublicRooms]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchHistoryAndStats();
+    }
+  }, [isAuthenticated, fetchHistoryAndStats]);
 
   useEffect(() => {
     if (activeTab === "leaderboard") fetchLeaderboard();
     if (activeTab === "history" || activeTab === "hub") fetchHistoryAndStats();
     if (activeTab === "sets" || activeTab === "create") fetchMySets();
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, fetchLeaderboard, fetchHistoryAndStats, fetchMySets]);
 
   // Join Room by Code Handler
   const handleJoinByCode = async (codeToJoin?: string) => {
     const rawCode = (codeToJoin || joinCode).trim();
     if (!rawCode) {
-      setJoinError("Lütfen 6 haneli oda kodunu giriniz.");
+      setJoinError("Lütfen 6 karakterli oda kodunu girin.");
       return;
     }
     if (!isAuthenticated) {
@@ -483,15 +547,14 @@ export function GencQuiz() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setJoinError(json.error?.message || "Bu kodla aktif bir quiz bulunamadı.");
+        setJoinError(json.error?.message || "Bu kodla aktif bir quiz odası bulunamadı.");
         setIsJoining(false);
         return;
       }
 
-      // Route directly to room
       navigate(`/quiz/room/${json.room.code}`);
-    } catch (err) {
-      setJoinError("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
+    } catch {
+      setJoinError("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
       setIsJoining(false);
     }
   };
@@ -505,7 +568,7 @@ export function GencQuiz() {
     }
 
     if (!roomTitle.trim()) {
-      toast.error("Lütfen quiz odası için bir başlık belirleyiniz.");
+      toast.error("Lütfen quiz odası için bir başlık belirleyin.");
       return;
     }
 
@@ -535,7 +598,7 @@ export function GencQuiz() {
 
       toast.success("Quiz odası oluşturuldu! Lobiye yönlendiriliyorsunuz.");
       navigate(`/quiz/room/${json.code}`);
-    } catch (err) {
+    } catch {
       toast.error("Sunucu hatası oluştu.");
       setIsCreatingRoom(false);
     }
@@ -544,15 +607,14 @@ export function GencQuiz() {
   // Save Custom Question Set Handler
   const handleSaveQuestionSet = async () => {
     if (!newSetTitle.trim()) {
-      toast.error("Lütfen soru setinize bir başlık veriniz.");
+      toast.error("Lütfen soru setinize bir başlık verin.");
       return;
     }
 
-    // Validate questions
     for (let i = 0; i < newSetQuestions.length; i++) {
       const q = newSetQuestions[i];
       if (!q.question.trim()) {
-        toast.error(`Soru #${i + 1} için metin girmelisiniz.`);
+        toast.error(`Soru #${i + 1} için soru metni girmelisiniz.`);
         return;
       }
       const filledOpts = q.options.filter((o: any) => o.text.trim().length > 0);
@@ -578,7 +640,7 @@ export function GencQuiz() {
           category: newSetCategory,
           difficulty: newSetDifficulty,
           isPublic: newSetIsPublic,
-          questions: newSetQuestions.map(q => ({
+          questions: newSetQuestions.map((q) => ({
             question: q.question.trim(),
             explanation: q.explanation.trim(),
             options: q.options.filter((o: any) => o.text.trim().length > 0),
@@ -595,7 +657,6 @@ export function GencQuiz() {
 
       toast.success("Soru setiniz başarıyla oluşturuldu!");
       setShowCreateSetModal(false);
-      // Reset form
       setNewSetTitle("");
       setNewSetDesc("");
       setNewSetQuestions([
@@ -607,880 +668,1419 @@ export function GencQuiz() {
             { key: "B", text: "", isCorrect: false },
             { key: "C", text: "", isCorrect: false },
             { key: "D", text: "", isCorrect: false },
-          ]
-        }
+          ],
+        },
       ]);
       fetchMySets();
-    } catch (err) {
+    } catch {
       toast.error("Bağlantı hatası oluştu.");
     } finally {
       setIsSavingSet(false);
     }
   };
 
-  // Delete Question Set
+  // Delete Question Set (using in-app ConfirmDialog)
   const handleDeleteSet = async (id: number) => {
-    if (!confirm("Bu soru setini silmek istediğinize emin misiniz?")) return;
+    const confirmed = await confirmDialog({
+      title: "Soru Setini Sil",
+      message: "Bu soru setini kalıcı olarak silmek istediğinize emin misiniz?",
+      confirmLabel: "Sil",
+      cancelLabel: "Vazgeç",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
     try {
       const res = await fetchApi(`/quiz/sets/${id}`, {
         method: "DELETE",
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json.success) {
         toast.success("Soru seti silindi.");
         fetchMySets();
+      } else {
+        toast.error(json.error?.message || "Soru seti silinemedi.");
       }
-    } catch (err) {
-      toast.error("İşlem başarısız.");
+    } catch {
+      toast.error("İşlem başarısız oldu.");
     }
   };
 
-  return (
-    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-x-hidden pb-24">
-      {/* NAVIGATION TABS */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-slate-200 dark:border-white/10">
-        {[
-          { id: "solo", label: "⚡ Haftanın Quiz'i (Bilim & Teknoloji)", icon: Zap },
-          { id: "hub", label: "🎮 Canlı Odalar", icon: Gamepad2 },
-          { id: "create", label: "➕ Oda Oluştur", icon: PlusCircle },
-          { id: "sets", label: "🧠 Soru Setlerim", icon: Layers },
-          { id: "leaderboard", label: "🏆 Sıralama", icon: Trophy },
-          { id: "categories", label: "📚 Kategoriler", icon: Compass },
-          { id: "history", label: "📖 Geçmiş", icon: History },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
-              activeTab === tab.id
-                ? "bg-[#2563EB] text-white shadow-md shadow-blue-500/20"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+  const activeMainTabId =
+    activeTab === "create" || activeTab === "categories" ? "hub" : activeTab;
 
-      {/* TAB 0: SOLO INTERACTIVE QUIZ PLAY SCREEN (Mockup 9) */}
-      {activeTab === "solo" && (
-        <div className="max-w-lg mx-auto">
-          {!soloFinished ? (
-            <div className="rounded-3xl bg-[#F8FAFC] dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-6 shadow-sm space-y-5">
-              {/* Top Quiz Bar */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("hub")}
-                    aria-label="Kapat"
-                    className="w-10 h-10 rounded-2xl bg-white dark:bg-[#152036] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors cursor-pointer shadow-2xs"
-                  >
-                    ✕
-                  </button>
-                  <div>
-                    <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                      Genç Quiz
-                    </div>
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                      Bilim & Teknoloji
-                    </h2>
-                  </div>
+  return (
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-7 pb-24">
+      {/* =====================================================================
+          1. QUIZ HUB HERO BANNER (Editorial Blue/Navy/Indigo Gradient)
+          ===================================================================== */}
+      <motion.section
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+        className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0F2557] via-[#1D4ED8] to-[#4F46E5] p-5 sm:p-8 text-white shadow-[0_14px_34px_-12px_rgba(15,37,87,0.38)]"
+      >
+        {/* Subtle controlled ambient radial depth (no neon / no cyberpunk) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/[0.08] blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 left-1/4 w-64 h-64 rounded-full bg-indigo-300/[0.12] blur-3xl"
+        />
+
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+          {/* Left Identity & Quick Actions */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={prefersReducedMotion ? undefined : { y: [0, -3, 0] }}
+                transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+                className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0"
+              >
+                <Gamepad2 className="w-6 h-6 text-white" />
+              </motion.div>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs font-medium text-blue-100/90">
+                  {publicRooms.length > 0 ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span>{publicRooms.length} canlı oda açık</span>
+                    </>
+                  ) : (
+                    <span>Canlı Bilgi Yarışması Platformu</span>
+                  )}
+                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-white">
+                  Genç Quiz
+                </h1>
+              </div>
+            </div>
+
+            <p className="text-sm sm:text-base text-blue-100/90 leading-relaxed max-w-xl">
+              Bilgini konuştur, arkadaşlarınla yarış, zirveye adını yazdır!
+            </p>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openModal();
+                    return;
+                  }
+                  setActiveTab("create");
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white text-[#0F2557] hover:bg-blue-50 active:scale-[0.98] text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Yeni Canlı Oda Oluştur</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("categories")}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white/12 hover:bg-white/20 active:scale-[0.98] border border-white/20 text-white text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Compass className="w-4 h-4" />
+                <span>Hazır Setleri Keşfet</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right Quick Join with 6-Char Room Code */}
+          <div className="lg:col-span-5">
+            <div className="rounded-[20px] bg-white/[0.11] border border-white/20 p-4 sm:p-5 space-y-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-tight text-white">
+                  Oda Koduyla Hızlı Katıl
+                </span>
+                <span className="text-[11px] font-mono text-blue-100/80">
+                  6 karakter
+                </span>
+              </div>
+
+              <SixCharCodeInput
+                value={joinCode}
+                onChange={(val) => {
+                  setJoinCode(val);
+                  if (joinError) setJoinError(null);
+                }}
+                onSubmit={() => handleJoinByCode()}
+                disabled={isJoining}
+                darkSurface
+              />
+
+              {joinError && (
+                <p role="alert" className="text-xs font-medium text-rose-200 leading-snug">
+                  {joinError}
+                </p>
+              )}
+
+              <Button
+                variant="primary"
+                fullWidth
+                isLoading={isJoining}
+                loadingText="Oda kontrol ediliyor..."
+                onClick={() => handleJoinByCode()}
+                className="rounded-2xl bg-white hover:bg-blue-50 active:bg-blue-100 text-[#0F2557] border-transparent font-bold text-sm shadow-sm"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Odaya Katıl
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* =====================================================================
+          2. REAL USER STATISTICS STRIP (Only rendered with real API data)
+          ===================================================================== */}
+      {isAuthenticated && statsError && (
+        <QuizErrorBanner message={statsError} onRetry={fetchHistoryAndStats} />
+      )}
+
+      {isAuthenticated && quizStats && (
+        <section aria-label="Genç Quiz İstatistiklerin" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            {
+              label: "Katıldığın Quiz",
+              value: (quizStats.totalQuizes ?? 0).toLocaleString("tr-TR"),
+              icon: Gamepad2,
+              accent: "bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400",
+            },
+            {
+              label: "Kazandığın Quiz",
+              value: (quizStats.wins ?? 0).toLocaleString("tr-TR"),
+              icon: Trophy,
+              accent: "bg-emerald-50 dark:bg-emerald-950/40 text-[#16A34A] dark:text-emerald-400",
+            },
+            {
+              label: "Toplam Puanın",
+              value: (quizStats.totalScore ?? 0).toLocaleString("tr-TR"),
+              icon: Award,
+              accent: "bg-amber-50 dark:bg-amber-950/40 text-[#D97706] dark:text-amber-400",
+            },
+            {
+              label: "Doğruluk Oranı",
+              value: `%${quizStats.accuracyRate ?? 0}`,
+              icon: Target,
+              accent: "bg-indigo-50 dark:bg-indigo-950/40 text-[#6366F1] dark:text-indigo-400",
+            },
+          ].map((stat, idx) => (
+            <motion.div
+              key={stat.label}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: idx * 0.04, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-4 sm:p-5 flex items-center gap-3.5 shadow-[0_2px_10px_rgba(15,23,42,0.03)]"
+            >
+              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.accent)}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                  {stat.label}
+                </p>
+                <p className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight mt-0.5">
+                  {stat.value}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </section>
+      )}
+
+      {/* =====================================================================
+          3. MODERN SEGMENTED TAB NAVIGATION
+          ===================================================================== */}
+      <nav
+        aria-label="Genç Quiz Bölümleri"
+        className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-1.5 shadow-[0_2px_8px_rgba(15,23,42,0.03)]"
+      >
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {MAIN_TABS.map((tab) => {
+            const isSelected = activeMainTabId === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex-1 min-w-fit flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-[14px] text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors duration-150 cursor-pointer",
+                  isSelected
+                    ? "text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.04]"
+                )}
+              >
+                {isSelected && (
+                  <motion.div
+                    layoutId="gencQuizActiveTab"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-[14px] bg-[#2563EB] shadow-sm shadow-blue-600/20"
+                  />
+                )}
+                <Icon className="w-4 h-4 relative z-10 shrink-0" />
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* =====================================================================
+          4. TAB CONTENT PANELS (Smooth Animated Transition)
+          ===================================================================== */}
+      <AnimatePresence mode="wait">
+        {/* -------------------------------------------------------------------
+            TAB A: QUIZ MERKEZİ (LIVE OPEN ROOMS + CATEGORIES PREVIEW)
+            ------------------------------------------------------------------- */}
+        {activeTab === "hub" && (
+          <motion.div
+            key="tab-hub"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-8"
+          >
+            {/* Open Live Rooms Section */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    Açık Canlı Odalar
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Katılıma açık lobilerden birini seçerek anında yarışmaya katıl.
+                  </p>
                 </div>
 
-                {/* Score Pill */}
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#152036] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
-                  <span className="text-amber-500 text-sm">★</span>
-                  <span className="text-sm font-black text-slate-900 dark:text-white tabular-nums">
-                    {soloScore}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={fetchPublicRooms}
+                    isLoading={loadingRooms}
+                    leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                    className="rounded-xl text-xs"
+                  >
+                    Yenile
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      if (!isAuthenticated) openModal();
+                      else setActiveTab("create");
+                    }}
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    className="rounded-xl text-xs"
+                  >
+                    Oda Oluştur
+                  </Button>
                 </div>
               </div>
 
-              {/* Progress + Segmented Bar + Circular Timer */}
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-extrabold text-slate-900 dark:text-white">
-                      Soru {soloIndex + 1} <span className="text-slate-400 font-semibold">/ {WEEKLY_SOLO_QUESTIONS.length}</span>
+              {roomsError && (
+                <QuizErrorBanner message={roomsError} onRetry={fetchPublicRooms} />
+              )}
+
+              {loadingRooms ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-48 rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/70 dark:border-white/[0.06] p-5 space-y-4 animate-pulse"
+                    >
+                      <div className="flex justify-between">
+                        <div className="h-5 w-20 rounded-md bg-slate-200 dark:bg-white/10" />
+                        <div className="h-5 w-16 rounded-md bg-slate-200 dark:bg-white/10" />
+                      </div>
+                      <div className="h-6 w-3/4 rounded-md bg-slate-200 dark:bg-white/10" />
+                      <div className="h-4 w-1/2 rounded-md bg-slate-100 dark:bg-white/5" />
+                      <div className="h-10 w-full rounded-xl bg-slate-100 dark:bg-white/5 mt-auto" />
+                    </div>
+                  ))}
+                </div>
+              ) : !roomsError && publicRooms.length === 0 ? (
+                <QuizStatePanel
+                  icon={<Gamepad2 className="w-6 h-6" />}
+                  title="Şu anda herkese açık canlı oda bulunmuyor"
+                  description="İlk canlı odayı kurup 6 karakterli kodu arkadaşlarınla paylaşarak yarışmayı başlatabilirsin."
+                  action={
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        if (!isAuthenticated) openModal();
+                        else setActiveTab("create");
+                      }}
+                      leftIcon={<Plus className="w-4 h-4" />}
+                      className="rounded-2xl"
+                    >
+                      İlk Odayı Oluştur
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {publicRooms.map((r, idx) => {
+                    const playerCount = Number(r.playerCount || 0);
+                    const maxPlayers = Math.max(1, Number(r.maxPlayers || 30));
+                    const fillPercent = Math.min(100, Math.round((playerCount / maxPlayers) * 100));
+                    const isFull = playerCount >= maxPlayers;
+
+                    return (
+                      <motion.article
+                        key={r.code}
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25, delay: idx * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                        className="group rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-5 flex flex-col justify-between gap-4 hover:border-[#2563EB]/45 hover:shadow-[0_10px_28px_-10px_rgba(37,99,235,0.16)] transition-all duration-200"
+                      >
+                        <div className="space-y-3">
+                          {/* Top Row: Code & Live Status */}
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-mono font-bold text-[#2563EB] dark:text-blue-400 tracking-wider">
+                              #{r.code}
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1.5 font-semibold",
+                                isFull
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-[#16A34A] dark:text-emerald-400"
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  isFull ? "bg-amber-500" : "bg-[#16A34A]"
+                                )}
+                              />
+                              {isFull ? "Dolu" : "Lobide · Açık"}
+                            </span>
+                          </div>
+
+                          {/* Title & Clean Unboxed Metadata */}
+                          <div className="space-y-1.5">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#2563EB] dark:group-hover:text-blue-400 transition-colors">
+                              {r.title}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                              <span>{r.category || "Karışık"}</span>
+                              <span aria-hidden="true">·</span>
+                              <span>{r.difficulty || "Karışık"}</span>
+                              <span aria-hidden="true">·</span>
+                              <span className="tabular-nums">{r.questionCount} soru</span>
+                              <span aria-hidden="true">·</span>
+                              <span className="tabular-nums">{r.timePerQuestion} sn</span>
+                            </div>
+                            {r.hostUsername && (
+                              <p className="text-xs text-slate-400 dark:text-slate-500">
+                                Kurucu: <span className="font-semibold text-slate-600 dark:text-slate-300">@{r.hostUsername}</span>
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Capacity Progress */}
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-500 dark:text-slate-400 inline-flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5" />
+                                Katılımcı
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                                {playerCount} / {maxPlayers}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-slate-100 dark:bg-white/[0.07] overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-[#2563EB] transition-all duration-300"
+                                style={{ width: `${fillPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          disabled={isFull}
+                          onClick={() => handleJoinByCode(r.code)}
+                          rightIcon={!isFull ? <ArrowRight className="w-4 h-4" /> : undefined}
+                          className="rounded-xl text-xs font-bold"
+                        >
+                          {isFull ? "Oda Dolu" : "Odaya Katıl"}
+                        </Button>
+                      </motion.article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Quick Categories Section */}
+            <section className="space-y-4 pt-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    Popüler Kategoriler
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Bir konu seçip tek tıkla özel quiz odası oluştur.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("categories")}
+                  className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer whitespace-nowrap"
+                >
+                  <span>Tümünü Gör</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
+                {CATEGORIES.slice(0, 7).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openModal();
+                        return;
+                      }
+                      setRoomCategory(cat);
+                      setRoomTitle(`${cat} Bilgi Yarışması`);
+                      setActiveTab("create");
+                    }}
+                    className="group rounded-[18px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-3.5 text-left hover:border-[#2563EB]/50 hover:shadow-sm transition-all cursor-pointer"
+                  >
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block truncate group-hover:text-[#2563EB] dark:group-hover:text-blue-400 transition-colors">
+                      {cat}
                     </span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                      {soloCorrectCount} doğru
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 inline-flex items-center gap-1">
+                      Oda kur
+                      <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                     </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </motion.div>
+        )}
+
+        {/* -------------------------------------------------------------------
+            TAB B: HAFTANIN QUIZ'İ (WEEKLY SOLO QUIZ - MODERNIZED ARENA UI)
+            ------------------------------------------------------------------- */}
+        {activeTab === "solo" && (
+          <motion.div
+            key="tab-solo"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="max-w-2xl mx-auto"
+          >
+            {!soloFinished ? (
+              <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-4 sm:p-7 shadow-[0_10px_30px_-14px_rgba(15,23,42,0.08)] space-y-6">
+                {/* Arena Top Bar */}
+                <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-white/[0.07]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                        Haftanın Quiz'i
+                      </p>
+                      <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+                        Bilim & Teknoloji
+                      </h2>
+                    </div>
                   </div>
 
-                  {/* 10 Segmented Bars */}
-                  <div className="grid grid-cols-10 gap-1.5">
-                    {WEEKLY_SOLO_QUESTIONS.map((q, idx) => {
-                      const status = soloHistory[idx];
-                      let barClass = "bg-slate-200 dark:bg-slate-800";
-                      if (idx < soloIndex) {
-                        barClass =
-                          status === "correct"
-                            ? "bg-emerald-500"
-                            : status === "wrong"
-                            ? "bg-rose-500"
-                            : "bg-amber-400";
-                      } else if (idx === soloIndex) {
-                        barClass = "bg-[#2563EB]";
-                      }
+                  {/* Live Score Counter */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                      <AnimatedScore
+                        value={soloScore}
+                        className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white"
+                      />
+                      <span className="text-[11px] font-medium text-slate-400">puan</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress & Circular Timer Row */}
+                <div className="flex items-center justify-between gap-4">
+                  <SegmentedProgress
+                    total={WEEKLY_SOLO_QUESTIONS.length}
+                    currentIndex={soloIndex}
+                    statuses={soloHistory}
+                    rightLabel={
+                      <span className="font-semibold text-[#16A34A] dark:text-emerald-400 inline-flex items-center gap-1 tabular-nums">
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        {soloCorrectCount} doğru
+                      </span>
+                    }
+                  />
+
+                  <CircularTimer timeLeft={soloTimeLeft} totalTime={20} size={58} />
+                </div>
+
+                {/* Question Card with Smooth Question Transition */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentSoloQ.id}
+                    initial={prefersReducedMotion ? false : { opacity: 0, x: 14 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={prefersReducedMotion ? undefined : { opacity: 0, x: -14 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    className="space-y-5"
+                  >
+                    <div className="rounded-[20px] bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.07] p-5 sm:p-6 space-y-3.5">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 font-semibold text-slate-600 dark:text-slate-300">
+                          <span className="text-[#2563EB] dark:text-blue-400 font-bold">
+                            {currentSoloQ.subject}
+                          </span>
+                          <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">
+                            ·
+                          </span>
+                          <span>{currentSoloQ.difficulty}</span>
+                        </div>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 tabular-nums">
+                          +{currentSoloQ.points} puan
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg sm:text-[21px] font-bold text-slate-900 dark:text-white leading-snug [text-wrap:balance]">
+                        {currentSoloQ.question}
+                      </h3>
+                    </div>
+
+                    {/* A / B / C / D Option Cards */}
+                    <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+                      {currentSoloQ.options.map((opt) => {
+                        const isEliminated = soloEliminatedKeys.includes(opt.key);
+                        const isSelected = soloSelectedKey === opt.key;
+                        let optionState: OptionVisualState = "normal";
+
+                        if (isEliminated) {
+                          optionState = "eliminated";
+                        } else if (soloLocked) {
+                          if (opt.key === currentSoloQ.correctKey) {
+                            optionState = "correct";
+                          } else if (isSelected && opt.key !== currentSoloQ.correctKey) {
+                            optionState = "wrong";
+                          } else {
+                            optionState = "locked";
+                          }
+                        } else if (isSelected) {
+                          optionState = "selected";
+                        }
+
+                        return (
+                          <QuizOptionCard
+                            key={opt.key}
+                            optionKey={opt.key}
+                            text={opt.text}
+                            state={optionState}
+                            disabled={isEliminated || soloLocked}
+                            onClick={() => setSoloSelectedKey(opt.key)}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Answer Feedback Banner (Shown after confirming or timeout) */}
+                    <AnimatePresence>
+                      {soloLocked && soloLastOutcome && (
+                        <motion.div
+                          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                          transition={{ duration: 0.22 }}
+                          className={cn(
+                            "rounded-[18px] border p-4 space-y-2",
+                            soloLastOutcome === "correct"
+                              ? "bg-emerald-50/90 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-500/30"
+                              : "bg-rose-50/90 dark:bg-rose-950/30 border-rose-200 dark:border-rose-500/30"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {soloLastOutcome === "correct" ? (
+                                <CheckCircle2 className="w-5 h-5 text-[#16A34A] dark:text-emerald-400 shrink-0" />
+                              ) : (
+                                <XCircle className="w-5 h-5 text-[#EF4444] dark:text-rose-400 shrink-0" />
+                              )}
+                              <span
+                                className={cn(
+                                  "text-sm font-bold",
+                                  soloLastOutcome === "correct"
+                                    ? "text-emerald-800 dark:text-emerald-200"
+                                    : "text-rose-800 dark:text-rose-200"
+                                )}
+                              >
+                                {soloLastOutcome === "correct"
+                                  ? `Doğru cevap! +${currentSoloQ.points} puan kazandın`
+                                  : soloLastOutcome === "timeout"
+                                  ? `Süre doldu. Doğru şık: ${currentSoloQ.correctKey}`
+                                  : `Yanlış cevap. Doğru şık: ${currentSoloQ.correctKey}`}
+                              </span>
+                            </div>
+                          </div>
+                          {currentSoloQ.explanation && (
+                            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed pl-7">
+                              {currentSoloQ.explanation}
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Helper Tools (50:50 & Pas Geç) + Primary CTA */}
+                    <div className="space-y-3 pt-1">
+                      {!soloLocked && (
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            disabled={soloFiftyLeft <= 0 || soloEliminatedKeys.length > 0 || soloLocked}
+                            onClick={handleSoloUseFifty}
+                            className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#2563EB]/40 hover:text-[#2563EB] disabled:opacity-45 disabled:cursor-not-allowed transition-all cursor-pointer"
+                          >
+                            <Scissors className="w-4 h-4 text-[#2563EB]" />
+                            <span>50:50</span>
+                            <span className="text-slate-400 tabular-nums">({soloFiftyLeft})</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={soloLocked}
+                            onClick={handleSoloSkip}
+                            className="flex-1 min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-white/20 disabled:opacity-45 disabled:cursor-not-allowed transition-all cursor-pointer"
+                          >
+                            <SkipForward className="w-4 h-4 text-slate-500" />
+                            <span>Pas Geç</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {!soloLocked ? (
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          fullWidth
+                          disabled={!soloSelectedKey}
+                          onClick={handleSoloConfirm}
+                          rightIcon={<ArrowRight className="w-4 h-4" />}
+                          className="rounded-2xl font-bold shadow-md shadow-blue-600/20"
+                        >
+                          Cevabı Onayla
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          fullWidth
+                          onClick={advanceSoloQuestion}
+                          rightIcon={<ArrowRight className="w-4 h-4" />}
+                          className="rounded-2xl font-bold shadow-md shadow-blue-600/20"
+                        >
+                          {soloIndex + 1 >= WEEKLY_SOLO_QUESTIONS.length
+                            ? "Sonuçları Gör"
+                            : "Sonraki Soruya Geç"}
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            ) : (
+              /* Weekly Quiz Finished Summary */
+              <motion.div
+                initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-6 sm:p-9 text-center space-y-6 shadow-[0_12px_32px_-16px_rgba(15,23,42,0.1)]"
+              >
+                <motion.div
+                  animate={prefersReducedMotion ? undefined : { y: [0, -4, 0] }}
+                  transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/70 dark:border-amber-500/25 flex items-center justify-center mx-auto"
+                >
+                  <Trophy className="w-8 h-8" />
+                </motion.div>
+
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-[#2563EB] dark:text-blue-400">
+                    Haftanın Quiz'i Tamamlandı
+                  </p>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Yarışma Tamamlandı!
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Bilim & Teknoloji haftalık serisini tamamladın.
+                  </p>
+                </div>
+
+                {/* Result Metrics */}
+                <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5">
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      Toplam Puan
+                    </p>
+                    <p className="text-xl font-extrabold text-[#2563EB] dark:text-blue-400 tabular-nums mt-0.5">
+                      {soloScore}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5">
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      Doğru Sayısı
+                    </p>
+                    <p className="text-xl font-extrabold text-[#16A34A] dark:text-emerald-400 tabular-nums mt-0.5">
+                      {soloCorrectCount}/{WEEKLY_SOLO_QUESTIONS.length}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5">
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      Başarı
+                    </p>
+                    <p className="text-xl font-extrabold text-slate-900 dark:text-white tabular-nums mt-0.5">
+                      %{Math.round((soloCorrectCount / WEEKLY_SOLO_QUESTIONS.length) * 100)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-md mx-auto">
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    onClick={handleSoloRestart}
+                    leftIcon={<RotateCcw className="w-4 h-4" />}
+                    className="rounded-2xl font-bold"
+                  >
+                    Tekrar Oyna
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onClick={() => setActiveTab("hub")}
+                    className="rounded-2xl font-bold"
+                  >
+                    Quiz Merkezine Dön
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
+        {/* -------------------------------------------------------------------
+            SUB-VIEW: CREATE LIVE ROOM
+            ------------------------------------------------------------------- */}
+        {activeTab === "create" && (
+          <motion.div
+            key="tab-create"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="max-w-2xl mx-auto space-y-4"
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab("hub")}
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Quiz Merkezine Dön</span>
+            </button>
+
+            <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-5 sm:p-8 shadow-xs space-y-6">
+              <div className="space-y-1">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Yeni Canlı Quiz Odası Oluştur
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  Odanı yapılandır, 6 karakterli davet kodunu al ve arkadaşlarınla eş zamanlı yarış.
+                </p>
+              </div>
+
+              <form onSubmit={handleCreateRoom} className="space-y-5">
+                {/* Room Title */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="quiz-room-title"
+                    className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Oda Başlığı *
+                  </label>
+                  <input
+                    id="quiz-room-title"
+                    type="text"
+                    required
+                    maxLength={100}
+                    placeholder="Örn: Bilim & Teknoloji Bilgi Yarışması"
+                    value={roomTitle}
+                    onChange={(e) => setRoomTitle(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB]"
+                  />
+                </div>
+
+                {/* Question Source */}
+                <div className="space-y-1.5">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    Soru Kaynağı
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      {
+                        id: "SYSTEM" as const,
+                        title: "Sistem Soru Havuzu",
+                        desc: "Kategoriye göre otomatik seçilir",
+                        icon: Globe,
+                      },
+                      {
+                        id: "QUESTION_SET" as const,
+                        title: "Benim Soru Setim",
+                        desc: "Kendi oluşturduğun soru setiyle oyna",
+                        icon: Layers,
+                      },
+                    ].map((src) => {
+                      const active = roomSourceType === src.id;
                       return (
-                        <div
-                          key={q.id}
-                          className={`h-2 rounded-full transition-colors ${barClass}`}
-                        />
+                        <button
+                          key={src.id}
+                          type="button"
+                          onClick={() => setRoomSourceType(src.id)}
+                          className={cn(
+                            "p-4 rounded-2xl border-[1.5px] text-left cursor-pointer transition-all flex items-start gap-3",
+                            active
+                              ? "border-[#2563EB] bg-blue-50/70 dark:bg-blue-950/35"
+                              : "border-slate-200 dark:border-white/[0.08] bg-[#F8FAFC] dark:bg-[#0B1120] hover:border-slate-300"
+                          )}
+                        >
+                          <src.icon
+                            className={cn(
+                              "w-5 h-5 mt-0.5 shrink-0",
+                              active ? "text-[#2563EB] dark:text-blue-400" : "text-slate-400"
+                            )}
+                          />
+                          <div>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white block">
+                              {src.title}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
+                              {src.desc}
+                            </span>
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Circular Countdown Timer */}
-                <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                  <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="23"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="4.5"
-                      className="text-slate-200 dark:text-slate-800"
-                    />
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="23"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="4.5"
-                      strokeLinecap="round"
-                      strokeDasharray={144.5}
-                      strokeDashoffset={144.5 - (144.5 * soloTimeLeft) / 20}
-                      className={
-                        soloTimeLeft <= 5 ? "text-rose-500 transition-all" : "text-[#2563EB] transition-all"
-                      }
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-                    <span className="text-sm font-black text-slate-900 dark:text-white tabular-nums">
-                      {soloTimeLeft}
-                    </span>
-                    <span className="text-[9px] font-bold text-slate-400">sn</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Question Card */}
-              <div className="rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-2xs space-y-3.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 text-xs font-bold">
-                      {currentSoloQ.subject}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-bold">
-                      {currentSoloQ.difficulty}
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    +{currentSoloQ.points} puan
-                  </span>
-                </div>
-
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-snug">
-                  {currentSoloQ.question}
-                </h3>
-              </div>
-
-              {/* 4 Option Cards (A, B, C, D) */}
-              <div className="space-y-2.5">
-                {currentSoloQ.options.map((opt) => {
-                  const isEliminated = soloEliminatedKeys.includes(opt.key);
-                  const isSelected = soloSelectedKey === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      disabled={isEliminated || soloLocked}
-                      onClick={() => setSoloSelectedKey(opt.key)}
-                      className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                        isEliminated
-                          ? "opacity-35 bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-white/[0.04] cursor-not-allowed line-through"
-                          : isSelected
-                          ? "bg-blue-50/90 dark:bg-blue-950/40 border-2 border-[#2563EB] shadow-xs"
-                          : "bg-white dark:bg-[#131D31] border-slate-200/90 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-500/40"
-                      }`}
+                {/* Custom Set Selector */}
+                {roomSourceType === "QUESTION_SET" && (
+                  <div className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] space-y-2">
+                    <label
+                      htmlFor="quiz-room-set"
+                      className="text-xs font-semibold text-slate-700 dark:text-slate-300 block"
                     >
-                      <span
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shrink-0 transition-colors ${
-                          isSelected
-                            ? "bg-[#2563EB] text-white"
-                            : "bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200"
-                        }`}
+                      Kullanılacak Soru Seti
+                    </label>
+                    {mySets.length === 0 ? (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Henüz soru setin yok.{" "}
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateSetModal(true)}
+                          className="text-[#2563EB] dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                        >
+                          Yeni set oluştur
+                        </button>
+                      </p>
+                    ) : (
+                      <select
+                        id="quiz-room-set"
+                        value={selectedSetId || ""}
+                        onChange={(e) => setSelectedSetId(Number(e.target.value) || null)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#111B2E] border border-slate-200 dark:border-white/[0.1] text-sm font-medium text-slate-900 dark:text-white"
                       >
-                        {opt.key}
-                      </span>
-                      <span
-                        className={`text-sm sm:text-[15px] font-bold ${
-                          isSelected
-                            ? "text-slate-900 dark:text-white"
-                            : "text-slate-800 dark:text-slate-200"
-                        }`}
-                      >
-                        {opt.text}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <option value="">Set seçin...</option>
+                        {mySets.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.title} ({s.questionCount} soru · {s.category})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
 
-              {/* Lifeline / Joker Row: 50:50 & Pas geç */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button
-                  type="button"
-                  disabled={soloFiftyLeft <= 0 || soloEliminatedKeys.length > 0 || soloLocked}
-                  onClick={handleSoloUseFifty}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] disabled:opacity-45 transition-all cursor-pointer shadow-2xs"
+                {/* Category & Difficulty */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="quiz-room-category"
+                      className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      Kategori
+                    </label>
+                    <select
+                      id="quiz-room-category"
+                      value={roomCategory}
+                      onChange={(e) => setRoomCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-900 dark:text-white text-sm font-medium"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="quiz-room-difficulty"
+                      className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      Zorluk Seviyesi
+                    </label>
+                    <select
+                      id="quiz-room-difficulty"
+                      value={roomDifficulty}
+                      onChange={(e) => setRoomDifficulty(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-900 dark:text-white text-sm font-medium"
+                    >
+                      {DIFFICULTIES.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Question Count & Time Per Question */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      Soru Sayısı
+                    </span>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {QUESTION_COUNTS.map((cnt) => (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => setRoomQuestionCount(cnt)}
+                          className={cn(
+                            "py-2.5 rounded-xl text-xs font-bold tabular-nums cursor-pointer transition-all",
+                            roomQuestionCount === cnt
+                              ? "bg-[#2563EB] text-white shadow-xs"
+                              : "bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          )}
+                        >
+                          {cnt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      Soru Başına Süre
+                    </span>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {TIME_LIMITS.map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setRoomTimePerQuestion(sec)}
+                          className={cn(
+                            "py-2.5 rounded-xl text-xs font-bold tabular-nums cursor-pointer transition-all",
+                            roomTimePerQuestion === sec
+                              ? "bg-[#2563EB] text-white shadow-xs"
+                              : "bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          )}
+                        >
+                          {sec}sn
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Room Visibility */}
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    Oda Erişimi
+                  </span>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { id: "PUBLIC", label: "Herkese Açık", desc: "Listede görünür", icon: Globe },
+                      { id: "CODE_ONLY", label: "Sadece Kodla", desc: "Kod giren katılır", icon: Lock },
+                      { id: "PRIVATE", label: "Özel Oda", desc: "Davetliler için", icon: ShieldCheck },
+                    ].map((type) => {
+                      const active = roomType === type.id;
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => setRoomType(type.id as any)}
+                          className={cn(
+                            "p-3 rounded-2xl border-[1.5px] text-center cursor-pointer transition-all",
+                            active
+                              ? "border-[#2563EB] bg-blue-50/70 dark:bg-blue-950/35 text-[#2563EB] dark:text-blue-400"
+                              : "border-slate-200 dark:border-white/[0.08] bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-700 dark:text-slate-300"
+                          )}
+                        >
+                          <type.icon className="w-4 h-4 mx-auto mb-1.5" />
+                          <span className="text-xs font-bold block">{type.label}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">{type.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  isLoading={isCreatingRoom}
+                  loadingText="Oda hazırlanıyor..."
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                  className="rounded-2xl font-bold shadow-md shadow-blue-600/20"
                 >
-                  <span className="text-blue-600">✂️</span>
-                  <span>50:50</span>
-                  <span className="text-slate-400 font-semibold">({soloFiftyLeft})</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={soloLocked}
-                  onClick={handleSoloSkip}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-[#131D31] border border-slate-200/90 dark:border-white/[0.08] text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] disabled:opacity-45 transition-all cursor-pointer shadow-2xs"
-                >
-                  <span className="text-slate-500">⏭️</span>
-                  <span>Pas geç</span>
-                </button>
-              </div>
-
-              {/* Bottom Confirm Answer CTA */}
-              <button
-                type="button"
-                disabled={!soloSelectedKey || soloLocked}
-                onClick={handleSoloConfirm}
-                className="w-full py-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 active:scale-[0.99] disabled:opacity-50 text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
-              >
-                <span>Cevabı Onayla</span>
-                <ArrowRight className="w-4.5 h-4.5" />
-              </button>
+                  Odayı Oluştur ve Lobiye Geç
+                </Button>
+              </form>
             </div>
-          ) : (
-            /* Solo Quiz Completion Card */
-            <div className="rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-6 sm:p-8 text-center space-y-5 shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 flex items-center justify-center mx-auto">
-                <Trophy className="w-8 h-8" />
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563EB] dark:text-blue-400">
-                  Haftanın Quiz'i Tamamlandı
-                </span>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                  Toplam Skorun: {soloScore} Puan
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  {WEEKLY_SOLO_QUESTIONS.length} soruda{" "}
-                  <strong className="text-emerald-600 dark:text-emerald-400">{soloCorrectCount} doğru</strong> yanıt verdin!
-                </p>
-              </div>
+          </motion.div>
+        )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSoloRestart}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer"
-                >
-                  Tekrar Oyna
-                </button>
+        {/* -------------------------------------------------------------------
+            SUB-VIEW: ALL CATEGORIES EXPLORER
+            ------------------------------------------------------------------- */}
+        {activeTab === "categories" && (
+          <motion.div
+            key="tab-categories"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
                 <button
                   type="button"
                   onClick={() => setActiveTab("hub")}
-                  className="flex-1 py-3 px-4 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-sm transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white mb-2 cursor-pointer"
                 >
-                  Canlı Odalara Göz At
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Quiz Merkezine Dön</span>
                 </button>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Hazır Soru Kategorileri
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  İlgi alanına göre bir kategori seç ve hemen canlı yarışma başlat.
+                </p>
               </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* HERO HEADER - SHOWN ON OTHER TABS */}
-      {activeTab !== "solo" && (
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-900 via-blue-900 to-slate-950 p-5 sm:p-10 text-white shadow-xl border border-white/10">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+              {CATEGORIES.map((cat, idx) => (
+                <motion.div
+                  key={cat}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, delay: Math.min(idx * 0.025, 0.25) }}
+                  className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-5 flex flex-col justify-between gap-4 hover:border-[#2563EB]/45 hover:shadow-sm transition-all"
+                >
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 flex items-center justify-center font-extrabold text-sm">
+                      {cat.substring(0, 2).toUpperCase()}
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      {cat}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      {cat} alanından özenle seçilmiş sorularla bilgini test et.
+                    </p>
+                  </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-200">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Canlı Quiz Odaları & Bilgi Arenası</span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openModal();
+                        return;
+                      }
+                      setRoomCategory(cat);
+                      setRoomTitle(`${cat} Bilgi Yarışması`);
+                      setActiveTab("create");
+                    }}
+                    rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                    className="rounded-xl text-xs font-bold"
+                  >
+                    Oda Kur
+                  </Button>
+                </motion.div>
+              ))}
             </div>
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-              Genç Quiz
-            </h1>
-            <p className="text-xs sm:text-base text-blue-100/90 font-medium leading-relaxed">
-              Arkadaşlarınla aynı anda canlı odalara katıl, 6 haneli oda koduyla arkadaşlarına meydan oku, kendi soru setlerini hazırla veya genel bilgi havuzunda hızını kanıtla!
-            </p>
-          </div>
+          </motion.div>
+        )}
 
-          {/* QUICK JOIN BOX IN HERO */}
-          <div className="bg-white/10 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/20 w-full md:w-80 shrink-0 shadow-2xl space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-200">
-              <Gamepad2 className="w-4 h-4 text-emerald-400" />
-              <span>Hızlı Quiz'e Katıl</span>
-            </div>
-            <div className="space-y-2">
-              <div className="relative">
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="6 Haneli Kod (örn. 482731)"
-                  value={joinCode}
-                  onChange={(e) => {
-                    setJoinCode(e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase());
-                    setJoinError(null);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
-                  className="w-full px-5 py-2.5 rounded-full bg-black/40 text-white placeholder-slate-400 text-center font-mono font-bold tracking-widest text-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+        {/* -------------------------------------------------------------------
+            TAB C: SORU SETLERİM
+            ------------------------------------------------------------------- */}
+        {activeTab === "sets" && (
+          <motion.div
+            key="tab-sets"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  Soru Setlerim
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Kendi soru setlerini oluşturup canlı quiz odalarında kullanabilirsin.
+                </p>
               </div>
-              {joinError && (
-                <p className="text-xs text-rose-300 font-semibold text-center">{joinError}</p>
-              )}
               <Button
                 variant="primary"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-full shadow-lg shadow-emerald-500/30"
-                onClick={() => handleJoinByCode()}
-                isLoading={isJoining}
+                size="sm"
+                leftIcon={<Plus className="w-4 h-4" />}
+                onClick={() => {
+                  if (!isAuthenticated) openModal();
+                  else setShowCreateSetModal(true);
+                }}
+                className="rounded-xl text-xs font-bold"
               >
-                Odaya Katıl 🚀
+                Yeni Soru Seti
               </Button>
             </div>
-          </div>
-        </div>
-      </div>
-      )}
 
-      {/* TAB 1: HUB (PUBLIC ROOMS + QUICK STATS + CATEGORIES SHORTCUT) */}
-      {activeTab === "hub" && (
-        <div className="space-y-8">
-          {/* USER QUICK SUMMARY CARDS */}
-          {isAuthenticated && quizStats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Card className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-900/40">
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Katıldığın Quiz</span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{quizStats.totalQuizes || 0}</p>
-              </Card>
-              <Card className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/40">
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Kazandığın Quiz</span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{quizStats.wins || 0}</p>
-              </Card>
-              <Card className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/40">
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Toplam Puan</span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{quizStats.totalScore?.toLocaleString() || 0}</p>
-              </Card>
-              <Card className="p-4 bg-purple-50/50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-900/40">
-                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Doğruluk Oranı</span>
-                <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">%{quizStats.accuracyRate || 0}</p>
-              </Card>
-            </div>
-          )}
+            {setsError && <QuizErrorBanner message={setsError} onRetry={fetchMySets} />}
 
-          {/* ACTIVE PUBLIC ROOMS */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            {!isAuthenticated ? (
+              <QuizStatePanel
+                icon={<Layers className="w-6 h-6" />}
+                title="Soru setlerini görmek için giriş yap"
+                description="Kendi özel soru setlerini hazırlamak ve kaydetmek için Genç Sosyal hesabına giriş yapmalısın."
+                action={
+                  <Button variant="primary" onClick={openModal} className="rounded-2xl">
+                    Giriş Yap
+                  </Button>
+                }
+              />
+            ) : loadingSets ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-44 rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/70 dark:border-white/[0.06] animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : !setsError && mySets.length === 0 ? (
+              <QuizStatePanel
+                icon={<BookOpen className="w-6 h-6" />}
+                title="Henüz soru setin yok"
+                description="Dilediğin kategoride kendi sorularını ve seçeneklerini ekleyip arkadaşlarınla özel yarışmalar düzenleyebilirsin."
+                action={
+                  <Button
+                    variant="primary"
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    onClick={() => setShowCreateSetModal(true)}
+                    className="rounded-2xl"
+                  >
+                    İlk Soru Setini Oluştur
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mySets.map((s, idx) => (
+                  <motion.div
+                    key={s.id}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, delay: idx * 0.04 }}
+                    className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-5 flex flex-col justify-between gap-4 hover:border-[#2563EB]/40 hover:shadow-sm transition-all"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-semibold text-[#2563EB] dark:text-blue-400">
+                          {s.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          {s.isPublic ? (
+                            <>
+                              <Globe className="w-3.5 h-3.5" />
+                              Paylaşılabilir
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3.5 h-3.5" />
+                              Özel
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">
+                          {s.title}
+                        </h3>
+                        {s.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                            {s.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+                        {s.questionCount} soru · {s.difficulty}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSet(s.id)}
+                          aria-label={`${s.title} setini sil`}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#EF4444] hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="rounded-xl text-xs font-bold"
+                          onClick={() => {
+                            setRoomSourceType("QUESTION_SET");
+                            setSelectedSetId(s.id);
+                            setRoomTitle(`${s.title} Odası`);
+                            setActiveTab("create");
+                          }}
+                        >
+                          Oda Kur
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* -------------------------------------------------------------------
+            TAB D: LİDERLİK TABLOSU
+            ------------------------------------------------------------------- */}
+        {activeTab === "leaderboard" && (
+          <motion.div
+            key="tab-leaderboard"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-blue-600" />
-                  <span>Şu Anda Canlı Olan Açık Odalar</span>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  Genç Quiz Liderlik Tablosu
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">Hemen bir odaya katıl ve lobideki arkadaşlarınla kapışmaya başla!</p>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                  Canlı yarışmalarda en yüksek toplam puana ulaşan oyuncular.
+                </p>
               </div>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={fetchPublicRooms}
-                isLoading={loadingRooms}
-                className="rounded-xl text-xs font-bold"
+                onClick={fetchLeaderboard}
+                isLoading={loadingLeaderboard}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+                className="rounded-xl text-xs"
               >
                 Yenile
               </Button>
             </div>
 
-            {loadingRooms ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-36 rounded-2xl bg-slate-100 dark:bg-white/5 animate-pulse" />
-                ))}
-              </div>
-            ) : publicRooms.length === 0 ? (
-              <Card className="p-8 text-center space-y-4 border-dashed border-2 border-slate-200 dark:border-white/10">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 mx-auto flex items-center justify-center">
-                  <Gamepad2 className="w-7 h-7" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Şu an aktif herkese açık oda yok</h3>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">İlk odayı sen kurarak arkadaşlarını davet edebilir veya diğer kullanıcıların katılmasını bekleyebilirsin!</p>
-                </div>
-                <Button
-                  variant="primary"
-                  onClick={() => setActiveTab("create")}
-                  className="rounded-xl font-bold"
-                >
-                  ➕ İlk Odayı Sen Oluştur
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {publicRooms.map((r) => (
-                  <Card key={r.code} className="p-5 flex flex-col justify-between hover:shadow-lg transition-all border border-slate-200 dark:border-white/10 group">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                          #{r.code}
-                        </span>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                          <Users className="w-3.5 h-3.5 text-blue-500" />
-                          <span>{r.playerCount} / {r.maxPlayers} Oyuncu</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">
-                          {r.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="neutral" className="text-[11px] font-semibold">{r.category}</Badge>
-                          <Badge variant="info" className="text-[11px] font-semibold">{r.difficulty}</Badge>
-                          <span className="text-[11px] text-slate-400 font-medium">⏱️ {r.questionCount} Soru ({r.timePerQuestion}s)</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/5">
-                      <Button
-                        variant="primary"
-                        className="w-full rounded-xl font-bold text-xs"
-                        onClick={() => handleJoinByCode(r.code)}
-                      >
-                        Odaya Katıl 🎮
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* QUICK CATEGORIES PREVIEW */}
-          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/10">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <Compass className="w-5 h-5 text-indigo-600" />
-                <span>Popüler Quiz Kategorileri</span>
-              </h2>
-              <button
-                type="button"
-                onClick={() => setActiveTab("categories")}
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <span>Tüm Kategorileri Gör</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {CATEGORIES.slice(0, 7).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setRoomCategory(cat);
-                    setRoomTitle(`${cat} Bilgi Yarışması`);
-                    setActiveTab("create");
-                  }}
-                  className="p-3.5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] hover:border-blue-500 hover:shadow-md transition-all text-left group cursor-pointer"
-                >
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate group-hover:text-blue-600">
-                    {cat}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium mt-1 block">Oda Oluştur ➔</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: CREATE ROOM */}
-      {activeTab === "create" && (
-        <Card className="p-6 sm:p-8 max-w-2xl mx-auto space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <PlusCircle className="w-6 h-6 text-blue-600" />
-              <span>Yeni Quiz Odası Oluştur</span>
-            </h2>
-            <p className="text-xs text-slate-500">
-              Odanı yapılandır, benzersiz 6 haneli kodunu al ve arkadaşlarını canlı yarışmaya davet et.
-            </p>
-          </div>
-
-          <form onSubmit={handleCreateRoom} className="space-y-5">
-            {/* Room Title */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Quiz Adı *
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={100}
-                placeholder="Örn: Teknoloji & Bilim Meydan Okuması"
-                value={roomTitle}
-                onChange={(e) => setRoomTitle(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Question Source */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Soru Kaynağı
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRoomSourceType("SYSTEM")}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                    roomSourceType === "SYSTEM"
-                      ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 text-blue-600"
-                      : "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <span className="text-xs font-bold block">🌐 Sistem Rastgele Seçsin</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">Merkezi soru havuzundan otomatik</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoomSourceType("QUESTION_SET")}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                    roomSourceType === "QUESTION_SET"
-                      ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 text-blue-600"
-                      : "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  <span className="text-xs font-bold block">🧠 Benim Soru Setim</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">Kendi hazırladığın sorularla</span>
-                </button>
-              </div>
-            </div>
-
-            {/* If Custom Set Chosen */}
-            {roomSourceType === "QUESTION_SET" && (
-              <div className="space-y-1.5 p-4 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                  Kullanılacak Soru Seti:
-                </label>
-                {mySets.length === 0 ? (
-                  <div className="text-xs text-slate-500 py-2">
-                    Henüz bir soru setiniz yok.{" "}
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateSetModal(true)}
-                      className="text-blue-600 font-bold underline cursor-pointer"
-                    >
-                      Yeni set oluştur
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedSetId || ""}
-                    onChange={(e) => setSelectedSetId(Number(e.target.value) || null)}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-sm font-semibold"
-                  >
-                    <option value="">Set Seçiniz...</option>
-                    {mySets.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title} ({s.questionCount} Soru - {s.category})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+            {leaderboardError && (
+              <QuizErrorBanner message={leaderboardError} onRetry={fetchLeaderboard} />
             )}
 
-            {/* Category & Difficulty */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Kategori
-                </label>
-                <select
-                  value={roomCategory}
-                  onChange={(e) => setRoomCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-sm font-semibold"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Zorluk
-                </label>
-                <select
-                  value={roomDifficulty}
-                  onChange={(e) => setRoomDifficulty(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-sm font-semibold"
-                >
-                  {DIFFICULTIES.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Question Count & Time Per Question */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Soru Sayısı
-                </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {QUESTION_COUNTS.map((cnt) => (
-                    <button
-                      key={cnt}
-                      type="button"
-                      onClick={() => setRoomQuestionCount(cnt)}
-                      className={`py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-                        roomQuestionCount === cnt
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                      }`}
-                    >
-                      {cnt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Soru Başına Süre
-                </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {TIME_LIMITS.map((sec) => (
-                    <button
-                      key={sec}
-                      type="button"
-                      onClick={() => setRoomTimePerQuestion(sec)}
-                      className={`py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
-                        roomTimePerQuestion === sec
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                      }`}
-                    >
-                      {sec}s
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Room Type */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Oda Tipi
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: "PUBLIC", label: "Herkese Açık", desc: "Listede görünür", icon: Globe },
-                  { id: "CODE_ONLY", label: "Oda Koduyla", desc: "Sadece kod ile", icon: Lock },
-                  { id: "PRIVATE", label: "Özel", desc: "Sadece davetliler", icon: ShieldCheck },
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setRoomType(type.id as any)}
-                    className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${
-                      roomType === type.id
-                        ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 text-blue-600"
-                        : "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    <type.icon className="w-4 h-4 mx-auto mb-1 text-slate-500" />
-                    <span className="text-xs font-bold block">{type.label}</span>
-                    <span className="text-[10px] text-slate-400 block">{type.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              isLoading={isCreatingRoom}
-              className="w-full rounded-xl font-bold py-3 text-base shadow-lg shadow-blue-500/25"
-            >
-              Quiz Odasını Oluştur ve Lobiye Git 🚀
-            </Button>
-          </form>
-        </Card>
-      )}
-
-      {/* TAB 3: USER QUESTION SETS (SORU SETLERİM) */}
-      {activeTab === "sets" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <Layers className="w-6 h-6 text-indigo-600" />
-                <span>Soru Setlerim</span>
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">Kendi hazırladığın soru setlerini kaydet ve quiz odalarında kullan.</p>
-            </div>
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (!isAuthenticated) openModal();
-                else setShowCreateSetModal(true);
-              }}
-              className="rounded-xl font-bold"
-            >
-              ➕ Yeni Soru Seti Oluştur
-            </Button>
-          </div>
-
-          {loadingSets ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-40 rounded-2xl bg-slate-100 dark:bg-white/5 animate-pulse" />
-              ))}
-            </div>
-          ) : mySets.length === 0 ? (
-            <Card className="p-8 text-center space-y-4 border-dashed border-2">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 mx-auto flex items-center justify-center">
-                <BookOpen className="w-7 h-7" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Henüz bir soru setiniz bulunmuyor</h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Dilediğin kategoride kendi sorularını ve şıklarını hazırlayarak arkadaşlarınla yarışabileceğin özel soru setleri oluşturabilirsin!
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  if (!isAuthenticated) openModal();
-                  else setShowCreateSetModal(true);
-                }}
-                className="rounded-xl font-bold"
-              >
-                Yeni Soru Seti Ekle
-              </Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mySets.map((s) => (
-                <Card key={s.id} className="p-5 flex flex-col justify-between hover:shadow-md transition-all">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="neutral" className="text-xs">{s.category}</Badge>
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        {s.isPublic ? "🌍 Paylaşılabilir" : "🔒 Özel"}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-slate-900 dark:text-white">{s.title}</h3>
-                      {s.description && (
-                        <p className="text-xs text-slate-500 line-clamp-2 mt-1">{s.description}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                      {s.questionCount} Soru ({s.difficulty})
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-lg text-rose-600 hover:bg-rose-50"
-                        onClick={() => handleDeleteSet(s.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="rounded-lg"
-                        onClick={() => {
-                          setRoomSourceType("QUESTION_SET");
-                          setSelectedSetId(s.id);
-                          setRoomTitle(`${s.title} Odası`);
-                          setActiveTab("create");
-                        }}
-                      >
-                        Oda Kur
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 4: LEADERBOARD (GENÇ QUIZ SIRALAMASI) */}
-      {activeTab === "leaderboard" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-amber-500" />
-              <span>Genç Quiz Genel Sıralaması</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">Genç Sosyal'in en başarılı quiz yarışmacıları ve toplam puan tablosu.</p>
-          </div>
-
-          <Card className="overflow-hidden">
             {loadingLeaderboard ? (
-              <div className="p-8 text-center text-sm text-slate-400 animate-pulse">Liderlik tablosu yükleniyor...</div>
-            ) : leaderboard.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-400">Henüz tamamlanan quiz bulunamadı.</div>
+              <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-5 space-y-3 animate-pulse">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
+                ))}
+              </div>
+            ) : !leaderboardError && leaderboard.length === 0 ? (
+              <QuizStatePanel
+                icon={<Trophy className="w-6 h-6" />}
+                title="Henüz sıralama oluşmadı"
+                description="Tamamlanan canlı quiz odaları burada toplam puan sıralamasıyla listelenir."
+              />
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-white/5">
+              <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden divide-y divide-slate-100 dark:divide-white/[0.06]">
                 {leaderboard.map((item, idx) => {
-                  const isTop3 = idx < 3;
-                  const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
                   const isCurrentUser = user && user.username === item.username;
+                  const rank = item.rank || idx + 1;
 
                   return (
-                    <div
+                    <motion.div
                       key={item.userId}
-                      className={`p-4 flex items-center justify-between gap-4 transition-colors ${
-                        isCurrentUser ? "bg-blue-50/70 dark:bg-blue-950/30" : "hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
-                      }`}
+                      initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: Math.min(idx * 0.025, 0.25) }}
+                      className={cn(
+                        "px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between gap-4 transition-colors",
+                        isCurrentUser
+                          ? "bg-blue-50/70 dark:bg-blue-950/30"
+                          : "hover:bg-slate-50/70 dark:hover:bg-white/[0.02]"
+                      )}
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-8 text-center font-black text-sm shrink-0">
-                          {medal ? (
-                            <span className="text-lg">{medal}</span>
-                          ) : (
-                            <span className="text-slate-400">#{item.rank}</span>
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center font-mono text-xs font-extrabold shrink-0 tabular-nums",
+                            rank === 1
+                              ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                              : rank === 2
+                              ? "bg-slate-200/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200"
+                              : rank === 3
+                              ? "bg-orange-100/80 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300"
+                              : "text-slate-400 dark:text-slate-500"
                           )}
+                        >
+                          {rank}
                         </div>
 
                         <Avatar
@@ -1493,248 +2093,266 @@ export function GencQuiz() {
                         <div className="min-w-0">
                           <Link
                             to={`/profile/${item.username}`}
-                            className="font-bold text-sm text-slate-900 dark:text-white hover:text-blue-600 transition-colors truncate block"
+                            className="font-bold text-sm text-slate-900 dark:text-white hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors truncate block"
                           >
                             @{item.username}
+                            {isCurrentUser && (
+                              <span className="ml-1.5 text-[11px] font-semibold text-[#2563EB] dark:text-blue-400">
+                                (Sen)
+                              </span>
+                            )}
                           </Link>
-                          <span className="text-[11px] text-slate-400 font-medium">
-                            {item.totalQuizes} Quiz • {item.wins} Galibiyet
-                          </span>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                            {item.totalQuizes} quiz · {item.wins} birincilik
+                          </p>
                         </div>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="text-base font-black text-amber-600 dark:text-amber-400">
-                          {item.totalScore?.toLocaleString()}
+                        <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                          {(item.totalScore ?? 0).toLocaleString("tr-TR")}
                         </span>
-                        <span className="text-[11px] text-slate-400 block font-medium">Puan</span>
+                        <span className="text-[11px] text-slate-400 block">puan</span>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
             )}
-          </Card>
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {/* TAB 5: CATEGORIES (SORU KATEGORİLERİ) */}
-      {activeTab === "categories" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <Compass className="w-6 h-6 text-indigo-600" />
-              <span>Soru Kategorileri</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">İstediğin konuyu seç ve hemen o kategoride bir oda oluşturarak yarışmaya başla.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {CATEGORIES.map((cat) => (
-              <Card key={cat} className="p-5 flex flex-col justify-between hover:border-blue-500 hover:shadow-lg transition-all group">
-                <div className="space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">
-                    {cat.substring(0, 2)}
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                    {cat}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Özenle filtrelenmiş {cat.toLowerCase()} sorularıyla bilgini sına.
-                  </p>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/5">
-                  <Button
-                    variant="secondary"
-                    className="w-full text-xs font-bold rounded-xl"
-                    onClick={() => {
-                      setRoomCategory(cat);
-                      setRoomTitle(`${cat} Bilgi Yarışması`);
-                      setActiveTab("create");
-                    }}
-                  >
-                    Bu Kategoride Oda Kur 🚀
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 6: HISTORY (GEÇMİŞ QUİZLERİM) */}
-      {activeTab === "history" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <History className="w-6 h-6 text-purple-600" />
-              <span>Geçmiş Quizlerim</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">Katıldığın önceki yarışmalar, elde ettiğin dereceler ve puanların.</p>
-          </div>
-
-          {!isAuthenticated ? (
-            <Card className="p-8 text-center space-y-3">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                Geçmiş quizlerini görüntülemek için lütfen giriş yapınız.
+        {/* -------------------------------------------------------------------
+            TAB E: QUIZ GEÇMİŞİM
+            ------------------------------------------------------------------- */}
+        {activeTab === "history" && (
+          <motion.div
+            key="tab-history"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Quiz Geçmişim
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Katıldığın canlı yarışmalar, derecelerin ve doğruluk özetlerin.
               </p>
-              <Button variant="primary" onClick={openModal} className="rounded-xl font-bold">
-                Giriş Yap
-              </Button>
-            </Card>
-          ) : loadingHistory ? (
-            <div className="space-y-3 animate-pulse">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-slate-100 dark:bg-white/5" />
-              ))}
             </div>
-          ) : quizHistory.length === 0 ? (
-            <Card className="p-8 text-center space-y-2">
-              <p className="text-base font-bold text-slate-900 dark:text-white">Henüz tamamlanan bir quiz geçmişiniz yok</p>
-              <p className="text-xs text-slate-500">Bir odaya katılarak veya kendiniz oluşturarak ilk yarışmanızı yapabilirsiniz!</p>
-              <div className="pt-2">
-                <Button variant="primary" onClick={() => setActiveTab("hub")} className="rounded-xl font-bold text-xs">
-                  Quiz Odalarına Göz At
-                </Button>
+
+            {historyError && (
+              <QuizErrorBanner message={historyError} onRetry={fetchHistoryAndStats} />
+            )}
+
+            {!isAuthenticated ? (
+              <QuizStatePanel
+                icon={<History className="w-6 h-6" />}
+                title="Geçmişini görüntülemek için giriş yap"
+                description="Tamamladığın yarışmalar ve puan geçmişin hesabınla senkronize olarak saklanır."
+                action={
+                  <Button variant="primary" onClick={openModal} className="rounded-2xl">
+                    Giriş Yap
+                  </Button>
+                }
+              />
+            ) : loadingHistory ? (
+              <div className="space-y-3 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-20 rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/70 dark:border-white/[0.06]"
+                  />
+                ))}
               </div>
-            </Card>
-          ) : (
-            <Card className="overflow-hidden divide-y divide-slate-100 dark:divide-white/5">
-              {quizHistory.map((item) => (
-                <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+            ) : !historyError && quizHistory.length === 0 ? (
+              <QuizStatePanel
+                icon={<Clock className="w-6 h-6" />}
+                title="Henüz tamamlanan yarışma geçmişin yok"
+                description="Canlı bir odaya katılıp yarışmayı tamamladığında tüm derecelerin burada görünecek."
+                action={
+                  <Button
+                    variant="primary"
+                    onClick={() => setActiveTab("hub")}
+                    className="rounded-2xl"
+                  >
+                    Quiz Merkezine Göz At
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden divide-y divide-slate-100 dark:divide-white/[0.06]">
+                {quizHistory.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
                         {item.roomTitle}
-                      </span>
-                      <Badge variant="neutral" className="text-[10px]">{item.category}</Badge>
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span>{item.category}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {new Date(item.playedAt).toLocaleDateString("tr-TR", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span className="tabular-nums">
+                          {item.correctCount} doğru / {item.wrongCount} yanlış ({item.totalQuestions} soru)
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
-                      <span>{new Date(item.playedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                      <span>•</span>
-                      <span>{item.totalQuestions} Soru</span>
-                      <span>•</span>
-                      <span>{item.correctCount} Doğru, {item.wrongCount} Yanlış</span>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-white/[0.06]">
+                      <div className="text-left sm:text-right">
+                        <span className="text-[11px] text-slate-400 block">Sıralama</span>
+                        <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
+                          {item.rank}. / {item.totalPlayers}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] text-slate-400 block">Puan</span>
+                        <span className="text-sm sm:text-base font-extrabold text-[#2563EB] dark:text-blue-400 font-mono tabular-nums">
+                          {Number(item.score || 0).toLocaleString("tr-TR")}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
-                    <div className="text-left sm:text-right">
-                      <span className="text-xs text-slate-400 block font-medium">Sıralama</span>
-                      <span className="text-base font-black text-slate-900 dark:text-white">
-                        {item.rank === 1 ? "🥇 1. Sıra" : item.rank === 2 ? "🥈 2. Sıra" : item.rank === 3 ? "🥉 3. Sıra" : `${item.rank}. / ${item.totalPlayers}`}
-                      </span>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400 block font-medium">Skor</span>
-                      <span className="text-base font-black text-amber-500">
-                        {item.score} Puan
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* MODAL: CREATE QUESTION SET */}
+      {/* =====================================================================
+          5. MODAL: CREATE CUSTOM QUESTION SET
+          ===================================================================== */}
       <AnimatePresence>
         {showCreateSetModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 dark:border-white/10 my-8 max-h-[90vh] overflow-y-auto"
+              exit={prefersReducedMotion ? undefined : { scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-[#111B2E] rounded-[24px] max-w-2xl w-full p-5 sm:p-7 space-y-6 shadow-2xl border border-slate-200/80 dark:border-white/[0.1] my-6 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Yeni Soru Seti Oluştur</h3>
-                  <p className="text-xs text-slate-500">Kendi sorularını hazırla ve quiz odalarında kullan.</p>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Yeni Soru Seti Oluştur
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Sorularını hazırla, kaydet ve istediğin zaman canlı odalarda kullan.
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowCreateSetModal(false)}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                  aria-label="Kapat"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Set Meta Details */}
+              {/* Meta Fields */}
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Set Başlığı *</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Set Başlığı *
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Örn: 90'lar Nostalji Bilgi Seti"
+                    placeholder="Örn: Türk Bilim Tarihi Seti"
                     value={newSetTitle}
                     onChange={(e) => setNewSetTitle(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-sm font-medium text-slate-900 dark:text-white"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Açıklama</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Açıklama
+                  </label>
                   <textarea
                     rows={2}
-                    placeholder="Set hakkında kısa açıklama..."
+                    placeholder="Soru seti hakkında kısa bilgi..."
                     value={newSetDesc}
                     onChange={(e) => setNewSetDesc(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-medium"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-sm text-slate-900 dark:text-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300 block mb-1">Kategori</label>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Kategori
+                    </label>
                     <select
                       value={newSetCategory}
                       onChange={(e) => setNewSetCategory(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-xs font-medium text-slate-900 dark:text-white"
                     >
-                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300 block mb-1">Zorluk</label>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Zorluk
+                    </label>
                     <select
                       value={newSetDifficulty}
                       onChange={(e) => setNewSetDifficulty(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-xs font-medium text-slate-900 dark:text-white"
                     >
-                      {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
+                      {DIFFICULTIES.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300 block mb-1">Gizlilik</label>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Görünürlük
+                    </label>
                     <select
                       value={newSetIsPublic ? "public" : "private"}
                       onChange={(e) => setNewSetIsPublic(e.target.value === "public")}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-xs font-medium text-slate-900 dark:text-white"
                     >
-                      <option value="private">🔒 Özel (Sadece ben)</option>
-                      <option value="public">🌍 Paylaşılabilir</option>
+                      <option value="private">Özel (Sadece ben)</option>
+                      <option value="public">Paylaşılabilir</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Questions List */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+              {/* Questions Builder */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/[0.07]">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                     Sorular ({newSetQuestions.length})
                   </h4>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
                     onClick={() => {
                       setNewSetQuestions([
                         ...newSetQuestions,
@@ -1746,26 +2364,33 @@ export function GencQuiz() {
                             { key: "B", text: "", isCorrect: false },
                             { key: "C", text: "", isCorrect: false },
                             { key: "D", text: "", isCorrect: false },
-                          ]
-                        }
+                          ],
+                        },
                       ]);
                     }}
-                    className="rounded-lg text-xs font-bold"
+                    className="rounded-xl text-xs font-bold"
                   >
-                    ➕ Soru Ekle
+                    Soru Ekle
                   </Button>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {newSetQuestions.map((q, qIndex) => (
-                    <div key={qIndex} className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 space-y-3">
+                    <div
+                      key={qIndex}
+                      className="p-4 rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] space-y-3"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-blue-600">Soru #{qIndex + 1}</span>
+                        <span className="text-xs font-bold text-[#2563EB] dark:text-blue-400">
+                          Soru #{qIndex + 1}
+                        </span>
                         {newSetQuestions.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => setNewSetQuestions(newSetQuestions.filter((_, idx) => idx !== qIndex))}
-                            className="text-xs text-rose-500 font-bold hover:underline cursor-pointer"
+                            onClick={() =>
+                              setNewSetQuestions(newSetQuestions.filter((_, idx) => idx !== qIndex))
+                            }
+                            className="text-xs text-[#EF4444] font-semibold hover:underline cursor-pointer"
                           >
                             Soruyu Kaldır
                           </button>
@@ -1774,20 +2399,19 @@ export function GencQuiz() {
 
                       <input
                         type="text"
-                        placeholder="Soru metnini yazınız..."
+                        placeholder="Soru metnini yazın..."
                         value={q.question}
                         onChange={(e) => {
                           const updated = [...newSetQuestions];
                           updated[qIndex].question = e.target.value;
                           setNewSetQuestions(updated);
                         }}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 text-sm font-medium"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#111B2E] text-sm text-slate-900 dark:text-white"
                       />
 
-                      {/* Options */}
                       <div className="space-y-2">
-                        <span className="text-[11px] font-bold text-slate-400 block uppercase">
-                          Seçenekler (Doğru seçeneği yeşil radyo butonuyla seçiniz):
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block">
+                          Seçenekler (Doğru yanıtı işaretleyin):
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {q.options.map((opt: any, optIndex: number) => (
@@ -1803,9 +2427,11 @@ export function GencQuiz() {
                                   });
                                   setNewSetQuestions(updated);
                                 }}
-                                className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                                className="w-4 h-4 accent-[#16A34A] cursor-pointer"
                               />
-                              <span className="text-xs font-bold w-4 text-slate-400">{opt.key}</span>
+                              <span className="text-xs font-bold w-4 text-slate-500">
+                                {opt.key}
+                              </span>
                               <input
                                 type="text"
                                 placeholder={`Seçenek ${opt.key}`}
@@ -1815,7 +2441,7 @@ export function GencQuiz() {
                                   updated[qIndex].options[optIndex].text = e.target.value;
                                   setNewSetQuestions(updated);
                                 }}
-                                className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-medium"
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#111B2E] text-xs text-slate-900 dark:text-white"
                               />
                             </div>
                           ))}
@@ -1824,25 +2450,25 @@ export function GencQuiz() {
 
                       <input
                         type="text"
-                        placeholder="Opsiyonel soru açıklaması..."
+                        placeholder="İsteğe bağlı açıklama (cevap sonrası gösterilir)..."
                         value={q.explanation}
                         onChange={(e) => {
                           const updated = [...newSetQuestions];
                           updated[qIndex].explanation = e.target.value;
                           setNewSetQuestions(updated);
                         }}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 text-xs text-slate-500 font-medium"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#111B2E] text-xs text-slate-600 dark:text-slate-300"
                       />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-white/[0.07]">
                 <Button
                   variant="secondary"
                   onClick={() => setShowCreateSetModal(false)}
-                  className="rounded-xl font-bold"
+                  className="rounded-xl text-xs font-bold"
                 >
                   İptal
                 </Button>
@@ -1850,9 +2476,10 @@ export function GencQuiz() {
                   variant="primary"
                   onClick={handleSaveQuestionSet}
                   isLoading={isSavingSet}
-                  className="rounded-xl font-bold shadow-md shadow-blue-500/20"
+                  leftIcon={<Check className="w-4 h-4" />}
+                  className="rounded-xl text-xs font-bold"
                 >
-                  Soru Setini Kaydet ✓
+                  Soru Setini Kaydet
                 </Button>
               </div>
             </motion.div>

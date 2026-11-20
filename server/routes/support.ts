@@ -4,6 +4,7 @@ import { supportTickets, supportTicketMessages, users, profiles } from "../../sr
 import { eq, desc, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth.js";
 import { z } from "zod";
+import { sendSupportTicketEmail } from "../utils/mailer.js";
 
 export const supportRouter = Router();
 
@@ -37,6 +38,34 @@ supportRouter.post("/", requireAuth, async (req, res) => {
       description: parsed.data.description,
       status: "OPEN"
     }).returning();
+
+    // Send non-blocking support ticket confirmation email
+    setImmediate(async () => {
+      try {
+        const [u] = await db
+          .select({
+            email: users.email,
+            username: users.username,
+            displayName: profiles.displayName,
+          })
+          .from(users)
+          .leftJoin(profiles, eq(users.id, profiles.userId))
+          .where(eq(users.id, currentUserId))
+          .limit(1);
+        if (!u?.email) return;
+        await sendSupportTicketEmail({
+          to: u.email,
+          displayName: u.displayName || u.username,
+          ticketId: ticket.id,
+          subject: ticket.subject,
+          category: ticket.category,
+          mode: "created",
+          messagePreview: ticket.description,
+        });
+      } catch (err) {
+        console.warn("[Support] Destek talebi e-postası gönderilemedi:", err);
+      }
+    });
 
     res.json({ success: true, data: ticket });
   } catch (error) {

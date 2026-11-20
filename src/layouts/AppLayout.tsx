@@ -6,7 +6,7 @@ import { DesktopSidebar } from "../components/navigation/DesktopSidebar";
 import { MobileBottomNav } from "../components/navigation/MobileBottomNav";
 import { RightSidebar } from "../components/navigation/RightSidebar";
 import { LoginBottomSheet } from "../components/auth/LoginBottomSheet";
-import { LoadingState } from "../components/ui/LoadingState";
+import { BrandGLogoLoader } from "../components/ui/BrandGLogoAnimation";
 import { PageTransition } from "../components/ui/PageTransition";
 import { MobileSidebarDrawer } from "../components/navigation/MobileSidebarDrawer";
 import { StoryCreateModal } from "../components/StoryCreateModal";
@@ -18,7 +18,7 @@ export function AppLayout() {
   const location = useLocation();
 
   if (isLoading) {
-    return <LoadingState fullPage text="Genç Sosyal yükleniyor..." />;
+    return <BrandGLogoLoader fullPage />;
   }
 
   // Full-width pages that need maximum horizontal canvas without right sidebar

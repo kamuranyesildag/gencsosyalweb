@@ -12,6 +12,7 @@ import {
   ExternalLink 
 } from "lucide-react";
 import { useThemeStore } from "../context/useTheme";
+import { PageTransition } from "../components/ui/PageTransition";
 
 export function AuthLayout() {
   const { actualTheme, toggleTheme } = useThemeStore();
@@ -171,7 +172,9 @@ export function AuthLayout() {
 
         {/* Center: Auth Form Container */}
         <div className="w-full max-w-md mx-auto my-auto py-4">
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </div>
 
         {/* Bottom Helper Links */}

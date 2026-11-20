@@ -1,46 +1,51 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { useAuthStore, isJwtExpired } from "../context/useAuth";
 import { fetchApi, requestTokenRefresh } from "../lib/api";
-import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
-import { 
-  Gamepad2, 
-  Users, 
-  Crown, 
-  Play, 
-  Copy, 
-  Check, 
-  Share2, 
-  Clock, 
-  Trophy, 
-  Award, 
-  ArrowLeft, 
-  ShieldAlert, 
-  Sparkles, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Gamepad2,
+  Users,
+  Crown,
+  Play,
+  Copy,
+  Check,
+  Share2,
+  Clock,
+  Trophy,
+  ArrowLeft,
+  ShieldAlert,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
-  HelpCircle,
-  BarChart3,
-  User,
-  Zap,
   Volume2,
   VolumeX,
   QrCode,
   Flame,
-  Radio,
   UserX,
-  MessageSquare,
-  Compass,
-  Send
+  UserPlus,
+  LogOut,
+  Wifi,
+  WifiOff,
+  Lightbulb,
+  X,
+  Plus,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
-import { Card } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
 import { Avatar } from "../components/ui/Avatar";
 import { toast } from "../components/ui/Toast";
-import { motion, AnimatePresence } from "motion/react";
+import { confirmDialog } from "../components/ui/ConfirmDialog";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import {
+  CircularTimer,
+  SegmentedProgress,
+  QuizOptionCard,
+  AnimatedScore,
+  QuizPodium,
+  QuizStatePanel,
+  type OptionVisualState,
+} from "../components/quiz/QuizPrimitives";
+import { cn } from "../lib/utils";
 
 interface Player {
   userId: number;
@@ -80,11 +85,10 @@ interface FloatingReaction {
 }
 
 const WARMUP_TIPS = [
-  "⚡ Hızlı cevap veren yarışmacılar +50 puana kadar ekstra Hız Bonusu kazanır!",
-  "🔥 Arka arkaya 3 ve üzeri doğru cevap vermek Seri Çarpanını aktif eder.",
-  "🧠 Soru başına verilen süreyi dikkatli kullan; son 5 saniye ekran rengi uyarır!",
-  "🇹🇷 Genç Quiz'de Genel Kültür'den Bilim ve Teknolojiye zengin milli soru havuzu bulunur.",
-  "🏆 Yarışma sonunda ilk 3'e giren yarışmacılar şampiyonluk podyumunda taçlandırılır."
+  "Hızlı doğru cevaplar +50 puana kadar ek Hız Bonusu kazandırır.",
+  "Arka arkaya 3 ve üzeri doğru cevap vermek Seri Çarpanını etkinleştirir.",
+  "Her soruda son 5 saniyeye girildiğinde sayaç seni uyarır.",
+  "Yarışma sonunda ilk 3 oyuncu şampiyonluk podyumunda yerini alır.",
 ];
 
 export function QuizRoom() {
@@ -92,19 +96,22 @@ export function QuizRoom() {
   const code = (rawCode || "").toUpperCase().trim();
 
   const { user, isAuthenticated, accessToken } = useAuthStore();
-  const { openModal } = useAuthModalStore();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
 
   useSEO({
     title: code ? `Genç Quiz #${code} — Canlı Yarışma Odası | Genç Sosyal` : "Genç Quiz Canlı Oda | Genç Sosyal",
-    description: `Genç Quiz #${code || ""} odasında canlı bilgi yarışması mücadelesi! Soruları en hızlı sen yanıtla, arkadaşlarına meydan oku ve liderlik puanı kazan.`,
+    description: `Genç Quiz #${code || ""} odasında canlı bilgi yarışması mücadelesi! Soruları en hızlı sen yanıtla ve zirveye yerleş.`,
     canonicalPath: code ? `/quiz/room/${code}` : undefined,
   });
 
-  // Room State
+  // Room & Connection State
   const [room, setRoom] = useState<any>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [status, setStatus] = useState<"CONNECTING" | "LOBBY" | "QUESTION_ACTIVE" | "QUESTION_RESULT" | "FINISHED" | "ERROR">("CONNECTING");
+  const [status, setStatus] = useState<
+    "CONNECTING" | "LOBBY" | "QUESTION_ACTIVE" | "QUESTION_RESULT" | "FINISHED" | "ERROR"
+  >("CONNECTING");
+  const [wsState, setWsState] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Active Question State
@@ -113,7 +120,11 @@ export function QuizRoom() {
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
-  const [answerResult, setAnswerResult] = useState<{ pointsEarned: number; isCorrect: boolean; streak: number } | null>(null);
+  const [answerResult, setAnswerResult] = useState<{
+    pointsEarned: number;
+    isCorrect: boolean;
+    streak: number;
+  } | null>(null);
 
   // Question Result Reveal State
   const [revealedResult, setRevealedResult] = useState<{
@@ -129,13 +140,12 @@ export function QuizRoom() {
     totalQuestions: number;
   } | null>(null);
 
-  // User tab cheat warning
+  // User tab blur warning
   const [cheatWarning, setCheatWarning] = useState<string | null>(null);
 
-  // Clipboard copied
+  // Clipboard & Modals
   const [copied, setCopied] = useState(false);
-
-  // Modals & UI Controls
+  const [copiedLink, setCopiedLink] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [inviteUsername, setInviteUsername] = useState("");
@@ -144,13 +154,15 @@ export function QuizRoom() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
 
-  // WebSocket Ref & Audio Context
+  // Refs
   const wsRef = useRef<WebSocket | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const isHost = user && room && (room.hostId === user.id || players.find(p => p.userId === user.id)?.isHost);
+  const isHost = Boolean(
+    user && room && (room.hostId === user.id || players.find((p) => p.userId === user.id)?.isHost)
+  );
 
-  // Sound Synth Generator
+  // Sound Synth Generator (Preserved)
   const playSoundEffect = (type: "pop" | "start" | "correct" | "wrong" | "tick" | "win") => {
     if (!soundEnabled) return;
     try {
@@ -175,7 +187,7 @@ export function QuizRoom() {
         osc.type = "sine";
         osc.frequency.setValueAtTime(440, now);
         osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
-        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.18, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
@@ -184,16 +196,16 @@ export function QuizRoom() {
         osc.frequency.setValueAtTime(330, now);
         osc.frequency.setValueAtTime(440, now + 0.1);
         osc.frequency.setValueAtTime(660, now + 0.2);
-        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.setValueAtTime(0.22, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
       } else if (type === "correct") {
         osc.type = "sine";
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-        osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-        gain.gain.setValueAtTime(0.3, now);
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
+        osc.frequency.setValueAtTime(783.99, now + 0.2);
+        gain.gain.setValueAtTime(0.26, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
@@ -201,39 +213,38 @@ export function QuizRoom() {
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(220, now);
         osc.frequency.setValueAtTime(160, now + 0.15);
-        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.18, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
       } else if (type === "tick") {
         osc.type = "sine";
         osc.frequency.setValueAtTime(800, now);
-        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.setValueAtTime(0.07, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
       }
-    } catch (e) {
-      // Audio not permitted or failed
+    } catch {
+      // Audio not permitted
     }
   };
 
-  // Rotating tips in lobby
+  // Rotating warmup tips in lobby
   useEffect(() => {
     if (status !== "LOBBY") return;
     const interval = setInterval(() => {
       setCurrentTipIndex((prev) => (prev + 1) % WARMUP_TIPS.length);
-    }, 4500);
+    }, 5000);
     return () => clearInterval(interval);
   }, [status]);
 
-  // Connect WebSocket & Fetch Initial Room Details
+  // Connect WebSocket & Fetch Initial Room Details (100% Preserved Protocol)
   useEffect(() => {
     if (!code) return;
 
     let isSubscribed = true;
 
-    // 1. Instantly fetch room data via HTTP so UI doesn't hang on CONNECTING
     const fetchRoomDetails = async () => {
       try {
         const res = await fetchApi(`/quiz/rooms/${code}`);
@@ -243,7 +254,7 @@ export function QuizRoom() {
         if (json.success && json.room) {
           setRoom(json.room);
           if (json.players) setPlayers(json.players);
-          setStatus((prev) => (prev === "CONNECTING" ? (json.room.status || "LOBBY") : prev));
+          setStatus((prev) => (prev === "CONNECTING" ? json.room.status || "LOBBY" : prev));
         } else if (!json.success) {
           setErrorMessage(json.error?.message || "Oda bulunamadı.");
           setStatus("ERROR");
@@ -255,9 +266,9 @@ export function QuizRoom() {
 
     fetchRoomDetails();
 
-    // 2. Connect WebSocket for Realtime Gameplay
     let ws: WebSocket | null = null;
     const connectWs = async () => {
+      setWsState("connecting");
       let currentToken = useAuthStore.getState().accessToken;
       if (!currentToken || isJwtExpired(currentToken)) {
         const refreshed = await requestTokenRefresh();
@@ -269,7 +280,9 @@ export function QuizRoom() {
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/api/v1/quiz/ws${currentToken ? `?token=${encodeURIComponent(currentToken)}` : ""}`;
+      const wsUrl = `${protocol}//${host}/api/v1/quiz/ws${
+        currentToken ? `?token=${encodeURIComponent(currentToken)}` : ""
+      }`;
 
       try {
         ws = new WebSocket(wsUrl);
@@ -277,165 +290,168 @@ export function QuizRoom() {
 
         ws.onopen = () => {
           if (!isSubscribed) return;
-          // Join Room
-          ws?.send(JSON.stringify({
-            event: "JOIN_ROOM",
-            payload: { roomCode: code, token: currentToken },
-          }));
+          setWsState("connected");
+          ws?.send(
+            JSON.stringify({
+              event: "JOIN_ROOM",
+              payload: { roomCode: code, token: currentToken },
+            })
+          );
         };
 
-      ws.onmessage = (event) => {
-        if (!isSubscribed) return;
-        try {
-          const message = JSON.parse(event.data);
-          const { event: evtName, data } = message;
+        ws.onmessage = (event) => {
+          if (!isSubscribed) return;
+          try {
+            const message = JSON.parse(event.data);
+            const { event: evtName, data } = message;
 
-          switch (evtName) {
-            case "ROOM_STATE":
-            case "ROOM_JOINED": {
-              const roomObj = data.room || data;
-              setRoom(roomObj);
-              setPlayers(data.players || data.leaderboard || []);
-              setStatus(roomObj.status || "LOBBY");
+            switch (evtName) {
+              case "ROOM_STATE":
+              case "ROOM_JOINED": {
+                const roomObj = data.room || data;
+                setRoom(roomObj);
+                setPlayers(data.players || data.leaderboard || []);
+                setStatus(roomObj.status || "LOBBY");
 
-              if (data.currentQuestion) {
-                setCurrentQuestion(data.currentQuestion);
-                setTimeLeft(data.currentQuestion.duration || 20);
+                if (data.currentQuestion) {
+                  setCurrentQuestion(data.currentQuestion);
+                  setTimeLeft(data.currentQuestion.duration || 20);
+                }
+                break;
               }
-              break;
-            }
 
-            case "PLAYER_JOINED": {
-              playSoundEffect("pop");
-              if (data.player) {
-                setPlayers((prev) => {
-                  const existingIdx = prev.findIndex((p) => p.userId === data.player.userId);
-                  if (existingIdx >= 0) {
-                    const next = [...prev];
-                    next[existingIdx] = { ...next[existingIdx], ...data.player, isConnected: true };
-                    return next;
-                  }
-                  return [...prev, data.player];
+              case "PLAYER_JOINED": {
+                playSoundEffect("pop");
+                if (data.player) {
+                  setPlayers((prev) => {
+                    const existingIdx = prev.findIndex((p) => p.userId === data.player.userId);
+                    if (existingIdx >= 0) {
+                      const next = [...prev];
+                      next[existingIdx] = { ...next[existingIdx], ...data.player, isConnected: true };
+                      return next;
+                    }
+                    return [...prev, data.player];
+                  });
+                } else if (data.players) {
+                  setPlayers(data.players);
+                }
+                break;
+              }
+
+              case "PLAYER_LEFT": {
+                setPlayers((prev) =>
+                  prev.map((p) => (p.userId === data.userId ? { ...p, isConnected: false } : p))
+                );
+                break;
+              }
+
+              case "PLAYER_KICKED": {
+                toast.error(data.message || "Odadan çıkarıldınız.");
+                navigate("/quiz");
+                break;
+              }
+
+              case "LOBBY_REACTION": {
+                playSoundEffect("pop");
+                const newReaction: FloatingReaction = {
+                  id: data.id || `${Date.now()}_${Math.random()}`,
+                  userId: data.userId,
+                  username: data.username,
+                  emoji: data.emoji,
+                  x: 12 + Math.random() * 76,
+                };
+                setFloatingReactions((prev) => [...prev.slice(-12), newReaction]);
+                setTimeout(() => {
+                  setFloatingReactions((prev) => prev.filter((r) => r.id !== newReaction.id));
+                }, 2400);
+                break;
+              }
+
+              case "QUIZ_STARTED": {
+                playSoundEffect("start");
+                setStatus("QUESTION_ACTIVE");
+                toast.info("Yarışma başladı! Başarılar!");
+                break;
+              }
+
+              case "QUESTION_STARTED": {
+                setStatus("QUESTION_ACTIVE");
+                setCurrentQuestion(data.question);
+                setSelectedOption(null);
+                setAnswerSubmitted(false);
+                setAnswerResult(null);
+                setRevealedResult(null);
+                setQuestionStartTime(Date.now());
+                setTimeLeft(data.duration || 20);
+
+                if (data.leaderboard) {
+                  setPlayers(data.leaderboard);
+                }
+                break;
+              }
+
+              case "ANSWER_ACK": {
+                setAnswerResult(data);
+                if (data.isCorrect) playSoundEffect("correct");
+                else playSoundEffect("wrong");
+                break;
+              }
+
+              case "QUESTION_ENDED": {
+                setStatus("QUESTION_RESULT");
+                setRevealedResult({
+                  correctOptionKey: data.correctOptionKey,
+                  correctOptionText: data.correctOptionText,
+                  explanation: data.explanation,
                 });
-              } else if (data.players) {
-                setPlayers(data.players);
+                if (data.leaderboard) {
+                  setPlayers(data.leaderboard);
+                }
+                break;
               }
-              break;
+
+              case "LEADERBOARD_UPDATED": {
+                if (data.leaderboard) {
+                  setPlayers(data.leaderboard);
+                }
+                break;
+              }
+
+              case "QUIZ_FINISHED": {
+                playSoundEffect("start");
+                setStatus("FINISHED");
+                setFinishedData({
+                  podium: data.podium || [],
+                  leaderboard: data.leaderboard || [],
+                  totalQuestions: data.totalQuestions || 10,
+                });
+                break;
+              }
+
+              case "ERROR": {
+                setErrorMessage(data.message || "Bir hata oluştu.");
+                setStatus("ERROR");
+                break;
+              }
+
+              default:
+                break;
             }
-
-          case "PLAYER_LEFT": {
-            setPlayers((prev) =>
-              prev.map((p) => (p.userId === data.userId ? { ...p, isConnected: false } : p))
-            );
-            break;
+          } catch (err) {
+            console.error("Error parsing WS message:", err);
           }
+        };
 
-          case "PLAYER_KICKED": {
-            toast.error(data.message || "Odadan çıkarıldınız.");
-            navigate("/quiz");
-            break;
-          }
+        ws.onerror = () => {
+          if (isSubscribed) setWsState("disconnected");
+        };
 
-          case "LOBBY_REACTION": {
-            playSoundEffect("pop");
-            const newReaction: FloatingReaction = {
-              id: data.id || `${Date.now()}_${Math.random()}`,
-              userId: data.userId,
-              username: data.username,
-              emoji: data.emoji,
-              x: 10 + Math.random() * 80,
-            };
-            setFloatingReactions((prev) => [...prev.slice(-15), newReaction]);
-            setTimeout(() => {
-              setFloatingReactions((prev) => prev.filter((r) => r.id !== newReaction.id));
-            }, 2500);
-            break;
-          }
-
-          case "QUIZ_STARTED": {
-            playSoundEffect("start");
-            setStatus("QUESTION_ACTIVE");
-            toast.info("Quiz başladı! Başarılar!");
-            break;
-          }
-
-          case "QUESTION_STARTED": {
-            setStatus("QUESTION_ACTIVE");
-            setCurrentQuestion(data.question);
-            setSelectedOption(null);
-            setAnswerSubmitted(false);
-            setAnswerResult(null);
-            setRevealedResult(null);
-            setQuestionStartTime(Date.now());
-            setTimeLeft(data.duration || 20);
-
-            if (data.leaderboard) {
-              setPlayers(data.leaderboard);
-            }
-            break;
-          }
-
-          case "ANSWER_ACK": {
-            setAnswerResult(data);
-            if (data.isCorrect) playSoundEffect("correct");
-            else playSoundEffect("wrong");
-            break;
-          }
-
-          case "QUESTION_ENDED": {
-            setStatus("QUESTION_RESULT");
-            setRevealedResult({
-              correctOptionKey: data.correctOptionKey,
-              correctOptionText: data.correctOptionText,
-              explanation: data.explanation,
-            });
-            if (data.leaderboard) {
-              setPlayers(data.leaderboard);
-            }
-            break;
-          }
-
-          case "LEADERBOARD_UPDATED": {
-            if (data.leaderboard) {
-              setPlayers(data.leaderboard);
-            }
-            break;
-          }
-
-          case "QUIZ_FINISHED": {
-            playSoundEffect("start");
-            setStatus("FINISHED");
-            setFinishedData({
-              podium: data.podium || [],
-              leaderboard: data.leaderboard || [],
-              totalQuestions: data.totalQuestions || 10,
-            });
-            break;
-          }
-
-          case "ERROR": {
-            setErrorMessage(data.message || "Bir hata oluştu.");
-            setStatus("ERROR");
-            break;
-          }
-
-          default:
-            break;
-        }
-      } catch (err) {
-        console.error("Error parsing WS message:", err);
-      }
-    };
-
-      ws.onerror = (err) => {
-        console.warn("Quiz WS connection notice:", err);
-      };
-
-      ws.onclose = () => {
-        console.log("Quiz WS closed");
-      };
+        ws.onclose = () => {
+          if (isSubscribed) setWsState("disconnected");
+        };
       } catch (wsErr) {
         console.error("Failed to establish WebSocket connection:", wsErr);
+        if (isSubscribed) setWsState("disconnected");
       }
     };
 
@@ -447,7 +463,7 @@ export function QuizRoom() {
         ws.close();
       }
     };
-  }, [code, accessToken]);
+  }, [code, accessToken, navigate]);
 
   // Question Timer Countdown
   useEffect(() => {
@@ -478,7 +494,7 @@ export function QuizRoom() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && status === "QUESTION_ACTIVE") {
-        setCheatWarning("Dikkat: Soru esnasında sekmeden ayrıldınız!");
+        setCheatWarning("Dikkat: Soru esnasında sekmeden ayrıldınız.");
         setTimeout(() => setCheatWarning(null), 4000);
       }
     };
@@ -489,55 +505,66 @@ export function QuizRoom() {
     };
   }, [status]);
 
-  // Handle Start Quiz (Host Only)
+  // Host Actions
   const handleStartQuiz = () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      toast.error("Sunucu bağlantısı aktif değil.");
+      toast.error("Canlı sunucu bağlantısı aktif değil.");
       return;
     }
 
     playSoundEffect("start");
-    wsRef.current.send(JSON.stringify({
-      event: "START_QUIZ",
-    }));
+    wsRef.current.send(
+      JSON.stringify({
+        event: "START_QUIZ",
+      })
+    );
   };
 
-  // Kick player (Host Only)
-  const handleKickPlayer = (targetUserId: number) => {
+  const handleKickPlayer = async (targetUserId: number, username: string) => {
     if (!isHost || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    if (!confirm("Bu oyuncuyu odadan çıkarmak istediğinize emin misiniz?")) return;
+    const ok = await confirmDialog({
+      title: "Oyuncuyu Odadan Çıkar",
+      message: `@${username} kullanıcısını odadan çıkarmak istediğinize emin misiniz?`,
+      confirmLabel: "Çıkar",
+      cancelLabel: "Vazgeç",
+      variant: "danger",
+    });
+    if (!ok) return;
 
-    wsRef.current.send(JSON.stringify({
-      event: "KICK_PLAYER",
-      payload: { targetUserId },
-    }));
+    wsRef.current.send(
+      JSON.stringify({
+        event: "KICK_PLAYER",
+        payload: { targetUserId },
+      })
+    );
   };
 
-  // Send Lobby Reaction
+  const handleLeaveRoom = async () => {
+    if (status === "QUESTION_ACTIVE" || status === "QUESTION_RESULT") {
+      const ok = await confirmDialog({
+        title: "Yarışmadan Ayrıl",
+        message: "Yarışma devam ediyor. Odadan çıkmak istediğinize emin misiniz?",
+        confirmLabel: "Odadan Çık",
+        cancelLabel: "Devam Et",
+        variant: "warning",
+      });
+      if (!ok) return;
+    }
+    navigate("/quiz");
+  };
+
   const handleSendReaction = (emoji: string) => {
     playSoundEffect("pop");
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        event: "LOBBY_REACTION",
-        payload: { emoji },
-      }));
-    } else {
-      // Local fallback
-      const newReaction: FloatingReaction = {
-        id: `${Date.now()}_${Math.random()}`,
-        userId: user?.id || 0,
-        username: user?.username || "Sen",
-        emoji,
-        x: 10 + Math.random() * 80,
-      };
-      setFloatingReactions((prev) => [...prev, newReaction]);
-      setTimeout(() => {
-        setFloatingReactions((prev) => prev.filter((r) => r.id !== newReaction.id));
-      }, 2500);
+      wsRef.current.send(
+        JSON.stringify({
+          event: "LOBBY_REACTION",
+          payload: { emoji },
+        })
+      );
     }
   };
 
-  // Handle Answer Selection
   const handleSelectOption = (key: string) => {
     if (answerSubmitted || status !== "QUESTION_ACTIVE") return;
 
@@ -547,29 +574,39 @@ export function QuizRoom() {
     const timeTakenMs = Date.now() - questionStartTime;
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        event: "SUBMIT_ANSWER",
-        payload: {
-          optionKey: key,
-          timeTakenMs,
-        },
-      }));
+      wsRef.current.send(
+        JSON.stringify({
+          event: "SUBMIT_ANSWER",
+          payload: {
+            optionKey: key,
+            timeTakenMs,
+          },
+        })
+      );
+    } else {
+      toast.error("Bağlantı koptuğu için cevabınız gönderilemedi.");
     }
   };
 
-  // Copy Room Code
   const handleCopyCode = () => {
     playSoundEffect("pop");
     navigator.clipboard.writeText(code);
     setCopied(true);
-    toast.success(`Oda kodu (${code}) panoya kopyalandı!`);
-    setTimeout(() => setCopied(false), 2500);
+    toast.success(`Oda kodu (${code}) kopyalandı.`);
+    setTimeout(() => setCopied(false), 2400);
   };
 
-  // Share Code
+  const handleCopyRoomLink = () => {
+    playSoundEffect("pop");
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedLink(true);
+    toast.success("Oda bağlantısı kopyalandı.");
+    setTimeout(() => setCopiedLink(false), 2400);
+  };
+
   const handleShare = async () => {
     playSoundEffect("pop");
-    const shareText = `Genç Sosyal'de "${room?.title || 'Genç Quiz'}" odasına davetlisin! Oda Kodu: ${code}`;
+    const shareText = `Genç Sosyal'de "${room?.title || "Genç Quiz"}" odasına davetlisin! Oda Kodu: ${code}`;
     const shareUrl = window.location.href;
 
     if (navigator.share) {
@@ -579,15 +616,14 @@ export function QuizRoom() {
           text: shareText,
           url: shareUrl,
         });
-      } catch (e) {
-        // Ignored
+      } catch {
+        // User cancelled share
       }
     } else {
       handleCopyCode();
     }
   };
 
-  // Send Direct Invite
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteUsername.trim()) return;
@@ -606,27 +642,38 @@ export function QuizRoom() {
         setInviteUsername("");
         setShowInviteModal(false);
       }
-    } catch (err) {
-      toast.error("Bağlantı hatası.");
+    } catch {
+      toast.error("Bağlantı hatası oluştu.");
     } finally {
       setSendingInvite(false);
     }
   };
 
-  const currentPlayer = players.find(p => user && p.userId === user.id);
+  const currentPlayer = players.find((p) => user && p.userId === user.id);
+  const hostPlayer = players.find((p) => p.isHost);
 
-  // -------------------------------------------------------------
-  // RENDER: CONNECTING OR ERROR
-  // -------------------------------------------------------------
+  // =========================================================================
+  // RENDER: CONNECTING & ERROR STATES
+  // =========================================================================
   if (status === "CONNECTING") {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
-        <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center animate-spin shadow-lg shadow-blue-500/10">
-          <Gamepad2 className="w-8 h-8" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">Odaya Bağlanılıyor...</h2>
-          <p className="text-xs text-slate-500">Oda #{code} hazırlanıyor, lütfen bekleyiniz.</p>
+      <div className="w-full max-w-2xl mx-auto px-4 py-16">
+        <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-white/[0.08] p-10 text-center space-y-4 shadow-xs">
+          <motion.div
+            animate={prefersReducedMotion ? undefined : { rotate: [0, 8, -8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 flex items-center justify-center mx-auto"
+          >
+            <Gamepad2 className="w-7 h-7" />
+          </motion.div>
+          <div className="space-y-1">
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
+              Odaya Bağlanılıyor...
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Oda <span className="font-mono font-bold text-[#2563EB]">#{code}</span> hazırlanıyor.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -634,38 +681,46 @@ export function QuizRoom() {
 
   if (status === "ERROR") {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-5 text-center px-4 max-w-md mx-auto">
-        <div className="w-16 h-16 rounded-3xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/10">
-          <AlertCircle className="w-8 h-8" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">Quiz Odasına Katılınamadı</h2>
-          <p className="text-sm text-slate-500 font-medium">{errorMessage || "Bu kodla aktif bir quiz odası bulunamadı veya oda kapatılmış."}</p>
-        </div>
-        <Button variant="primary" onClick={() => navigate("/quiz")} className="rounded-full font-bold px-6">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quiz Ana Sayfasına Dön
-        </Button>
+      <div className="w-full max-w-lg mx-auto px-4 py-14">
+        <QuizStatePanel
+          variant="error"
+          icon={<AlertCircle className="w-6 h-6" />}
+          title="Quiz Odasına Katılınamadı"
+          description={
+            errorMessage ||
+            "Bu kodla aktif bir quiz odası bulunamadı veya yarışma sona ermiş olabilir."
+          }
+          action={
+            <Button
+              variant="primary"
+              onClick={() => navigate("/quiz")}
+              leftIcon={<ArrowLeft className="w-4 h-4" />}
+              className="rounded-2xl font-bold"
+            >
+              Quiz Merkezine Dön
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6 overflow-x-hidden relative min-h-[80vh]">
-      {/* FLOATING EMOJI REACTIONS OVERLAY */}
-      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6 pb-24 relative">
+      {/* FLOATING LOBBY REACTIONS OVERLAY */}
+      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" aria-hidden="true">
         <AnimatePresence>
           {floatingReactions.map((r) => (
             <motion.div
               key={r.id}
-              initial={{ opacity: 0, y: "85vh", scale: 0.5, x: `${r.x}vw` }}
-              animate={{ opacity: 1, y: "20vh", scale: 1.4 }}
-              exit={{ opacity: 0, scale: 1.8 }}
-              transition={{ duration: 2.2, ease: "easeOut" }}
-              className="absolute flex flex-col items-center gap-1 drop-shadow-lg select-none"
+              initial={{ opacity: 0, y: "82vh", scale: 0.6, x: `${r.x}vw` }}
+              animate={{ opacity: 1, y: "24vh", scale: 1.2 }}
+              exit={{ opacity: 0, scale: 1.4 }}
+              transition={{ duration: 2.1, ease: "easeOut" }}
+              className="absolute flex flex-col items-center gap-1 select-none"
             >
-              <span className="text-4xl sm:text-5xl">{r.emoji}</span>
-              <span className="text-[10px] font-black bg-black/60 text-white px-2 py-0.5 rounded-full backdrop-blur-xs">
+              <span className="text-3xl sm:text-4xl drop-shadow-sm">{r.emoji}</span>
+              <span className="text-[10px] font-bold bg-slate-900/75 text-white px-2 py-0.5 rounded-full">
                 {r.username}
               </span>
             </motion.div>
@@ -673,691 +728,848 @@ export function QuizRoom() {
         </AnimatePresence>
       </div>
 
-      {/* CHEAT TAB BLUR WARNING BANNER */}
-      {cheatWarning && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center gap-2.5 text-xs font-bold"
-        >
-          <ShieldAlert className="w-4 h-4 shrink-0" />
-          <span>{cheatWarning}</span>
-        </motion.div>
-      )}
+      {/* ANTI-CHEAT TAB BLUR WARNING */}
+      <AnimatePresence>
+        {cheatWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            role="alert"
+            className="rounded-[18px] bg-amber-50 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-500/30 px-4 py-3 text-amber-800 dark:text-amber-300 flex items-center gap-2.5 text-xs sm:text-sm font-semibold"
+          >
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span>{cheatWarning}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* TOP HEADER CONTROLS BAR */}
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => navigate("/quiz")}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Quiz Hub</span>
-        </button>
+      {/* =====================================================================
+          UNIFIED ARENA TOP BAR
+          Logo/Icon · Room Name · Question # · Player Score · Sound · Leave
+          ===================================================================== */}
+      <header className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] px-3.5 sm:px-5 py-3 flex items-center justify-between gap-3 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+        {/* Left: Brand Icon + Room Name */}
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0F2557] to-[#2563EB] text-white flex items-center justify-center shrink-0">
+            <Gamepad2 className="w-4.5 h-4.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+              <span>Genç Quiz</span>
+              <span aria-hidden="true">·</span>
+              <span className="font-mono text-[#2563EB] dark:text-blue-400">#{code}</span>
+            </div>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+              {room?.title || "Canlı Yarışma Odası"}
+            </h2>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-2">
-          {/* Sound Toggle */}
+        {/* Right: Score (during game) + Sound + Exit */}
+        <div className="flex items-center gap-2 shrink-0">
+          {(status === "QUESTION_ACTIVE" || status === "QUESTION_RESULT") && currentPlayer && (
+            <div className="hidden xs:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08]">
+              <Trophy className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <AnimatedScore
+                value={currentPlayer.score}
+                className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white"
+              />
+              {currentPlayer.streak > 1 && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 ml-1 tabular-nums">
+                  <Flame className="w-3 h-3" />
+                  {currentPlayer.streak}
+                </span>
+              )}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {
-              setSoundEnabled(!soundEnabled);
-              if (!soundEnabled) playSoundEffect("pop");
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              if (next) playSoundEffect("pop");
             }}
+            aria-label={soundEnabled ? "Sesi Kapat" : "Sesi Aç"}
             title={soundEnabled ? "Sesi Kapat" : "Sesi Aç"}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+            className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[#2563EB] hover:border-[#2563EB]/40 transition-colors cursor-pointer"
           >
-            {soundEnabled ? <Volume2 className="w-4 h-4 text-blue-500" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+            {soundEnabled ? (
+              <Volume2 className="w-4 h-4 text-[#2563EB] dark:text-blue-400" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-slate-400" />
+            )}
           </button>
 
-          <Badge variant="neutral" className="font-mono text-[11px] sm:text-xs px-2.5 py-1 font-bold">
-            ODA #{code}
-          </Badge>
-          {room?.category && (
-            <Badge variant="info" className="text-[11px] sm:text-xs font-bold hidden xs:inline-flex">
-              {room.category}
-            </Badge>
-          )}
+          <button
+            type="button"
+            onClick={handleLeaveRoom}
+            aria-label="Odadan Çık"
+            title="Odadan Çık"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#EF4444] hover:border-rose-300 dark:hover:border-rose-500/40 transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Çık</span>
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* ========================================================= */}
-      {/* 1. LOBBY VIEW (MODERN, SLEEK & INTERACTIVE) */}
-      {/* ========================================================= */}
-      {status === "LOBBY" && (
-        <div className="space-y-6">
-          {/* ULTRA MODERN HERO LOBBY CARD */}
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-indigo-950 via-slate-900 to-slate-950 border border-blue-500/20 text-white p-5 sm:p-8 shadow-2xl space-y-6">
-            {/* Ambient Background Glows */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
-            {/* Top Room Meta Header */}
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-center sm:text-left border-b border-white/10 pb-5">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-[10px] sm:text-xs tracking-wider uppercase">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Lobi Aktif • Bekleniyor
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-white/10 text-blue-200 text-[10px] sm:text-xs font-bold">
-                    {room?.category || "Genel"}
-                  </span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                  {room?.title || "Genç Quiz Arenası"}
-                </h1>
-              </div>
-
-              {/* Room Stats Pill Grid */}
-              <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap">
-                <div className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-center">
-                  <div className="text-[10px] text-slate-400 font-semibold">Soru Sayısı</div>
-                  <div className="text-xs sm:text-sm font-black text-blue-300 font-mono">{room?.questionCount || 10} Soru</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-center">
-                  <div className="text-[10px] text-slate-400 font-semibold">Süre / Soru</div>
-                  <div className="text-xs sm:text-sm font-black text-amber-300 font-mono">{room?.timePerQuestion || 20}s</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-center">
-                  <div className="text-[10px] text-slate-400 font-semibold">Zorluk</div>
-                  <div className="text-xs sm:text-sm font-black text-rose-300">{room?.difficulty || "Karışık"}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* BIG DISTINCTIVE FUTURISTIC ROOM CODE SHOWCASE */}
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              {/* Left Code Card */}
-              <div className="bg-black/40 backdrop-blur-md p-5 rounded-2xl border-2 border-dashed border-blue-400/50 shadow-inner flex flex-col items-center justify-center space-y-3 text-center">
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-blue-300 flex items-center gap-1.5">
-                  <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                  CANLI ODA KATILIM KODU
-                </span>
-
-                <div className="text-4xl sm:text-5xl font-black font-mono tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-indigo-300 select-all py-1">
-                  {code}
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCopyCode}
-                    className="bg-white/15 hover:bg-white/25 text-white border-white/20 rounded-xl text-xs font-bold flex-1 sm:flex-none"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                    <span>{copied ? "Kopyalandı!" : "Kodu Kopyala"}</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleShare}
-                    className="bg-white/15 hover:bg-white/25 text-white border-white/20 rounded-xl text-xs font-bold flex-1 sm:flex-none"
-                  >
-                    <Share2 className="w-3.5 h-3.5 mr-1 text-cyan-400" />
-                    <span>Paylaş</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowQrModal(true)}
-                    className="bg-white/15 hover:bg-white/25 text-white border-white/20 rounded-xl text-xs font-bold"
-                    title="QR Kodu Göster"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-amber-300" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Right Action / Host Control Deck */}
-              <div className="flex flex-col justify-center space-y-3">
-                {isHost ? (
-                  <div className="space-y-2.5">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={handleStartQuiz}
-                      disabled={players.length === 0}
-                      className="w-full py-4 sm:py-5 rounded-2xl font-black text-base sm:text-lg bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-xl shadow-emerald-500/30 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2.5"
-                    >
-                      <Play className="w-5 h-5 fill-white" />
-                      <span>QUIZ'İ BAŞLAT ({players.length} Oyuncu)</span>
-                    </Button>
-                    <p className="text-[11px] text-blue-200/80 text-center font-medium">
-                      👑 Oda kurucusu olarak istediğin an oyunu başlatabilirsin.
-                    </p>
+      {/* =====================================================================
+          VIEW 1: WAITING LOBBY
+          ===================================================================== */}
+      <AnimatePresence mode="wait">
+        {status === "LOBBY" && (
+          <motion.div
+            key="room-lobby"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
+            {/* Lobby Hero & Code Deck */}
+            <div className="rounded-[24px] bg-gradient-to-br from-[#0F2557] via-[#1D4ED8] to-[#4338CA] text-white p-5 sm:p-8 shadow-[0_14px_34px_-12px_rgba(15,37,87,0.36)] space-y-6">
+              {/* Top Meta Row */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-white/15">
+                <div className="space-y-2">
+                  {/* Real WebSocket Connection Status */}
+                  <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-100">
+                    {wsState === "connected" ? (
+                      <>
+                        <Wifi className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>Canlı Bağlantı Aktif · Bekleme Lobisi</span>
+                      </>
+                    ) : wsState === "connecting" ? (
+                      <>
+                        <Clock className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Canlı Bağlantı Kuruluyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="w-3.5 h-3.5 text-rose-300" />
+                        <span>Bağlantı Kesildi · Sayfayı Yenileyin</span>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center mx-auto animate-pulse">
-                      <Clock className="w-5 h-5" />
+
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white [text-wrap:balance]">
+                    {room?.title || "Genç Quiz Odası"}
+                  </h1>
+
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-blue-100/90">
+                    <span>{room?.category || "Karışık"}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{room?.difficulty || "Karışık"}</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{room?.questionCount || 10} soru</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{room?.timePerQuestion || 20} sn / soru</span>
+                    {hostPlayer && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>Kurucu: @{hostPlayer.username}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Card + Start/Waiting Deck */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+                {/* Large Copyable Room Code */}
+                <div className="md:col-span-7 rounded-[20px] bg-white/[0.11] border border-white/20 p-5 flex flex-col justify-between gap-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-blue-100">
+                      Oda Katılım Kodu
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowQrModal(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>QR Kod</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="w-full py-3 rounded-2xl bg-black/20 hover:bg-black/25 border border-white/15 transition-colors cursor-pointer text-center group"
+                    title="Kodu kopyalamak için tıkla"
+                  >
+                    <span className="font-mono text-3xl sm:text-4xl font-black tracking-[0.26em] text-white select-all pl-[0.26em]">
+                      {code}
+                    </span>
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="min-h-[40px] px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {copied ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-300" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      <span>{copied ? "Kopyalandı" : "Kopyala"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="min-h-[40px] px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>Paylaş</span>
+                    </button>
+
+                    {isAuthenticated ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowInviteModal(true)}
+                        className="min-h-[40px] px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Davet Et</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowQrModal(true)}
+                        className="min-h-[40px] px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>QR Göster</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Host Launch / Participant Waiting Column */}
+                <div className="md:col-span-5 flex flex-col justify-between gap-3">
+                  {isHost ? (
+                    <div className="rounded-[20px] bg-white/[0.11] border border-white/20 p-5 flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-200">
+                          <Crown className="w-3.5 h-3.5" />
+                          <span>Oda Kurucusu Kontrolü</span>
+                        </div>
+                        <p className="text-xs text-blue-100/85 leading-relaxed">
+                          Tüm oyuncular hazır olduğunda yarışmayı tek tıkla başlatabilirsin.
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        onClick={handleStartQuiz}
+                        disabled={players.length === 0 || wsState !== "connected"}
+                        leftIcon={<Play className="w-4 h-4 fill-current" />}
+                        className="rounded-2xl bg-white hover:bg-blue-50 text-[#0F2557] border-transparent font-extrabold text-sm shadow-md"
+                      >
+                        Yarışmayı Başlat ({players.length})
+                      </Button>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">Oda Kurucusu Bekleniyor</h4>
-                      <p className="text-xs text-blue-200/70">
-                        Oyun başlatıldığında otomatik olarak 1. soruya geçeceksiniz.
+                  ) : (
+                    <div className="rounded-[20px] bg-white/[0.11] border border-white/20 p-5 flex-1 flex flex-col items-center justify-center text-center space-y-2.5">
+                      <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-white">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-sm font-bold text-white">
+                        Oda Kurucusu Bekleniyor
+                      </h3>
+                      <p className="text-xs text-blue-100/80 leading-relaxed">
+                        Yarışma başlatıldığında 1. soru ekranı otomatik olarak açılacak.
                       </p>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Rotating Warmup Tip */}
-                <div className="p-3 rounded-xl bg-blue-950/50 border border-blue-500/20 text-blue-200 text-xs flex items-center gap-2.5">
-                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
-                  <span className="truncate">{WARMUP_TIPS[currentTipIndex]}</span>
+                  {/* Calm Warmup Tip */}
+                  <div className="rounded-2xl bg-black/20 border border-white/10 px-3.5 py-2.5 flex items-center gap-2.5 text-xs text-blue-100">
+                    <Lightbulb className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span className="line-clamp-2 leading-snug">
+                      {WARMUP_TIPS[currentTipIndex]}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* PLAYERS IN LOBBY GRID & LIVE REACTION BAR */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <span>Lobideki Oyuncular</span>
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-mono font-bold">
-                  {players.length}
-                </span>
-              </div>
+            {/* Participants Section */}
+            <section className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-5 sm:p-6 space-y-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-4.5 h-4.5 text-[#2563EB]" />
+                    <span>Katılımcılar</span>
+                  </h3>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                    {players.length} / {room?.maxPlayers || 30}
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-2">
                 {isAuthenticated && (
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(true)}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 cursor-pointer bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-900/40"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400 text-xs font-bold hover:bg-blue-100/80 dark:hover:bg-blue-950/70 transition-colors cursor-pointer"
                   >
-                    <span>+ Arkadaş Davet Et</span>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Arkadaş Davet Et</span>
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* PLAYER TILES */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {players.map((p) => {
-                const isCurrent = user && p.userId === user.id;
+              {/* Animated Player Grid */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <AnimatePresence initial={false}>
+                  {players.map((p) => {
+                    const isCurrent = Boolean(user && p.userId === user.id);
 
-                return (
-                  <motion.div
-                    key={p.userId}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={`relative p-3.5 rounded-2xl border transition-all flex items-center gap-3 bg-white dark:bg-slate-900 shadow-xs ${
-                      isCurrent
-                        ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/40 dark:bg-blue-950/20"
-                        : "border-slate-200 dark:border-slate-800"
-                    }`}
-                  >
-                    <div className="relative shrink-0">
-                      <Avatar
-                        url={p.avatarUrl}
-                        name={p.username}
-                        size="md"
-                        className="ring-2 ring-slate-200 dark:ring-slate-700"
-                      />
-                      {p.isHost && (
-                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-xs">
-                          <Crown className="w-3 h-3 fill-current" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1">
-                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate block">
-                          {p.username}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[9px] font-black bg-blue-600 text-white px-1.5 py-0.2 rounded-md shrink-0">
-                            SEN
-                          </span>
+                    return (
+                      <motion.div
+                        key={p.userId}
+                        layout
+                        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.92 }}
+                        transition={{ duration: 0.22 }}
+                        className={cn(
+                          "p-3.5 rounded-[18px] border flex items-center gap-3 transition-colors",
+                          isCurrent
+                            ? "bg-blue-50/70 dark:bg-blue-950/30 border-[#2563EB]/50"
+                            : "bg-[#F8FAFC] dark:bg-[#0B1120] border-slate-200/80 dark:border-white/[0.07]"
                         )}
-                      </div>
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium mt-0.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${p.isConnected ? "bg-emerald-500" : "bg-slate-400"}`} />
-                        {p.isHost ? "Oda Sahibi" : "Hazır"}
-                      </span>
-                    </div>
-
-                    {/* Host Kick Option */}
-                    {isHost && !p.isHost && !isCurrent && (
-                      <button
-                        type="button"
-                        onClick={() => handleKickPlayer(p.userId)}
-                        title="Odadan Çıkar"
-                        className="opacity-60 hover:opacity-100 p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all"
                       >
-                        <UserX className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </motion.div>
-                );
-              })}
+                        <div className="relative shrink-0">
+                          <Avatar
+                            url={p.avatarUrl}
+                            name={p.username}
+                            size="md"
+                            className="ring-2 ring-white dark:ring-[#111B2E]"
+                          />
+                          {p.isHost && (
+                            <span
+                              title="Oda Kurucusu"
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-[#0F2557] flex items-center justify-center ring-2 ring-white dark:ring-[#111B2E]"
+                            >
+                              <Crown className="w-3 h-3 fill-current" />
+                            </span>
+                          )}
+                        </div>
 
-              {/* Empty Slot Teaser */}
-              <div
-                onClick={() => handleShare()}
-                className="p-3.5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center gap-3 text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-colors cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-full border border-dashed border-current flex items-center justify-center font-bold text-xs shrink-0">
-                  +
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                              {p.username}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[10px] font-bold text-[#2563EB] dark:text-blue-400 shrink-0">
+                                (Sen)
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span
+                              className={cn(
+                                "w-1.5 h-1.5 rounded-full shrink-0",
+                                p.isConnected ? "bg-[#16A34A]" : "bg-slate-400"
+                              )}
+                            />
+                            <span className="truncate">
+                              {p.isHost
+                                ? "Oda Kurucusu"
+                                : p.isConnected
+                                ? "Bağlı"
+                                : "Çevrimdışı"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isHost && !p.isHost && !isCurrent && (
+                          <button
+                            type="button"
+                            onClick={() => handleKickPlayer(p.userId, p.username)}
+                            title="Odadan Çıkar"
+                            aria-label={`${p.username} oyuncusunu odadan çıkar`}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#EF4444] hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </button>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                {/* Invite Teaser Slot */}
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="p-3.5 rounded-[18px] border border-dashed border-slate-300 dark:border-white/[0.14] flex items-center gap-3 text-slate-500 dark:text-slate-400 hover:border-[#2563EB] hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
+                >
+                  <div className="w-10 h-10 rounded-full border border-dashed border-current flex items-center justify-center shrink-0">
+                    <Plus className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block truncate">Oyuncu Davet Et</span>
+                    <span className="text-[11px] opacity-80 block truncate">Kodu paylaş</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Lobby Reactions Bar */}
+              <div className="pt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                  Lobi Tepkisi
+                </span>
+                <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
+                  {["🔥", "🚀", "🧠", "⚡", "🎉", "👏", "👋"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => handleSendReaction(emoji)}
+                      className="w-9 h-9 rounded-xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] hover:border-[#2563EB]/40 hover:scale-110 active:scale-95 transition-all text-base flex items-center justify-center cursor-pointer shrink-0"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
                 </div>
-                <div className="min-w-0 text-left">
-                  <span className="font-bold text-xs block truncate">Yeni Oyuncu</span>
-                  <span className="text-[10px] block truncate">Kodu Paylaş</span>
-                </div>
               </div>
-            </div>
+            </section>
+          </motion.div>
+        )}
 
-            {/* INTERACTIVE EMOJI REACTION LAUNCHPAD */}
-            <div className="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-                <Flame className="w-3.5 h-3.5 text-amber-500" />
-                <span className="hidden xs:inline">Canlı Tepki:</span>
-              </span>
-              <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto no-scrollbar">
-                {["🔥", "🚀", "🧠", "⚡", "🎉", "😎", "👋"].map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => handleSendReaction(emoji)}
-                    className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:scale-125 active:scale-95 transition-all text-base sm:text-lg shadow-xs cursor-pointer"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        {/* =====================================================================
+            VIEW 2: LIVE QUESTION SCREEN (THE CORE ARENA)
+            ===================================================================== */}
+        {status === "QUESTION_ACTIVE" && currentQuestion && (
+          <motion.div
+            key={`question-active-${currentQuestion.currentIndex}`}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -10 }}
+            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-2xl mx-auto space-y-5"
+          >
+            {/* Progress Bar + Circular Countdown Timer */}
+            <div className="rounded-[20px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-4 sm:p-5 flex items-center justify-between gap-4 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+              <SegmentedProgress
+                total={currentQuestion.totalCount}
+                currentIndex={currentQuestion.currentIndex}
+                rightLabel={
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 inline-flex items-center gap-1.5 tabular-nums">
+                    <Users className="w-3.5 h-3.5 text-[#2563EB]" />
+                    {players.filter((p) => p.hasAnsweredCurrent).length} / {players.length} cevapladı
+                  </span>
+                }
+              />
 
-      {/* ========================================================= */}
-      {/* 2. LIVE QUESTION SCREEN (ARENA) */}
-      {/* ========================================================= */}
-      {status === "QUESTION_ACTIVE" && currentQuestion && (
-        <div className="space-y-5 sm:space-y-6 max-w-2xl mx-auto">
-          {/* TOP INFO & PROGRESS */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-              <span className="uppercase tracking-wider">
-                Soru {currentQuestion.currentIndex + 1} / {currentQuestion.totalCount}
-              </span>
-              <div className="flex items-center gap-2">
-                <Badge variant="neutral" className="text-[11px]">{currentQuestion.category}</Badge>
-                {currentPlayer && (
-                  <Badge variant="primary" className="text-[11px]">
-                    Skor: {currentPlayer.score}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* TIMER BAR */}
-            <div className="relative w-full h-3 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full transition-all duration-1000 ${
-                  timeLeft <= 5 ? "bg-rose-500" : timeLeft <= 10 ? "bg-amber-500" : "bg-blue-600"
-                }`}
-                style={{
-                  width: `${(timeLeft / (currentQuestion.duration || 20)) * 100}%`,
-                }}
+              <CircularTimer
+                timeLeft={timeLeft}
+                totalTime={currentQuestion.duration || 20}
+                size={60}
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-400 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                {players.filter(p => p.hasAnsweredCurrent).length} / {players.length} oyuncu cevapladı
-              </span>
-              <span className={`text-base font-black font-mono ${timeLeft <= 5 ? "text-rose-500 animate-pulse" : "text-blue-600"}`}>
-                ⏱️ {timeLeft}s
-              </span>
-            </div>
-          </div>
-
-          {/* QUESTION CARD */}
-          <Card className="p-5 sm:p-8 text-center space-y-4 shadow-md border-slate-200/80 dark:border-white/10">
-            <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-snug">
-              {currentQuestion.questionText}
-            </h2>
-          </Card>
-
-          {/* 4 LARGE OPTION BUTTONS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
-            {currentQuestion.options.map((opt) => {
-              const isSelected = selectedOption === opt.key;
-
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  disabled={answerSubmitted}
-                  onClick={() => handleSelectOption(opt.key)}
-                  className={`p-4 sm:p-5 rounded-2xl text-left border-2 font-bold text-sm sm:text-base flex items-start gap-3 transition-all duration-150 cursor-pointer min-h-[64px] active:scale-[0.98] ${
-                    isSelected
-                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25"
-                      : answerSubmitted
-                      ? "bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-400 opacity-60 cursor-not-allowed"
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-blue-500 hover:shadow-md text-slate-900 dark:text-white"
-                  }`}
-                >
-                  <span
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-black text-xs ${
-                      isSelected
-                        ? "bg-white text-blue-600"
-                        : "bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    {opt.key}
+            {/* Central Question Card */}
+            <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-6 sm:p-8 shadow-[0_10px_28px_-14px_rgba(15,23,42,0.08)] space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="font-bold text-[#2563EB] dark:text-blue-400">
+                    {currentQuestion.category}
                   </span>
-                  <span className="leading-snug pt-0.5 break-words">{opt.text}</span>
-                </button>
-              );
-            })}
-          </div>
+                  <span aria-hidden="true">·</span>
+                  <span>{currentQuestion.difficulty}</span>
+                </div>
+                <span className="font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                  100+ puan · Hız bonusu
+                </span>
+              </div>
 
-          {/* SUBMITTED STATUS BAR */}
-          {answerSubmitted && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-center font-bold text-xs flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Cevabınız alındı! Süre bitince sonuç açıklanacak.</span>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white leading-snug [text-wrap:balance]">
+                {currentQuestion.questionText}
+              </h1>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* ========================================================= */}
-      {/* 3. QUESTION RESULT REVEAL */}
-      {/* ========================================================= */}
-      {status === "QUESTION_RESULT" && revealedResult && (
-        <div className="space-y-5 sm:space-y-6 max-w-2xl mx-auto">
-          <Card className="p-5 sm:p-8 text-center space-y-5 border-2 border-blue-500/30 shadow-lg">
-            {/* User result indicator */}
-            {selectedOption ? (
-              selectedOption === revealedResult.correctOptionKey ? (
-                <div className="space-y-2">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 mx-auto flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8" />
+            {/* 4 Modern Answer Option Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {currentQuestion.options.map((opt) => {
+                const isSelected = selectedOption === opt.key;
+                let optState: OptionVisualState = "normal";
+                if (isSelected) {
+                  optState = "selected";
+                } else if (answerSubmitted) {
+                  optState = "locked";
+                }
+
+                return (
+                  <QuizOptionCard
+                    key={opt.key}
+                    optionKey={opt.key}
+                    text={opt.text}
+                    state={optState}
+                    disabled={answerSubmitted}
+                    onClick={() => handleSelectOption(opt.key)}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Answer Locked Status Bar */}
+            <AnimatePresence>
+              {answerSubmitted && (
+                <motion.div
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                  className="rounded-[18px] bg-blue-50/80 dark:bg-blue-950/35 border border-blue-200/80 dark:border-blue-500/25 px-4 py-3.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-[#1D4ED8] dark:text-blue-300"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Cevabın kilitlendi. Süre tamamlandığında sonuç açıklanacak.</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
+        {/* =====================================================================
+            VIEW 3: QUESTION RESULT REVEAL & LIVE STANDINGS
+            ===================================================================== */}
+        {status === "QUESTION_RESULT" && revealedResult && (
+          <motion.div
+            key="room-question-result"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+            className="max-w-2xl mx-auto space-y-5"
+          >
+            {/* Outcome Hero Card */}
+            <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-5 sm:p-7 shadow-[0_10px_28px_-14px_rgba(15,23,42,0.08)] space-y-5">
+              {/* Outcome Banner */}
+              {selectedOption ? (
+                selectedOption === revealedResult.correctOptionKey ? (
+                  <div className="rounded-[18px] bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30 p-4 sm:p-5 flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#16A34A] text-white flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 dark:text-emerald-200">
+                        Doğru Cevap!
+                      </h3>
+                      {answerResult && (
+                        <p className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 tabular-nums">
+                          +{answerResult.pointsEarned} puan kazandın
+                          {answerResult.streak > 1 ? ` · ${answerResult.streak} soru serisi` : ""}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                    Tebrikler, Doğru Cevap! 🎉
-                  </h3>
-                  {answerResult && (
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                      +{answerResult.pointsEarned} Puan Kazandın! {answerResult.streak > 1 ? `🔥 (${answerResult.streak} Seri)` : ""}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="rounded-[18px] bg-rose-50/90 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-500/30 p-4 sm:p-5 flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#EF4444] text-white flex items-center justify-center shrink-0">
+                      <XCircle className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base sm:text-lg font-extrabold text-rose-900 dark:text-rose-200">
+                        Yanlış Cevap
+                      </h3>
+                      <p className="text-xs sm:text-sm font-medium text-rose-700 dark:text-rose-300">
+                        Doğru seçenek:{" "}
+                        <strong>
+                          {revealedResult.correctOptionKey}) {revealedResult.correctOptionText}
+                        </strong>
+                      </p>
+                    </div>
+                  </div>
+                )
               ) : (
-                <div className="space-y-2">
-                  <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950/50 text-rose-600 mx-auto flex items-center justify-center">
-                    <XCircle className="w-8 h-8" />
+                <div className="rounded-[18px] bg-amber-50/90 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 p-4 sm:p-5 flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#F59E0B] text-white flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
-                    Yanlış Cevap
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">Bu sorudan puan kazanamadın.</p>
+                  <div className="space-y-1">
+                    <h3 className="text-base sm:text-lg font-extrabold text-amber-900 dark:text-amber-200">
+                      Süre Doldu
+                    </h3>
+                    <p className="text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-300">
+                      Doğru seçenek:{" "}
+                      <strong>
+                        {revealedResult.correctOptionKey}) {revealedResult.correctOptionText}
+                      </strong>
+                    </p>
+                  </div>
                 </div>
-              )
-            ) : (
+              )}
+
+              {/* Contextual Option Recap */}
+              {currentQuestion && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {currentQuestion.options.map((opt) => {
+                    let state: OptionVisualState = "locked";
+                    if (opt.key === revealedResult.correctOptionKey) {
+                      state = "correct";
+                    } else if (selectedOption === opt.key) {
+                      state = "wrong";
+                    }
+                    return (
+                      <QuizOptionCard
+                        key={opt.key}
+                        optionKey={opt.key}
+                        text={opt.text}
+                        state={state}
+                        disabled
+                        onClick={() => {}}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Explanation if provided */}
+              {revealedResult.explanation && (
+                <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.07] p-4 flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <Lightbulb className="w-4 h-4 text-[#2563EB] shrink-0 mt-0.5" />
+                  <span>{revealedResult.explanation}</span>
+                </div>
+              )}
+
+              <p className="text-center text-xs font-medium text-slate-400 dark:text-slate-500">
+                Sonraki soruya geçiliyor...
+              </p>
+            </div>
+
+            {/* Live Top 5 Standings */}
+            <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-5 space-y-3.5 shadow-[0_2px_10px_rgba(15,23,42,0.03)]">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                  <span>Anlık Sıralama</span>
+                </h4>
+                <span className="text-xs text-slate-400 tabular-nums">İlk 5 oyuncu</span>
+              </div>
+
               <div className="space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/10 text-slate-500 mx-auto flex items-center justify-center">
-                  <Clock className="w-8 h-8" />
+                {players.slice(0, 5).map((p, idx) => {
+                  const isMe = Boolean(user && p.userId === user.id);
+                  return (
+                    <motion.div
+                      key={p.userId}
+                      layout
+                      className={cn(
+                        "px-3.5 py-2.5 rounded-2xl border flex items-center justify-between gap-3",
+                        isMe
+                          ? "bg-blue-50/75 dark:bg-blue-950/35 border-[#2563EB]/45"
+                          : "bg-[#F8FAFC] dark:bg-[#0B1120] border-slate-200/70 dark:border-white/[0.06]"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-6 text-center font-mono text-xs font-extrabold text-slate-400 tabular-nums">
+                          #{idx + 1}
+                        </span>
+                        <Avatar url={p.avatarUrl} name={p.username} size="xs" className="shrink-0" />
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                          {p.username}
+                          {isMe && (
+                            <span className="ml-1.5 text-[11px] font-semibold text-[#2563EB] dark:text-blue-400">
+                              (Sen)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <span className="font-mono font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums shrink-0">
+                        {p.score.toLocaleString("tr-TR")} puan
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* =====================================================================
+            VIEW 4: COMPETITION FINISHED (CHAMPIONSHIP PODIUM & FULL RANKING)
+            ===================================================================== */}
+        {status === "FINISHED" && finishedData && (
+          <motion.div
+            key="room-finished"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="max-w-3xl mx-auto space-y-6"
+          >
+            {/* Championship Header & Podium Card */}
+            <div className="rounded-[24px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-6 sm:p-8 pb-0 overflow-hidden shadow-[0_12px_32px_-16px_rgba(15,23,42,0.1)] space-y-6">
+              <div className="text-center space-y-1.5">
+                <p className="text-xs font-bold text-[#2563EB] dark:text-blue-400">
+                  {room?.title || "Genç Quiz"} · {finishedData.totalQuestions} Soru
+                </p>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Yarışma Tamamlandı!
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Tüm sorular cevaplandı. İşte podyum ve genel sıralama.
+                </p>
+              </div>
+
+              <QuizPodium podium={finishedData.podium} />
+            </div>
+
+            {/* Personal Scorecard */}
+            {currentPlayer && (
+              <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                    Senin Performans Özetin
+                  </h2>
+                  <span className="text-xs font-bold text-[#2563EB] dark:text-blue-400 tabular-nums">
+                    {currentPlayer.rank}. Sıra / {finishedData.leaderboard.length || players.length} Oyuncu
+                  </span>
                 </div>
-                <h3 className="text-xl font-black text-slate-700 dark:text-slate-300">
-                  Süre Doldu (Cevap Verilmedi)
-                </h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5 text-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                      Toplam Puan
+                    </span>
+                    <span className="text-xl font-extrabold text-[#2563EB] dark:text-blue-400 font-mono tabular-nums mt-0.5 block">
+                      {currentPlayer.score.toLocaleString("tr-TR")}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5 text-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                      Doğru Cevap
+                    </span>
+                    <span className="text-xl font-extrabold text-[#16A34A] dark:text-emerald-400 font-mono tabular-nums mt-0.5 block">
+                      {currentPlayer.correctAnswersCount}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5 text-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                      Yanlış Cevap
+                    </span>
+                    <span className="text-xl font-extrabold text-[#EF4444] dark:text-rose-400 font-mono tabular-nums mt-0.5 block">
+                      {currentPlayer.wrongAnswersCount}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/70 dark:border-white/[0.07] p-3.5 text-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                      En İyi Seri
+                    </span>
+                    <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 font-mono tabular-nums mt-0.5 block">
+                      {currentPlayer.maxStreak || currentPlayer.streak || 0}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Correct answer display */}
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-center space-y-1">
-              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Doğru Seçenek:</span>
-              <p className="text-base font-black text-emerald-800 dark:text-emerald-200">
-                {revealedResult.correctOptionKey}) {revealedResult.correctOptionText}
-              </p>
-            </div>
+            {/* Full Rankings Table */}
+            <div className="rounded-[22px] bg-white dark:bg-[#111B2E] border border-slate-200/85 dark:border-white/[0.08] overflow-hidden divide-y divide-slate-100 dark:divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-[#F8FAFC] dark:bg-[#0B1120] flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                <span>Genel Sıralama</span>
+                <span>Doğru · Puan</span>
+              </div>
 
-            {/* Explanation if available */}
-            {revealedResult.explanation && (
-              <p className="text-xs text-slate-500 italic max-w-md mx-auto">
-                💡 {revealedResult.explanation}
-              </p>
-            )}
-
-            <div className="text-xs font-bold text-slate-400">
-              5 saniye içinde sonraki soruya geçiliyor...
-            </div>
-          </Card>
-
-          {/* MINI LIVE LEADERBOARD */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5 text-amber-500" />
-              <span>Canlı Sıralama</span>
-            </h4>
-
-            <div className="space-y-2">
-              {players.slice(0, 5).map((p, idx) => {
-                const isMe = user && p.userId === user.id;
-
+              {finishedData.leaderboard.map((p, idx) => {
+                const isMe = Boolean(user && p.userId === user.id);
                 return (
                   <div
                     key={p.userId}
-                    className={`p-3 rounded-xl flex items-center justify-between border transition-all ${
-                      isMe
-                        ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-500"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10"
-                    }`}
+                    className={cn(
+                      "px-5 py-3.5 flex items-center justify-between gap-3",
+                      isMe && "bg-blue-50/70 dark:bg-blue-950/30"
+                    )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-mono font-black text-xs w-5 text-center text-slate-400">
+                      <span className="w-6 font-mono text-xs font-extrabold text-slate-400 tabular-nums shrink-0">
                         #{idx + 1}
                       </span>
-                      <Avatar
-                        url={p.avatarUrl}
-                        name={p.username}
-                        size="xs"
-                        className="shrink-0"
-                      />
-                      <span className="font-bold text-xs truncate text-slate-900 dark:text-white">
-                        {p.username} {isMe ? "(Sen)" : ""}
+                      <Avatar url={p.avatarUrl} name={p.username} size="sm" className="shrink-0" />
+                      <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                        {p.username}
+                        {isMe && (
+                          <span className="ml-1.5 text-xs font-semibold text-[#2563EB] dark:text-blue-400">
+                            (Sen)
+                          </span>
+                        )}
                       </span>
                     </div>
 
-                    <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">
-                      {p.score} Puan
-                    </span>
+                    <div className="flex items-center gap-4 shrink-0 text-right tabular-nums">
+                      <span className="text-xs font-semibold text-[#16A34A] dark:text-emerald-400 hidden xs:inline">
+                        {p.correctAnswersCount} doğru
+                      </span>
+                      <span className="font-mono font-extrabold text-sm text-slate-900 dark:text-white">
+                        {p.score.toLocaleString("tr-TR")} puan
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ========================================================= */}
-      {/* 4. QUIZ FINISHED (PODIUM & SCORECARD) */}
-      {/* ========================================================= */}
-      {status === "FINISHED" && finishedData && (
-        <div className="space-y-6 sm:space-y-8 max-w-3xl mx-auto">
-          <div className="text-center space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-500">
-              YARIŞMA SONA ERDİ
-            </span>
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              🏆 Genç Quiz Şampiyonları
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">Tüm sorular tamamlandı. İşte yarışmanın sonuçları ve podyumu!</p>
-          </div>
-
-          {/* PODIUM (1ST, 2ND, 3RD) */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 items-end pt-8 pb-4">
-            {/* 2nd Place */}
-            {finishedData.podium[1] && (
-              <div className="flex flex-col items-center space-y-2">
-                <Avatar
-                  url={finishedData.podium[1].avatarUrl}
-                  name={finishedData.podium[1].username}
-                  size="md"
-                  className="ring-2 ring-slate-300"
-                />
-                <span className="font-bold text-[11px] sm:text-sm truncate max-w-[80px] sm:max-w-[100px] text-center">
-                  {finishedData.podium[1].username}
-                </span>
-                <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-t-2xl p-2.5 sm:p-3 text-center h-28 flex flex-col justify-between">
-                  <span className="text-2xl">🥈</span>
-                  <span className="font-mono font-black text-xs text-slate-700 dark:text-slate-300">
-                    {finishedData.podium[1].score} P
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* 1st Place */}
-            {finishedData.podium[0] && (
-              <div className="flex flex-col items-center space-y-2">
-                <div className="relative">
-                  <Avatar
-                    url={finishedData.podium[0].avatarUrl}
-                    name={finishedData.podium[0].username}
-                    size="lg"
-                    className="ring-4 ring-amber-400 shadow-xl"
-                  />
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl">
-                    👑
-                  </div>
-                </div>
-                <span className="font-black text-xs sm:text-base text-amber-600 dark:text-amber-400 truncate max-w-[90px] sm:max-w-[120px] text-center">
-                  {finishedData.podium[0].username}
-                </span>
-                <div className="w-full bg-amber-100 dark:bg-amber-950/60 rounded-t-2xl p-3 sm:p-4 text-center h-36 flex flex-col justify-between border-t-2 border-amber-400">
-                  <span className="text-3xl">🥇</span>
-                  <span className="font-mono font-black text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                    {finishedData.podium[0].score} Puan
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* 3rd Place */}
-            {finishedData.podium[2] && (
-              <div className="flex flex-col items-center space-y-2">
-                <Avatar
-                  url={finishedData.podium[2].avatarUrl}
-                  name={finishedData.podium[2].username}
-                  size="md"
-                  className="ring-2 ring-amber-700/40"
-                />
-                <span className="font-bold text-[11px] sm:text-sm truncate max-w-[80px] sm:max-w-[100px] text-center">
-                  {finishedData.podium[2].username}
-                </span>
-                <div className="w-full bg-amber-900/10 dark:bg-amber-950/30 rounded-t-2xl p-2.5 sm:p-3 text-center h-24 flex flex-col justify-between">
-                  <span className="text-2xl">🥉</span>
-                  <span className="font-mono font-black text-xs text-amber-800 dark:text-amber-400">
-                    {finishedData.podium[2].score} P
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* USER PERSONAL SCORECARD */}
-          {currentPlayer && (
-            <Card className="p-4 sm:p-6 bg-blue-50/50 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-900/40 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                  Yarışma Karneniz
-                </span>
-                <Badge variant="primary" className="text-xs font-black">
-                  {currentPlayer.rank}. Sıra ({players.length} Oyuncu Arasında)
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-center">
-                  <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold block">Toplam Puan</span>
-                  <span className="text-lg sm:text-xl font-black text-amber-500">{currentPlayer.score}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-center">
-                  <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold block">Doğru Cevap</span>
-                  <span className="text-lg sm:text-xl font-black text-emerald-500">{currentPlayer.correctAnswersCount}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-center">
-                  <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold block">Yanlış Cevap</span>
-                  <span className="text-lg sm:text-xl font-black text-rose-500">{currentPlayer.wrongAnswersCount}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-center">
-                  <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold block">En Yüksek Seri</span>
-                  <span className="text-lg sm:text-xl font-black text-purple-500">{currentPlayer.maxStreak || currentPlayer.streak} 🔥</span>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* FULL LEADERBOARD */}
-          <Card className="overflow-hidden divide-y divide-slate-100 dark:divide-white/5">
-            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] text-xs font-black uppercase tracking-wider text-slate-500">
-              Tüm Katılımcılar
+            {/* Bottom Navigation Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => navigate("/quiz")}
+                leftIcon={<ArrowLeft className="w-4 h-4" />}
+                className="w-full sm:w-auto rounded-2xl font-bold"
+              >
+                Quiz Merkezine Dön
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate("/quiz", { state: { tab: "create" } })}
+                leftIcon={<Plus className="w-4 h-4" />}
+                className="w-full sm:w-auto rounded-2xl font-bold shadow-md shadow-blue-600/20"
+              >
+                Yeni Quiz Başlat
+              </Button>
             </div>
-            {finishedData.leaderboard.map((p, idx) => (
-              <div key={p.userId} className="p-3 sm:p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <span className="font-mono font-bold text-xs w-5 text-slate-400 shrink-0">#{idx + 1}</span>
-                  <Avatar url={p.avatarUrl} name={p.username} size="sm" className="shrink-0" />
-                  <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
-                    {p.username}
-                  </span>
-                </div>
-                <span className="font-mono font-black text-xs sm:text-sm text-amber-500 shrink-0">
-                  {p.score} Puan
-                </span>
-              </div>
-            ))}
-          </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* ACTIONS */}
-          <div className="flex items-center justify-center gap-3 pt-4">
-            <Button variant="secondary" onClick={() => navigate("/quiz")} className="rounded-xl font-bold">
-              Quiz Hub'a Dön
-            </Button>
-            <Button variant="primary" onClick={() => navigate("/quiz")} className="rounded-xl font-bold">
-              Yeni Quiz Başlat 🚀
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: DIRECT INVITE FRIEND */}
+      {/* =====================================================================
+          MODAL: DIRECT INVITE FRIEND
+          ===================================================================== */}
       <AnimatePresence>
         {showInviteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-white/10"
+              exit={prefersReducedMotion ? undefined : { scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="bg-white dark:bg-[#111B2E] rounded-[24px] max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200/80 dark:border-white/[0.1]"
             >
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Arkadaşını Odaya Davet Et</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  Arkadaşını Davet Et
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowInviteModal(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label="Kapat"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-xs text-slate-500">
-                Kullanıcı adını yazarak arkadaşına bildirim olarak anlık davet gönderebilirsin.
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Kullanıcı adını girerek arkadaşına doğrudan Genç Sosyal bildirimiyle oda daveti gönder.
               </p>
 
               <form onSubmit={handleSendInvite} className="space-y-4">
@@ -1367,23 +1579,25 @@ export function QuizRoom() {
                   placeholder="Kullanıcı adı (örn: ahmet)"
                   value={inviteUsername}
                   onChange={(e) => setInviteUsername(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm font-semibold"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/[0.1] bg-[#F8FAFC] dark:bg-[#0B1120] text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB]"
                 />
 
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     type="button"
                     variant="secondary"
+                    size="sm"
                     onClick={() => setShowInviteModal(false)}
-                    className="rounded-xl font-bold text-xs"
+                    className="rounded-xl text-xs font-bold"
                   >
                     İptal
                   </Button>
                   <Button
                     type="submit"
                     variant="primary"
+                    size="sm"
                     isLoading={sendingInvite}
-                    className="rounded-xl font-bold text-xs"
+                    className="rounded-xl text-xs font-bold"
                   >
                     Davet Gönder
                   </Button>
@@ -1394,49 +1608,70 @@ export function QuizRoom() {
         )}
       </AnimatePresence>
 
-      {/* MODAL: QR CODE MODAL */}
+      {/* =====================================================================
+          MODAL: QR CODE ACCESS
+          ===================================================================== */}
       <AnimatePresence>
         {showQrModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl border border-slate-200 dark:border-white/10"
+              exit={prefersReducedMotion ? undefined : { scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="bg-white dark:bg-[#111B2E] rounded-[24px] max-w-sm w-full p-6 text-center space-y-5 shadow-2xl border border-slate-200/80 dark:border-white/[0.1]"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Oda QR Kodu</h3>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Oda Davet Kodu & QR
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowQrModal(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer text-sm"
+                  aria-label="Kapat"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-6 bg-white rounded-2xl border-2 border-slate-200 inline-block mx-auto shadow-inner">
-                {/* SVG Mock QR Code */}
-                <div className="w-44 h-44 flex flex-col items-center justify-center bg-slate-900 text-white rounded-xl p-3 text-center space-y-2">
-                  <QrCode className="w-20 h-20 text-cyan-400 mx-auto" />
-                  <div className="font-mono font-black text-sm tracking-widest text-cyan-300">
+              <div className="rounded-2xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-slate-200/80 dark:border-white/[0.08] p-6 flex flex-col items-center space-y-3">
+                <div className="w-36 h-36 rounded-2xl bg-[#0F2557] text-white flex items-center justify-center shadow-sm">
+                  <QrCode className="w-24 h-24 text-white" />
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-medium text-slate-400 block">
+                    6 Karakterli Oda Kodu
+                  </span>
+                  <span className="font-mono text-2xl font-black tracking-[0.22em] text-[#2563EB] dark:text-blue-400">
                     {code}
-                  </div>
-                  <span className="text-[9px] text-slate-400">Telefon Kamerası ile Tara</span>
+                  </span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-500 font-medium">
-                Arkadaşların kamerayla tarayarak veya oda kodunu girerek hemen katılabilir.
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Arkadaşların bu oda kodunu Genç Quiz ekranına girerek veya bağlantıyı açarak doğrudan katılabilir.
               </p>
 
-              <Button
-                variant="secondary"
-                onClick={() => setShowQrModal(false)}
-                className="w-full rounded-xl font-bold text-xs"
-              >
-                Kapat
-              </Button>
+              <div className="grid grid-cols-2 gap-2.5">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCopyRoomLink}
+                  leftIcon={copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  className="rounded-xl text-xs font-bold"
+                >
+                  {copiedLink ? "Kopyalandı" : "Linki Kopyala"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowQrModal(false)}
+                  className="rounded-xl text-xs font-bold"
+                >
+                  Kapat
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}

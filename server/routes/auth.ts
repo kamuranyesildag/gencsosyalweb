@@ -22,7 +22,7 @@ import {
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailToken, verifyEmailToken, generateTwoFactorToken, verifyTwoFactorToken, generateSuspensionToken, verifySuspensionToken, getEmailTokenSecret, hashRefreshToken } from "../utils/jwt.js";
 import { encryptString, decryptString } from "../utils/encryption.js";
 import { authenticator } from "otplib";
-import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail } from "../utils/mailer.js";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlertEmail, sendOtpVerificationEmail, sendWelcomeEmail } from "../utils/mailer.js";
 import { authRateLimiter, loginRateLimiter, registerRateLimiter, otpSendRateLimiter, otpVerifyRateLimiter } from "../middleware/rateLimiter.js";
 import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
 
@@ -542,6 +542,13 @@ async function handleVerifyOtpAndCreateUser(req: Request, res: Response, parsedD
 
   const { accessToken, refreshToken } = newUser;
   newUser = newUser.createdUser;
+
+  // Send welcome email non-blockingly
+  if (newUser?.email) {
+    sendWelcomeEmail(newUser.email, displayName || newUser.username, newUser.username).catch((err) =>
+      console.warn("[Auth] Hoş geldin e-postası gönderilemedi:", err)
+    );
+  }
 
   res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions(req));
 

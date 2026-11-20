@@ -8,6 +8,9 @@
     <meta name="keywords" content="genç sosyal, gençlik platformu, sosyal medya, yazılımcı gençlik, açık kaynak projeler, teknoloji topluluğu, genç geliştiriciler, öğrenci projeleri, portföy paylaşımı, yazılım projeleri, türk sosyal medya, dijital topluluk, kodlama" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://gencsosyal.com/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
     
     <!-- Favicon & Browser Identity -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -223,21 +226,29 @@
   </head>
   <body class="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
     <div id="root">
-      <div id="initial-app-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#ffffff;color:#0f172a;transition:background-color 0.2s ease;">
+      <div id="initial-app-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:#ffffff;color:#0f172a;padding:24px;box-sizing:border-box;">
         <style>
-          html.dark #initial-app-loader { background-color: #070A10 !important; color: #f8fafc !important; }
-          @keyframes gsPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.96); opacity: 0.8; } }
-          @keyframes gsSpin { to { transform: rotate(360deg); } }
-          .gs-spin { animation: gsSpin 0.8s linear infinite; }
-          .gs-pulse { animation: gsPulse 2s ease-in-out infinite; }
+          html.dark #initial-app-loader { background-color: #0f0f13 !important; color: #f8fafc !important; }
+          .gs-g-logo { width: 160px; height: 160px; }
+          .gs-g-path {
+            fill: none;
+            stroke-width: 14;
+            stroke-linecap: butt;
+            stroke-dasharray: 260;
+            stroke-dashoffset: 260;
+          }
+          .gs-iz-1 { stroke: #EA4335; animation: gsCizim 1.35s cubic-bezier(0.65, 0, 0.35, 1) 0s forwards; }
+          .gs-iz-2 { stroke: #FBBC05; animation: gsCizim 1.35s cubic-bezier(0.65, 0, 0.35, 1) 0.12s forwards; }
+          .gs-iz-3 { stroke: #34A853; animation: gsCizim 1.35s cubic-bezier(0.65, 0, 0.35, 1) 0.24s forwards; }
+          .gs-ana-cizgi { stroke: #4285F4; animation: gsCizim 1.35s cubic-bezier(0.65, 0, 0.35, 1) 0.36s forwards; }
+          @keyframes gsCizim { to { stroke-dashoffset: 0; } }
         </style>
-        <div class="gs-pulse" style="width:52px;height:52px;border-radius:16px;background:#2563eb;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;letter-spacing:-0.5px;box-shadow:0 10px 25px -5px rgba(37,99,235,0.3);margin-bottom:18px;">
-          GS
-        </div>
-        <div style="font-size:16px;font-weight:700;letter-spacing:-0.3px;margin-bottom:12px;">
-          Genç <span style="color:#2563eb;">Sosyal</span>
-        </div>
-        <div class="gs-spin" style="width:22px;height:22px;border:2.5px solid #2563eb;border-top-color:transparent;border-radius:50%;"></div>
+        <svg class="gs-g-logo" viewBox="0 0 100 100" aria-label="Genç Sosyal">
+          <path class="gs-g-path gs-iz-1" d="M 78 28 A 36 36 0 1 0 85 52 L 52 52" />
+          <path class="gs-g-path gs-iz-2" d="M 78 28 A 36 36 0 1 0 85 52 L 52 52" />
+          <path class="gs-g-path gs-iz-3" d="M 78 28 A 36 36 0 1 0 85 52 L 52 52" />
+          <path class="gs-g-path gs-ana-cizgi" d="M 78 28 A 36 36 0 1 0 85 52 L 52 52" />
+        </svg>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

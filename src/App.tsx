@@ -47,6 +47,7 @@ import { AuthLayout } from "./layouts/AuthLayout";
 import { ToastContainer } from "./components/ui/Toast";
 import { ConfirmDialogContainer } from "./components/ui/ConfirmDialog"; // for logged out
 import { SplashScreen } from "./components/ui/SplashScreen";
+import { RouteLoadingBar } from "./components/ui/RouteLoadingBar";
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuthStore();
@@ -76,6 +77,7 @@ export default function App() {
       <BrowserRouter>
         <ErrorBoundary>
           <SplashScreen />
+          <RouteLoadingBar />
           <AuthWrapper>
             <Routes>
               {/* 1. Dedicated Split-Screen Modern AuthLayout */}

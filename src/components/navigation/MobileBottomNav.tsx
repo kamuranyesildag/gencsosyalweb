@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
@@ -15,11 +15,54 @@ export function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchUnread();
     }
   }, [isAuthenticated, fetchUnread]);
+
+  // Reset visibility on route change
+  useEffect(() => {
+    setIsVisible(true);
+    lastScrollY.current = window.scrollY || 0;
+  }, [location.pathname]);
+
+  // Auto-hide when page is scrolled up (moving down the feed) and show when scrolled back
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | Document;
+      let currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
+      if (target && target !== document && 'scrollTop' in target) {
+        const el = target as HTMLElement;
+        if (el.scrollHeight > el.clientHeight + 40 && el.clientHeight > 200) {
+          currentScrollY = el.scrollTop;
+        }
+      }
+
+      const delta = currentScrollY - lastScrollY.current;
+
+      if (currentScrollY <= 20) {
+        setIsVisible(true);
+      } else if (delta > 7) {
+        // Page pushed up (scrolling down) -> hide
+        setIsVisible(false);
+      } else if (delta < -7) {
+        // Page pulled down (scrolling up) -> show
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = Math.max(0, currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
+    };
+  }, []);
 
   // Hide on active chat room to give full keyboard space
   if (/^\/messages\/\d+/.test(location.pathname)) {
@@ -27,7 +70,7 @@ export function MobileBottomNav() {
   }
 
   const isActive = (path: string) => {
-    if (path === '/home') return location.pathname === '/home' || location.pathname === '/feed';
+    if (path === '/home') return location.pathname === '/home' || location.pathname === '/feed' || location.pathname === '/';
     return location.pathname.startsWith(path);
   };
 
@@ -53,65 +96,52 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobil Alt Gezinme Çubuğu"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#080E1A]/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/[0.08] pb-[env(safe-area-inset-bottom)] select-none shadow-[0_-4px_20px_rgba(15,23,42,0.04)] transition-colors"
+      className={cn(
+        'md:hidden fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-40 w-[calc(100%-3.5rem)] max-w-[272px] rounded-full bg-white/95 dark:bg-[#0B1221]/95 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.12] select-none shadow-[0_8px_28px_rgba(15,23,42,0.12)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out',
+        isVisible
+          ? 'translate-y-0 opacity-100 scale-100'
+          : 'translate-y-24 opacity-0 scale-95 pointer-events-none'
+      )}
     >
-      <div className="grid grid-cols-5 items-center h-[64px] max-w-md mx-auto px-1.5">
+      <div className="grid grid-cols-5 items-center h-[46px] px-1.5">
         {/* 1. Ana Sayfa */}
         <Link
           to="/home"
           onClick={(e) => handleNavClick('/home', false, e)}
+          aria-label="Ana Sayfa"
           aria-current={homeActive ? 'page' : undefined}
-          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+          className="flex items-center justify-center h-full group active:scale-90 transition-transform"
         >
           <div
             className={cn(
-              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              'w-9 h-9 rounded-full flex items-center justify-center transition-colors',
               homeActive
-                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200/70 dark:ring-blue-800/50'
                 : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
             )}
           >
-            <Home className={cn('w-5 h-5', homeActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+            <Home className={cn('w-[18px] h-[18px]', homeActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
           </div>
-          <span
-            className={cn(
-              'text-[10.5px] tracking-tight leading-none',
-              homeActive
-                ? 'font-bold text-blue-600 dark:text-blue-400'
-                : 'font-medium text-slate-500 dark:text-slate-400'
-            )}
-          >
-            Ana Sayfa
-          </span>
         </Link>
 
         {/* 2. Keşfet */}
         <Link
           to="/explore"
           onClick={(e) => handleNavClick('/explore', false, e)}
+          aria-label="Keşfet"
           aria-current={exploreActive ? 'page' : undefined}
-          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+          className="flex items-center justify-center h-full group active:scale-90 transition-transform"
         >
           <div
             className={cn(
-              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              'w-9 h-9 rounded-full flex items-center justify-center transition-colors',
               exploreActive
-                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200/70 dark:ring-blue-800/50'
                 : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
             )}
           >
-            <Compass className={cn('w-5 h-5', exploreActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+            <Compass className={cn('w-[18px] h-[18px]', exploreActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
           </div>
-          <span
-            className={cn(
-              'text-[10.5px] tracking-tight leading-none',
-              exploreActive
-                ? 'font-bold text-blue-600 dark:text-blue-400'
-                : 'font-medium text-slate-500 dark:text-slate-400'
-            )}
-          >
-            Keşfet
-          </span>
         </Link>
 
         {/* 3. Oluştur (Center Primary Action) */}
@@ -127,74 +157,56 @@ export function MobileBottomNav() {
             navigate('/create');
           }}
           aria-label="Yeni Gönderi Oluştur"
-          className="flex flex-col items-center justify-center h-full gap-1 group active:scale-95 transition-transform cursor-pointer"
+          className="flex items-center justify-center h-full group active:scale-90 transition-transform cursor-pointer"
         >
           <div
             className={cn(
-              'w-12 h-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md shadow-blue-600/25 transition-all',
+              'w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shadow-blue-600/30 transition-all',
               createActive && 'ring-2 ring-blue-300 dark:ring-blue-800'
             )}
           >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
+            <Plus className="w-[18px] h-[18px] stroke-[2.6]" />
           </div>
-          <span
-            className={cn(
-              'text-[10.5px] tracking-tight leading-none',
-              createActive
-                ? 'font-bold text-blue-600 dark:text-blue-400'
-                : 'font-medium text-slate-600 dark:text-slate-400'
-            )}
-          >
-            Oluştur
-          </span>
         </button>
 
         {/* 4. Bildirimler */}
         <Link
           to="/notifications"
           onClick={(e) => handleNavClick('/notifications', true, e)}
+          aria-label="Bildirimler"
           aria-current={notifActive ? 'page' : undefined}
-          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+          className="flex items-center justify-center h-full group active:scale-90 transition-transform"
         >
           <div
             className={cn(
-              'relative w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              'relative w-9 h-9 rounded-full flex items-center justify-center transition-colors',
               notifActive
-                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200/70 dark:ring-blue-800/50'
                 : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
             )}
           >
-            <Bell className={cn('w-5 h-5', notifActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+            <Bell className={cn('w-[18px] h-[18px]', notifActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
             {unreadNotifications > 0 && (
-              <span className="absolute -top-0.5 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-600 text-[9.5px] font-extrabold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#080E1A]">
+              <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-600 text-[8.5px] font-extrabold text-white flex items-center justify-center ring-2 ring-white dark:ring-[#0B1221]">
                 {unreadNotifications > 99 ? '99+' : unreadNotifications}
               </span>
             )}
           </div>
-          <span
-            className={cn(
-              'text-[10.5px] tracking-tight leading-none',
-              notifActive
-                ? 'font-bold text-blue-600 dark:text-blue-400'
-                : 'font-medium text-slate-500 dark:text-slate-400'
-            )}
-          >
-            Bildirimler
-          </span>
         </Link>
 
         {/* 5. Profil */}
         <Link
           to={profilePath}
           onClick={(e) => handleNavClick(profilePath, true, e)}
+          aria-label="Profil"
           aria-current={profileActive ? 'page' : undefined}
-          className="flex flex-col items-center justify-center h-full gap-0.5 group active:scale-95 transition-transform"
+          className="flex items-center justify-center h-full group active:scale-90 transition-transform"
         >
           <div
             className={cn(
-              'w-11 h-7 rounded-full flex items-center justify-center transition-colors',
+              'w-9 h-9 rounded-full flex items-center justify-center transition-colors',
               profileActive
-                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200/70 dark:ring-blue-800/50'
                 : 'text-slate-500 dark:text-slate-400'
             )}
           >
@@ -204,26 +216,16 @@ export function MobileBottomNav() {
                 name={user.displayName || user.username}
                 size="xs"
                 className={cn(
-                  'w-6 h-6 transition-all',
+                  'w-6 h-6 rounded-full transition-all',
                   profileActive
                     ? 'ring-2 ring-blue-600 dark:ring-blue-400'
                     : 'ring-1 ring-slate-200 dark:ring-white/15'
                 )}
               />
             ) : (
-              <User className={cn('w-5 h-5', profileActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
+              <User className={cn('w-[18px] h-[18px]', profileActive ? 'stroke-[2.4]' : 'stroke-[1.9]')} />
             )}
           </div>
-          <span
-            className={cn(
-              'text-[10.5px] tracking-tight leading-none',
-              profileActive
-                ? 'font-bold text-blue-600 dark:text-blue-400'
-                : 'font-medium text-slate-500 dark:text-slate-400'
-            )}
-          >
-            Profil
-          </span>
         </Link>
       </div>
     </nav>

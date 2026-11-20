@@ -24,6 +24,7 @@ import {
   checkCodeRateLimit,
   ActiveRoom
 } from "../services/quizEngine.js";
+import { sendQuizInviteEmail, getEmailRecipientIfAllowed } from "../utils/mailer.js";
 
 export const quizRouter = Router();
 
@@ -664,8 +665,12 @@ quizRouter.post("/rooms/:code/invite", requireAuth, async (req: any, res) => {
 
     // Create system notification
     const [senderProfile] = await db
-      .select({ username: users.username })
+      .select({
+        username: users.username,
+        displayName: profiles.displayName,
+      })
       .from(users)
+      .leftJoin(profiles, eq(users.id, profiles.userId))
       .where(eq(users.id, senderId))
       .limit(1);
 
@@ -674,6 +679,24 @@ quizRouter.post("/rooms/:code/invite", requireAuth, async (req: any, res) => {
       actorId: senderId,
       type: "QUIZ_INVITE",
       content: `@${senderProfile?.username || 'Bir arkadaşın'} seni "${room.title}" Genç Quiz odasına davet etti! (Oda Kodu: ${room.code})`,
+    });
+
+    // Fire-and-forget Genç Quiz invitation email
+    setImmediate(async () => {
+      try {
+        const recipient = await getEmailRecipientIfAllowed(receiver.id, "general");
+        if (!recipient) return;
+        await sendQuizInviteEmail({
+          to: recipient.email,
+          recipientName: recipient.displayName,
+          senderName: senderProfile?.displayName || senderProfile?.username || "Bir arkadaşın",
+          senderUsername: senderProfile?.username || "gencsosyal",
+          roomTitle: room.title,
+          roomCode: room.code,
+        });
+      } catch (err) {
+        console.warn("[Quiz] Davet e-postası gönderilemedi:", err);
+      }
     });
 
     res.json({ success: true, message: `@${receiver.username} kullanıcısına davet gönderildi!` });

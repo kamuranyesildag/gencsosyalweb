@@ -2,10 +2,18 @@ import { encryptString } from "../utils/encryption.js";
 import { Router, Request, Response } from "express";
 import { db } from "../../src/db/index.js";
 import type { DbTransaction } from "../../src/db/index.js";
-import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications, announcements, announcementViews, appeals } from "../../src/db/schema.js";
+import { users, profiles, verificationRequests, adminAuditLogs, moderationLogs, posts, comments, projectComments, projects, reports, communities, systemSettings, recoveryCodes, refreshTokens, notifications, notificationPreferences, announcements, announcementViews, appeals } from "../../src/db/schema.js";
 import { eq, ilike, or, desc, sql, and, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, requireRole } from "../middleware/auth.js";
-import { sendVerificationStatusEmail, sendSmtpTestEmail } from "../utils/mailer.js";
+import {
+  sendVerificationStatusEmail,
+  sendSmtpTestEmail,
+  sendAccountModerationEmail,
+  sendPlatformAnnouncementEmail,
+  EMAIL_TEMPLATE_CATALOG,
+  renderEmailTemplatePreview,
+  sendPreviewTemplateTestEmail,
+} from "../utils/mailer.js";
 import {
   evaluateUserVerificationEligibility,
   VERIFICATION_CATEGORIES,
@@ -539,6 +547,17 @@ adminRouter.patch("/users/:id/ban", async (req: Request, res: Response): Promise
       });
     });
 
+    // Notify user via email about account suspension/reactivation
+    if (targetUser.email) {
+      sendAccountModerationEmail({
+        to: targetUser.email,
+        displayName: targetUser.username,
+        action: isActive ? "reactivated" : "suspended",
+        reason: finalReason,
+        expiresAt,
+      }).catch((err) => console.warn("[Admin] Hesap durumu e-postası gönderilemedi:", err));
+    }
+
     res.json({
       success: true,
       data: {
@@ -800,6 +819,41 @@ adminRouter.post("/broadcast", async (req: Request, res: Response): Promise<void
 
       // Insert notifications
       await db.insert(notifications).values(notificationRows);
+
+      // Asynchronously deliver platform announcement email to users who opted into newsletters + emailEnabled
+      setImmediate(async () => {
+        try {
+          const subscribers = await db
+            .select({
+              email: users.email,
+              username: users.username,
+              displayName: profiles.displayName,
+            })
+            .from(users)
+            .innerJoin(notificationPreferences, eq(users.id, notificationPreferences.userId))
+            .leftJoin(profiles, eq(users.id, profiles.userId))
+            .where(
+              and(
+                eq(users.isActive, true),
+                eq(notificationPreferences.emailEnabled, true),
+                eq(notificationPreferences.newsletters, true)
+              )
+            )
+            .limit(250);
+
+          for (const sub of subscribers) {
+            if (!sub.email) continue;
+            await sendPlatformAnnouncementEmail({
+              to: sub.email,
+              displayName: sub.displayName || sub.username,
+              title: (title || "Genç Sosyal Duyurusu").trim(),
+              message: message.trim(),
+            });
+          }
+        } catch (err) {
+          console.warn("[Admin Broadcast] Duyuru e-postaları gönderilemedi:", err);
+        }
+      });
     }
 
     await db.insert(adminAuditLogs).values({
@@ -1035,6 +1089,27 @@ adminRouter.patch("/appeals/:id", requireAuth, requireRole("ADMIN"), async (req:
         });
       });
 
+      // Notify user via email that appeal was approved
+      setImmediate(async () => {
+        try {
+          const [u] = await db
+            .select({ email: users.email, username: users.username, displayName: profiles.displayName })
+            .from(users)
+            .leftJoin(profiles, eq(users.id, profiles.userId))
+            .where(eq(users.id, targetUserId))
+            .limit(1);
+          if (!u?.email) return;
+          await sendAccountModerationEmail({
+            to: u.email,
+            displayName: u.displayName || u.username,
+            action: "appeal_approved",
+            adminNote: sanitizedResponse || "İtirazınız onaylandı ve hesabınız yeniden aktifleştirildi.",
+          });
+        } catch (err) {
+          console.warn("[Admin Appeal] İtiraz onay e-postası gönderilemedi:", err);
+        }
+      });
+
       res.json({
         success: true,
         data: {
@@ -1076,6 +1151,27 @@ adminRouter.patch("/appeals/:id", requireAuth, requireRole("ADMIN"), async (req:
           isRead: false,
           createdAt: new Date()
         });
+      });
+
+      // Notify user via email that appeal was rejected
+      setImmediate(async () => {
+        try {
+          const [u] = await db
+            .select({ email: users.email, username: users.username, displayName: profiles.displayName })
+            .from(users)
+            .leftJoin(profiles, eq(users.id, profiles.userId))
+            .where(eq(users.id, targetUserId))
+            .limit(1);
+          if (!u?.email) return;
+          await sendAccountModerationEmail({
+            to: u.email,
+            displayName: u.displayName || u.username,
+            action: "appeal_rejected",
+            adminNote: sanitizedResponse || "İtirazınız değerlendirildi ancak kısıtlama kararının devamına karar verildi.",
+          });
+        } catch (err) {
+          console.warn("[Admin Appeal] İtiraz ret e-postası gönderilemedi:", err);
+        }
       });
 
       res.json({
@@ -1177,14 +1273,33 @@ adminRouter.put("/smtp", requireAuth, requireRole("ADMIN"), async (req, res) => 
   }
 });
 
+adminRouter.get("/smtp/templates", requireAuth, requireRole("ADMIN"), async (_req, res) => {
+  res.json({ success: true, data: EMAIL_TEMPLATE_CATALOG });
+});
+
+adminRouter.get("/smtp/templates/:id/preview", requireAuth, requireRole("ADMIN"), async (req, res) => {
+  try {
+    const templateId = String(req.params.id || "welcome");
+    const rendered = await renderEmailTemplatePreview(templateId);
+    res.json({ success: true, data: rendered });
+  } catch (error) {
+    console.error("Email template preview error:", error);
+    res.status(500).json({ success: false, error: { message: "E-posta şablonu önizlemesi oluşturulamadı." } });
+  }
+});
+
 adminRouter.post("/smtp/test", requireAuth, requireRole("ADMIN"), async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, templateId } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, error: { message: "Test e-postası adresi gereklidir." } });
     }
 
-        await sendSmtpTestEmail(email);
+    if (templateId && typeof templateId === "string" && templateId !== "smtp_test") {
+      await sendPreviewTemplateTestEmail(email, templateId);
+    } else {
+      await sendSmtpTestEmail(email);
+    }
 
     res.json({ success: true, message: "Test e-postası başarıyla gönderildi." });
   } catch (error) {

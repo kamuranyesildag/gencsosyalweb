@@ -1,36 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { BrandGLogoAnimation } from './BrandGLogoAnimation';
 
 export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
   const shouldReduceMotion = useReducedMotion();
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Only show splash once per session to prevent repeated delay on in-app refreshes
-  const [isVisible, setIsVisible] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return !sessionStorage.getItem('gencsosyal_splash_shown');
-    } catch {
-      return true;
-    }
-  });
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    if (!isVisible) {
-      onCompleteRef.current?.();
-      return;
-    }
-
-    try {
-      sessionStorage.setItem('gencsosyal_splash_shown', 'true');
-    } catch {}
-
     // Check setup mode silently without blocking
-    if (window.location.pathname !== '/setup') {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/setup') {
       fetch('/api/v1/health')
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           if (data?.data?.database === 'setup_mode') {
             window.location.href = '/setup';
           }
@@ -39,23 +23,23 @@ export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
     }
 
     if (shouldReduceMotion) {
-      setIsVisible(false);
-      onCompleteRef.current?.();
-      return;
+      const quickTimer = window.setTimeout(() => {
+        setIsVisible(false);
+        onCompleteRef.current?.();
+      }, 280);
+      return () => window.clearTimeout(quickTimer);
     }
 
-    // Dismiss splash screen smoothly after 600ms
-    const timer = setTimeout(() => {
+    // 0.36s max delay + 1.35s draw = 1.71s completion, brief 280ms settle -> smooth exit
+    const dismissTimer = window.setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => {
+      window.setTimeout(() => {
         onCompleteRef.current?.();
-      }, 250);
-    }, 600);
+      }, 360);
+    }, 1980);
 
-    return () => clearTimeout(timer);
-  }, [shouldReduceMotion, isVisible]);
-
-  if (!isVisible) return null;
+    return () => window.clearTimeout(dismissTimer);
+  }, [shouldReduceMotion]);
 
   return (
     <AnimatePresence>
@@ -63,47 +47,15 @@ export function SplashScreen({ onComplete }: { onComplete?: () => void }) {
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="fixed inset-0 z-[9999] bg-[#09090b] flex items-center justify-center overflow-hidden pointer-events-auto"
+          exit={{ opacity: 0, scale: 1.03 }}
+          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 z-[9999] bg-white dark:bg-[#0f0f13] flex flex-col items-center justify-center overflow-hidden pointer-events-auto px-6"
+          aria-label="Genç Sosyal açılıyor"
         >
-          {/* Glow effect using radial-gradient */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: [0, 0.6, 0.4], scale: [0.8, 1.2, 1] }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] rounded-full pointer-events-none"
-            style={{ 
-              background: 'radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0) 70%)',
-              willChange: 'opacity, transform' 
-            }}
-          />
-          
-          {/* Text */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05, duration: 0.35, ease: 'easeOut' }}
-            className="relative text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-2"
-          >
-            <motion.span
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1, duration: 0.35 }}
-              style={{ willChange: 'opacity, transform' }}
-            >
-              Genç
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.35 }}
-              className="text-blue-500"
-              style={{ willChange: 'opacity, transform' }}
-            >
-              Sosyal
-            </motion.span>
-          </motion.div>
+          {/* Animated 4-color trail "G" opening animation */}
+          <div className="relative z-10 flex flex-col items-center">
+            <BrandGLogoAnimation size={160} mode="splash" showWordmark />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
