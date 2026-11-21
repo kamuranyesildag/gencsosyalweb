@@ -21,6 +21,7 @@ import {
   ChevronRight,
   LogIn,
   UserPlus,
+  Shield,
 } from 'lucide-react';
 import { useAuthStore } from '../../context/useAuth';
 import { useAuthModalStore } from '../../context/useAuthModal';
@@ -103,6 +104,13 @@ export function MobileSidebar({ onItemClick }: { onItemClick?: () => void }) {
       icon: Rocket,
       protected: false,
       accentClass: 'text-blue-600 dark:text-blue-400',
+    },
+    {
+      name: 'Takımlar',
+      path: '/teams',
+      icon: Shield,
+      protected: false,
+      accentClass: 'text-violet-600 dark:text-violet-400',
     },
     {
       name: 'Topluluklar',

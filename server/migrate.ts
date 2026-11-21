@@ -645,6 +645,117 @@ export async function runMigration(isStandalone = false) {
       console.warn("⚠️ TEKNOFEST seed note:", teknoSeedErr);
     }
 
+    // --- TEAMS (TAKIM KURMA & GÜVENLİK YÖNETİMİ) ---
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "teams" (
+        "id" serial PRIMARY KEY,
+        "name" varchar(80) NOT NULL,
+        "slug" varchar(100) NOT NULL UNIQUE,
+        "tag" varchar(12),
+        "description" text NOT NULL,
+        "category" varchar(40) NOT NULL DEFAULT 'GENEL',
+        "visibility" varchar(20) NOT NULL DEFAULT 'PUBLIC',
+        "join_policy" varchar(20) NOT NULL DEFAULT 'APPROVAL',
+        "max_members" integer NOT NULL DEFAULT 15,
+        "avatar_url" text,
+        "banner_color" varchar(20) NOT NULL DEFAULT '#2563EB',
+        "rules" text,
+        "skills_needed" jsonb NOT NULL DEFAULT '[]'::jsonb,
+        "allow_member_invites" boolean NOT NULL DEFAULT false,
+        "require_verified_email_to_join" boolean NOT NULL DEFAULT false,
+        "is_recruiting" boolean NOT NULL DEFAULT true,
+        "is_locked" boolean NOT NULL DEFAULT false,
+        "invite_code" varchar(24),
+        "invite_code_enabled" boolean NOT NULL DEFAULT true,
+        "invite_code_expires_at" timestamp,
+        "owner_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "member_count" integer NOT NULL DEFAULT 1,
+        "deleted_at" timestamp,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "teams_owner_id_idx" ON "teams" ("owner_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "teams_visibility_idx" ON "teams" ("visibility");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "teams_category_idx" ON "teams" ("category");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "teams_invite_code_idx" ON "teams" ("invite_code");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "team_members" (
+        "id" serial PRIMARY KEY,
+        "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "role" varchar(20) NOT NULL DEFAULT 'MEMBER',
+        "position" varchar(60),
+        "joined_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now(),
+        CONSTRAINT "team_members_team_user_unique" UNIQUE ("team_id", "user_id")
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_members_team_id_idx" ON "team_members" ("team_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_members_user_id_idx" ON "team_members" ("user_id");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "team_join_requests" (
+        "id" serial PRIMARY KEY,
+        "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "status" varchar(20) NOT NULL DEFAULT 'PENDING',
+        "note" text,
+        "reviewed_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "reviewed_at" timestamp,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now(),
+        CONSTRAINT "team_join_requests_team_user_unique" UNIQUE ("team_id", "user_id")
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_join_requests_team_id_idx" ON "team_join_requests" ("team_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_join_requests_user_id_idx" ON "team_join_requests" ("user_id");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "team_invitations" (
+        "id" serial PRIMARY KEY,
+        "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+        "inviter_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "invitee_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "status" varchar(20) NOT NULL DEFAULT 'PENDING',
+        "message" text,
+        "expires_at" timestamp NOT NULL,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_invitations_team_id_idx" ON "team_invitations" ("team_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_invitations_invitee_id_idx" ON "team_invitations" ("invitee_id");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "team_bans" (
+        "id" serial PRIMARY KEY,
+        "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "banned_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "reason" text,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        CONSTRAINT "team_bans_team_user_unique" UNIQUE ("team_id", "user_id")
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_bans_team_id_idx" ON "team_bans" ("team_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_bans_user_id_idx" ON "team_bans" ("user_id");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "team_audit_logs" (
+        "id" serial PRIMARY KEY,
+        "team_id" integer NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+        "actor_id" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "target_user_id" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "action" varchar(50) NOT NULL,
+        "details" text,
+        "created_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_audit_logs_team_id_idx" ON "team_audit_logs" ("team_id");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "team_audit_logs_created_at_idx" ON "team_audit_logs" ("created_at");`);
+
     console.log("✅ Database migrations completed successfully.");
   } catch (error: any) {
     console.error("❌ Database migration failed:", error);

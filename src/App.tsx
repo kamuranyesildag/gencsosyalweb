@@ -40,6 +40,8 @@ import YouthLeagueArchive from "./pages/YouthLeagueArchive";
 import { GencQuiz } from "./pages/GencQuiz";
 import { QuizRoom } from "./pages/QuizRoom";
 import Teknofest from "./pages/Teknofest";
+import { Teams } from "./pages/Teams";
+import { TeamDetail } from "./pages/TeamDetail";
 import { AuthWrapper } from "./components/AuthWrapper";
 import { useAuthStore } from "./context/useAuth";
 import { BaseLayout } from "./layouts/BaseLayout";
@@ -114,6 +116,9 @@ export default function App() {
                 <Route path="/bookmarks" element={<ProtectedRoute><Bookmarks /></ProtectedRoute>} />
                 <Route path="/communities" element={<Communities />} />
                 <Route path="/communities/:slug" element={<CommunityDetail />} />
+                <Route path="/teams" element={<Teams />} />
+                <Route path="/teams/:slug" element={<TeamDetail />} />
+                <Route path="/takimlar" element={<Navigate to="/teams" replace />} />
                 <Route path="/youth-league" element={<YouthLeague />} />
                 <Route path="/genc-lig" element={<Navigate to="/youth-league" replace />} />
                 <Route path="/youth-league/match/:id" element={<ProtectedRoute><YouthLeagueMatch /></ProtectedRoute>} />

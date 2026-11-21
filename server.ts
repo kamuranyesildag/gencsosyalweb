@@ -252,6 +252,10 @@ async function startServer() {
     // Çocuk Güvenliği ve Yaş Doğrulama (FAZ 71 - 10 Ekim 2026 Yönetmeliği)
     const { childSafetyRouter } = await import("./server/routes/childSafety.js");
     app.use("/api/v1/child-safety", childSafetyRouter);
+
+    // Takım Kurma & Güvenli Yönetim
+    const { teamsRouter } = await import("./server/routes/teams.js");
+    app.use("/api/v1/teams", teamsRouter);
   
 // --- API Routes End ---
 

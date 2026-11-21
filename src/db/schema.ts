@@ -1654,6 +1654,136 @@ export const teknofestMemoriesRelations = relations(teknofestMemories, ({ one })
   }),
 }));
 
+// --- TEAMS (TAKIM KURMA & GÜVENLİK YÖNETİMİ) ---
+
+export const teams = pgTable('teams', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 80 }).notNull(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  tag: varchar('tag', { length: 12 }),
+  description: text('description').notNull(),
+  category: varchar('category', { length: 40 }).default('GENEL').notNull(),
+  visibility: varchar('visibility', { length: 20 }).default('PUBLIC').notNull(), // PUBLIC, PRIVATE, INVITE_ONLY
+  joinPolicy: varchar('join_policy', { length: 20 }).default('APPROVAL').notNull(), // OPEN, APPROVAL, INVITE_ONLY
+  maxMembers: integer('max_members').default(15).notNull(),
+  avatarUrl: text('avatar_url'),
+  bannerColor: varchar('banner_color', { length: 20 }).default('#2563EB').notNull(),
+  rules: text('rules'),
+  skillsNeeded: jsonb('skills_needed').$type<string[]>().default([]).notNull(),
+  allowMemberInvites: boolean('allow_member_invites').default(false).notNull(),
+  requireVerifiedEmailToJoin: boolean('require_verified_email_to_join').default(false).notNull(),
+  isRecruiting: boolean('is_recruiting').default(true).notNull(),
+  isLocked: boolean('is_locked').default(false).notNull(),
+  inviteCode: varchar('invite_code', { length: 24 }),
+  inviteCodeEnabled: boolean('invite_code_enabled').default(true).notNull(),
+  inviteCodeExpiresAt: timestamp('invite_code_expires_at'),
+  ownerId: integer('owner_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  memberCount: integer('member_count').default(1).notNull(),
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  ownerIdIdx: index('teams_owner_id_idx').on(t.ownerId),
+  visibilityIdx: index('teams_visibility_idx').on(t.visibility),
+  categoryIdx: index('teams_category_idx').on(t.category),
+  inviteCodeIdx: index('teams_invite_code_idx').on(t.inviteCode),
+}));
+
+export const teamMembers = pgTable('team_members', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: varchar('role', { length: 20 }).default('MEMBER').notNull(), // CAPTAIN, CO_CAPTAIN, MEMBER
+  position: varchar('position', { length: 60 }),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  uniqueTeamUser: unique('team_members_team_user_unique').on(t.teamId, t.userId),
+  teamIdIdx: index('team_members_team_id_idx').on(t.teamId),
+  userIdIdx: index('team_members_user_id_idx').on(t.userId),
+}));
+
+export const teamJoinRequests = pgTable('team_join_requests', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // PENDING, APPROVED, REJECTED
+  note: text('note'),
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  uniqueTeamReqUser: unique('team_join_requests_team_user_unique').on(t.teamId, t.userId),
+  teamIdIdx: index('team_join_requests_team_id_idx').on(t.teamId),
+  userIdIdx: index('team_join_requests_user_id_idx').on(t.userId),
+}));
+
+export const teamInvitations = pgTable('team_invitations', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  inviterId: integer('inviter_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  inviteeId: integer('invitee_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  status: varchar('status', { length: 20 }).default('PENDING').notNull(), // PENDING, ACCEPTED, DECLINED, REVOKED
+  message: text('message'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  teamIdIdx: index('team_invitations_team_id_idx').on(t.teamId),
+  inviteeIdIdx: index('team_invitations_invitee_id_idx').on(t.inviteeId),
+}));
+
+export const teamBans = pgTable('team_bans', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  bannedBy: integer('banned_by').references(() => users.id, { onDelete: 'set null' }),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  uniqueTeamBanUser: unique('team_bans_team_user_unique').on(t.teamId, t.userId),
+  teamIdIdx: index('team_bans_team_id_idx').on(t.teamId),
+  userIdIdx: index('team_bans_user_id_idx').on(t.userId),
+}));
+
+export const teamAuditLogs = pgTable('team_audit_logs', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  actorId: integer('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  targetUserId: integer('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 50 }).notNull(),
+  details: text('details'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  teamIdIdx: index('team_audit_logs_team_id_idx').on(t.teamId),
+  createdAtIdx: index('team_audit_logs_created_at_idx').on(t.createdAt),
+}));
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [teams.ownerId],
+    references: [users.id],
+  }),
+  members: many(teamMembers),
+  joinRequests: many(teamJoinRequests),
+  invitations: many(teamInvitations),
+  bans: many(teamBans),
+  auditLogs: many(teamAuditLogs),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+
 
 
 
