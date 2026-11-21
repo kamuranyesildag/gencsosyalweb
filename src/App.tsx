@@ -13,6 +13,7 @@ import { Bookmarks } from "./pages/Bookmarks";
 import { Communities } from "./pages/Communities";
 import { CommunityDetail } from "./pages/CommunityDetail";
 import { Profile } from "./pages/Profile";
+import { ProfileCustomize } from "./pages/ProfileCustomize";
 import { PostDetail } from "./pages/PostDetail";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Projects } from "./pages/Projects";
@@ -141,6 +142,7 @@ export default function App() {
                 <Route path="/support/:id" element={<ProtectedRoute><SupportDetail /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
               </Route>
+              <Route path="/profile/customize" element={<ProtectedRoute><ProfileCustomize /></ProtectedRoute>} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

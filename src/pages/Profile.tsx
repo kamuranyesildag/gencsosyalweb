@@ -24,13 +24,12 @@ import { usePagination } from "../hooks/usePagination";
 import { useSEO } from "../hooks/useSEO";
 import { getUserProjects, Project } from "../lib/projects";
 import {
-  ProfileCustomizationConfig,
-  normalizeProfileCustomization,
   hasActiveCustomization,
   getProfileCustomizationStyles,
-  applySpecialTextTransform
+  applySpecialTextTransform,
+  isSafeHttpUrl,
 } from "../lib/profileCustomization";
-import { ProfileCustomizerModal } from "../components/profile/ProfileCustomizerModal";
+import { SocialPlatformIcon } from "../components/profile/ProfileLivePreview";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -50,9 +49,9 @@ import {
   Gamepad2,
   Trophy,
   Palette,
-  Eye,
   RotateCcw,
-  Rocket
+  Rocket,
+  ArrowUpRight
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -77,9 +76,6 @@ export function Profile() {
   const [userProjects, setUserProjects] = useState<Project[]>([]);
 
   // Profile Customization states
-  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
-  const [previewConfig, setPreviewConfig] = useState<ProfileCustomizationConfig | null>(null);
-  const [previewCoverUrl, setPreviewCoverUrl] = useState<string | undefined>(undefined);
   const [showOriginalBio, setShowOriginalBio] = useState(false);
 
   useSEO({
@@ -101,8 +97,6 @@ export function Profile() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      setPreviewConfig(null);
-      setPreviewCoverUrl(undefined);
       setShowOriginalBio(false);
       try {
         const res = await fetchApi(`/users/${username}`);
@@ -304,11 +298,15 @@ export function Profile() {
   }
 
   const isMe = currentUser?.username === profile.username;
-  const activeRawCustomization = previewConfig || profile.profileCustomization;
-  const isCustomActive = Boolean(previewConfig) || hasActiveCustomization(profile.profileCustomization);
+  const activeRawCustomization = profile.profileCustomization;
+  const isCustomActive = hasActiveCustomization(profile.profileCustomization);
   const customStyles = getProfileCustomizationStyles(activeRawCustomization);
   const { config: customConfig } = customStyles;
-  const effectiveCoverUrl = previewCoverUrl !== undefined ? previewCoverUrl : profile.coverUrl;
+  const effectiveCoverUrl = profile.coverUrl;
+  const isCenteredLayout = isCustomActive && customConfig.headerLayout === "centered";
+  const isEditorialLayout = isCustomActive && customConfig.headerLayout === "editorial";
+  const validSocialLinks = (customConfig.socialLinks || []).filter((l) => isSafeHttpUrl(l.url));
+  const hasFeaturedHighlight = Boolean(customConfig.featuredHighlight?.title?.trim());
 
   const displayNameText =
     isCustomActive && customConfig.applyTransformToDisplayName && !showOriginalBio
@@ -337,35 +335,6 @@ export function Profile() {
           className="fixed inset-0 pointer-events-none z-0"
           style={customStyles.imageOverlayStyle}
         />
-      )}
-
-      {/* LIVE PREVIEW FLOATING BANNER (When owner clicks "Önizlemeyi Gör") */}
-      {previewConfig && isMe && (
-        <div className="sticky top-0 z-40 bg-[#0F172A] text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-lg border-b border-white/10">
-          <div className="flex items-center gap-2 text-xs font-bold">
-            <Eye className="w-4 h-4 text-blue-400" />
-            <span>Canlı Profil Önizleme Modu — Yaptığınız değişiklikleri gerçek profil sayfanızda inceliyorsunuz.</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setPreviewConfig(null);
-                setPreviewCoverUrl(undefined);
-              }}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors"
-            >
-              Önizlemeyi Kapat
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCustomizerModal(true)}
-              className="px-3.5 py-1.5 rounded-lg bg-[#185EDB] hover:bg-blue-600 text-xs font-extrabold transition-colors"
-            >
-              Düzenlemeye Dön & Kaydet
-            </button>
-          </div>
-        </div>
       )}
 
       {/* STICKY TOP APP BAR */}
@@ -405,7 +374,7 @@ export function Profile() {
           {isMe && (
             <button
               type="button"
-              onClick={() => setShowCustomizerModal(true)}
+              onClick={() => navigate("/profile/customize")}
               aria-label="Profili Özelleştir"
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold text-white bg-[#185EDB] hover:bg-blue-700 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
@@ -450,8 +419,10 @@ export function Profile() {
           {/* COVER IMAGE */}
           <div
             className={`relative ${
-              isCustomActive && customConfig.compactHeader
-                ? "h-32 sm:h-40"
+              isCustomActive && (customConfig.coverHeight === "compact" || customConfig.compactHeader)
+                ? "h-28 sm:h-36"
+                : isCustomActive && customConfig.coverHeight === "tall"
+                ? "h-48 sm:h-64 md:h-72"
                 : "h-40 sm:h-52 md:h-60"
             } w-full overflow-hidden shrink-0 group border-b border-slate-200/60 dark:border-white/[0.08]`}
             style={
@@ -466,6 +437,7 @@ export function Profile() {
               <img
                 src={effectiveCoverUrl}
                 alt="Kapak"
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
                 style={{
                   objectPosition: isCustomActive ? customConfig.coverPosition : "center"
@@ -479,6 +451,16 @@ export function Profile() {
                 <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
               </div>
             ) : null}
+
+            {isCustomActive && customConfig.coverOverlayOpacity > 0 && (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundColor: `rgba(15, 23, 42, ${customConfig.coverOverlayOpacity / 100})`,
+                }}
+              />
+            )}
           </div>
 
           {/* PROFILE INFO HEADER */}
@@ -494,10 +476,18 @@ export function Profile() {
             }`}
           >
             {/* Avatar and Main Actions Row */}
-            <div className="flex justify-between items-end -mt-14 sm:-mt-18 md:-mt-20 mb-3.5 flex-wrap gap-2">
+            <div
+              className={
+                isCenteredLayout
+                  ? "flex flex-col items-center -mt-14 sm:-mt-16 mb-3.5 gap-3"
+                  : isEditorialLayout
+                  ? "flex justify-between items-center pt-5 mb-4 flex-wrap gap-3"
+                  : "flex justify-between items-end -mt-14 sm:-mt-18 md:-mt-20 mb-3.5 flex-wrap gap-2"
+              }
+            >
               {/* Avatar with Custom Frame Support */}
               <div
-                className="p-1 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md shadow-xl shrink-0 z-10 border border-slate-200/60 dark:border-white/[0.12] transition-all"
+                className="p-1 bg-white/95 dark:bg-[#0B1329]/95 backdrop-blur-md shadow-xl shrink-0 z-10 border border-slate-200/60 dark:border-white/[0.12] transition-all overflow-hidden"
                 style={
                   isCustomActive
                     ? customStyles.avatarFrameStyle
@@ -508,12 +498,14 @@ export function Profile() {
                   url={profile.avatarUrl}
                   name={profile.displayName || profile.username}
                   size="xl"
-                  className="w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-white dark:bg-[#080E1A]"
+                  className={`w-22 h-22 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-white dark:bg-[#080E1A] ${
+                    isCustomActive ? "rounded-[inherit]" : ""
+                  }`}
                 />
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center flex-wrap gap-2 pt-2">
+              <div className={`flex items-center flex-wrap gap-2 ${isCenteredLayout ? "justify-center" : "pt-2"}`}>
                 {!isMe ? (
                   <>
                     <IconButton
@@ -591,7 +583,7 @@ export function Profile() {
                       variant="primary"
                       size="md"
                       leftIcon={<Palette className="w-4 h-4" />}
-                      onClick={() => setShowCustomizerModal(true)}
+                      onClick={() => navigate("/profile/customize")}
                       style={isCustomActive ? customStyles.primaryButtonStyle : undefined}
                       className="rounded-xl px-4 font-bold bg-[#185EDB] hover:bg-blue-700 text-white shadow-xs transition-all"
                     >
@@ -620,8 +612,8 @@ export function Profile() {
             </div>
 
             {/* User Identity Details */}
-            <div className="mt-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
+            <div className={`mt-1 ${isCenteredLayout ? "text-center" : ""}`}>
+              <div className={`flex items-center gap-1.5 flex-wrap ${isCenteredLayout ? "justify-center" : ""}`}>
                 <h2
                   className="text-xl sm:text-2xl font-black tracking-tight"
                   aria-label={profile.displayName || profile.username}
@@ -665,16 +657,25 @@ export function Profile() {
                 )}
               </div>
               <p className="text-sm font-medium opacity-70">@{profile.username}</p>
+
+              {isCustomActive && customConfig.statusText.trim() && (
+                <p
+                  className="text-sm font-semibold mt-1"
+                  style={{ color: customConfig.primaryAccent }}
+                >
+                  {customConfig.statusText.trim()}
+                </p>
+              )}
             </div>
 
             {/* Badges */}
-            <div className="mt-2.5">
+            <div className={`mt-2.5 ${isCenteredLayout ? "flex justify-center" : ""}`}>
               <UserBadges userId={profile.id} />
             </div>
 
             {/* Bio with Custom Typography & Reversible Special Text Transform */}
             {profile.bio && (
-              <div className="mt-3 space-y-1.5">
+              <div className={`mt-3 space-y-1.5 ${isCenteredLayout ? "text-center max-w-xl mx-auto" : ""}`}>
                 <div
                   aria-label={profile.bio}
                   style={isCustomActive ? customStyles.typographyStyle : undefined}
@@ -701,7 +702,7 @@ export function Profile() {
             )}
 
             {/* Meta Info Rows (Location, Website, Date) */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-xs sm:text-[13px] opacity-80 font-medium">
+            <div className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-xs sm:text-[13px] opacity-80 font-medium ${isCenteredLayout ? "justify-center" : ""}`}>
               {profile.location && (
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 opacity-70 shrink-0" />
@@ -725,74 +726,152 @@ export function Profile() {
                 </div>
               )}
 
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
-                <span>
-                  {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
-                    month: "long",
-                    year: "numeric",
-                  })}{" "}
-                  katıldı
-                </span>
-              </div>
+              {(!isCustomActive || customConfig.showJoinDate) && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                  <span>
+                    {new Date(profile.createdAt).toLocaleDateString("tr-TR", {
+                      month: "long",
+                      year: "numeric",
+                    })}{" "}
+                    katıldı
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Stats Row (Posts, Projects, Following, Followers) */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 text-sm">
-              <button
-                type="button"
-                onClick={() => setActiveTab("posts")}
-                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-              >
-                <span className="font-bold">
-                  {profile.postsCount ?? 0}
-                </span>
-                <span className="opacity-70 text-xs">
-                  Gönderi
-                </span>
-              </button>
+            {/* Custom Social Links */}
+            {validSocialLinks.length > 0 && (
+              <div className={`flex flex-wrap items-center gap-2 mt-3.5 ${isCenteredLayout ? "justify-center" : ""}`}>
+                {validSocialLinks.map((link, idx) => (
+                  <a
+                    key={`${link.platform}-${idx}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={
+                      isCustomActive
+                        ? {
+                            borderColor: customConfig.borderColor,
+                            color: customStyles.linkStyle.color,
+                          }
+                        : undefined
+                    }
+                    className="min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:opacity-85 transition-opacity"
+                  >
+                    <SocialPlatformIcon platform={link.platform} className="w-3.5 h-3.5 shrink-0" />
+                    <span>{link.label?.trim() || link.platform}</span>
+                  </a>
+                ))}
+              </div>
+            )}
 
-              {profile.projectsCount !== undefined && (
+            {/* Featured Spotlight Card */}
+            {hasFeaturedHighlight && (
+              <div
+                className={`mt-4 p-4 rounded-2xl border ${isCenteredLayout ? "text-left max-w-xl mx-auto" : ""}`}
+                style={
+                  isCustomActive
+                    ? {
+                        borderColor: customConfig.borderColor,
+                        backgroundColor: customStyles.isDarkCard
+                          ? "rgba(255,255,255,0.04)"
+                          : "rgba(15,23,42,0.03)",
+                      }
+                    : undefined
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-0.5">
+                    <span
+                      className="block text-[11px] font-semibold tracking-wide uppercase"
+                      style={isCustomActive ? { color: customConfig.primaryAccent } : undefined}
+                    >
+                      Öne Çıkan
+                    </span>
+                    <h3 className="text-sm font-bold leading-snug">
+                      {customConfig.featuredHighlight.title}
+                    </h3>
+                    {customConfig.featuredHighlight.subtitle && (
+                      <p className="text-xs opacity-75 leading-relaxed">
+                        {customConfig.featuredHighlight.subtitle}
+                      </p>
+                    )}
+                  </div>
+                  {isSafeHttpUrl(customConfig.featuredHighlight.url) && (
+                    <a
+                      href={customConfig.featuredHighlight.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={customConfig.featuredHighlight.title}
+                      style={isCustomActive ? customStyles.linkStyle : undefined}
+                      className="min-w-[36px] min-h-[36px] rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 shrink-0 transition-colors"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Stats Row (Posts, Projects, Following, Followers) */}
+            {(!isCustomActive || customConfig.showStats) && (
+              <div className={`flex flex-wrap items-center gap-2 sm:gap-3 mt-4 text-sm tabular-nums ${isCenteredLayout ? "justify-center" : ""}`}>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("projects")}
+                  onClick={() => setActiveTab("posts")}
                   className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
                 >
                   <span className="font-bold">
-                    {profile.projectsCount}
+                    {profile.postsCount ?? 0}
                   </span>
                   <span className="opacity-70 text-xs">
-                    Proje
+                    Gönderi
                   </span>
                 </button>
-              )}
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("following")}
-                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-              >
-                <span className="font-bold">
-                  {profile.followingCount ?? 0}
-                </span>
-                <span className="opacity-70 text-xs">
-                  Takip Edilen
-                </span>
-              </button>
+                {profile.projectsCount !== undefined && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("projects")}
+                    className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold">
+                      {profile.projectsCount}
+                    </span>
+                    <span className="opacity-70 text-xs">
+                      Proje
+                    </span>
+                  </button>
+                )}
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("followers")}
-                className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
-              >
-                <span className="font-bold">
-                  {profile.followersCount ?? 0}
-                </span>
-                <span className="opacity-70 text-xs">
-                  Takipçi
-                </span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("following")}
+                  className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                >
+                  <span className="font-bold">
+                    {profile.followingCount ?? 0}
+                  </span>
+                  <span className="opacity-70 text-xs">
+                    Takip Edilen
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("followers")}
+                  className="group/stat inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                >
+                  <span className="font-bold">
+                    {profile.followersCount ?? 0}
+                  </span>
+                  <span className="opacity-70 text-xs">
+                    Takipçi
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Mutual Followers Display */}
             {profile.mutualFollowers && profile.mutualFollowers.length > 0 && (
@@ -1246,46 +1325,6 @@ export function Profile() {
       </div>
 
       {/* MODALS AND SHEETS */}
-      {isMe && (
-        <ProfileCustomizerModal
-          isOpen={showCustomizerModal}
-          onClose={() => setShowCustomizerModal(false)}
-          initialConfig={normalizeProfileCustomization(
-            previewConfig || profile.profileCustomization
-          )}
-          profileData={{
-            username: profile.username,
-            displayName: profile.displayName,
-            bio: profile.bio,
-            avatarUrl: profile.avatarUrl,
-            coverUrl: effectiveCoverUrl,
-            location: profile.location,
-            website: profile.website,
-            isVerified: !!profile.isVerified,
-            followersCount: profile.followersCount,
-            followingCount: profile.followingCount,
-            postsCount: profile.postsCount
-          }}
-          onPreviewOnPage={(draft, draftCover) => {
-            setPreviewConfig(draft);
-            setPreviewCoverUrl(draftCover);
-            setShowCustomizerModal(false);
-            toast.success("Canlı önizleme profil sayfanıza uygulandı.");
-          }}
-          onSaved={(savedConfig, savedCoverUrl) => {
-            setProfile((prev: any) => ({
-              ...prev,
-              profileCustomization: savedConfig,
-              coverUrl: savedCoverUrl !== undefined ? savedCoverUrl : prev?.coverUrl
-            }));
-            setPreviewConfig(null);
-            setPreviewCoverUrl(undefined);
-            setShowCustomizerModal(false);
-            toast.success("Profil görünümünüz kaydedildi!");
-          }}
-        />
-      )}
-
       <ProfileShareSheet
         isOpen={showShare}
         onClose={() => setShowShare(false)}

@@ -1,5 +1,6 @@
 import { useSEO } from "../hooks/useSEO";
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { useAuthStore } from "../context/useAuth";
 import { fetchApi } from "../lib/api";
 import { SettingsProjects } from "../components/SettingsProjects";
@@ -28,7 +29,8 @@ import {
   CheckCircle,
   Loader2,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 
 export type SettingsTab = 
@@ -337,13 +339,38 @@ export function Settings() {
                 transition={{ duration: 0.18 }}
               >
                 {activeTab === "profile" && (
-                  <SettingsProfile
-                    profileData={profileData}
-                    setProfileData={setProfileData}
-                    showMsg={showMsg}
-                    loadProfile={loadProfile}
-                    username={username}
-                  />
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-violet-50/70 dark:from-indigo-950/40 dark:via-slate-900 dark:to-violet-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                            Profil Stüdyosu
+                          </h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                            Tema, arka plan, renk paleti, yazı tipi, sosyal bağlantılar ve öne çıkan kartı tam ekran canlı önizleme ile özelleştirin.
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/profile/customize"
+                        className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shrink-0 transition-colors"
+                      >
+                        <Palette className="w-4 h-4" />
+                        Stüdyoyu Aç
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                    <SettingsProfile
+                      profileData={profileData}
+                      setProfileData={setProfileData}
+                      showMsg={showMsg}
+                      loadProfile={loadProfile}
+                      username={username}
+                    />
+                  </div>
                 )}
                 {activeTab === "account" && (
                   <SettingsAccount email={email} showMsg={showMsg} />

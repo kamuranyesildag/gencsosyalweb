@@ -73,6 +73,35 @@ export type AvatarFrameId =
   | "squircle_frame"
   | "tech_hexagon";
 
+export type HeaderLayoutId = "classic" | "centered" | "editorial";
+
+export type ButtonStyleId = "solid" | "outline" | "soft" | "pill";
+
+export type CoverHeightId = "compact" | "normal" | "tall";
+
+export type AvatarShapeId = "circle" | "rounded" | "squircle" | "square";
+
+export type SocialPlatformId =
+  | "github"
+  | "linkedin"
+  | "instagram"
+  | "x"
+  | "youtube"
+  | "behance"
+  | "website";
+
+export interface ProfileSocialLink {
+  platform: SocialPlatformId;
+  url: string;
+  label?: string;
+}
+
+export interface ProfileFeaturedHighlight {
+  title: string;
+  subtitle: string;
+  url: string;
+}
+
 export interface ProfileCustomizationConfig {
   // 1. Background
   backgroundType: BackgroundType;
@@ -107,7 +136,9 @@ export interface ProfileCustomizationConfig {
   textTransform: TextTransformId;
   applyTransformToDisplayName: boolean;
 
-  // 4. Profile Cards
+  // 4. Profile Cards & Layout
+  headerLayout: HeaderLayoutId;
+  buttonStyle: ButtonStyleId;
   cardStyle: CardStyleId;
   cardRadius: number;
   cardShadowIntensity: number;
@@ -116,10 +147,20 @@ export interface ProfileCustomizationConfig {
 
   // 5. Borders & Appearance
   coverPosition: "center" | "top" | "bottom";
+  coverHeight: CoverHeightId;
+  coverOverlayOpacity: number;
+  avatarShape: AvatarShapeId;
   avatarFrame: AvatarFrameId;
   avatarFrameColor: string;
 
-  // 6. Advanced Customization
+  // 6. Identity & Showcase
+  statusText: string;
+  showJoinDate: boolean;
+  showStats: boolean;
+  socialLinks: ProfileSocialLink[];
+  featuredHighlight: ProfileFeaturedHighlight;
+
+  // 7. Advanced Customization
   glassmorphism: boolean;
   highContrastText: boolean;
   compactHeader: boolean;
@@ -156,6 +197,8 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomizationConfig = {
   textTransform: "none",
   applyTransformToDisplayName: false,
 
+  headerLayout: "classic",
+  buttonStyle: "solid",
   cardStyle: "classic",
   cardRadius: 24,
   cardShadowIntensity: 20,
@@ -163,8 +206,17 @@ export const DEFAULT_PROFILE_CUSTOMIZATION: ProfileCustomizationConfig = {
   cardOpacity: 100,
 
   coverPosition: "center",
+  coverHeight: "normal",
+  coverOverlayOpacity: 0,
+  avatarShape: "rounded",
   avatarFrame: "none",
   avatarFrameColor: "#185EDB",
+
+  statusText: "",
+  showJoinDate: true,
+  showStats: true,
+  socialLinks: [],
+  featuredHighlight: { title: "", subtitle: "", url: "" },
 
   glassmorphism: false,
   highContrastText: true,
@@ -175,11 +227,25 @@ export function normalizeProfileCustomization(
   raw?: Partial<ProfileCustomizationConfig> | null
 ): ProfileCustomizationConfig {
   if (!raw || typeof raw !== "object") {
-    return { ...DEFAULT_PROFILE_CUSTOMIZATION };
+    return {
+      ...DEFAULT_PROFILE_CUSTOMIZATION,
+      socialLinks: [],
+      featuredHighlight: { title: "", subtitle: "", url: "" },
+    };
   }
+  const mergedCoverHeight: CoverHeightId =
+    raw.coverHeight || (raw.compactHeader ? "compact" : "normal");
+
   return {
     ...DEFAULT_PROFILE_CUSTOMIZATION,
-    ...raw
+    ...raw,
+    coverHeight: mergedCoverHeight,
+    socialLinks: Array.isArray(raw.socialLinks) ? raw.socialLinks : [],
+    featuredHighlight: {
+      title: raw.featuredHighlight?.title || "",
+      subtitle: raw.featuredHighlight?.subtitle || "",
+      url: raw.featuredHighlight?.url || "",
+    },
   };
 }
 
@@ -190,6 +256,293 @@ export function hasActiveCustomization(
   const norm = normalizeProfileCustomization(raw);
   return JSON.stringify(norm) !== JSON.stringify(DEFAULT_PROFILE_CUSTOMIZATION);
 }
+
+export function isSafeHttpUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+export const SOCIAL_PLATFORM_OPTIONS: Array<{
+  id: SocialPlatformId;
+  name: string;
+  baseHint: string;
+}> = [
+  { id: "github", name: "GitHub", baseHint: "https://github.com/..." },
+  { id: "linkedin", name: "LinkedIn", baseHint: "https://linkedin.com/in/..." },
+  { id: "instagram", name: "Instagram", baseHint: "https://instagram.com/..." },
+  { id: "x", name: "X (Twitter)", baseHint: "https://x.com/..." },
+  { id: "youtube", name: "YouTube", baseHint: "https://youtube.com/..." },
+  { id: "behance", name: "Behance", baseHint: "https://behance.net/..." },
+  { id: "website", name: "Web Sitesi", baseHint: "https://..." },
+];
+
+export interface StudioThemeTemplate {
+  id: string;
+  name: string;
+  description: string;
+  previewBg: string;
+  previewCard: string;
+  previewAccent: string;
+  patch: Partial<ProfileCustomizationConfig>;
+}
+
+export const STUDIO_THEME_TEMPLATES: StudioThemeTemplate[] = [
+  {
+    id: "editorial_light",
+    name: "Sade Editoryal",
+    description: "Temiz beyaz kartlar, dengeli mavi vurgu",
+    previewBg: "#F4F6FA",
+    previewCard: "#FFFFFF",
+    previewAccent: "#185EDB",
+    patch: {
+      backgroundType: "default_light",
+      themePreset: "ocean_blue",
+      primaryAccent: "#185EDB",
+      secondaryAccent: "#3B82F6",
+      linkColor: "#185EDB",
+      buttonColor: "#0F172A",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#E2E8F0",
+      fontFamily: "modern",
+      headerLayout: "classic",
+      buttonStyle: "solid",
+      cardStyle: "classic",
+      cardRadius: 24,
+      cardShadowIntensity: 18,
+      cardOpacity: 100,
+      glassmorphism: false,
+      avatarShape: "circle",
+      avatarFrame: "none",
+    },
+  },
+  {
+    id: "night_studio",
+    name: "Gece Stüdyo",
+    description: "Derin lacivert zemin ve buzlu cam kartlar",
+    previewBg: "linear-gradient(135deg, #090F1E, #16213E)",
+    previewCard: "#0F172A",
+    previewAccent: "#38BDF8",
+    patch: {
+      backgroundType: "gradient",
+      bgGradientStart: "#090F1E",
+      bgGradientEnd: "#16213E",
+      bgGradientDirection: "135deg",
+      themePreset: "night_navy",
+      primaryAccent: "#38BDF8",
+      secondaryAccent: "#818CF8",
+      linkColor: "#38BDF8",
+      buttonColor: "#38BDF8",
+      cardBgColor: "#0F172A",
+      borderColor: "#1E293B",
+      fontFamily: "minimal",
+      headerLayout: "classic",
+      buttonStyle: "solid",
+      cardStyle: "thin_border",
+      cardRadius: 22,
+      cardShadowIntensity: 35,
+      cardOpacity: 92,
+      glassmorphism: true,
+      avatarShape: "rounded",
+      avatarFrame: "gradient_ring",
+      avatarFrameColor: "#38BDF8",
+    },
+  },
+  {
+    id: "engineer_grid",
+    name: "Mühendis Izgarası",
+    description: "Teknik ızgara deseni ve net çerçeveler",
+    previewBg: "#F8FAFC",
+    previewCard: "#FFFFFF",
+    previewAccent: "#0891B2",
+    patch: {
+      backgroundType: "pattern_preset",
+      bgSolidColor: "#F8FAFC",
+      patternId: "grid_soft",
+      patternOpacity: 24,
+      themePreset: "turquoise",
+      primaryAccent: "#0891B2",
+      secondaryAccent: "#06B6D4",
+      linkColor: "#0E7490",
+      buttonColor: "#0F172A",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#CBD5E1",
+      fontFamily: "tech",
+      headerLayout: "editorial",
+      buttonStyle: "outline",
+      cardStyle: "thin_border",
+      cardRadius: 14,
+      cardShadowIntensity: 0,
+      cardOpacity: 100,
+      glassmorphism: false,
+      avatarShape: "square",
+      avatarFrame: "tech_hexagon",
+      avatarFrameColor: "#0891B2",
+    },
+  },
+  {
+    id: "centered_atelier",
+    name: "Ortalanmış Vitrin",
+    description: "Merkezi başlık, sıcak serif tipografi",
+    previewBg: "linear-gradient(135deg, #FAF8F5, #F1ECE4)",
+    previewCard: "#FFFFFF",
+    previewAccent: "#9F1239",
+    patch: {
+      backgroundType: "gradient",
+      bgGradientStart: "#FAF8F5",
+      bgGradientEnd: "#F1ECE4",
+      bgGradientDirection: "to bottom",
+      themePreset: "burgundy",
+      primaryAccent: "#9F1239",
+      secondaryAccent: "#E11D48",
+      linkColor: "#9F1239",
+      buttonColor: "#881337",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#E7DFD5",
+      fontFamily: "serif",
+      headerLayout: "centered",
+      buttonStyle: "pill",
+      cardStyle: "soft_shadow",
+      cardRadius: 28,
+      cardShadowIntensity: 28,
+      cardOpacity: 100,
+      glassmorphism: false,
+      avatarShape: "circle",
+      avatarFrame: "double_ring",
+      avatarFrameColor: "#9F1239",
+    },
+  },
+  {
+    id: "emerald_minimal",
+    name: "Zümrüt Minimal",
+    description: "Ferah nokta deseni ve doğadan gelen tonlar",
+    previewBg: "#ECFDF5",
+    previewCard: "#FFFFFF",
+    previewAccent: "#059669",
+    patch: {
+      backgroundType: "pattern_dots",
+      bgSolidColor: "#F2FBF7",
+      patternId: "minimal_dots",
+      patternOpacity: 22,
+      themePreset: "emerald",
+      primaryAccent: "#059669",
+      secondaryAccent: "#10B981",
+      linkColor: "#047857",
+      buttonColor: "#065F46",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#D1FAE5",
+      fontFamily: "minimal",
+      headerLayout: "classic",
+      buttonStyle: "soft",
+      cardStyle: "minimal",
+      cardRadius: 20,
+      cardShadowIntensity: 10,
+      cardOpacity: 100,
+      glassmorphism: false,
+      avatarShape: "squircle",
+      avatarFrame: "simple_ring",
+      avatarFrameColor: "#059669",
+    },
+  },
+  {
+    id: "lavender_soft",
+    name: "Lavanta Stüdyo",
+    description: "Yumuşak geçişli arka plan ve kavisli kartlar",
+    previewBg: "linear-gradient(135deg, #F5F3FF, #EDE9FE)",
+    previewCard: "#FFFFFF",
+    previewAccent: "#7C3AED",
+    patch: {
+      backgroundType: "gradient",
+      bgGradientStart: "#F5F3FF",
+      bgGradientEnd: "#EDE9FE",
+      bgGradientDirection: "135deg",
+      themePreset: "lavender",
+      primaryAccent: "#7C3AED",
+      secondaryAccent: "#A855F7",
+      linkColor: "#6D28D9",
+      buttonColor: "#5B21B6",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#DDD6FE",
+      fontFamily: "rounded",
+      headerLayout: "centered",
+      buttonStyle: "pill",
+      cardStyle: "rounded_soft",
+      cardRadius: 30,
+      cardShadowIntensity: 24,
+      cardOpacity: 96,
+      glassmorphism: true,
+      avatarShape: "circle",
+      avatarFrame: "gradient_ring",
+      avatarFrameColor: "#7C3AED",
+    },
+  },
+  {
+    id: "monochrome_press",
+    name: "Monokrom Baskı",
+    description: "Siyah-beyaz keskin editoryal sadelik",
+    previewBg: "#F8FAFC",
+    previewCard: "#FFFFFF",
+    previewAccent: "#0F172A",
+    patch: {
+      backgroundType: "solid",
+      bgSolidColor: "#F5F5F5",
+      themePreset: "classic_bw",
+      primaryAccent: "#0F172A",
+      secondaryAccent: "#475569",
+      linkColor: "#0F172A",
+      buttonColor: "#000000",
+      cardBgColor: "#FFFFFF",
+      borderColor: "#CBD5E1",
+      fontFamily: "classic",
+      headerLayout: "editorial",
+      buttonStyle: "solid",
+      cardStyle: "flat",
+      cardRadius: 8,
+      cardShadowIntensity: 0,
+      cardOpacity: 100,
+      glassmorphism: false,
+      avatarShape: "square",
+      avatarFrame: "simple_ring",
+      avatarFrameColor: "#0F172A",
+    },
+  },
+  {
+    id: "midnight_obsidian",
+    name: "Obsidyen Geliştirici",
+    description: "Koyu teknik matris ve monospace tipografi",
+    previewBg: "#0B1120",
+    previewCard: "#111827",
+    previewAccent: "#10B981",
+    patch: {
+      backgroundType: "pattern_preset",
+      bgSolidColor: "#0B1120",
+      patternId: "circuit_tech",
+      patternOpacity: 18,
+      themePreset: "custom",
+      primaryAccent: "#10B981",
+      secondaryAccent: "#06B6D4",
+      linkColor: "#34D399",
+      buttonColor: "#10B981",
+      cardBgColor: "#111827",
+      borderColor: "#1F2937",
+      fontFamily: "monospace",
+      headerLayout: "classic",
+      buttonStyle: "outline",
+      cardStyle: "thin_border",
+      cardRadius: 16,
+      cardShadowIntensity: 20,
+      cardOpacity: 95,
+      glassmorphism: true,
+      avatarShape: "rounded",
+      avatarFrame: "neon_glow",
+      avatarFrameColor: "#10B981",
+    },
+  },
+];
 
 export interface ThemePresetDefinition {
   id: ThemePresetId;
@@ -653,6 +1006,24 @@ export function isColorDark(hex: string): boolean {
   return luminance < 0.45;
 }
 
+function getRelativeLuminance(hex: string): number {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return 1;
+  const channels = [0, 2, 4].map((offset) => {
+    const v = parseInt(clean.slice(offset, offset + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+export function getContrastRatio(hexA: string, hexB: string): number {
+  const l1 = getRelativeLuminance(hexA);
+  const l2 = getRelativeLuminance(hexB);
+  const bright = Math.max(l1, l2);
+  const dark = Math.min(l1, l2);
+  return Number(((bright + 0.05) / (dark + 0.05)).toFixed(2));
+}
+
 export function getPatternCssBackground(
   patternId: PatternId,
   accentHex: string,
@@ -823,11 +1194,34 @@ export function getProfileCustomizationStyles(raw?: Partial<ProfileCustomization
     textDecoration: config.textDecoration
   };
 
-  const primaryButtonStyle: React.CSSProperties = {
-    backgroundColor: config.buttonColor,
-    color: isColorDark(config.buttonColor) ? "#FFFFFF" : "#0F172A",
-    borderColor: config.buttonColor
-  };
+  const buttonRadius = config.buttonStyle === "pill" ? "9999px" : "12px";
+  let primaryButtonStyle: React.CSSProperties;
+  if (config.buttonStyle === "outline") {
+    primaryButtonStyle = {
+      backgroundColor: "transparent",
+      color: config.buttonColor,
+      borderColor: config.buttonColor,
+      borderWidth: "1.5px",
+      borderStyle: "solid",
+      borderRadius: buttonRadius,
+    };
+  } else if (config.buttonStyle === "soft") {
+    primaryButtonStyle = {
+      backgroundColor: hexToRgba(config.buttonColor, isDarkCard ? 0.22 : 0.12),
+      color: isDarkCard ? "#F8FAFC" : config.buttonColor,
+      borderColor: hexToRgba(config.buttonColor, 0.28),
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderRadius: buttonRadius,
+    };
+  } else {
+    primaryButtonStyle = {
+      backgroundColor: config.buttonColor,
+      color: isColorDark(config.buttonColor) ? "#FFFFFF" : "#0F172A",
+      borderColor: config.buttonColor,
+      borderRadius: buttonRadius,
+    };
+  }
 
   const accentBadgeStyle: React.CSSProperties = {
     backgroundColor: hexToRgba(config.primaryAccent, 0.12),
@@ -839,40 +1233,48 @@ export function getProfileCustomizationStyles(raw?: Partial<ProfileCustomization
     color: config.linkColor
   };
 
+  const shapeRadiusMap: Record<AvatarShapeId, string> = {
+    circle: "9999px",
+    rounded: "18px",
+    squircle: "28px",
+    square: "8px",
+  };
+  const baseAvatarRadius = shapeRadiusMap[config.avatarShape] || "18px";
+
   // Avatar frame calculation (designed never to conflict with blue verification badge)
   let avatarFrameStyle: React.CSSProperties = {
-    borderRadius: "18px"
+    borderRadius: baseAvatarRadius
   };
 
   switch (config.avatarFrame) {
     case "simple_ring":
       avatarFrameStyle = {
-        borderRadius: "18px",
+        borderRadius: baseAvatarRadius,
         boxShadow: `0 0 0 3.5px ${config.avatarFrameColor}`
       };
       break;
     case "double_ring":
       avatarFrameStyle = {
-        borderRadius: "18px",
+        borderRadius: baseAvatarRadius,
         boxShadow: `0 0 0 2px ${config.cardBgColor}, 0 0 0 5px ${config.avatarFrameColor}`
       };
       break;
     case "gradient_ring":
       avatarFrameStyle = {
-        borderRadius: "20px",
+        borderRadius: baseAvatarRadius,
         padding: "3px",
         backgroundImage: `linear-gradient(135deg, ${config.primaryAccent}, ${config.secondaryAccent})`
       };
       break;
     case "neon_glow":
       avatarFrameStyle = {
-        borderRadius: "18px",
+        borderRadius: baseAvatarRadius,
         boxShadow: `0 0 0 2.5px ${config.avatarFrameColor}, 0 0 18px ${hexToRgba(config.avatarFrameColor, 0.55)}`
       };
       break;
     case "squircle_frame":
       avatarFrameStyle = {
-        borderRadius: "26px",
+        borderRadius: "28px",
         boxShadow: `0 0 0 3px ${config.avatarFrameColor}`
       };
       break;
@@ -880,13 +1282,12 @@ export function getProfileCustomizationStyles(raw?: Partial<ProfileCustomization
       avatarFrameStyle = {
         borderRadius: "8px",
         boxShadow: `0 0 0 3px ${config.avatarFrameColor}`,
-        transform: "rotate(0deg)"
       };
       break;
     case "none":
     default:
       avatarFrameStyle = {
-        borderRadius: "18px"
+        borderRadius: baseAvatarRadius
       };
       break;
   }

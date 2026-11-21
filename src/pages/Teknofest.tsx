@@ -1,50 +1,40 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { useAuthStore, sanitizeToken, isJwtExpired } from "../context/useAuth";
 import { useAuthModalStore } from "../context/useAuthModal";
 import { useSEO } from "../hooks/useSEO";
-import { 
-  Sparkles, 
-  Camera, 
-  Rocket, 
-  Heart, 
-  Share2, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Trophy, 
-  Plane, 
-  Cpu, 
-  ExternalLink, 
-  Plus, 
-  Check, 
-  ChevronRight, 
-  ChevronLeft, 
-  X, 
-  MessageSquare, 
-  Flag, 
-  Filter, 
-  AlertCircle, 
-  Info, 
-  Play, 
-  CheckCircle2, 
-  Upload, 
-  Layers, 
-  Bookmark, 
-  Eye, 
-  ShieldCheck,
-  Quote,
+import {
+  Camera,
+  Rocket,
+  Heart,
+  Share2,
+  MapPin,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Plus,
+  ChevronRight,
+  ChevronLeft,
+  X,
+  Info,
+  Play,
+  CheckCircle2,
   UploadCloud,
-  Loader2
+  Quote,
+  Search,
+  Sparkles,
+  Film,
+  ArrowUpRight,
+  Image as ImageIcon,
+  PenLine,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
-import { Card } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
 import { Avatar } from "../components/ui/Avatar";
 import { showToast } from "../components/ui/Toast";
 import { fetchApi, requestTokenRefresh } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
+import teknofestHeroImg from "../assets/images/teknofest_archive_hero_1795243079458.jpg";
 
 interface TeknofestEvent {
   id: number;
@@ -58,7 +48,7 @@ interface TeknofestEvent {
   coverImageUrl: string | null;
   status: "UPCOMING" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
   isFeatured: boolean;
-  stats: any;
+  stats: Record<string, unknown> | null;
   categories?: Array<{ id: number; name: string; slug: string; icon: string }>;
   timeline?: Array<{ id: number; dateLabel: string; title: string; description: string; icon: string }>;
   counts?: { media: number; memories: number };
@@ -114,132 +104,108 @@ interface TeknofestMemoryItem {
   username: string | null;
 }
 
+interface TeknofestProjectItem {
+  id: number;
+  title: string;
+  description: string;
+  category?: string | null;
+  imageUrl?: string | null;
+  authorUsername?: string | null;
+}
+
+interface TeknofestSubmissionItem {
+  id: number;
+  type: "MEDIA" | "MEMORY";
+  mediaType: string;
+  mediaUrl: string | null;
+  title: string | null;
+  caption: string | null;
+  moderationStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason: string | null;
+  createdAt: string;
+  eventTitle: string;
+  eventSlug: string;
+}
+
+type SectionTab = "memories" | "gallery" | "timeline" | "projects" | "my-submissions";
+
+function formatEventDateRange(startDate?: string | null, endDate?: string | null): string {
+  if (!startDate) return "";
+  try {
+    const start = new Date(startDate);
+    if (Number.isNaN(start.getTime())) return startDate;
+    const startStr = start.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+    if (!endDate) return startStr;
+    const end = new Date(endDate);
+    if (Number.isNaN(end.getTime())) return startStr;
+
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const sameMonth = sameYear && start.getMonth() === end.getMonth();
+    if (sameMonth) {
+      return `${start.getDate()}–${end.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}`;
+    }
+    if (sameYear) {
+      return `${start.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} – ${end.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}`;
+    }
+    return `${startStr} – ${end.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}`;
+  } catch {
+    return startDate;
+  }
+}
+
+function formatShortDate(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
 export function Teknofest() {
   const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentSlug = routeSlug || "2026";
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const { openModal } = useAuthModalStore();
 
   useSEO({
-    title: `TEKNOFEST Köşesi — Etkinlik, Fotoğraf ve Anı Arşivi | Genç Sosyal`,
-    description: `TEKNOFEST ${currentSlug} etkinlik fotoğrafları, gençlerin projeleri, unutulmayan anıları ve gün gün festival zaman tüneli arşivi.`,
+    title: `TEKNOFEST Köşesi — Anılar, Fotoğraf ve Festival Arşivi | Genç Sosyal`,
+    description: `TEKNOFEST ${currentSlug} gençlerin unutulmaz anıları, fotoğraf ve video galerisi, festival projeleri ve zaman tüneli arşivi.`,
     canonicalPath: `/teknofest/${currentSlug}`,
   });
 
-  // Main State
+  // Event Metadata
   const [allEvents, setAllEvents] = useState<TeknofestEvent[]>([]);
   const [eventData, setEventData] = useState<TeknofestEvent | null>(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
 
-  // Tab State
-  const [activeSection, setActiveSection] = useState<"merkez" | "gallery" | "projects" | "memories" | "timeline" | "my-submissions">("merkez");
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<"ALL" | "IMAGE" | "VIDEO">("ALL");
-
-  // TEKNOFEST Merkezi Hub State (Mockup 10)
-  const [hubSearchQuery, setHubSearchQuery] = useState("");
-  const [selectedHubCategory, setSelectedHubCategory] = useState<string | null>(null);
-  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
-  const [applyingTeam, setApplyingTeam] = useState<any | null>(null);
-  const [applicationRole, setApplicationRole] = useState("");
-  const [applicationNote, setApplicationNote] = useState("");
-  const [appliedTeamIds, setAppliedTeamIds] = useState<number[]>([]);
-  const [newTeamForm, setNewTeamForm] = useState({
-    name: "",
-    university: "",
-    category: "İnsansız Hava Araçları",
-    openRoles: "",
-  });
-  const [recruitingTeams, setRecruitingTeams] = useState([
-    {
-      id: 1,
-      name: "Göktürk İHA Takımı",
-      university: "İTÜ",
-      category: "İnsansız Hava Araçları",
-      openCount: 2,
-      roles: ["Gömülü Yazılım", "Mekanik Tasarım"],
-      iconBg: "bg-[#0F172A] text-sky-400",
-      icon: "✈️",
-      extraMembers: 5,
-    },
-    {
-      id: 2,
-      name: "Volta Elektrikli Araç",
-      university: "YTÜ",
-      category: "Akıllı Ulaşım",
-      openCount: 1,
-      roles: ["Batarya Yönetimi"],
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400",
-      icon: "⚡",
-      extraMembers: 4,
-    },
-    {
-      id: 3,
-      name: "MedSense Biyomedikal",
-      university: "ODTÜ",
-      category: "Sağlık Teknolojileri",
-      openCount: 2,
-      roles: ["Görüntü İşleme", "Veri Bilimi"],
-      iconBg: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400",
-      icon: "❤️",
-      extraMembers: 3,
-    },
-  ]);
-
-  const handleCreateTeamSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTeamForm.name.trim() || !newTeamForm.university.trim()) {
-      showToast({ title: "Lütfen takım adı ve okul/kurum bilgisini girin.", type: "error" });
-      return;
-    }
-    const rolesList = newTeamForm.openRoles
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const created = {
-      id: Date.now(),
-      name: newTeamForm.name.trim(),
-      university: newTeamForm.university.trim(),
-      category: newTeamForm.category,
-      openCount: rolesList.length || 1,
-      roles: rolesList.length > 0 ? rolesList : ["Yazılım Geliştirici"],
-      iconBg: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400",
-      icon: "🚀",
-      extraMembers: 1,
-    };
-    setRecruitingTeams((prev) => [created, ...prev]);
-    setNewTeamForm({ name: "", university: "", category: "İnsansız Hava Araçları", openRoles: "" });
-    setShowCreateTeamModal(false);
-    showToast({ title: "Takım ilanınız TEKNOFEST Merkezi'nde yayınlandı!", type: "success" });
-  };
-
-  const handleApplyToTeam = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!applyingTeam) return;
-    setAppliedTeamIds((prev) => [...prev, applyingTeam.id]);
-    showToast({
-      title: `${applyingTeam.name} takımına başvurunuz iletildi!`,
-      type: "success",
-    });
-    setApplyingTeam(null);
-    setApplicationRole("");
-    setApplicationNote("");
-  };
-
-  // Media Gallery State
-  const [mediaList, setMediaList] = useState<TeknofestMediaItem[]>([]);
-  const [loadingMedia, setLoadingMedia] = useState(true);
-  const [mediaPage, setMediaPage] = useState(1);
-  const [hasMoreMedia, setHasMoreMedia] = useState(false);
-
-  // Projects State
-  const [projectsList, setProjectsList] = useState<any[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
+  // Active Section (Default: Memories)
+  const initialMediaParam = searchParams.get("media");
+  const [activeSection, setActiveSection] = useState<SectionTab>(initialMediaParam ? "gallery" : "memories");
 
   // Memories State
   const [memoriesList, setMemoriesList] = useState<TeknofestMemoryItem[]>([]);
   const [loadingMemories, setLoadingMemories] = useState(false);
+  const [memorySearch, setMemorySearch] = useState("");
+  const [memoryFilter, setMemoryFilter] = useState<"all" | "featured">("all");
+
+  // Gallery State
+  const [mediaList, setMediaList] = useState<TeknofestMediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<"ALL" | "IMAGE" | "VIDEO">("ALL");
+
+  // Projects State
+  const [projectsList, setProjectsList] = useState<TeknofestProjectItem[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // My Submissions State
+  const [mySubmissions, setMySubmissions] = useState<TeknofestSubmissionItem[]>([]);
+  const [loadingMySubmissions, setLoadingMySubmissions] = useState(false);
 
   // Lightbox State
   const [selectedMedia, setSelectedMedia] = useState<TeknofestMediaItem | null>(null);
@@ -247,40 +213,40 @@ export function Teknofest() {
 
   // Submit Modal State
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [submitType, setSubmitType] = useState<"PHOTO" | "VIDEO" | "MEMORY">("PHOTO");
+  const [submitType, setSubmitType] = useState<"MEMORY" | "PHOTO" | "VIDEO">("MEMORY");
   const [submitSourceTab, setSubmitSourceTab] = useState<"file" | "url">("file");
   const [submitFile, setSubmitFile] = useState<File | null>(null);
   const [submitPreviewUrl, setSubmitPreviewUrl] = useState<string | null>(null);
   const [submitUploadProgress, setSubmitUploadProgress] = useState(0);
   const [submitUploadPhase, setSubmitUploadPhase] = useState<"idle" | "uploading" | "processing" | "completed" | "error">("idle");
   const [submitUploadMessage, setSubmitUploadMessage] = useState("");
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [submitForm, setSubmitForm] = useState({
     mediaUrl: "",
     title: "",
     caption: "",
     categoryId: "",
-    authorTitle: "TEKNOFEST Ziyaretçisi / Yarışmacı",
-    rightsAgreed: false
+    authorTitle: "",
+    rightsAgreed: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const userFileInputRef = useRef<HTMLInputElement>(null);
 
-  // My Submissions
-  const [mySubmissions, setMySubmissions] = useState<any[]>([]);
-  const [loadingMySubmissions, setLoadingMySubmissions] = useState(false);
-
   // 1. Fetch Event Metadata
   useEffect(() => {
+    let active = true;
     const fetchEvent = async () => {
       setLoadingEvent(true);
       try {
         const [eventsRes, currentRes] = await Promise.all([
           fetch("/api/v1/teknofest/events"),
-          fetch(`/api/v1/teknofest/events/${currentSlug}`)
+          fetch(`/api/v1/teknofest/events/${encodeURIComponent(currentSlug)}`),
         ]);
 
         const eventsJson = await eventsRes.json();
         const currentJson = await currentRes.json();
+
+        if (!active) return;
 
         if (eventsJson.success) {
           setAllEvents(eventsJson.data || []);
@@ -289,39 +255,77 @@ export function Teknofest() {
         if (currentJson.success && currentJson.data) {
           setEventData(currentJson.data);
         } else if (eventsJson.data?.length > 0) {
-          // Fallback to first event if slug not found
           setEventData(eventsJson.data[0]);
+        } else {
+          setEventData(null);
         }
       } catch (err) {
-        console.error("Error loading event:", err);
+        console.error("Error loading TEKNOFEST event:", err);
       } finally {
-        setLoadingEvent(false);
+        if (active) setLoadingEvent(false);
       }
     };
 
     fetchEvent();
+    return () => {
+      active = false;
+    };
   }, [currentSlug]);
 
-  // 2. Fetch Media Gallery
-  const loadMedia = useCallback(async (cat: string, type: string) => {
-    setLoadingMedia(true);
+  // 2. Fetch Memories
+  const loadMemories = useCallback(async () => {
+    setLoadingMemories(true);
     try {
-      let url = `/api/v1/teknofest/events/${currentSlug}/media?page=1&limit=30`;
-      if (cat && cat !== "all") url += `&category=${encodeURIComponent(cat)}`;
-      if (type && type !== "ALL") url += `&mediaType=${type}`;
-
-      const res = await fetch(url);
+      const res = await fetch(`/api/v1/teknofest/events/${encodeURIComponent(currentSlug)}/memories`);
       const json = await res.json();
       if (json.success) {
-        setMediaList(json.data || []);
-        setHasMoreMedia(json.pagination?.page < json.pagination?.totalPages);
+        setMemoriesList(json.data || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("Error loading memories:", err);
     } finally {
-      setLoadingMedia(false);
+      setLoadingMemories(false);
     }
   }, [currentSlug]);
+
+  useEffect(() => {
+    if (activeSection === "memories") {
+      loadMemories();
+    }
+  }, [activeSection, loadMemories]);
+
+  // 3. Fetch Media Gallery
+  const loadMedia = useCallback(
+    async (cat: string, type: string) => {
+      setLoadingMedia(true);
+      try {
+        let url = `/api/v1/teknofest/events/${encodeURIComponent(currentSlug)}/media?page=1&limit=36`;
+        if (cat && cat !== "all") url += `&category=${encodeURIComponent(cat)}`;
+        if (type && type !== "ALL") url += `&mediaType=${encodeURIComponent(type)}`;
+
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.success) {
+          const items: TeknofestMediaItem[] = json.data || [];
+          setMediaList(items);
+
+          // Open deep-linked media item if requested in URL
+          const deepMediaId = searchParams.get("media");
+          if (deepMediaId) {
+            const found = items.find((m) => String(m.id) === deepMediaId);
+            if (found) {
+              setSelectedMedia(found);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error loading media:", err);
+      } finally {
+        setLoadingMedia(false);
+      }
+    },
+    [currentSlug, searchParams]
+  );
 
   useEffect(() => {
     if (activeSection === "gallery") {
@@ -329,32 +333,23 @@ export function Teknofest() {
     }
   }, [activeSection, activeCategory, mediaTypeFilter, loadMedia]);
 
-  // 3. Fetch Projects
+  // 4. Fetch Projects
   useEffect(() => {
-    if (activeSection === "projects") {
-      setLoadingProjects(true);
-      fetch(`/api/v1/teknofest/events/${currentSlug}/projects`)
-        .then(r => r.json())
-        .then(j => {
-          if (j.success) setProjectsList(j.data || []);
-        })
-        .catch(console.error)
-        .finally(() => setLoadingProjects(false));
-    }
-  }, [activeSection, currentSlug]);
-
-  // 4. Fetch Memories
-  useEffect(() => {
-    if (activeSection === "memories") {
-      setLoadingMemories(true);
-      fetch(`/api/v1/teknofest/events/${currentSlug}/memories`)
-        .then(r => r.json())
-        .then(j => {
-          if (j.success) setMemoriesList(j.data || []);
-        })
-        .catch(console.error)
-        .finally(() => setLoadingMemories(false));
-    }
+    if (activeSection !== "projects") return;
+    let active = true;
+    setLoadingProjects(true);
+    fetch(`/api/v1/teknofest/events/${encodeURIComponent(currentSlug)}/projects`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (active && j.success) setProjectsList(j.data || []);
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (active) setLoadingProjects(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [activeSection, currentSlug]);
 
   // 5. Fetch My Submissions
@@ -367,8 +362,8 @@ export function Teknofest() {
       if (json.success) {
         setMySubmissions(json.data || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("Error loading submissions:", err);
     } finally {
       setLoadingMySubmissions(false);
     }
@@ -380,34 +375,60 @@ export function Teknofest() {
     }
   }, [activeSection, loadMySubmissions]);
 
-  // Handle Lightbox Keyboard Navigation
+  // Lightbox Keyboard Navigation
+  const navigateLightbox = useCallback(
+    (direction: number) => {
+      if (!selectedMedia || mediaList.length === 0) return;
+      const currentIndex = mediaList.findIndex((m) => m.id === selectedMedia.id);
+      if (currentIndex === -1) return;
+      const nextIndex = (currentIndex + direction + mediaList.length) % mediaList.length;
+      setSelectedMedia(mediaList[nextIndex]);
+    },
+    [selectedMedia, mediaList]
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedMedia) return;
-      if (e.key === "Escape") setSelectedMedia(null);
+      if (e.key === "Escape") {
+        setSelectedMedia(null);
+        if (searchParams.has("media")) {
+          searchParams.delete("media");
+          setSearchParams(searchParams, { replace: true });
+        }
+      }
       if (e.key === "ArrowRight") navigateLightbox(1);
       if (e.key === "ArrowLeft") navigateLightbox(-1);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedMedia, mediaList]);
+  }, [selectedMedia, navigateLightbox, searchParams, setSearchParams]);
 
-  const navigateLightbox = (direction: number) => {
-    if (!selectedMedia || mediaList.length === 0) return;
-    const currentIndex = mediaList.findIndex(m => m.id === selectedMedia.id);
-    if (currentIndex === -1) return;
-    const nextIndex = (currentIndex + direction + mediaList.length) % mediaList.length;
-    setSelectedMedia(mediaList[nextIndex]);
+  // Cleanup preview blob on unmount
+  useEffect(() => {
+    return () => {
+      if (submitPreviewUrl && submitPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(submitPreviewUrl);
+      }
+    };
+  }, [submitPreviewUrl]);
+
+  const closeLightbox = () => {
+    setSelectedMedia(null);
+    if (searchParams.has("media")) {
+      searchParams.delete("media");
+      setSearchParams(searchParams, { replace: true });
+    }
   };
 
-  // Like handler
+  // Like Handler
   const handleLikeMedia = async (mediaId: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (likedMediaIds.has(mediaId)) return;
 
-    setLikedMediaIds(prev => new Set(prev).add(mediaId));
-    setMediaList(prev => prev.map(m => m.id === mediaId ? { ...m, likesCount: m.likesCount + 1 } : m));
+    setLikedMediaIds((prev) => new Set(prev).add(mediaId));
+    setMediaList((prev) => prev.map((m) => (m.id === mediaId ? { ...m, likesCount: m.likesCount + 1 } : m)));
     if (selectedMedia && selectedMedia.id === mediaId) {
       setSelectedMedia({ ...selectedMedia, likesCount: selectedMedia.likesCount + 1 });
     }
@@ -419,17 +440,27 @@ export function Teknofest() {
     }
   };
 
-  // Share handler
+  // Share Handler
   const handleShareMedia = (item: TeknofestMediaItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const shareUrl = `${window.location.origin}/teknofest/${currentSlug}?media=${item.id}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl);
-      showToast({ title: "Bağlantı panoya kopyalandı!", type: "success" });
+      showToast({ title: "Bağlantı panoya kopyalandı", type: "success" });
     }
   };
 
-  // Handle User File Selection
+  // Open Submit Modal
+  const openSubmitModal = (type: "MEMORY" | "PHOTO" | "VIDEO") => {
+    if (!isAuthenticated) {
+      openModal();
+      return;
+    }
+    setSubmitType(type);
+    setShowSubmitModal(true);
+  };
+
+  // File Selection
   const handleUserFileSelected = (file: File) => {
     if (submitPreviewUrl && submitPreviewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(submitPreviewUrl);
@@ -439,11 +470,11 @@ export function Teknofest() {
     setSubmitPreviewUrl(preview);
     setSubmitUploadPhase("idle");
     setSubmitUploadProgress(0);
-    setSubmitUploadMessage("Dosya seçildi");
-    
+    setSubmitUploadMessage("Dosya yüklenecek");
+
     if (!submitForm.title) {
       const clean = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-      setSubmitForm(prev => ({ ...prev, title: clean.charAt(0).toUpperCase() + clean.slice(1) }));
+      setSubmitForm((prev) => ({ ...prev, title: clean.charAt(0).toUpperCase() + clean.slice(1) }));
     }
   };
 
@@ -458,7 +489,7 @@ export function Teknofest() {
     setSubmitUploadMessage("");
   };
 
-  // Submit Content
+  // Submit Content Handler
   const handleSubmitContent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -467,7 +498,12 @@ export function Teknofest() {
     }
 
     if (!submitForm.rightsAgreed) {
-      showToast({ title: "Lütfen telif ve paylaşım haklarını onaylayın.", type: "error" });
+      showToast({ title: "Lütfen telif ve paylaşım onayını işaretleyin.", type: "error" });
+      return;
+    }
+
+    if (submitType === "MEMORY" && submitForm.caption.trim().length < 10) {
+      showToast({ title: "Anı metni en az 10 karakter olmalıdır.", type: "error" });
       return;
     }
 
@@ -476,7 +512,6 @@ export function Teknofest() {
     try {
       let finalMediaUrl = submitForm.mediaUrl;
 
-      // If user selected a file, upload it first if not already uploaded
       if (submitType !== "MEMORY" && submitSourceTab === "file") {
         if (!submitFile) {
           showToast({ title: "Lütfen bir dosya seçin.", type: "error" });
@@ -504,8 +539,7 @@ export function Teknofest() {
           }
         }
 
-        // Upload with real XHR progress
-        const uploadResult: any = await new Promise((resolve, reject) => {
+        const uploadResult: { url: string } = await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
@@ -513,7 +547,7 @@ export function Teknofest() {
               setSubmitUploadProgress(pct);
               if (ev.loaded >= ev.total) {
                 setSubmitUploadPhase("processing");
-                setSubmitUploadMessage("Sunucuda optimize ediliyor...");
+                setSubmitUploadMessage("Sunucuda işleniyor...");
               } else {
                 setSubmitUploadMessage(`Yükleniyor: %${pct}`);
               }
@@ -528,10 +562,10 @@ export function Teknofest() {
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
                 const json = JSON.parse(xhr.responseText);
-                if (json.success && json.data) {
+                if (json.success && json.data?.url) {
                   resolve(json.data);
                 } else {
-                  reject(new Error(json.error?.message || "Sunucu dosya işleme hatası"));
+                  reject(new Error(json.error?.message || "Dosya işleme hatası"));
                 }
               } catch {
                 reject(new Error("Sunucu yanıtı okunamadı"));
@@ -541,7 +575,9 @@ export function Teknofest() {
               try {
                 const errJson = JSON.parse(xhr.responseText);
                 if (errJson.error?.message) errMsg = errJson.error.message;
-              } catch {}
+              } catch {
+                // ignore parse error
+              }
               reject(new Error(errMsg));
             }
           };
@@ -550,12 +586,8 @@ export function Teknofest() {
 
           xhr.open("POST", "/api/v1/media/upload", true);
           xhr.withCredentials = true;
-          if (accessToken) {
-            xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-          }
-          if (refreshToken) {
-            xhr.setRequestHeader("x-refresh-token", refreshToken);
-          }
+          if (accessToken) xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+          if (refreshToken) xhr.setRequestHeader("x-refresh-token", refreshToken);
           xhr.send(uploadFormData);
         });
 
@@ -565,22 +597,27 @@ export function Teknofest() {
       }
 
       if (submitType !== "MEMORY" && (!finalMediaUrl || !finalMediaUrl.trim())) {
-        showToast({ title: "Lütfen bir dosya yükleyin veya URL girin.", type: "error" });
+        showToast({ title: "Lütfen bir dosya yükleyin veya geçerli bir bağlantı girin.", type: "error" });
         setIsSubmitting(false);
         return;
       }
 
-      const res = await fetchApi(`/teknofest/events/${currentSlug}/submit`, {
+      const res = await fetchApi(`/teknofest/events/${encodeURIComponent(currentSlug)}/submit`, {
         method: "POST",
         data: {
           type: submitType,
-          ...submitForm,
-          mediaUrl: finalMediaUrl
-        }
+          mediaUrl: finalMediaUrl,
+          title: submitForm.title,
+          caption: submitForm.caption,
+          categoryId: submitForm.categoryId || undefined,
+          authorTitle: submitForm.authorTitle,
+          rightsAgreed: submitForm.rightsAgreed,
+        },
       });
       const json = await res.json();
+
       if (json.success) {
-        showToast({ title: "İçeriğiniz moderasyon incelemesine gönderildi!", type: "success" });
+        showToast({ title: "İçeriğiniz moderasyon incelemesine gönderildi", type: "success" });
         setShowSubmitModal(false);
         handleClearSubmitFile();
         setSubmitForm({
@@ -588,1028 +625,719 @@ export function Teknofest() {
           title: "",
           caption: "",
           categoryId: "",
-          authorTitle: "TEKNOFEST Ziyaretçisi / Yarışmacı",
-          rightsAgreed: false
+          authorTitle: "",
+          rightsAgreed: false,
         });
         if (activeSection === "my-submissions") {
           loadMySubmissions();
         }
       } else {
-        const errMsg = typeof json.error === "string" ? json.error : (json.error?.message || "Gönderim başarısız");
+        const errMsg = typeof json.error === "string" ? json.error : json.error?.message || "Gönderim başarısız";
         showToast({ title: errMsg, type: "error" });
       }
     } catch (err: any) {
-      showToast({ title: err.message || "Sunucu hatası oluştu", type: "error" });
+      showToast({ title: err?.message || "Sunucu hatası oluştu", type: "error" });
       setSubmitUploadPhase("error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Filtered memories
+  const hasFeaturedMemories = useMemo(() => memoriesList.some((m) => m.isFeatured), [memoriesList]);
+  const filteredMemories = useMemo(() => {
+    const q = memorySearch.trim().toLowerCase();
+    return memoriesList.filter((m) => {
+      if (memoryFilter === "featured" && !m.isFeatured) return false;
+      if (!q) return true;
+      return (
+        m.content.toLowerCase().includes(q) ||
+        m.displayAuthor.toLowerCase().includes(q) ||
+        (m.authorTitle && m.authorTitle.toLowerCase().includes(q))
+      );
+    });
+  }, [memoriesList, memorySearch, memoryFilter]);
+
   if (loadingEvent) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 py-16 text-center">
-        <div className="w-12 h-12 border-3 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-          TEKNOFEST Köşesi hazırlanıyor...
-        </p>
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div className="h-[320px] sm:h-[360px] rounded-3xl bg-slate-200/70 dark:bg-slate-800/60 animate-pulse" />
+        <div className="h-12 w-full max-w-md rounded-xl bg-slate-200/70 dark:bg-slate-800/60 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-44 rounded-2xl bg-slate-200/60 dark:bg-slate-800/50 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  const ev = eventData || {
-    id: 1,
-    slug: "2026",
-    title: "TEKNOFEST 2026",
-    theme: "Milli Teknoloji Hamlesi & Geleceğin Gençleri",
-    description: "Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST'te geride kalan fotoğrafları, yarışma projelerini ve gençlerin unutulmaz anılarını keşfet.",
-    location: "Şanlıurfa — GAP Havalimanı",
-    startDate: "2026-09-30",
-    endDate: "2026-10-04",
+  const ev: TeknofestEvent = eventData || {
+    id: 0,
+    slug: currentSlug,
+    title: `TEKNOFEST ${currentSlug}`,
+    theme: "Gençlerin festival anıları, fotoğraf ve proje arşivi",
+    description: "",
+    location: "",
+    startDate: "",
+    endDate: "",
     coverImageUrl: null,
-    status: "COMPLETED" as const,
+    status: "ACTIVE",
     isFeatured: true,
-    stats: { visitorCount: "1.5M+", projectCount: "2,100+", competitionsCount: "46", teamCount: "32,000+" },
+    stats: null,
     categories: [],
-    timeline: []
+    timeline: [],
+    counts: { media: 0, memories: 0 },
   };
 
-  const filteredRecruitingTeams = recruitingTeams.filter((team) => {
-    const matchesCategory = !selectedHubCategory || team.category === selectedHubCategory;
-    const q = hubSearchQuery.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      team.name.toLowerCase().includes(q) ||
-      team.university.toLowerCase().includes(q) ||
-      team.category.toLowerCase().includes(q) ||
-      team.roles.some((r) => r.toLowerCase().includes(q));
-    return matchesCategory && matchesSearch;
-  });
+  const heroCover = ev.coverImageUrl || teknofestHeroImg;
+  const dateRangeLabel = formatEventDateRange(ev.startDate, ev.endDate);
+  const realMemoriesCount = ev.counts?.memories ?? memoriesList.length;
+  const realMediaCount = ev.counts?.media ?? mediaList.length;
+
+  const navTabs: Array<{ id: SectionTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+    { id: "memories", label: "Anılar", icon: Quote },
+    { id: "gallery", label: "Fotoğraf & Video", icon: Camera },
+    { id: "timeline", label: "Zaman Tüneli", icon: Clock },
+    { id: "projects", label: "Projeler", icon: Rocket },
+    ...(isAuthenticated ? [{ id: "my-submissions" as SectionTab, label: "Gönderilerim", icon: FolderOpen }] : []),
+  ];
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 overflow-x-hidden pb-24">
-      
-      {/* 1. TEKNOFEST MERKEZİ DARK HERO HEADER (Mockup 10) */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#0A1122] text-white p-5 sm:p-8 border border-white/10 shadow-2xl space-y-5">
-        {/* Top Navigation Row inside Hero */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("/home")}
-              aria-label="Ana Sayfaya Dön"
-              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-lg sm:text-xl font-black tracking-tight text-white leading-tight">
-                TEKNOFEST Merkezi
-              </h1>
-              <p className="text-xs text-slate-400 font-medium">
-                Genç Sosyal topluluk modülü
-              </p>
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-7 pb-24">
+      {/* 1. EDITORIAL HERO BANNER */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-white/10 bg-[#081020] min-h-[300px] sm:min-h-[360px] flex flex-col justify-between shadow-lg">
+        {/* Background Photography */}
+        <img
+          src={heroCover}
+          alt={ev.title}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-85"
+        />
+        {/* Clean Editorial Scrim */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#070E1C]/95 via-[#091326]/75 to-[#091326]/30"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-t from-[#070E1C]/90 via-transparent to-[#070E1C]/40"
+        />
+
+        {/* Top Bar inside Hero */}
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-6 sm:px-9 pt-6 sm:pt-8">
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-sky-300/95">
+            TEKNOFEST Köşesi · Anılar & Arşiv
+          </span>
+
+          {allEvents.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/15">
+              {allEvents.map((item) => (
+                <button
+                  key={item.slug}
+                  type="button"
+                  onClick={() => navigate(`/teknofest/${item.slug}`)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                    item.slug === ev.slug
+                      ? "bg-white text-slate-950"
+                      : "text-slate-200 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  {item.slug}
+                </button>
+              ))}
             </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate("/bookmarks")}
-            aria-label="Kaydedilenler"
-            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
-          >
-            <Bookmark className="w-4.5 h-4.5" />
-          </button>
-        </div>
-
-        {/* Visual Banner Card with Team Photo & Headline */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 min-h-[170px] sm:min-h-[200px] flex flex-col justify-end p-5">
-          <img
-            src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80"
-            alt="TEKNOFEST Öğrenci Takımları"
-            className="absolute inset-0 w-full h-full object-cover opacity-55"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A1122] via-[#0A1122]/60 to-transparent" />
-          <div className="relative z-10 space-y-1.5 max-w-xl">
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-              Fikrini takıma, takımını projeye dönüştür.
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium">
-              Yarışmalara hazırlanan öğrenci takımlarını keşfet.
-            </p>
-          </div>
-        </div>
-
-        {/* 3 KPI Stat Cards (1.240 Takım | 3.860 Proje | 9,7B Öğrenci) */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
-            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">1.240</span>
-            <span className="text-xs text-slate-400 font-medium">Takım</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
-            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">3.860</span>
-            <span className="text-xs text-slate-400 font-medium">Proje</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10">
-            <span className="block text-lg sm:text-2xl font-black text-white tabular-nums">9,7B</span>
-            <span className="text-xs text-slate-400 font-medium">Öğrenci</span>
-          </div>
-        </div>
-
-        {/* Dual Primary CTAs: Takım Kur & Takım Bul */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (!isAuthenticated) openModal();
-              else setShowCreateTeamModal(true);
-            }}
-            className="py-3.5 px-4 rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
-          >
-            <Users className="w-4.5 h-4.5" />
-            <span>Takım Kur</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSection("merkez");
-              const el = document.getElementById("recruiting-teams-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-          >
-            <Filter className="w-4 h-4 text-slate-700" />
-            <span>Takım Bul</span>
-          </button>
-        </div>
-
-        {/* Official Disclaimer Notice */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 text-center pt-1">
-          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>Resmî TEKNOFEST uygulaması değildir · Gösterilen sayılar örnek veridir</span>
-        </div>
-      </div>
-
-      {/* 2. MAIN SECTION NAVIGATION TABS */}
-      <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-white/[0.08] overflow-x-auto pb-1 gap-2">
-        <div className="flex gap-1.5 min-w-max">
-          <button
-            type="button"
-            onClick={() => setActiveSection("merkez")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSection === "merkez"
-                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-            }`}
-          >
-            <Rocket className="w-4 h-4" />
-            TEKNOFEST Merkezi
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection("gallery")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSection === "gallery"
-                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-            }`}
-          >
-            <Camera className="w-4 h-4" />
-            Fotoğraf Galerisi
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection("projects")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSection === "projects"
-                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-            }`}
-          >
-            <Cpu className="w-4 h-4" />
-            Arşiv Projeleri
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection("memories")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSection === "memories"
-                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-            }`}
-          >
-            <Heart className="w-4 h-4" />
-            Gençlerin Anıları
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection("timeline")}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeSection === "timeline"
-                ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            Zaman Tüneli
-          </button>
-
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => setActiveSection("my-submissions")}
-              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                activeSection === "my-submissions"
-                  ? "bg-[#2563EB] text-white shadow-xs shadow-blue-500/25"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05]"
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Gönderilerim
-            </button>
           )}
         </div>
 
-        <div className="hidden sm:block">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (!isAuthenticated) openModal();
-              else setShowSubmitModal(true);
-            }}
-            leftIcon={<Plus className="w-3.5 h-3.5 text-sky-500" />}
-          >
-            Fotoğraf / Anı Ekle
-          </Button>
-        </div>
-      </div>
-
-      {/* SECTION 0: TEKNOFEST MERKEZİ HUB (Mockup 10) */}
-      {activeSection === "merkez" && (
-        <div className="space-y-6">
-          {/* Search Input Bar */}
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={hubSearchQuery}
-                onChange={(e) => setHubSearchQuery(e.target.value)}
-                placeholder="Takım, proje veya üniversite ara"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/90 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-2xs"
-              />
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-            </div>
-            {selectedHubCategory && (
-              <button
-                type="button"
-                onClick={() => setSelectedHubCategory(null)}
-                className="px-3.5 py-3 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 text-xs font-bold whitespace-nowrap cursor-pointer"
-              >
-                {selectedHubCategory} ✕
-              </button>
+        {/* Hero Copy & Primary Actions */}
+        <div className="relative z-10 px-6 sm:px-9 pb-7 sm:pb-9 pt-10 max-w-3xl space-y-5">
+          <div className="space-y-2.5">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-[1.08]">
+              {ev.title}
+            </h1>
+            {(ev.theme || ev.description) && (
+              <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-2xl">
+                {ev.description || ev.theme}
+              </p>
             )}
           </div>
 
-          {/* 4-Step Competition Preparation Milestone Card */}
-          <div className="rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-extrabold">
-                <Clock className="w-3.5 h-3.5" />
-                Başvurular açık
+          {/* Unboxed Metadata Row (Only real DB values) */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-[13px] font-medium text-slate-300">
+            {ev.location && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                {ev.location}
               </span>
-              <span className="text-xs font-semibold text-slate-400">Örnek takvim</span>
-            </div>
+            )}
+            {ev.location && dateRangeLabel && <span aria-hidden="true" className="text-slate-500">·</span>}
+            {dateRangeLabel && (
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                {dateRangeLabel}
+              </span>
+            )}
+            {(realMemoriesCount > 0 || realMediaCount > 0) && (
+              <>
+                {(ev.location || dateRangeLabel) && <span aria-hidden="true" className="text-slate-500">·</span>}
+                <span className="text-slate-200">
+                  {realMemoriesCount} Anı · {realMediaCount} Kare
+                </span>
+              </>
+            )}
+          </div>
 
+          {/* Focused Actions: Memories & Media */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => openSubmitModal("MEMORY")}
+              className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+            >
+              <PenLine className="w-4 h-4" />
+              Anı Paylaş
+            </button>
+            <button
+              type="button"
+              onClick={() => openSubmitModal("PHOTO")}
+              className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/12 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md text-sm font-semibold transition-colors cursor-pointer"
+            >
+              <Camera className="w-4 h-4" />
+              Fotoğraf / Video Yükle
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. NAVIGATION TABS */}
+      <nav
+        aria-label="TEKNOFEST Köşesi Bölümleri"
+        className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800/90 overflow-x-auto no-scrollbar"
+      >
+        {navTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeSection === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSection(tab.id)}
+              className={`relative min-h-[44px] px-4 py-3 text-sm font-semibold whitespace-nowrap inline-flex items-center gap-2 transition-colors cursor-pointer ${
+                isActive
+                  ? "text-blue-600 dark:text-sky-400"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              {isActive && (
+                <motion.span
+                  layoutId="teknofest-active-tab"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 dark:bg-sky-400 rounded-full"
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* 3. SECTION: GENÇLERİN ANILARI (DEFAULT) */}
+      {activeSection === "memories" && (
+        <section className="space-y-6">
+          {/* Section Header + Search / Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                Teknoloji Yarışmaları Hazırlık Dönemi
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Takım kaydı, ön tasarım raporu ve kritik tasarım aşamalarını tek ekrandan takip et.
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Gençlerin Anıları
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Yarışmacıların, gönüllülerin ve ziyaretçilerin TEKNOFEST hikâyeleri.
               </p>
             </div>
 
-            {/* 4-Stage Progress Grid */}
-            <div className="grid grid-cols-4 gap-2.5 pt-1">
-              <div className="space-y-1.5">
-                <div className="h-1.5 rounded-full bg-emerald-500" />
-                <div className="text-xs font-extrabold text-slate-900 dark:text-white">Takım Kaydı</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">Tamamlandı</div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="h-1.5 rounded-full bg-[#2563EB]" />
-                <div className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400">Ön Rapor</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">12 gün kaldı</div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
-                <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Kritik Tasarım</div>
-                <div className="text-[11px] text-slate-400">Yakında</div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
-                <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Final</div>
-                <div className="text-[11px] text-slate-400">Yakında</div>
-              </div>
-            </div>
-          </div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {memoriesList.length > 0 && (
+                <div className="relative flex-1 sm:flex-initial">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="search"
+                    value={memorySearch}
+                    onChange={(e) => setMemorySearch(e.target.value)}
+                    placeholder="Anılarda ara..."
+                    aria-label="Anılarda ara"
+                    className="w-full sm:w-56 min-h-[40px] pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111B2E] text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  />
+                </div>
+              )}
 
-          {/* 8 Competition Categories 2-Column Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { name: "Akıllı Ulaşım", count: "142 takım", icon: "🚗", bg: "bg-blue-50 dark:bg-blue-950/40 text-blue-600" },
-              { name: "Eğitim Teknolojileri", count: "98 takım", icon: "🎓", bg: "bg-sky-50 dark:bg-sky-950/40 text-sky-600" },
-              { name: "Çevre ve Enerji", count: "117 takım", icon: "🌱", bg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600" },
-              { name: "Sağlık Teknolojileri", count: "86 takım", icon: "❤️", bg: "bg-rose-50 dark:bg-rose-950/40 text-rose-600" },
-              { name: "Yapay Zekâ", count: "203 takım", icon: "🧠", bg: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600" },
-              { name: "Robotik ve Otonom", count: "164 takım", icon: "🤖", bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-600" },
-              { name: "İnsansız Hava Araçları", count: "231 takım", icon: "✈️", bg: "bg-slate-900 text-sky-400" },
-              { name: "Tarım Teknolojileri", count: "74 takım", icon: "🌾", bg: "bg-lime-50 dark:bg-lime-950/40 text-lime-600" },
-            ].map((cat) => {
-              const active = selectedHubCategory === cat.name;
-              return (
-                <button
-                  key={cat.name}
-                  type="button"
-                  onClick={() =>
-                    setSelectedHubCategory(active ? null : cat.name)
-                  }
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                    active
-                      ? "bg-blue-50/70 dark:bg-blue-950/30 border-[#2563EB] shadow-xs"
-                      : "bg-white dark:bg-[#0D1424] border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300"
-                  }`}
-                >
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0 ${cat.bg}`}>
-                    {cat.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white leading-tight line-clamp-2">
-                      {cat.name}
-                    </div>
-                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                      {cat.count}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Üye Arayan Takımlar Section */}
-          <div id="recruiting-teams-section" className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                Üye Arayan Takımlar
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedHubCategory(null)}
-                className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
-              >
-                Tümü
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {filteredRecruitingTeams.map((team) => {
-                const isApplied = appliedTeamIds.includes(team.id);
-                return (
-                  <div
-                    key={team.id}
-                    className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-2xs space-y-3.5"
+              {hasFeaturedMemories && (
+                <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60">
+                  <button
+                    type="button"
+                    onClick={() => setMemoryFilter("all")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      memoryFilter === "all"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${team.iconBg}`}>
-                          {team.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
-                            {team.name}
-                          </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                            {team.university} · {team.category}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-extrabold shrink-0">
-                        {team.openCount} rol açık
-                      </span>
-                    </div>
-
-                    {/* Open Role Tags */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {team.roles.map((role) => (
-                        <span
-                          key={role}
-                          className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 text-xs font-bold"
-                        >
-                          {role}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Team Avatars & Başvur Button */}
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center -space-x-2">
-                        <img
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                          alt=""
-                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80"
-                          alt=""
-                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
-                        />
-                        <img
-                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&q=80"
-                          alt=""
-                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-[#0D1424]"
-                        />
-                        <span className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#0D1424]">
-                          +{team.extraMembers}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={isApplied}
-                        onClick={() => {
-                          if (!isAuthenticated) openModal();
-                          else {
-                            setApplyingTeam(team);
-                            setApplicationRole(team.roles[0] || "");
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                          isApplied
-                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"
-                            : "bg-[#2563EB] hover:bg-blue-700 text-white shadow-xs"
-                        }`}
-                      >
-                        {isApplied ? "Başvuruldu ✓" : "Başvur"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    Tümü
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMemoryFilter("featured")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      memoryFilter === "featured"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    Öne Çıkanlar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Öne Çıkan Öğrenci Projeleri Carousel */}
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                Öne Çıkan Öğrenci Projeleri
-              </h3>
-              <button
-                type="button"
-                onClick={() => navigate("/projects")}
-                className="text-xs font-extrabold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
-              >
-                Tümü
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div
-                onClick={() => navigate("/projects")}
-                className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
-              >
-                <div className="relative h-44 w-full overflow-hidden bg-slate-900">
-                  <img
-                    src="https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=900&q=80"
-                    alt="Volta-3 Verimlilik Aracı"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-extrabold shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Test aşaması
-                  </span>
+          {/* Subtle Editorial Composer Prompt */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80">
+            <div className="flex items-center gap-3.5">
+              {isAuthenticated && user ? (
+                <Avatar url={user.avatarUrl} name={user.displayName || user.username} size="md" />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <Quote className="w-5 h-5" />
                 </div>
-                <div className="p-4 space-y-1">
-                  <span className="text-xs font-bold text-[#2563EB] dark:text-blue-400">
-                    Akıllı Ulaşım
-                  </span>
-                  <h4 className="text-base font-black text-slate-900 dark:text-white">
-                    Volta-3 Verimlilik Aracı
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Volta Elektrikli Araç Takımı
-                  </p>
-                </div>
-              </div>
-
-              <div
-                onClick={() => navigate("/projects")}
-                className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer group"
-              >
-                <div className="relative h-44 w-full overflow-hidden bg-slate-900">
-                  <img
-                    src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=900&q=80"
-                    alt="TarlaSense Akıllı Sulama"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-extrabold shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Prototip
-                  </span>
-                </div>
-                <div className="p-4 space-y-1">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    Tarım Teknolojileri
-                  </span>
-                  <h4 className="text-base font-black text-slate-900 dark:text-white">
-                    TarlaSense — Akıllı Sulama Sistemi
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Anadolu Tarım Teknolojileri Takımı
-                  </p>
-                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Senin unutamadığın TEKNOFEST anı hangisi?
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Festival alanından bir anını, sahne heyecanını veya çektiğin bir kareyi arşive bırak.
+                </p>
               </div>
             </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => openSubmitModal("MEMORY")}
+              leftIcon={<PenLine className="w-4 h-4" />}
+              className="shrink-0 min-h-[42px]"
+            >
+              Anını Yaz
+            </Button>
           </div>
 
-          {/* Duyurular & Son Proje Güncellemeleri */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Duyurular Card */}
-            <div className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 space-y-4 shadow-2xs">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black text-base">
-                <span className="text-blue-600">📣</span>
-                <span>Duyurular</span>
-              </div>
-              <div className="space-y-3.5 divide-y divide-slate-100 dark:divide-white/[0.06]">
-                <div className="flex items-start gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB] mt-1.5 shrink-0" />
-                  <div>
-                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
-                      Ön tasarım raporu şablonu topluluk kaynaklarına eklendi
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      Moderasyon ekibi · 2 sa önce
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5 pt-3.5">
-                  <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-1.5 shrink-0" />
-                  <div>
-                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
-                      Takım kurma rehberi güncellendi: rol tanımları ve iş bölümü
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      Genç Sosyal · 1 g önce
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Memories List */}
+          {loadingMemories ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-44 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+              ))}
             </div>
-
-            {/* Son Proje Güncellemeleri Card */}
-            <div className="rounded-2xl bg-white dark:bg-[#0D1424] border border-slate-200/80 dark:border-white/[0.08] p-5 space-y-4 shadow-2xs">
-              <h4 className="font-black text-slate-900 dark:text-white text-base">
-                Son Proje Güncellemeleri
-              </h4>
-              <div className="space-y-3.5">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[#2563EB] flex items-center justify-center text-sm shrink-0">
-                    🧪
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-                      <strong className="font-extrabold text-slate-900 dark:text-white">Göktürk İHA</strong> rüzgâr tüneli testlerini tamamladı.
-                    </p>
-                    <span className="text-[11px] text-slate-400 font-medium">45 dk önce</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-sm shrink-0">
-                    📄
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-                      <strong className="font-extrabold text-slate-900 dark:text-white">Volta</strong> ön tasarım raporunu paylaştı.
-                    </p>
-                    <span className="text-[11px] text-slate-400 font-medium">3 sa önce</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center text-sm shrink-0">
-                    👥
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-                      <strong className="font-extrabold text-slate-900 dark:text-white">MedSense</strong> takımına 2 yeni üye katıldı.
-                    </p>
-                    <span className="text-[11px] text-slate-400 font-medium">Dün</span>
-                  </div>
-                </div>
+          ) : filteredMemories.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-3xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <Quote className="w-6 h-6" />
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Takım Kur Modal */}
-      {showCreateTeamModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200 dark:border-white/10 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Yeni TEKNOFEST Takımı Kur
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowCreateTeamModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleCreateTeamSubmit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Takım Adı
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: Kuzgun Otonom İHA"
-                  value={newTeamForm.name}
-                  onChange={(e) => setNewTeamForm((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Üniversite / Lise / Kurum
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: İTÜ, ODTÜ, Kabataş Erkek Lisesi"
-                  value={newTeamForm.university}
-                  onChange={(e) => setNewTeamForm((p) => ({ ...p, university: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Yarışma Kategorisi
-                </label>
-                <select
-                  value={newTeamForm.category}
-                  onChange={(e) => setNewTeamForm((p) => ({ ...p, category: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
-                >
-                  <option>İnsansız Hava Araçları</option>
-                  <option>Akıllı Ulaşım</option>
-                  <option>Yapay Zekâ</option>
-                  <option>Robotik ve Otonom</option>
-                  <option>Eğitim Teknolojileri</option>
-                  <option>Çevre ve Enerji</option>
-                  <option>Sağlık Teknolojileri</option>
-                  <option>Tarım Teknolojileri</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Aranan Roller (Virgülle ayırın)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Örn: Gömülü Yazılım, Mekanik Tasarım, Aviyonik"
-                  value={newTeamForm.openRoles}
-                  onChange={(e) => setNewTeamForm((p) => ({ ...p, openRoles: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateTeamModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-xs font-extrabold text-white cursor-pointer"
-                >
-                  Takımı Yayınla
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Takıma Başvur Modal */}
-      {applyingTeam && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0D1424] border border-slate-200 dark:border-white/10 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                  {applyingTeam.name}
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                  {memorySearch.trim() ? "Aramanızla eşleşen anı bulunamadı" : "Henüz paylaşılmış bir anı yok"}
                 </h3>
-                <p className="text-xs text-slate-500">{applyingTeam.university} · Takım Başvurusu</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {memorySearch.trim()
+                    ? "Farklı bir anahtar kelimeyle yeniden arayabilir veya filtreyi temizleyebilirsiniz."
+                    : "Bu etkinliğin ilk anısını paylaşarak arşivi başlatabilirsiniz."}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setApplyingTeam(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer"
-              >
-                ✕
-              </button>
+              {!memorySearch.trim() && (
+                <Button variant="primary" size="sm" onClick={() => openSubmitModal("MEMORY")} leftIcon={<Plus className="w-4 h-4" />}>
+                  İlk Anıyı Paylaş
+                </Button>
+              )}
             </div>
-            <form onSubmit={handleApplyToTeam} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Başvurulan Rol
-                </label>
-                <select
-                  value={applicationRole}
-                  onChange={(e) => setApplicationRole(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredMemories.map((mem) => (
+                <article
+                  key={mem.id}
+                  className="group bg-white dark:bg-[#111B2E] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 p-6 flex flex-col justify-between gap-5 transition-colors"
                 >
-                  {applyingTeam.roles.map((r: string) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Kısa Not & Deneyiminiz
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Hangi araçları/teknolojileri kullanıyorsunuz? Takıma nasıl katkı sağlayabilirsiniz?"
-                  value={applicationNote}
-                  onChange={(e) => setApplicationNote(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#131D31] border border-slate-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setApplyingTeam(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-xs font-extrabold text-white cursor-pointer"
-                >
-                  Başvuruyu Gönder
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+                  <div className="space-y-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <Quote className="w-5 h-5 text-blue-600/35 dark:text-sky-400/40 shrink-0" />
+                      {mem.isFeatured && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase text-blue-600 dark:text-sky-400">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Seçkin Anı
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[15px] text-slate-800 dark:text-slate-100 leading-[1.7] whitespace-pre-line">
+                      “{mem.content}”
+                    </p>
+                  </div>
+
+                  <footer className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar url={mem.avatarUrl} name={mem.displayAuthor} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          {mem.displayAuthor}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {[mem.authorTitle, formatShortDate(mem.createdAt)].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {mem.username && (
+                      <Link
+                        to={`/profile/${mem.username}`}
+                        aria-label={`${mem.displayAuthor} profiline git`}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </Link>
+                    )}
+                  </footer>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* 3. SECTION 1: PHOTO GALLERY */}
+      {/* 4. SECTION: FOTOĞRAF & VİDEO GALERİSİ */}
       {activeSection === "gallery" && (
-        <div className="space-y-6">
-          {/* Category Filter Pills & Media Type Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-2 px-2">
+        <section className="space-y-6">
+          {/* Header + Media Type Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Fotoğraf & Video Galerisi
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Gösteri uçuşları, yarışma alanları ve festivalden seçkin kareler.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60">
+                {(
+                  [
+                    { id: "ALL", label: "Tümü" },
+                    { id: "IMAGE", label: "Fotoğraf" },
+                    { id: "VIDEO", label: "Video" },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setMediaTypeFilter(item.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      mediaTypeFilter === item.id
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => openSubmitModal("PHOTO")}
+                leftIcon={<Plus className="w-4 h-4" />}
+                className="min-h-[38px]"
+              >
+                Kare Gönder
+              </Button>
+            </div>
+          </div>
+
+          {/* Category Filters (from real DB categories) */}
+          {ev.categories && ev.categories.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               <button
                 type="button"
                 onClick={() => setActiveCategory("all")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-colors cursor-pointer ${
                   activeCategory === "all"
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-slate-900 dark:border-white"
+                    : "bg-white dark:bg-[#111B2E] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
-                Tümü
+                Tüm Kategoriler
               </button>
-
-              {(ev.categories || [
-                { id: 1, name: "📸 Etkinlik", slug: "etkinlik", icon: "Camera" },
-                { id: 2, name: "🚀 Projeler", slug: "projeler", icon: "Rocket" },
-                { id: 3, name: "🤖 Teknoloji", slug: "teknoloji", icon: "Cpu" },
-                { id: 4, name: "🧑‍🤝‍🧑 Gençler", slug: "gencler", icon: "Users" },
-                { id: 5, name: "🏆 Yarışmalar", slug: "yarismalar", icon: "Trophy" },
-                { id: 6, name: "🎤 Sahne & Uçuş", slug: "sahne", icon: "Plane" },
-                { id: 7, name: "🌆 Festival Alanı", slug: "alan", icon: "MapPin" },
-                { id: 8, name: "💡 İlham", slug: "ilham", icon: "Sparkles" }
-              ]).map((cat) => (
+              {ev.categories.map((cat) => (
                 <button
-                  key={cat.slug}
+                  key={cat.id}
                   type="button"
                   onClick={() => setActiveCategory(cat.slug)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-colors cursor-pointer ${
                     activeCategory === cat.slug
-                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-slate-900 dark:border-white"
+                      : "bg-white dark:bg-[#111B2E] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
                   {cat.name}
                 </button>
               ))}
             </div>
+          )}
 
-            <div className="flex items-center gap-1.5 self-end sm:self-auto text-xs">
-              <button
-                type="button"
-                onClick={() => setMediaTypeFilter("ALL")}
-                className={`px-2.5 py-1 rounded-md font-semibold ${mediaTypeFilter === 'ALL' ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}
-              >
-                Tüm Medya
-              </button>
-              <button
-                type="button"
-                onClick={() => setMediaTypeFilter("IMAGE")}
-                className={`px-2.5 py-1 rounded-md font-semibold ${mediaTypeFilter === 'IMAGE' ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}
-              >
-                📸 Fotoğraflar
-              </button>
-              <button
-                type="button"
-                onClick={() => setMediaTypeFilter("VIDEO")}
-                className={`px-2.5 py-1 rounded-md font-semibold ${mediaTypeFilter === 'VIDEO' ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}
-              >
-                🎥 Videolar
-              </button>
-            </div>
-          </div>
-
-          {/* Gallery Grid / Masonry Cards */}
+          {/* Masonry Gallery Grid */}
           {loadingMedia ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="aspect-4/3 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+              {[220, 300, 240, 280, 210, 260].map((h, i) => (
+                <div
+                  key={i}
+                  style={{ height: `${h}px` }}
+                  className="break-inside-avoid rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse"
+                />
               ))}
             </div>
           ) : mediaList.length === 0 ? (
-            <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 flex items-center justify-center mx-auto">
-                <Camera className="w-7 h-7" />
+            <div className="py-16 px-6 text-center rounded-3xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <ImageIcon className="w-6 h-6" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  Bu kategoride henüz fotoğraf yok
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                  Bu filtrede henüz medya bulunmuyor
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  TEKNOFEST'te çektiğin güzel bir anı veya fotoğraf varsa toplulukla paylaşabilirsin!
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Festivalden çektiğiniz fotoğraf veya videoları galeriye gönderebilirsiniz.
                 </p>
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  if (!isAuthenticated) openModal();
-                  else setShowSubmitModal(true);
-                }}
-                leftIcon={<Plus className="w-3.5 h-3.5" />}
-              >
-                İlk Fotoğrafı Gönder
+              <Button variant="primary" size="sm" onClick={() => openSubmitModal("PHOTO")} leftIcon={<Camera className="w-4 h-4" />}>
+                Fotoğraf / Video Yükle
               </Button>
             </div>
           ) : (
-            <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-3.5 space-y-3.5">
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
               {mediaList.map((item) => (
-                <div
+                <figure
                   key={item.id}
                   onClick={() => setSelectedMedia(item)}
-                  className="group relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 cursor-pointer break-inside-avoid border border-slate-200/60 dark:border-slate-800 transition-all hover:shadow-lg"
+                  className="group relative break-inside-avoid rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 cursor-pointer"
                 >
-                  <img
-                    src={item.mediaUrl}
-                    alt={item.altText || item.title || "TEKNOFEST Fotoğrafı"}
-                    loading="lazy"
-                    className="w-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-102"
-                  />
-
-                  {/* Gradient Overlay & Hover Bar */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      {item.isFeatured && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs">
-                          ⭐ Öne Çıkan
+                  {item.mediaType === "VIDEO" ? (
+                    <div className="relative aspect-video bg-slate-950">
+                      {item.thumbnailUrl ? (
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={item.altText || item.title || "TEKNOFEST videosu"}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                        />
+                      ) : (
+                        <video
+                          src={item.mediaUrl}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/35 transition-colors">
+                        <span className="w-12 h-12 rounded-full bg-white/90 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                          <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
                         </span>
-                      )}
-                      {item.mediaType === "VIDEO" && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-xs flex items-center gap-1">
-                          <Play className="w-3 h-3 fill-current" /> Video
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1 text-white">
-                      {item.title && (
-                        <h4 className="text-xs font-bold line-clamp-1">{item.title}</h4>
-                      )}
-                      <div className="flex items-center justify-between text-[11px] text-slate-200">
-                        <span className="truncate">{item.credit}</span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => handleLikeMedia(item.id, e)}
-                            className="flex items-center gap-1 hover:text-rose-400"
-                          >
-                            <Heart className={`w-3.5 h-3.5 ${likedMediaIds.has(item.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                            <span>{item.likesCount}</span>
-                          </button>
-                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <img
+                      src={item.mediaUrl}
+                      alt={item.altText || item.title || "TEKNOFEST karesi"}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-auto object-cover block group-hover:scale-[1.03] transition-transform duration-500"
+                    />
+                  )}
 
-                  {/* Mobile credit indicator */}
-                  <div className="sm:hidden p-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
-                    <span className="truncate font-medium">{item.credit}</span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-3 h-3 text-rose-500" /> {item.likesCount}
-                    </span>
-                  </div>
-                </div>
+                  {/* Subtle Editorial Overlay on Hover */}
+                  <figcaption className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/85 via-black/45 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-between gap-3">
+                    <div className="min-w-0 text-white">
+                      {item.title && (
+                        <p className="text-sm font-semibold leading-snug line-clamp-1">{item.title}</p>
+                      )}
+                      <p className="text-[11px] text-slate-200/90 truncate mt-0.5">
+                        {[item.credit, item.categoryName].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => handleLikeMedia(item.id, e)}
+                        aria-label="Beğen"
+                        className="h-8 px-2.5 rounded-lg bg-black/50 hover:bg-black/75 text-white text-xs font-semibold inline-flex items-center gap-1 backdrop-blur-xs transition-colors cursor-pointer"
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 ${
+                            likedMediaIds.has(item.id) ? "fill-rose-500 text-rose-500" : "text-white"
+                          }`}
+                        />
+                        <span>{item.likesCount}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleShareMedia(item, e)}
+                        aria-label="Paylaş"
+                        className="w-8 h-8 rounded-lg bg-black/50 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-xs transition-colors cursor-pointer"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </figcaption>
+                </figure>
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* 4. SECTION 2: PROJELER */}
-      {activeSection === "projects" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                🚀 TEKNOFEST Projeleri
-              </h2>
-              <p className="text-xs text-slate-500">
-                Festivalde sergilenen genç teknoloji ve inovasyon projeleri
+      {/* 5. SECTION: ZAMAN TÜNELİ */}
+      {activeSection === "timeline" && (
+        <section className="space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Festival Zaman Tüneli
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {ev.title} süresince öne çıkan günler ve dönüm noktaları.
+            </p>
+          </div>
+
+          {!ev.timeline || ev.timeline.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-3xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80 space-y-2">
+              <Clock className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Bu etkinlik için zaman tüneli kaydı henüz eklenmedi
               </p>
             </div>
-            <Link to="/projects">
-              <Button variant="ghost" size="sm" rightIcon={<ChevronRight className="w-4 h-4" />}>
-                Tüm Projeleri Gör
-              </Button>
+          ) : (
+            <ol className="relative border-l border-slate-200 dark:border-slate-800 ml-3 sm:ml-4 space-y-8 py-2">
+              {ev.timeline.map((item) => (
+                <li key={item.id} className="relative pl-7 sm:pl-9">
+                  <span
+                    aria-hidden="true"
+                    className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-sky-400 ring-4 ring-slate-50 dark:ring-[#0B1120]"
+                  />
+                  <div className="bg-white dark:bg-[#111B2E] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 sm:p-6 max-w-2xl space-y-1.5">
+                    <time className="block text-xs font-semibold tracking-wider uppercase text-blue-600 dark:text-sky-400">
+                      {item.dateLabel}
+                    </time>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {item.title}
+                    </h3>
+                    {item.description && (
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
+
+      {/* 6. SECTION: FESTİVAL PROJELERİ */}
+      {activeSection === "projects" && (
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Festival Projeleri
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Topluluk üyelerinin TEKNOFEST kapsamında paylaştığı gerçek projeler.
+              </p>
+            </div>
+
+            <Link
+              to="/projects"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-sky-400 hover:underline"
+            >
+              <span>Tüm Projeleri İncele</span>
+              <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
           {loadingProjects ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-56 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
               ))}
             </div>
           ) : projectsList.length === 0 ? (
-            <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
-              <Rocket className="w-10 h-10 text-slate-400 mx-auto" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Henüz TEKNOFEST etiketiyle eklenmiş proje bulunamadı
-              </p>
+            <div className="py-16 px-6 text-center rounded-3xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+              <Rocket className="w-8 h-8 text-slate-400 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  Henüz TEKNOFEST etiketiyle paylaşılmış proje yok
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Projeler bölümünden TEKNOFEST etiketli yeni bir proje yayınlayabilirsiniz.
+                </p>
+              </div>
+              <Link to="/projects" className="inline-block pt-1">
+                <Button variant="primary" size="sm">
+                  Projeler Sayfasına Git
+                </Button>
+              </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {projectsList.map((proj) => (
                 <Link
                   key={proj.id}
                   to={`/projects/${proj.id}`}
-                  className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden hover:shadow-md transition-all flex flex-col justify-between"
+                  className="group bg-white dark:bg-[#111B2E] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 overflow-hidden flex flex-col justify-between transition-colors"
                 >
                   {proj.imageUrl && (
                     <div className="aspect-video bg-slate-100 dark:bg-slate-950 overflow-hidden">
                       <img
                         src={proj.imageUrl}
                         alt={proj.title}
-                        className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                       />
                     </div>
                   )}
-                  <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                    <div>
-                      <Badge variant="outline" className="text-[10px] mb-1.5">
-                        {proj.category || "Teknoloji"}
-                      </Badge>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-sky-600 transition-colors line-clamp-1">
+                  <div className="p-5 flex-1 flex flex-col justify-between gap-4">
+                    <div className="space-y-1.5">
+                      {proj.category && (
+                        <span className="block text-[11px] font-semibold tracking-wider uppercase text-blue-600 dark:text-sky-400">
+                          {proj.category}
+                        </span>
+                      )}
+                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-sky-400 transition-colors line-clamp-1">
                         {proj.title}
                       </h3>
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {proj.description}
                       </p>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                      <span>@{proj.authorUsername}</span>
-                      <span className="text-sky-600 font-bold group-hover:underline flex items-center gap-1">
-                        İncele <ChevronRight className="w-3.5 h-3.5" />
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {proj.authorUsername ? `@${proj.authorUsername}` : "Genç Sosyal"}
+                      </span>
+                      <span className="font-semibold text-blue-600 dark:text-sky-400 inline-flex items-center gap-1">
+                        İncele <ArrowUpRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   </div>
@@ -1617,219 +1345,112 @@ export function Teknofest() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* 5. SECTION 3: GENÇLERİN ANILARI */}
-      {activeSection === "memories" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                💙 Gençlerin Anıları ve Deneyimleri
-              </h2>
-              <p className="text-xs text-slate-500">
-                Yarışmacıların, takım liderlerinin ve ziyaretçilerin unutulmaz TEKNOFEST hikâyeleri
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                if (!isAuthenticated) openModal();
-                else {
-                  setSubmitType("MEMORY");
-                  setShowSubmitModal(true);
-                }
-              }}
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
-            >
-              Kendi Anını Paylaş
-            </Button>
-          </div>
-
-          {loadingMemories ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-40 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
-              ))}
-            </div>
-          ) : memoriesList.length === 0 ? (
-            <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
-              <Quote className="w-10 h-10 text-slate-400 mx-auto" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Henüz paylaşılmış anı bulunmuyor
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {memoriesList.map((mem) => (
-                <div
-                  key={mem.id}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 space-y-4 shadow-xs flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <Quote className="w-6 h-6 text-sky-500/40" />
-                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal italic">
-                      "{mem.content}"
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                    <div>
-                      <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">
-                        {mem.displayAuthor}
-                      </span>
-                      {mem.authorTitle && (
-                        <span className="text-[11px] text-sky-600 dark:text-sky-400 font-medium">
-                          {mem.authorTitle}
-                        </span>
-                      )}
-                    </div>
-                    {mem.username && (
-                      <Link
-                        to={`/profile/${mem.username}`}
-                        className="text-slate-400 hover:text-sky-600 transition-colors"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 6. SECTION 4: ZAMAN TÜNELİ */}
-      {activeSection === "timeline" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              ⏳ TEKNOFEST {ev.slug} Zaman Tüneli
-            </h2>
-            <p className="text-xs text-slate-500">
-              Açılıştan büyük finallere festivalin gün gün akışı ve önemli dönüm noktaları
-            </p>
-          </div>
-
-          <div className="relative border-l-2 border-sky-500/30 ml-4 sm:ml-6 space-y-8 py-2">
-            {(ev.timeline || [
-              { id: 1, dateLabel: "30 Eylül", title: "Büyük Açılış Günü", description: "Protokol açılışı, SoloTürk ve Türk Yıldızları nefes kesen açılış uçuşları ve stantların ilk ziyaretçilerle buluşması.", icon: "Plane" },
-              { id: 2, dateLabel: "01 Ekim", title: "Proje ve Girişim Alanları", description: "Genç geliştiricilerin ve girişimcilerin çadırlarında jüri sunumları, AR/VR ve robotik teknoloji sergileri.", icon: "Rocket" },
-              { id: 3, dateLabel: "02 Ekim", title: "Teknoloji ve İHA Sergileri", description: "Otonom sistemler, insansız hava araçları ve yapay zeka yarışmalarının eleme turları ve halka açık atölyeler.", icon: "Cpu" },
-              { id: 4, dateLabel: "03 Ekim", title: "Büyük Yarışma Finalleri", description: "Roket, Model Uydu, Tarım Teknolojileri ve Hackathon yarışmalarının final etabı ve ödül heyecanı.", icon: "Trophy" },
-              { id: 5, dateLabel: "04 Ekim", title: "Görkemli Kapanış & Ödül Töreni", description: "Dereceye giren takımların ödüllerini alması, kapanış hava gösterileri ve festival anılarının taçlanması.", icon: "Sparkles" }
-            ]).map((item, idx) => (
-              <div key={item.id} className="relative pl-6 sm:pl-8 group">
-                {/* Timeline Dot */}
-                <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-sky-500 border-4 border-white dark:border-slate-950 shadow-xs group-hover:scale-125 transition-transform" />
-
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 space-y-1.5 shadow-xs max-w-2xl">
-                  <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                    {item.dateLabel}
-                  </span>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
-                    {item.title}
-                  </h3>
-                  {item.description && (
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 7. SECTION 5: GÖNDERİLERİM (USER SUBMISSIONS) */}
+      {/* 7. SECTION: GÖNDERİLERİM */}
       {activeSection === "my-submissions" && isAuthenticated && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                📝 TEKNOFEST'e Gönderdiğim İçerikler
+        <section className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="space-y-1">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Gönderilerim
               </h2>
-              <p className="text-xs text-slate-500">
-                Fotoğraf, video ve anı gönderilerinizin moderasyon durumunu takip edin
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                TEKNOFEST Köşesi için gönderdiğiniz anı, fotoğraf ve videoların inceleme durumu.
               </p>
             </div>
             <Button
               variant="primary"
               size="sm"
-              onClick={() => setShowSubmitModal(true)}
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
+              onClick={() => openSubmitModal("MEMORY")}
+              leftIcon={<Plus className="w-4 h-4" />}
             >
               Yeni İçerik Gönder
             </Button>
           </div>
 
           {loadingMySubmissions ? (
-            <div className="py-12 text-center text-slate-400">Yükleniyor...</div>
-          ) : mySubmissions.length === 0 ? (
-            <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
-              <CheckCircle2 className="w-10 h-10 text-slate-400 mx-auto" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Henüz TEKNOFEST Köşesi için içerik göndermediniz
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mySubmissions.map((sub) => (
-                <div
-                  key={`${sub.type}-${sub.id}`}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 space-y-3 shadow-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <Badge
-                      variant={
-                        sub.moderationStatus === "APPROVED"
-                          ? "success"
-                          : sub.moderationStatus === "REJECTED"
-                          ? "danger"
-                          : "warning"
-                      }
-                      className="text-[10px]"
-                    >
-                      {sub.moderationStatus === "APPROVED" && "🟢 Yayında"}
-                      {sub.moderationStatus === "REJECTED" && "🔴 Reddedildi"}
-                      {sub.moderationStatus === "PENDING" && "🟡 İnceleniyor"}
-                    </Badge>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(sub.createdAt).toLocaleDateString("tr-TR")}
-                    </span>
-                  </div>
-
-                  {sub.mediaUrl && (
-                    <div className="aspect-video bg-slate-100 dark:bg-slate-950 rounded-xl overflow-hidden">
-                      <img src={sub.mediaUrl} alt={sub.title || "Fotoğraf"} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
-                      {sub.title || sub.eventTitle}
-                    </h4>
-                    {sub.caption && (
-                      <p className="text-xs text-slate-500 line-clamp-2">{sub.caption}</p>
-                    )}
-                    {sub.rejectionReason && (
-                      <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-[11px]">
-                        <strong>Red Sebebi:</strong> {sub.rejectionReason}
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-44 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse" />
               ))}
             </div>
+          ) : mySubmissions.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-3xl bg-white dark:bg-[#111B2E] border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+              <CheckCircle2 className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Henüz gönderilmiş bir içeriğiniz bulunmuyor
+              </p>
+              <Button variant="primary" size="sm" onClick={() => openSubmitModal("MEMORY")}>
+                İlk Anını veya Fotoğrafını Gönder
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {mySubmissions.map((sub) => {
+                const statusMeta =
+                  sub.moderationStatus === "APPROVED"
+                    ? { label: "Yayında", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" }
+                    : sub.moderationStatus === "REJECTED"
+                    ? { label: "Reddedildi", dot: "bg-rose-500", text: "text-rose-700 dark:text-rose-400" }
+                    : { label: "İnceleniyor", dot: "bg-amber-500", text: "text-amber-700 dark:text-amber-400" };
+
+                return (
+                  <article
+                    key={`${sub.type}-${sub.id}`}
+                    className="bg-white dark:bg-[#111B2E] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-5 space-y-3.5"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className={`inline-flex items-center gap-1.5 font-semibold ${statusMeta.text}`}>
+                        <span className={`w-2 h-2 rounded-full ${statusMeta.dot}`} />
+                        {statusMeta.label}
+                      </span>
+                      <span className="text-slate-400">
+                        {sub.type === "MEMORY" ? "Anı" : sub.mediaType === "VIDEO" ? "Video" : "Fotoğraf"} ·{" "}
+                        {formatShortDate(sub.createdAt)}
+                      </span>
+                    </div>
+
+                    {sub.mediaUrl && (
+                      <div className="aspect-video bg-slate-100 dark:bg-slate-950 rounded-xl overflow-hidden">
+                        {sub.mediaType === "VIDEO" ? (
+                          <video src={sub.mediaUrl} className="w-full h-full object-cover" muted />
+                        ) : (
+                          <img
+                            src={sub.mediaUrl}
+                            alt={sub.title || "Gönderilen medya"}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">
+                        {sub.title || sub.eventTitle}
+                      </h3>
+                      {sub.caption && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                          {sub.caption}
+                        </p>
+                      )}
+                      {sub.rejectionReason && (
+                        <p className="mt-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs">
+                          <span className="font-semibold">Not:</span> {sub.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* 8. MODERN PHOTO LIGHTBOX MODAL */}
+      {/* 8. LIGHTBOX VIEWER MODAL */}
       <AnimatePresence>
         {selectedMedia && (
           <motion.div
@@ -1837,137 +1458,148 @@ export function Teknofest() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-2 sm:p-6"
-            onClick={() => setSelectedMedia(null)}
+            onClick={closeLightbox}
           >
-            {/* Top Close & Navigation Controls */}
-            <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedMedia(null)}
-                aria-label="Kapat"
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={closeLightbox}
+              aria-label="Kapat"
+              className="absolute top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-            {/* Left / Right Arrow Navigation */}
             {mediaList.length > 1 && (
               <>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); navigateLightbox(-1); }}
-                  aria-label="Önceki Fotoğraf"
-                  className="hidden sm:flex absolute left-4 z-40 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateLightbox(-1);
+                  }}
+                  aria-label="Önceki"
+                  className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); navigateLightbox(1); }}
-                  aria-label="Sonraki Fotoğraf"
-                  className="hidden sm:flex absolute right-4 z-40 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white items-center justify-center transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateLightbox(1);
+                  }}
+                  aria-label="Sonraki"
+                  className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
               </>
             )}
 
-            {/* Content Container */}
             <div
-              className="relative max-w-5xl w-full max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden flex flex-col md:flex-row border border-slate-800 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-5xl max-h-[90vh] bg-[#0B1222] border border-white/10 rounded-3xl overflow-hidden flex flex-col lg:flex-row shadow-2xl"
             >
-              {/* Media Display */}
-              <div className="flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[300px] max-h-[60vh] md:max-h-[85vh]">
+              {/* Media Stage */}
+              <div className="flex-1 bg-black flex items-center justify-center min-h-[280px] max-h-[60vh] lg:max-h-[85vh]">
                 {selectedMedia.mediaType === "VIDEO" ? (
                   <video
                     src={selectedMedia.mediaUrl}
                     controls
                     autoPlay
-                    className="max-h-full max-w-full object-contain"
+                    className="max-w-full max-h-full object-contain"
                   />
                 ) : (
                   <img
                     src={selectedMedia.mediaUrl}
-                    alt={selectedMedia.altText || selectedMedia.title || "TEKNOFEST"}
-                    className="max-h-full max-w-full object-contain"
+                    alt={selectedMedia.altText || selectedMedia.title || "TEKNOFEST karesi"}
+                    referrerPolicy="no-referrer"
+                    className="max-w-full max-h-full object-contain"
                   />
                 )}
               </div>
 
-              {/* Sidebar Metadata & Interactions */}
-              <div className="w-full md:w-80 p-5 bg-slate-900 text-white flex flex-col justify-between space-y-4 overflow-y-auto">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="outline" className="bg-sky-500/20 text-sky-300 border-sky-400/30 text-[10px]">
-                      {selectedMedia.categoryName || "TEKNOFEST"}
-                    </Badge>
-                    <span className="text-[11px] text-slate-400">
-                      {new Date(selectedMedia.createdAt).toLocaleDateString("tr-TR")}
-                    </span>
-                  </div>
-
-                  {selectedMedia.title && (
-                    <h3 className="text-base font-bold text-white leading-snug">
-                      {selectedMedia.title}
-                    </h3>
+              {/* Metadata Sidebar */}
+              <div className="w-full lg:w-80 xl:w-96 p-5 sm:p-6 flex flex-col justify-between gap-5 border-t lg:border-t-0 lg:border-l border-white/10 text-white overflow-y-auto max-h-[35vh] lg:max-h-[85vh]">
+                <div className="space-y-4">
+                  {selectedMedia.uploader && (
+                    <Link
+                      to={`/profile/${selectedMedia.uploader.username}`}
+                      className="flex items-center gap-3 group"
+                    >
+                      <Avatar
+                        url={selectedMedia.uploader.avatarUrl}
+                        name={selectedMedia.uploader.displayName || selectedMedia.uploader.username}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white group-hover:text-sky-300 truncate">
+                          {selectedMedia.uploader.displayName || selectedMedia.uploader.username}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">@{selectedMedia.uploader.username}</p>
+                      </div>
+                    </Link>
                   )}
 
-                  {selectedMedia.caption && (
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      {selectedMedia.caption}
-                    </p>
-                  )}
-
-                  {/* Credit Box */}
-                  <div className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/60 space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                      Fotoğraf Kaynağı
-                    </span>
-                    <span className="text-xs font-semibold text-sky-300">
-                      {selectedMedia.credit}
-                    </span>
+                  <div className="space-y-1.5">
+                    {selectedMedia.categoryName && (
+                      <span className="block text-[11px] font-semibold uppercase tracking-wider text-sky-400">
+                        {selectedMedia.categoryName}
+                      </span>
+                    )}
+                    {selectedMedia.title && (
+                      <h3 className="text-lg font-bold text-white leading-snug">{selectedMedia.title}</h3>
+                    )}
+                    {selectedMedia.caption && (
+                      <p className="text-sm text-slate-300 leading-relaxed">{selectedMedia.caption}</p>
+                    )}
                   </div>
 
-                  {/* Linked Project (if present) */}
+                  <div className="pt-3 border-t border-white/10 space-y-1 text-xs">
+                    <span className="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Kaynak
+                    </span>
+                    <span className="text-slate-200 font-medium">{selectedMedia.credit}</span>
+                  </div>
+
                   {selectedMedia.linkedProject && (
-                    <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-800/50 space-y-1.5">
-                      <span className="text-[10px] uppercase font-bold text-sky-400 block">
+                    <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                      <span className="block text-[10px] uppercase tracking-wider font-semibold text-sky-400">
                         Bağlantılı Proje
                       </span>
                       <Link
                         to={`/projects/${selectedMedia.linkedProject.id}`}
-                        className="text-xs font-bold text-white hover:text-sky-300 flex items-center justify-between"
+                        className="text-sm font-semibold text-white hover:text-sky-300 flex items-center justify-between gap-2"
                       >
                         <span className="line-clamp-1">{selectedMedia.linkedProject.title}</span>
-                        <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-1" />
+                        <ExternalLink className="w-4 h-4 shrink-0" />
                       </Link>
                     </div>
                   )}
                 </div>
 
-                {/* Bottom Actions Bar */}
-                <div className="space-y-3 pt-3 border-t border-slate-800">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => handleLikeMedia(selectedMedia.id)}
-                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
-                    >
-                      <Heart className={`w-4 h-4 ${likedMediaIds.has(selectedMedia.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-300'}`} />
-                      <span>{selectedMedia.likesCount} Beğeni</span>
-                    </button>
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleLikeMedia(selectedMedia.id)}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${
+                        likedMediaIds.has(selectedMedia.id) ? "fill-rose-500 text-rose-500" : "text-slate-200"
+                      }`}
+                    />
+                    <span>{selectedMedia.likesCount} Beğeni</span>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleShareMedia(selectedMedia)}
-                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors text-slate-300"
-                    >
-                      <Share2 className="w-4 h-4 text-sky-400" />
-                      <span>Paylaş</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleShareMedia(selectedMedia)}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-slate-200 inline-flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-sky-400" />
+                    <span>Paylaş</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1975,7 +1607,7 @@ export function Teknofest() {
         )}
       </AnimatePresence>
 
-      {/* 9. SUBMIT CONTENT MODAL */}
+      {/* 9. CONTENT SUBMISSION MODAL */}
       <AnimatePresence>
         {showSubmitModal && (
           <motion.div
@@ -1983,39 +1615,53 @@ export function Teknofest() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowSubmitModal(false)}
           >
-            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 space-y-5 border border-slate-200 dark:border-slate-800 shadow-2xl my-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      TEKNOFEST'e İçerik Ekle
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Fotoğraf, video veya festival anını arşivimize kat
-                    </p>
-                  </div>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-[#111B2E] rounded-3xl max-w-lg w-full p-6 space-y-5 border border-slate-200 dark:border-slate-800 shadow-2xl my-8"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    TEKNOFEST Arşivine Ekle
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Anınızı, fotoğrafınızı veya videonuzu toplulukla paylaşın.
+                  </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowSubmitModal(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  aria-label="Kapat"
+                  className="w-9 h-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Type Switcher */}
-              <div className="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-bold">
+              <div className="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setSubmitType("MEMORY")}
+                  className={`min-h-[38px] rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer ${
+                    submitType === "MEMORY"
+                      ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  <Quote className="w-3.5 h-3.5" /> Anı
+                </button>
                 <button
                   type="button"
                   onClick={() => setSubmitType("PHOTO")}
-                  className={`py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-                    submitType === "PHOTO" ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs" : "text-slate-500"
+                  className={`min-h-[38px] rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer ${
+                    submitType === "PHOTO"
+                      ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   <Camera className="w-3.5 h-3.5" /> Fotoğraf
@@ -2023,35 +1669,28 @@ export function Teknofest() {
                 <button
                   type="button"
                   onClick={() => setSubmitType("VIDEO")}
-                  className={`py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-                    submitType === "VIDEO" ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs" : "text-slate-500"
+                  className={`min-h-[38px] rounded-lg transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer ${
+                    submitType === "VIDEO"
+                      ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400"
                   }`}
                 >
-                  <Play className="w-3.5 h-3.5" /> Video
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSubmitType("MEMORY")}
-                  className={`py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-                    submitType === "MEMORY" ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs" : "text-slate-500"
-                  }`}
-                >
-                  <Quote className="w-3.5 h-3.5" /> Anı / Yazı
+                  <Film className="w-3.5 h-3.5" /> Video
                 </button>
               </div>
 
               <form onSubmit={handleSubmitContent} className="space-y-4">
                 {submitType !== "MEMORY" && (
                   <div className="space-y-3">
-                    {/* Source Tab: File Upload vs URL */}
+                    {/* Source Switcher */}
                     <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                       <button
                         type="button"
                         onClick={() => setSubmitSourceTab("file")}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer ${
                           submitSourceTab === "file"
-                            ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
+                            ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
                         <UploadCloud className="w-3.5 h-3.5" />
@@ -2060,10 +1699,10 @@ export function Teknofest() {
                       <button
                         type="button"
                         onClick={() => setSubmitSourceTab("url")}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer ${
                           submitSourceTab === "url"
-                            ? "bg-white dark:bg-slate-900 text-sky-600 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800"
+                            ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-sky-400 shadow-xs"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -2072,102 +1711,137 @@ export function Teknofest() {
                     </div>
 
                     {submitSourceTab === "file" ? (
-                      <div>
-                        {submitFile && submitPreviewUrl ? (
-                          <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 flex items-center gap-3">
-                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 flex items-center justify-center">
-                              {submitType === "VIDEO" ? (
-                                <video src={submitPreviewUrl} className="w-full h-full object-cover" />
-                              ) : (
-                                <img src={submitPreviewUrl} alt="Preview" className="w-full h-full object-cover" />
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0 space-y-1 text-white">
-                              <div className="text-xs font-bold truncate">
-                                {submitFile.name}
-                              </div>
-                              <div className="text-[11px] text-slate-400">
-                                {(submitFile.size / (1024 * 1024)).toFixed(1)} MB
-                              </div>
-                              {submitUploadPhase === "uploading" && (
-                                <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className="bg-sky-500 h-full rounded-full transition-all duration-150"
-                                    style={{ width: `${submitUploadProgress}%` }}
-                                  />
-                                </div>
-                              )}
-                              {submitUploadMessage && (
-                                <p className="text-[10px] text-sky-300 font-medium">
-                                  {submitUploadMessage}
-                                </p>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={handleClearSubmitFile}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-                              title="Kaldır"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                      submitFile && submitPreviewUrl ? (
+                        <div className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 p-3 flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-black shrink-0 flex items-center justify-center">
+                            {submitType === "VIDEO" ? (
+                              <video src={submitPreviewUrl} className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={submitPreviewUrl} alt="Önizleme" className="w-full h-full object-cover" />
+                            )}
                           </div>
-                        ) : (
-                          <div
-                            onClick={() => userFileInputRef.current?.click()}
-                            className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-sky-500 rounded-2xl p-6 text-center cursor-pointer bg-slate-50 dark:bg-slate-800/40 hover:bg-sky-50/40 dark:hover:bg-sky-950/20 transition-all"
+
+                          <div className="flex-1 min-w-0 space-y-1 text-white">
+                            <div className="text-xs font-semibold truncate">{submitFile.name}</div>
+                            <div className="text-[11px] text-slate-400">
+                              {(submitFile.size / (1024 * 1024)).toFixed(1)} MB
+                            </div>
+                            {submitUploadPhase === "uploading" && (
+                              <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-sky-500 h-full rounded-full transition-all duration-150"
+                                  style={{ width: `${submitUploadProgress}%` }}
+                                />
+                              </div>
+                            )}
+                            {submitUploadMessage && (
+                              <p className="text-[11px] text-sky-300 font-medium">{submitUploadMessage}</p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleClearSubmitFile}
+                            aria-label="Dosyayı kaldır"
+                            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
                           >
-                            <input
-                              ref={userFileInputRef}
-                              type="file"
-                              accept={submitType === "VIDEO" ? "video/mp4,video/quicktime,video/webm" : "image/jpeg,image/png,image/webp,image/gif"}
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  handleUserFileSelected(e.target.files[0]);
-                                  e.target.value = "";
-                                }
-                              }}
-                              className="hidden"
-                            />
-                            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-2">
-                              <UploadCloud className="w-5 h-5" />
-                            </div>
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                              {submitType === "VIDEO" ? "Video seçmek için dokunun" : "Fotoğraf seçmek için dokunun"}
-                            </p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              {submitType === "VIDEO" ? "MP4, MOV, WebM (Maks. 100MB)" : "JPG, PNG, WEBP (Maks. 15MB)"}
-                            </p>
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => userFileInputRef.current?.click()}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDraggingFile(true);
+                          }}
+                          onDragLeave={() => setIsDraggingFile(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDraggingFile(false);
+                            if (e.dataTransfer.files?.[0]) {
+                              handleUserFileSelected(e.dataTransfer.files[0]);
+                            }
+                          }}
+                          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
+                            isDraggingFile
+                              ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/20"
+                              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 bg-slate-50 dark:bg-slate-800/40"
+                          }`}
+                        >
+                          <input
+                            ref={userFileInputRef}
+                            type="file"
+                            accept={
+                              submitType === "VIDEO"
+                                ? "video/mp4,video/quicktime,video/webm"
+                                : "image/jpeg,image/png,image/webp,image/gif"
+                            }
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleUserFileSelected(e.target.files[0]);
+                                e.target.value = "";
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-2">
+                            <UploadCloud className="w-5 h-5" />
                           </div>
-                        )}
-                      </div>
+                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            {submitType === "VIDEO" ? "Video seçin veya sürükleyip bırakın" : "Fotoğraf seçin veya sürükleyip bırakın"}
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {submitType === "VIDEO" ? "MP4, MOV, WebM (Maks. 100 MB)" : "JPG, PNG, WEBP (Maks. 15 MB)"}
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                          Görsel / Video URL (Doğrudan bağlantı)*
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Medya Bağlantısı *
                         </label>
                         <input
                           type="url"
                           required
-                          placeholder="https://..."
+                          placeholder="https://"
                           value={submitForm.mediaUrl}
                           onChange={(e) => setSubmitForm({ ...submitForm, mediaUrl: e.target.value })}
-                          className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 mt-1"
+                          className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         />
+                      </div>
+                    )}
+
+                    {/* Optional Category Select */}
+                    {ev.categories && ev.categories.length > 0 && (
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Kategori (İsteğe Bağlı)
+                        </label>
+                        <select
+                          value={submitForm.categoryId}
+                          onChange={(e) => setSubmitForm({ ...submitForm, categoryId: e.target.value })}
+                          className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        >
+                          <option value="">Kategori seçin</option>
+                          {ev.categories.map((cat) => (
+                            <option key={cat.id} value={String(cat.id)}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     )}
                   </div>
                 )}
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    {submitType === "MEMORY" ? "Rolün / Katılım Unvanın" : "Başlık (İsteğe Bağlı)"}
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {submitType === "MEMORY" ? "Katılım Rolü / Unvan (İsteğe Bağlı)" : "Başlık (İsteğe Bağlı)"}
                   </label>
                   <input
                     type="text"
-                    placeholder={submitType === "MEMORY" ? "Örn: İHA Takım Kaptanı, Yazılımcı, Ziyaretçi" : "Örn: SoloTürk Gösterisi"}
+                    placeholder={submitType === "MEMORY" ? "Festivaldeki katılım rolünüz" : "Kısa bir başlık girin"}
                     value={submitType === "MEMORY" ? submitForm.authorTitle : submitForm.title}
                     onChange={(e) => {
                       if (submitType === "MEMORY") {
@@ -2176,47 +1850,50 @@ export function Teknofest() {
                         setSubmitForm({ ...submitForm, title: e.target.value });
                       }
                     }}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 mt-1"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    {submitType === "MEMORY" ? "Unutulmaz Anın & Deneyimin (En az 10 karakter)*" : "Fotoğraf Açıklaması"}
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {submitType === "MEMORY" ? "Anınız (En az 10 karakter) *" : "Açıklama (İsteğe Bağlı)"}
                   </label>
                   <textarea
                     required={submitType === "MEMORY"}
                     rows={submitType === "MEMORY" ? 4 : 2}
-                    placeholder={submitType === "MEMORY" ? "TEKNOFEST'te yaşadığınız heyecanı, yarışma sürecini ve hislerinizi anlatın..." : "Kare hakkında kısa bilgi..."}
+                    placeholder={
+                      submitType === "MEMORY"
+                        ? "TEKNOFEST deneyiminizi, yaşadığınız anları ve duygularınızı yazın..."
+                        : "Kare hakkında kısa bilgi ekleyin..."
+                    }
                     value={submitForm.caption}
                     onChange={(e) => setSubmitForm({ ...submitForm, caption: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 mt-1"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-y"
                   />
                 </div>
 
-                {/* Moderation & Copyright notice */}
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-300 flex items-start gap-2">
-                  <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+                {/* Moderation Note */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                  <Info className="w-4 h-4 text-blue-500 dark:text-sky-400 shrink-0 mt-0.5" />
                   <span>
-                    Gönderilen içerikler moderasyon ekibimiz tarafından incelendikten sonra TEKNOFEST Köşesi'nde yayınlanır.
+                    Gönderilen içerikler moderasyon incelemesinden sonra TEKNOFEST Köşesi’nde yayınlanır.
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    id="agreeCheck"
                     required
                     checked={submitForm.rightsAgreed}
                     onChange={(e) => setSubmitForm({ ...submitForm, rightsAgreed: e.target.checked })}
-                    className="w-4 h-4 rounded-sm text-sky-600 cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded-sm text-blue-600 cursor-pointer"
                   />
-                  <label htmlFor="agreeCheck" className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                    Bu içeriğin telif ve paylaşım haklarına sahip olduğumu onaylıyorum.
-                  </label>
-                </div>
+                  <span className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    Bu içeriğin paylaşım ve telif haklarına sahip olduğumu onaylıyorum.
+                  </span>
+                </label>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <Button variant="ghost" size="sm" type="button" onClick={() => setShowSubmitModal(false)}>
                     Vazgeç
                   </Button>
@@ -2232,4 +1909,5 @@ export function Teknofest() {
     </div>
   );
 }
+
 export default Teknofest;

@@ -12,7 +12,7 @@ import { eq, and, or, sql, inArray } from "drizzle-orm";
 import { requireAuth, requireAuthContext, optionalAuthContext, optionalAuth } from "../middleware/auth.js";
 import { getBlockedIds } from "../utils/blocks.js";
 import { authRateLimiter, standardLimiter } from "../middleware/rateLimiter.js";
-import { updateProfileSchema, suggestionQuerySchema, profileCustomizationSchema } from "../validators/api.js";
+import { updateProfileSchema, suggestionQuerySchema, profileCustomizationSchema, saveProfileStudioSchema } from "../validators/api.js";
 import { moderateContent } from "../services/moderation/index.js";
 import { moderationLogs } from "../../src/db/schema.js";
 import { authenticator } from "otplib";
@@ -25,22 +25,49 @@ export const usersRouter = Router();
 usersRouter.get("/me/customization", requireAuth, async (req, res) => {
   try {
     const currentUserId = requireAuthContext(req);
-    const [profile] = await db
+    const [row] = await db
       .select({
+        id: users.id,
+        username: users.username,
+        isVerified: users.isVerified,
+        createdAt: users.createdAt,
+        displayName: profiles.displayName,
+        bio: profiles.bio,
+        location: profiles.location,
+        website: profiles.website,
         profileCustomization: profiles.profileCustomization,
         coverUrl: profiles.coverUrl,
         avatarUrl: profiles.avatarUrl
       })
-      .from(profiles)
-      .where(eq(profiles.userId, currentUserId))
+      .from(users)
+      .leftJoin(profiles, eq(users.id, profiles.userId))
+      .where(eq(users.id, currentUserId))
       .limit(1);
+
+    const [followerCountRes, followingCountRes, postCountRes, projectCountRes] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(follows).where(and(eq(follows.followingId, currentUserId), eq(follows.status, "accepted"))),
+      db.select({ count: sql<number>`count(*)` }).from(follows).where(and(eq(follows.followerId, currentUserId), eq(follows.status, "accepted"))),
+      db.select({ count: sql<number>`count(*)` }).from(posts).where(and(eq(posts.userId, currentUserId), eq(posts.moderationStatus, "APPROVED"))),
+      db.select({ count: sql<number>`count(*)` }).from(projects).where(eq(projects.userId, currentUserId))
+    ]);
 
     res.json({
       success: true,
       data: {
-        profileCustomization: profile?.profileCustomization || {},
-        coverUrl: profile?.coverUrl || null,
-        avatarUrl: profile?.avatarUrl || null
+        username: row?.username || "",
+        displayName: row?.displayName || "",
+        bio: row?.bio || "",
+        location: row?.location || "",
+        website: row?.website || "",
+        isVerified: Boolean(row?.isVerified),
+        createdAt: row?.createdAt || null,
+        followersCount: Number(followerCountRes[0]?.count || 0),
+        followingCount: Number(followingCountRes[0]?.count || 0),
+        postsCount: Number(postCountRes[0]?.count || 0),
+        projectsCount: Number(projectCountRes[0]?.count || 0),
+        profileCustomization: row?.profileCustomization || {},
+        coverUrl: row?.coverUrl || null,
+        avatarUrl: row?.avatarUrl || null
       }
     });
   } catch (error) {
@@ -56,27 +83,92 @@ usersRouter.get("/me/customization", requireAuth, async (req, res) => {
 usersRouter.put("/me/customization", requireAuth, standardLimiter, async (req, res) => {
   try {
     const currentUserId = requireAuthContext(req);
-    const { customization, coverUrl } = req.body || {};
+    const body = req.body || {};
 
-    const parsed = profileCustomizationSchema.safeParse(customization || req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: parsed.error.issues[0]?.message || "Geçersiz özelleştirme verisi."
-        }
-      });
+    // Support both structured studio payload ({ customization, coverUrl, avatarUrl, ... }) and legacy flat payload
+    const isStructuredPayload = body && typeof body === "object" && "customization" in body;
+    let customizationData;
+    let validatedCoverUrl: string | undefined;
+    let validatedAvatarUrl: string | undefined;
+    let validatedDisplayName: string | undefined;
+    let validatedBio: string | undefined;
+    let validatedLocation: string | undefined;
+    let validatedWebsite: string | undefined;
+
+    if (isStructuredPayload) {
+      const parsed = saveProfileStudioSchema.safeParse(body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: parsed.error.issues[0]?.message || "Geçersiz özelleştirme verisi."
+          }
+        });
+      }
+      customizationData = parsed.data.customization;
+      validatedCoverUrl = parsed.data.coverUrl;
+      validatedAvatarUrl = parsed.data.avatarUrl;
+      validatedDisplayName = parsed.data.displayName;
+      validatedBio = parsed.data.bio;
+      validatedLocation = parsed.data.location;
+      validatedWebsite = parsed.data.website;
+    } else {
+      const parsed = profileCustomizationSchema.safeParse(body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: parsed.error.issues[0]?.message || "Geçersiz özelleştirme verisi."
+          }
+        });
+      }
+      customizationData = parsed.data;
     }
 
-    const updatePayload: Record<string, any> = {
-      profileCustomization: parsed.data,
+    // Content moderation check for bio / status / featured text
+    const textsToCheck = [
+      validatedBio,
+      customizationData.statusText,
+      customizationData.featuredHighlight?.title,
+      customizationData.featuredHighlight?.subtitle,
+    ].filter((t): t is string => Boolean(t && t.trim()));
+
+    if (textsToCheck.length > 0) {
+      const modResult = await moderateContent(textsToCheck.join(" "));
+      if (modResult.riskLevel === "HIGH_RISK" || modResult.riskLevel === "MEDIUM_RISK") {
+        await db.insert(moderationLogs).values({
+          entityType: "PROFILE",
+          entityId: currentUserId,
+          userId: currentUserId,
+          status: "RESOLVED",
+          actionTaken: "REJECTED",
+          riskLevel: modResult.riskLevel,
+          category: modResult.category,
+          reason: modResult.reason || null
+        });
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: "POLICY_VIOLATION",
+            message: "Profil metinleriniz topluluk kurallarına aykırı içerik barındırdığı için kaydedilemedi."
+          }
+        });
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      profileCustomization: customizationData,
       updatedAt: new Date()
     };
 
-    if (typeof coverUrl === "string") {
-      updatePayload.coverUrl = coverUrl;
-    }
+    if (validatedCoverUrl !== undefined) updatePayload.coverUrl = validatedCoverUrl;
+    if (validatedAvatarUrl !== undefined) updatePayload.avatarUrl = validatedAvatarUrl;
+    if (validatedDisplayName !== undefined) updatePayload.displayName = validatedDisplayName;
+    if (validatedBio !== undefined) updatePayload.bio = validatedBio;
+    if (validatedLocation !== undefined) updatePayload.location = validatedLocation;
+    if (validatedWebsite !== undefined) updatePayload.website = validatedWebsite;
 
     await db
       .update(profiles)
@@ -87,8 +179,13 @@ usersRouter.put("/me/customization", requireAuth, standardLimiter, async (req, r
       success: true,
       data: {
         message: "Profil görünümü başarıyla kaydedildi.",
-        profileCustomization: parsed.data,
-        coverUrl: typeof coverUrl === "string" ? coverUrl : undefined
+        profileCustomization: customizationData,
+        coverUrl: validatedCoverUrl,
+        avatarUrl: validatedAvatarUrl,
+        displayName: validatedDisplayName,
+        bio: validatedBio,
+        location: validatedLocation,
+        website: validatedWebsite,
       }
     });
   } catch (error) {

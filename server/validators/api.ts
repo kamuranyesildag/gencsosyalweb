@@ -14,13 +14,55 @@ export const suggestionQuerySchema = z.object({
 const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Geçerli bir HEX renk kodu giriniz.");
 
 const safeImageUrlSchema = z.string().max(500).refine(
-  (val) =>
-    val === "" ||
-    /^\/uploads\/[a-zA-Z0-9._/-]+$/.test(val) ||
-    /^\/assets\/[a-zA-Z0-9._/-]+$/.test(val) ||
-    /^https:\/\/[a-zA-Z0-9.-]+\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=-]*$/.test(val),
+  (val) => {
+    if (val === "") return true;
+    if (val.includes("..") || val.includes("\\")) return false;
+    return (
+      /^\/uploads\/[a-zA-Z0-9._/-]+$/.test(val) ||
+      /^\/assets\/[a-zA-Z0-9._/-]+$/.test(val) ||
+      /^https:\/\/[a-zA-Z0-9.-]+\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=-]*$/.test(val)
+    );
+  },
   "Geçersiz veya güvenli olmayan görsel bağlantısı."
 );
+
+const safeHttpUrlSchema = z.string().trim().max(255).refine(
+  (val) => {
+    if (!val) return false;
+    try {
+      const parsed = new URL(val);
+      return parsed.protocol === "https:" || parsed.protocol === "http:";
+    } catch {
+      return false;
+    }
+  },
+  "Lütfen geçerli bir https:// veya http:// bağlantısı girin."
+);
+
+const safeOptionalHttpUrlSchema = z.string().trim().max(255).refine(
+  (val) => {
+    if (val === "") return true;
+    try {
+      const parsed = new URL(val);
+      return parsed.protocol === "https:" || parsed.protocol === "http:";
+    } catch {
+      return false;
+    }
+  },
+  "Lütfen geçerli bir https:// veya http:// bağlantısı girin."
+);
+
+export const profileSocialLinkSchema = z.object({
+  platform: z.enum(["github", "linkedin", "instagram", "x", "youtube", "behance", "website"]),
+  url: safeHttpUrlSchema,
+  label: z.string().trim().max(30).optional().default(""),
+});
+
+export const profileFeaturedHighlightSchema = z.object({
+  title: z.string().trim().max(60).default(""),
+  subtitle: z.string().trim().max(140).default(""),
+  url: safeOptionalHttpUrlSchema.default(""),
+});
 
 export const profileCustomizationSchema = z.object({
   // 1. Background
@@ -107,7 +149,9 @@ export const profileCustomizationSchema = z.object({
   ]).default("none"),
   applyTransformToDisplayName: z.boolean().default(false),
 
-  // 4. Profile Cards
+  // 4. Profile Cards & Layout
+  headerLayout: z.enum(["classic", "centered", "editorial"]).default("classic"),
+  buttonStyle: z.enum(["solid", "outline", "soft", "pill"]).default("solid"),
   cardStyle: z.enum([
     "classic",
     "minimal",
@@ -123,6 +167,9 @@ export const profileCustomizationSchema = z.object({
 
   // 5. Borders & Appearance (Cover & Avatar Frame)
   coverPosition: z.enum(["center", "top", "bottom"]).default("center"),
+  coverHeight: z.enum(["compact", "normal", "tall"]).default("normal"),
+  coverOverlayOpacity: z.number().min(0).max(70).default(0),
+  avatarShape: z.enum(["circle", "rounded", "squircle", "square"]).default("rounded"),
   avatarFrame: z.enum([
     "none",
     "simple_ring",
@@ -134,19 +181,36 @@ export const profileCustomizationSchema = z.object({
   ]).default("none"),
   avatarFrameColor: hexColorSchema.default("#185EDB"),
 
-  // 6. Advanced Customization
+  // 6. Identity & Showcase
+  statusText: z.string().trim().max(60).default(""),
+  showJoinDate: z.boolean().default(true),
+  showStats: z.boolean().default(true),
+  socialLinks: z.array(profileSocialLinkSchema).max(6).default([]),
+  featuredHighlight: profileFeaturedHighlightSchema.default({ title: "", subtitle: "", url: "" }),
+
+  // 7. Advanced Customization
   glassmorphism: z.boolean().default(false),
   highContrastText: z.boolean().default(true),
   compactHeader: z.boolean().default(false)
 });
 
+export const saveProfileStudioSchema = z.object({
+  customization: profileCustomizationSchema,
+  coverUrl: safeImageUrlSchema.optional(),
+  avatarUrl: safeImageUrlSchema.optional(),
+  displayName: z.string().trim().min(2, "Görünen ad en az 2 karakter olmalıdır.").max(100).optional(),
+  bio: z.string().trim().max(500).optional(),
+  location: z.string().trim().max(100).optional(),
+  website: safeOptionalHttpUrlSchema.optional(),
+});
+
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(100).optional(),
   bio: z.string().max(500).optional().or(z.literal("")),
-  website: z.string().url().max(255).optional().or(z.literal("")),
+  website: safeOptionalHttpUrlSchema.optional(),
   location: z.string().max(100).optional().or(z.literal("")),
-  avatarUrl: z.string().optional().or(z.literal("")),
-  coverUrl: z.string().optional().or(z.literal("")),
+  avatarUrl: safeImageUrlSchema.optional(),
+  coverUrl: safeImageUrlSchema.optional(),
   isPrivate: z.boolean().optional(),
   allowSearchEngineIndexing: z.boolean().optional(),
   messagePreference: z.enum(["ANYONE", "FOLLOWERS", "NONE"]).optional(),
