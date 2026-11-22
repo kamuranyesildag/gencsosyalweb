@@ -11,6 +11,7 @@ import { PageTransition } from "../components/ui/PageTransition";
 import { MobileSidebarDrawer } from "../components/navigation/MobileSidebarDrawer";
 import { StoryCreateModal } from "../components/StoryCreateModal";
 import { AnnouncementPopup } from "../components/announcement/AnnouncementPopup";
+import { EmergencyAlertBanner } from "../components/emergency/EmergencyAlertBanner";
 
 export function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -35,6 +36,9 @@ export function AppLayout() {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors relative selection:bg-blue-500/20">
       {/* 1. Global Header (Hidden on Profile pages) */}
       {!isProfilePage && <AppHeader onMenuClick={() => setIsMobileMenuOpen(true)} />}
+
+      {/* 1.5 Active Emergency Security Alert Banner */}
+      <EmergencyAlertBanner />
 
       {/* 2. Mobile Drawer Navigation */}
       <MobileSidebarDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />

@@ -26,7 +26,7 @@ import { fadeInVariants, pageInVariants } from '../../lib/motion';
 import { Link } from 'react-router';
 
 interface AdminDashboardProps {
-  onNavigateTab: (tab: 'stats' | 'users' | 'announcements' | 'official' | 'autofollow' | 'verifications' | 'reports' | 'smtp' | 'audit') => void;
+  onNavigateTab: (tab: 'stats' | 'emergency' | 'users' | 'announcements' | 'official' | 'autofollow' | 'verifications' | 'reports' | 'smtp' | 'audit') => void;
 }
 
 interface StatsData {
@@ -178,6 +178,14 @@ export function AdminDashboard({ onNavigateTab }: AdminDashboardProps) {
               className="bg-white dark:bg-slate-950/10 hover:bg-white dark:bg-slate-950/20 text-white border-white/10 "
             >
               Yenile
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              leftIcon={<ShieldAlert className="w-4 h-4" />}
+              onClick={() => onNavigateTab('emergency')}
+            >
+              Acil Uyarı Gönder
             </Button>
             <Button
               variant="primary"

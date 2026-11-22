@@ -16,6 +16,7 @@ import {
   Settings,
   AtSign,
   Award,
+  ShieldAlert,
 } from "lucide-react";
 import { fetchApi } from "../lib/api";
 import { Avatar } from "../components/ui/Avatar";
@@ -27,7 +28,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { Skeleton, SkeletonCircle } from "../components/ui/Skeleton";
 import { toast } from "../components/ui/Toast";
 
-type NotifFilter = "all" | "follow" | "like" | "comment" | "mention";
+type NotifFilter = "all" | "security" | "follow" | "like" | "comment" | "mention";
 
 export function Notifications() {
   useSEO({ allowIndexing: false, title: "Bildirimler | Genç Sosyal" });
@@ -104,6 +105,18 @@ export function Notifications() {
           badgeBg: "bg-amber-500",
           text: "bir gönderide senden bahsetti:",
         };
+      case "emergency_alert":
+        return {
+          icon: <ShieldAlert className="w-3 h-3 text-white" />,
+          badgeBg: "bg-rose-600",
+          text: "acil güvenlik uyarısı yayınladı.",
+        };
+      case "system_announcement":
+        return {
+          icon: <Megaphone className="w-3 h-3 text-white" />,
+          badgeBg: "bg-blue-600",
+          text: "yeni bir sistem duyurusu paylaştı.",
+        };
       case "verification":
       case "verified":
         return {
@@ -124,6 +137,23 @@ export function Notifications() {
     if (!notif.isRead) {
       fetchApi(`/notifications/${notif.id}/read`, { method: "POST" }).catch(console.error);
       setData((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
+    }
+
+    if (notif.type === "emergency_alert") {
+      const target = (notif.emergencyAlert?.actionUrl || "/settings?tab=security").trim();
+      if (target.startsWith("/") && !target.startsWith("//") && !target.includes("..")) {
+        navigate(target);
+      } else {
+        try {
+          const parsed = new URL(target);
+          if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+            window.location.assign(parsed.toString());
+          }
+        } catch {
+          navigate("/settings?tab=security");
+        }
+      }
+      return;
     }
 
     if (notif.type?.startsWith("community") || notif.community) {
@@ -168,6 +198,11 @@ export function Notifications() {
 
   const filteredNotifications = useMemo(() => {
     if (filter === "all") return notifications;
+    if (filter === "security") {
+      return notifications.filter(
+        (n) => n.type === "emergency_alert" || n.type === "system_announcement"
+      );
+    }
     if (filter === "follow") {
       return notifications.filter((n) => n.type?.startsWith("follow"));
     }
@@ -233,6 +268,7 @@ export function Notifications() {
         >
           {[
             { id: "all" as NotifFilter, label: "Tümü", count: unreadCount },
+            { id: "security" as NotifFilter, label: "Güvenlik" },
             { id: "follow" as NotifFilter, label: "Takip" },
             { id: "like" as NotifFilter, label: "Beğeni" },
             { id: "comment" as NotifFilter, label: "Yorum" },
@@ -293,6 +329,102 @@ export function Notifications() {
                   const details = getNotificationDetails(notif.type);
                   const isUnread = !notif.isRead;
                   const isFollowedBack = followedBackIds.has(Number(notif.actor?.id));
+                  const emergency = notif.type === "emergency_alert" ? notif.emergencyAlert : null;
+
+                  if (emergency) {
+                    const isCritical = emergency.severity === "CRITICAL";
+                    const isHigh = emergency.severity === "HIGH";
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={cn(
+                          "p-4 transition-colors cursor-pointer",
+                          isUnread
+                            ? "bg-rose-50/55 dark:bg-rose-950/20 hover:bg-rose-50/80 dark:hover:bg-rose-950/30"
+                            : "hover:bg-slate-50 dark:hover:bg-white/[0.03]"
+                        )}
+                      >
+                        <div className="flex items-start gap-3.5">
+                          <div
+                            className={cn(
+                              "w-11 h-11 rounded-xl border flex items-center justify-center shrink-0",
+                              isCritical
+                                ? "bg-rose-100 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400"
+                                : isHigh
+                                ? "bg-amber-100 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+                                : "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-blue-700 dark:text-blue-400"
+                            )}
+                          >
+                            <ShieldAlert className="w-5 h-5" />
+                          </div>
+
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                              <span
+                                className={cn(
+                                  "font-bold",
+                                  isCritical
+                                    ? "text-rose-700 dark:text-rose-400"
+                                    : isHigh
+                                    ? "text-amber-700 dark:text-amber-400"
+                                    : "text-blue-700 dark:text-blue-400"
+                                )}
+                              >
+                                {isCritical
+                                  ? "Acil Güvenlik Uyarısı"
+                                  : isHigh
+                                  ? "Önemli Güvenlik Bildirimi"
+                                  : "Güvenlik Bilgilendirmesi"}
+                              </span>
+                              <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">
+                                ·
+                              </span>
+                              <span className="font-mono text-slate-500 dark:text-slate-400 tabular-nums">
+                                {emergency.incidentCode}
+                              </span>
+                              {emergency.status === "RESOLVED" && (
+                                <>
+                                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">
+                                    ·
+                                  </span>
+                                  <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                                    Çözüldü
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                              {emergency.title}
+                            </div>
+                            <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                              {emergency.message}
+                            </p>
+                            {emergency.recommendedAction && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed pt-0.5">
+                                <strong className="text-slate-700 dark:text-slate-200">Önerilen Adım: </strong>
+                                {emergency.recommendedAction.split(/\r?\n/)[0]}
+                              </p>
+                            )}
+
+                            <div className="flex items-center justify-between gap-3 pt-1.5">
+                              <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                                {formatTimeAgo(notif.createdAt)}
+                              </span>
+                              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">
+                                {emergency.actionLabel || "Güvenlik Ayarlarını Kontrol Et"} →
+                              </span>
+                            </div>
+                          </div>
+
+                          {isUnread && (
+                            <span className="w-2 h-2 rounded-full bg-rose-600 dark:bg-rose-400 shrink-0 mt-1.5" />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div

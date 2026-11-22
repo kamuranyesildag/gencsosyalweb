@@ -206,6 +206,10 @@ async function startServer() {
     const { announcementsRouter } = await import("./server/routes/announcements.js");
     app.use("/api/v1/announcements", announcementsRouter);
 
+    const { emergencyAlertsRouter, adminEmergencyAlertsRouter } = await import("./server/routes/emergencyAlerts.js");
+    app.use("/api/v1/emergency-alerts", emergencyAlertsRouter);
+    app.use("/api/v1/admin/emergency-alerts", adminEmergencyAlertsRouter);
+
     const { messagesRouter } = await import("./server/routes/messages.js");
     app.use("/api/v1/messages", messagesRouter);
 

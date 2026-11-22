@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../../src/db/index.js";
-import { notifications, users, profiles, communities } from "../../src/db/schema.js";
+import { notifications, users, profiles, communities, emergencyAlerts } from "../../src/db/schema.js";
 import { eq, desc, and, lt, or } from "drizzle-orm";
 import { decodeCursor, encodeCursor } from "../utils/cursor.js";
 import { requireAuth, requireAuthContext, optionalAuthContext } from "../middleware/auth.js";
@@ -30,6 +30,7 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
       commentId: notifications.commentId,
       projectCommentId: notifications.projectCommentId,
       communityId: notifications.communityId,
+      emergencyAlertId: notifications.emergencyAlertId,
       isRead: notifications.isRead,
       createdAt: notifications.createdAt,
       actor: {
@@ -43,12 +44,25 @@ notificationsRouter.get("/", requireAuth, async (req, res) => {
         name: communities.name,
         slug: communities.slug,
         avatarUrl: communities.avatarUrl,
+      },
+      emergencyAlert: {
+        id: emergencyAlerts.id,
+        incidentCode: emergencyAlerts.incidentCode,
+        title: emergencyAlerts.title,
+        message: emergencyAlerts.message,
+        recommendedAction: emergencyAlerts.recommendedAction,
+        severity: emergencyAlerts.severity,
+        category: emergencyAlerts.category,
+        status: emergencyAlerts.status,
+        actionLabel: emergencyAlerts.actionLabel,
+        actionUrl: emergencyAlerts.actionUrl,
       }
     })
     .from(notifications)
     .innerJoin(users, eq(notifications.actorId, users.id))
     .leftJoin(profiles, eq(users.id, profiles.userId))
     .leftJoin(communities, eq(notifications.communityId, communities.id))
+    .leftJoin(emergencyAlerts, eq(notifications.emergencyAlertId, emergencyAlerts.id))
     .where(and(eq(notifications.recipientId, currentUserId), cursorCondition ? cursorCondition : undefined))
     .orderBy(desc(notifications.createdAt), desc(notifications.id))
     .limit(limit)

@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Scale,
   Trophy,
-  Sparkles
+  Sparkles,
+  Siren
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -35,12 +36,14 @@ import { AdminModeration } from '../components/admin/AdminModeration';
 import { AdminSmtp } from '../components/admin/AdminSmtp';
 import { AdminAuditLogs } from '../components/admin/AdminAuditLogs';
 import { AdminAnnouncements } from '../components/admin/AdminAnnouncements';
+import { AdminEmergencyAlerts } from '../components/admin/AdminEmergencyAlerts';
 import { AdminLeague } from '../components/admin/AdminLeague';
 import { AdminTeknofest } from '../components/admin/AdminTeknofest';
 import { fadeInVariants, pageInVariants } from '../lib/motion';
 
 export type AdminTab = 
   | 'stats' 
+  | 'emergency'
   | 'teknofest'
   | 'league'
   | 'users' 
@@ -99,6 +102,7 @@ export function Admin() {
 
   const tabs: TabItem[] = [
     { id: 'stats', label: 'Genel Bakış', shortLabel: 'Özet', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'emergency', label: 'Acil Güvenlik Uyarısı', shortLabel: 'Acil Uyarı', icon: <Siren className="w-4 h-4 text-rose-500" /> },
     { id: 'teknofest', label: 'TEKNOFEST Köşesi', shortLabel: 'TEKNOFEST', icon: <Sparkles className="w-4 h-4 text-sky-500" /> },
     { id: 'league', label: 'Gençlik Ligi & Soru Bankası', shortLabel: 'Soru Bankası', icon: <Trophy className="w-4 h-4 text-amber-500" /> },
     { id: 'users', label: 'Kullanıcılar', shortLabel: 'Üyeler', icon: <Users className="w-4 h-4" /> },
@@ -185,6 +189,7 @@ export function Admin() {
             exit="exit"
           >
             {activeTab === 'stats' && <AdminDashboard onNavigateTab={setActiveTab} />}
+            {activeTab === 'emergency' && <AdminEmergencyAlerts onNavigateTab={setActiveTab} />}
             {activeTab === 'teknofest' && <AdminTeknofest />}
             {activeTab === 'league' && <AdminLeague />}
             {activeTab === 'users' && <AdminUsers />}

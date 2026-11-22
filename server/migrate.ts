@@ -756,6 +756,52 @@ export async function runMigration(isStandalone = false) {
     await execSafe(`CREATE INDEX IF NOT EXISTS "team_audit_logs_team_id_idx" ON "team_audit_logs" ("team_id");`);
     await execSafe(`CREATE INDEX IF NOT EXISTS "team_audit_logs_created_at_idx" ON "team_audit_logs" ("created_at");`);
 
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "emergency_alerts" (
+        "id" serial PRIMARY KEY,
+        "incident_code" varchar(32) NOT NULL UNIQUE,
+        "title" varchar(160) NOT NULL,
+        "message" text NOT NULL,
+        "recommended_action" text,
+        "severity" varchar(20) NOT NULL DEFAULT 'CRITICAL',
+        "category" varchar(40) NOT NULL DEFAULT 'CYBER_ATTACK',
+        "status" varchar(20) NOT NULL DEFAULT 'ACTIVE',
+        "target_audience" varchar(20) NOT NULL DEFAULT 'ALL_ACTIVE',
+        "action_label" varchar(80),
+        "action_url" text,
+        "send_notification" boolean NOT NULL DEFAULT true,
+        "send_email" boolean NOT NULL DEFAULT true,
+        "show_banner" boolean NOT NULL DEFAULT true,
+        "recipient_count" integer NOT NULL DEFAULT 0,
+        "notification_sent_count" integer NOT NULL DEFAULT 0,
+        "email_status" varchar(20) NOT NULL DEFAULT 'SKIPPED',
+        "email_attempted_count" integer NOT NULL DEFAULT 0,
+        "email_sent_count" integer NOT NULL DEFAULT 0,
+        "email_failed_count" integer NOT NULL DEFAULT 0,
+        "created_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "resolved_by" integer REFERENCES "users"("id") ON DELETE SET NULL,
+        "resolution_note" text,
+        "resolved_at" timestamp,
+        "created_at" timestamp NOT NULL DEFAULT now(),
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "emergency_alerts_status_idx" ON "emergency_alerts" ("status");`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "emergency_alerts_created_at_idx" ON "emergency_alerts" ("created_at");`);
+
+    await execSafe(`
+      CREATE TABLE IF NOT EXISTS "emergency_alert_acknowledgments" (
+        "alert_id" integer NOT NULL REFERENCES "emergency_alerts"("id") ON DELETE CASCADE,
+        "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "acknowledged_at" timestamp NOT NULL DEFAULT now(),
+        PRIMARY KEY ("alert_id", "user_id")
+      );
+    `);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "emergency_alert_acks_user_id_idx" ON "emergency_alert_acknowledgments" ("user_id");`);
+
+    await execSafe(`ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "emergency_alert_id" integer REFERENCES "emergency_alerts"("id") ON DELETE SET NULL;`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "notifications_emergency_alert_idx" ON "notifications" ("emergency_alert_id");`);
+
     console.log("✅ Database migrations completed successfully.");
   } catch (error: any) {
     console.error("❌ Database migration failed:", error);

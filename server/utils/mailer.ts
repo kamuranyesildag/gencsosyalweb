@@ -1464,6 +1464,184 @@ export const sendPlatformAnnouncementEmail = async (params: PlatformAnnouncement
   });
 };
 
+// Emergency Security / Cyber Incident Alert Email (Mandatory Safety Notice)
+export type EmergencyAlertSeverity = "CRITICAL" | "HIGH" | "ELEVATED";
+export type EmergencyAlertCategory =
+  | "CYBER_ATTACK"
+  | "DATA_SECURITY"
+  | "PHISHING"
+  | "SERVICE_OUTAGE"
+  | "MAINTENANCE"
+  | "OTHER";
+
+export interface EmergencySecurityAlertEmailParams {
+  to: string;
+  displayName: string;
+  incidentCode: string;
+  title: string;
+  message: string;
+  recommendedAction?: string | null;
+  severity: EmergencyAlertSeverity;
+  category: EmergencyAlertCategory;
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+  issuedAt?: Date;
+  throwOnUnconfigured?: boolean;
+  throwOnError?: boolean;
+}
+
+const EMERGENCY_SEVERITY_META: Record<
+  EmergencyAlertSeverity,
+  { label: string; eyebrow: string; subjectPrefix: string; tone: EmailTone }
+> = {
+  CRITICAL: {
+    label: "Kritik Seviye",
+    eyebrow: "Acil Güvenlik Uyarısı",
+    subjectPrefix: "[ACİL GÜVENLİK UYARISI]",
+    tone: "rose",
+  },
+  HIGH: {
+    label: "Yüksek Öncelik",
+    eyebrow: "Önemli Güvenlik Bildirimi",
+    subjectPrefix: "[ÖNEMLİ GÜVENLİK UYARISI]",
+    tone: "amber",
+  },
+  ELEVATED: {
+    label: "Bilgilendirme",
+    eyebrow: "Sistem & Güvenlik Duyurusu",
+    subjectPrefix: "[GÜVENLİK BİLGİLENDİRMESİ]",
+    tone: "slate",
+  },
+};
+
+const EMERGENCY_CATEGORY_LABELS: Record<EmergencyAlertCategory, string> = {
+  CYBER_ATTACK: "Siber Saldırı / Güvenlik Olayı",
+  DATA_SECURITY: "Hesap & Veri Güvenliği",
+  PHISHING: "Oltalama (Phishing) Uyarısı",
+  SERVICE_OUTAGE: "Acil Hizmet Kesintisi",
+  MAINTENANCE: "Acil Güvenlik Bakımı",
+  OTHER: "Acil Platform Bildirimi",
+};
+
+export const buildEmergencyAlertEmailHtml = (params: EmergencySecurityAlertEmailParams): string => {
+  const sevMeta = EMERGENCY_SEVERITY_META[params.severity] || EMERGENCY_SEVERITY_META.CRITICAL;
+  const catLabel = EMERGENCY_CATEGORY_LABELS[params.category] || EMERGENCY_CATEGORY_LABELS.OTHER;
+  const palette = TONE_PALETTES[sevMeta.tone];
+  const issuedStr = (params.issuedAt || new Date()).toLocaleString("tr-TR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const actionSteps = (params.recommendedAction || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-•*]\s*/, "").trim())
+    .filter(Boolean);
+
+  const stepsHtml =
+    actionSteps.length > 0
+      ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="gs-soft-card" style="background-color:${palette.softBg};border:1px solid ${palette.softBorder};border-radius:16px;margin:20px 0;">
+          <tr>
+            <td style="padding:18px 20px;">
+              <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${palette.badgeText};margin:0 0 10px 0;">
+                Önerilen Güvenlik Adımları
+              </div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${actionSteps
+                  .map(
+                    (step, i) => `
+                  <tr>
+                    <td style="padding:${i === 0 ? "0 10px 8px 0" : i === actionSteps.length - 1 ? "0 10px 0 0" : "0 10px 8px 0"};font-size:13px;font-weight:800;color:${palette.accent};vertical-align:top;width:22px;">
+                      ${i + 1}.
+                    </td>
+                    <td class="gs-strong" style="padding:${i === 0 ? "0 0 8px 0" : i === actionSteps.length - 1 ? "0" : "0 0 8px 0"};font-size:14px;line-height:1.55;color:#1E293B;vertical-align:top;">
+                      ${escapeHtml(step)}
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </table>
+            </td>
+          </tr>
+        </table>
+      `
+      : "";
+
+  const ctaHref = params.actionUrl && params.actionUrl.trim() ? params.actionUrl.trim() : "/settings?tab=security";
+  const ctaLabel =
+    params.actionLabel && params.actionLabel.trim() ? params.actionLabel.trim() : "Güvenlik Ayarlarını Kontrol Et";
+
+  return baseTemplate({
+    title: params.title,
+    preheader: `${sevMeta.eyebrow}: ${truncateText(params.message, 110)}`,
+    eyebrow: `${sevMeta.eyebrow} · ${params.incidentCode}`,
+    tone: sevMeta.tone,
+    showPreferencesLink: false,
+    content: `
+      <h1 class="gs-h1" style="margin:0 0 12px 0;font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0F172A;line-height:1.25;">
+        ${escapeHtml(params.title)}
+      </h1>
+      <p class="gs-text" style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#475569;">
+        Merhaba <strong class="gs-strong" style="color:#0F172A;">${escapeHtml(params.displayName || "Değerli Üyemiz")}</strong>,
+      </p>
+      ${renderInfoCard(
+        [
+          { label: "Olay Referans Kodu", value: params.incidentCode },
+          { label: "Kategori", value: catLabel },
+          { label: "Öncelik Seviyesi", value: sevMeta.label },
+          { label: "Bildirim Zamanı", value: issuedStr },
+        ],
+        sevMeta.tone
+      )}
+      <div class="gs-soft-card" style="padding:20px 22px;background-color:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;font-size:15px;line-height:1.7;color:#1E293B;white-space:pre-line;margin:18px 0;">
+        ${escapeHtml(params.message)}
+      </div>
+      ${stepsHtml}
+      ${renderCtaButton(ctaLabel, ctaHref, sevMeta.tone)}
+      <p class="gs-muted" style="margin:12px 0 0 0;font-size:12.5px;line-height:1.6;color:#64748B;">
+        <strong>Önemli Hatırlatma:</strong> Genç Sosyal ekibi hiçbir zaman sizden şifrenizi, tek kullanımlık doğrulama kodunuzu veya kart bilgilerinizi e-posta ya da mesaj yoluyla talep etmez.
+      </p>
+    `,
+    footerNote:
+      "Bu e-posta, Genç Sosyal hesap ve platform güvenliğini korumak amacıyla gönderilen zorunlu acil durum bilgilendirmesidir.",
+  });
+};
+
+export const sendEmergencySecurityAlertEmail = async (
+  params: EmergencySecurityAlertEmailParams
+): Promise<{ sent: boolean }> => {
+  const sevMeta = EMERGENCY_SEVERITY_META[params.severity] || EMERGENCY_SEVERITY_META.CRITICAL;
+  const html = buildEmergencyAlertEmailHtml(params);
+  const actionUrl = safeUrl(
+    params.actionUrl && params.actionUrl.trim() ? params.actionUrl.trim() : "/settings?tab=security"
+  );
+  const text = [
+    `${sevMeta.subjectPrefix} ${params.title}`,
+    `Referans Kodu: ${params.incidentCode}`,
+    "",
+    `Merhaba ${params.displayName || "Değerli Üyemiz"},`,
+    "",
+    params.message,
+    params.recommendedAction ? `\nÖnerilen Güvenlik Adımları:\n${params.recommendedAction}` : "",
+    `\nGüvenlik Merkezi: ${actionUrl}`,
+    "\nGenç Sosyal ekibi sizden hiçbir zaman şifrenizi veya doğrulama kodunuzu istemez.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return sendEmailSafely({
+    to: params.to,
+    subject: `${sevMeta.subjectPrefix} Genç Sosyal — ${params.title}`,
+    html,
+    text,
+    devLogLabel: `ACİL GÜVENLİK (${params.incidentCode})`,
+    devLogDetail: params.severity,
+    throwOnUnconfigured: params.throwOnUnconfigured,
+    throwOnError: params.throwOnError,
+  });
+};
+
 // ============================================================================
 // 3. PREFERENCE-AWARE RECIPIENT HELPER
 // ============================================================================
@@ -1574,6 +1752,14 @@ export const EMAIL_TEMPLATE_CATALOG: EmailTemplateDescriptor[] = [
     category: "Güvenlik & Hesap",
     description: "Yeni cihaz, IP adresi veya şifre değişikliklerinde giden güvenlik bildirimi.",
     subject: "Genç Sosyal — Güvenlik Bildirimi",
+  },
+  {
+    id: "emergency_alert",
+    name: "Acil Durum & Siber Saldırı Uyarısı",
+    category: "Güvenlik & Hesap",
+    description: "Siber saldırı, oltalama veya kritik platform güvenlik olaylarında tüm üyelere gönderilen resmi uyarı.",
+    subject: "[ACİL GÜVENLİK UYARISI] Genç Sosyal — Olağan Dışı Güvenlik Uyarısı",
+    isNew: true,
   },
   {
     id: "verification_approved",
@@ -1694,6 +1880,25 @@ export const renderEmailTemplatePreview = async (
           "88.241.12.45"
         ),
         text: "Genç Sosyal Güvenlik Bildirimi",
+      };
+    case "emergency_alert":
+      return {
+        descriptor,
+        html: buildEmergencyAlertEmailHtml({
+          to: "ornek@gencsosyal.com",
+          displayName: "Zeynep Aydın",
+          incidentCode: "GS-SEC-2026-ORNEK",
+          title: "Olağan Dışı Güvenlik Aktivitesi ve Önlem Uyarısı",
+          message:
+            "Platformumuzda tespit edilen şüpheli trafik nedeniyle ek güvenlik katmanları devreye alınmıştır. Hesabınızın güvenliği için aktif oturumlarınızı kontrol etmenizi öneririz.",
+          recommendedAction:
+            "Ayarlar > Güvenlik & Oturumlar bölümünden tanımadığınız cihazları sonlandırın.\nGüçlü ve benzersiz bir şifre kullandığınızdan emin olun.\nResmi olmayan bağlantılara şifrenizi girmeyin.",
+          severity: "CRITICAL",
+          category: "CYBER_ATTACK",
+          actionLabel: "Güvenlik Ayarlarını Kontrol Et",
+          actionUrl: "/settings?tab=security",
+        }),
+        text: "[ACİL GÜVENLİK UYARISI] Genç Sosyal güvenlik bildirimi.",
       };
     case "verification_approved":
       return {

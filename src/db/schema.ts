@@ -307,6 +307,7 @@ export const notifications = pgTable('notifications', {
   commentId: integer('comment_id').references(() => comments.id, { onDelete: 'cascade' }),
   projectCommentId: integer('project_comment_id').references(() => projectComments.id, { onDelete: 'cascade' }),
   communityId: integer('community_id').references(() => communities.id, { onDelete: 'cascade' }),
+  emergencyAlertId: integer('emergency_alert_id'),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({
@@ -315,6 +316,7 @@ export const notifications = pgTable('notifications', {
   recipientUnreadDateIdx: index('notifications_recipient_unread_date_idx').on(t.recipientId, t.isRead, t.createdAt),
   recipientCreatedAtIdx: index('notifications_recipient_created_at_idx').on(t.recipientId, t.createdAt),
   communityIdx: index('notifications_community_idx').on(t.communityId),
+  emergencyAlertIdx: index('notifications_emergency_alert_idx').on(t.emergencyAlertId),
 }));
 
 // --- STORIES ---
@@ -1781,6 +1783,48 @@ export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
     fields: [teamMembers.userId],
     references: [users.id],
   }),
+}));
+
+// --- EMERGENCY SECURITY ALERTS ---
+export const emergencyAlerts = pgTable('emergency_alerts', {
+  id: serial('id').primaryKey(),
+  incidentCode: varchar('incident_code', { length: 32 }).notNull().unique(),
+  title: varchar('title', { length: 160 }).notNull(),
+  message: text('message').notNull(),
+  recommendedAction: text('recommended_action'),
+  severity: varchar('severity', { length: 20 }).default('CRITICAL').notNull(),
+  category: varchar('category', { length: 40 }).default('CYBER_ATTACK').notNull(),
+  status: varchar('status', { length: 20 }).default('ACTIVE').notNull(),
+  targetAudience: varchar('target_audience', { length: 20 }).default('ALL_ACTIVE').notNull(),
+  actionLabel: varchar('action_label', { length: 80 }),
+  actionUrl: text('action_url'),
+  sendNotification: boolean('send_notification').default(true).notNull(),
+  sendEmail: boolean('send_email').default(true).notNull(),
+  showBanner: boolean('show_banner').default(true).notNull(),
+  recipientCount: integer('recipient_count').default(0).notNull(),
+  notificationSentCount: integer('notification_sent_count').default(0).notNull(),
+  emailStatus: varchar('email_status', { length: 20 }).default('SKIPPED').notNull(),
+  emailAttemptedCount: integer('email_attempted_count').default(0).notNull(),
+  emailSentCount: integer('email_sent_count').default(0).notNull(),
+  emailFailedCount: integer('email_failed_count').default(0).notNull(),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  resolvedBy: integer('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+  resolutionNote: text('resolution_note'),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => ({
+  statusIdx: index('emergency_alerts_status_idx').on(t.status),
+  createdAtIdx: index('emergency_alerts_created_at_idx').on(t.createdAt),
+}));
+
+export const emergencyAlertAcknowledgments = pgTable('emergency_alert_acknowledgments', {
+  alertId: integer('alert_id').references(() => emergencyAlerts.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  acknowledgedAt: timestamp('acknowledged_at').defaultNow().notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.alertId, t.userId] }),
+  userIdIdx: index('emergency_alert_acks_user_id_idx').on(t.userId),
 }));
 
 
