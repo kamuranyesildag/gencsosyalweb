@@ -74,6 +74,30 @@ export function HtmlSitemap() {
                 <ArrowRight className="w-4 h-4 opacity-50" />
               </Link>
             </li>
+            <li>
+              <Link to="/teams" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
+                <span>Takımlar</span>
+                <ArrowRight className="w-4 h-4 opacity-50" />
+              </Link>
+            </li>
+            <li>
+              <Link to="/teknofest" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
+                <span>TEKNOFEST Köşesi</span>
+                <ArrowRight className="w-4 h-4 opacity-50" />
+              </Link>
+            </li>
+            <li>
+              <Link to="/quiz" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
+                <span>Genç Quiz</span>
+                <ArrowRight className="w-4 h-4 opacity-50" />
+              </Link>
+            </li>
+            <li>
+              <Link to="/youth-league" className="text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between text-sm font-medium">
+                <span>19 Mayıs Gençlik Ligi</span>
+                <ArrowRight className="w-4 h-4 opacity-50" />
+              </Link>
+            </li>
           </ul>
         </section>
 

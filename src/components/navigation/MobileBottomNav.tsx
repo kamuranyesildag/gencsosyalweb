@@ -70,7 +70,7 @@ export function MobileBottomNav() {
   }
 
   const isActive = (path: string) => {
-    if (path === '/home') return location.pathname === '/home' || location.pathname === '/feed' || location.pathname === '/';
+    if (path === '/') return location.pathname === '/' || location.pathname === '/home' || location.pathname === '/feed';
     return location.pathname.startsWith(path);
   };
 
@@ -86,7 +86,7 @@ export function MobileBottomNav() {
     }
   };
 
-  const homeActive = isActive('/home');
+  const homeActive = isActive('/');
   const exploreActive = isActive('/explore');
   const createActive = isActive('/create');
   const notifActive = isActive('/notifications');
@@ -106,8 +106,8 @@ export function MobileBottomNav() {
       <div className="grid grid-cols-5 items-center h-[46px] px-1.5">
         {/* 1. Ana Sayfa */}
         <Link
-          to="/home"
-          onClick={(e) => handleNavClick('/home', false, e)}
+          to="/"
+          onClick={(e) => handleNavClick('/', false, e)}
           aria-label="Ana Sayfa"
           aria-current={homeActive ? 'page' : undefined}
           className="flex items-center justify-center h-full group active:scale-90 transition-transform"

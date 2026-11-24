@@ -85,7 +85,7 @@ export function ProjectDetail() {
           : project.description.substring(0, 155))
       : "Genç Sosyal'de geliştirilen yenilikçi projeyi inceleyin, geri bildirimde bulunun.",
     canonicalPath: id ? `/projects/${id}` : undefined,
-    allowIndexing: !error && !!project,
+    allowIndexing: loading ? undefined : !error && !!project,
     ogImage: project?.imageUrl || undefined,
   });
 

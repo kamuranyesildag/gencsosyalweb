@@ -38,9 +38,10 @@ import { useThemeStore } from '../context/useTheme';
 
 export function Landing() {
   useSEO({ 
-    title: "Genç Sosyal — Genç Üretici ve Yazılımcı Platformu", 
-    description: "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini sergilediği, topluluk kurduğu ve birlikte ürettiği bağımsız sosyal ağ.",
-    canonicalPath: "/"
+    title: "Genç Sosyal'e Hoş Geldiniz — Genç Üretici ve Yazılımcı Ağı", 
+    description: "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini sergilediği, takım ve topluluk kurduğu, birlikte ürettiği yerli sosyal ağ.",
+    canonicalPath: "/welcome",
+    allowIndexing: true,
   });
 
   const { actualTheme, toggleTheme } = useThemeStore();
@@ -131,7 +132,7 @@ export function Landing() {
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
             <Link 
-              to="/home" 
+              to="/" 
               className="px-3 py-1.5 rounded-lg hover:text-blue-600 dark:hover:text-sky-400 hover:bg-blue-50/50 dark:hover:bg-white/[0.05] transition-all flex items-center gap-1.5"
             >
               <Radio className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
@@ -224,7 +225,7 @@ export function Landing() {
             >
               <div className="flex flex-col space-y-2 text-sm font-semibold">
                 <Link 
-                  to="/home" 
+                  to="/" 
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-sky-400 flex items-center gap-2"
                 >
@@ -329,7 +330,7 @@ export function Landing() {
         >
           {/* Primary Action: Go straight to live feed */}
           <Link
-            to="/home"
+            to="/"
             className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm sm:text-base shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           >
             <Radio className="w-4 h-4 animate-pulse" />
@@ -513,7 +514,7 @@ export function Landing() {
                       </span>
                     </div>
                     <Link
-                      to="/home"
+                      to="/"
                       className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-1 shadow-xs"
                     >
                       <span>Akışta İncele</span>
@@ -755,7 +756,7 @@ export function Landing() {
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-slate-100 dark:border-white/[0.06]">
-              <Link to="/home" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 hover:underline">
+              <Link to="/" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 hover:underline">
                 <span>Canlı Akışa Geç</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
@@ -891,7 +892,7 @@ export function Landing() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/home"
+                to="/"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white font-bold text-sm sm:text-base transition-all flex items-center justify-center cursor-pointer border border-white/[0.12] backdrop-blur-md"
               >
                 <Radio className="w-4 h-4 mr-1 text-sky-400" />
@@ -940,7 +941,7 @@ export function Landing() {
                 Platform
               </h4>
               <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                <li><Link to="/home" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors font-medium">Canlı Akış</Link></li>
+                <li><Link to="/" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors font-medium">Canlı Akış</Link></li>
                 <li><Link to="/explore" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Keşfet</Link></li>
                 <li><Link to="/projects" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Projeler</Link></li>
                 <li><Link to="/communities" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Topluluklar</Link></li>

@@ -108,8 +108,13 @@ export function TeamDetail() {
   const [rotatingCode, setRotatingCode] = useState(false);
 
   useSEO({
-    title: team ? `${team.name} | Takımlar | Genç Sosyal` : "Takım Detayı | Genç Sosyal",
-    description: team?.description || "Genç Sosyal güvenli takım çalışma alanı.",
+    title: team ? `${team.name} — Takım | Genç Sosyal` : "Takım Detayı | Genç Sosyal",
+    description:
+      team?.description ||
+      "Genç Sosyal takımlarını inceleyin, ekip arkadaşlarıyla tanışın ve birlikte proje geliştirin.",
+    canonicalPath: team?.slug ? `/teams/${team.slug}` : slug ? `/teams/${slug}` : undefined,
+    allowIndexing: loading ? undefined : team ? team.visibility === "PUBLIC" : false,
+    ogImage: team?.avatarUrl || undefined,
   });
 
   const isCaptain = team?.myRole === "CAPTAIN";

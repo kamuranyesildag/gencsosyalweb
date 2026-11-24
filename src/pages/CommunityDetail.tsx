@@ -79,7 +79,8 @@ export function CommunityDetail() {
         ? `${community.description}. ${community.name} topluluğuna katılın, tartışmalara dahil olun ve üretin.`
         : community.description.substring(0, 155)
       : "Genç Sosyal topluluğuna katılın, tartışmalara dahil olun ve genç üreticilerle iş birliği yapın.",
-    canonicalPath: slug ? `/communities/${slug}` : undefined,
+    canonicalPath: community?.slug ? `/communities/${community.slug}` : slug ? `/communities/${slug}` : undefined,
+    allowIndexing: loading ? undefined : community ? community.isPublic !== false : false,
     ogImage: community?.avatarUrl,
   });
 

@@ -2,10 +2,21 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import { db } from "../../src/db/index.js";
-import { users, profiles, posts, communities, projects, hashtags, postMedia } from "../../src/db/schema.js";
+import {
+  users,
+  profiles,
+  posts,
+  communities,
+  projects,
+  hashtags,
+  postMedia,
+  postHashtags,
+  teams,
+} from "../../src/db/schema.js";
 import { eq, and, desc, gt, isNull } from "drizzle-orm";
 import type { ViteDevServer } from "vite";
 
+const MAX_PG_INT = 2147483647;
 let indexHtmlCache = "";
 
 function getIndexHtml(isProd: boolean): string {
@@ -36,20 +47,79 @@ function escapeHtml(unsafe: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
+function parseSafePgInt(raw: string): number | null {
+  if (!/^\d{1,10}$/.test(raw)) return null;
+  const num = Number(raw);
+  if (!Number.isSafeInteger(num) || num <= 0 || num > MAX_PG_INT) return null;
+  return num;
+}
+
+function toAbsoluteUrl(url: string | null | undefined, domain: string): string {
+  if (!url) return `${domain}/icon-512.png`;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) return trimmed;
+  if (trimmed.startsWith("/")) return `${domain}${trimmed}`;
+  return `${domain}/icon-512.png`;
+}
+
 function linkifyHashtags(text: string, domain: string): string {
   if (!text) return "";
   const escaped = escapeHtml(text);
-  return escaped.replace(/#([a-zA-Z0-9_\u00C0-\u017F]+)/g, (match, tag) => {
+  return escaped.replace(/#([a-zA-Z0-9_\u00C0-\u017F]+)/g, (_match, tag) => {
     return `<a href="${domain}/hashtags/${encodeURIComponent(tag)}" style="color:#2563eb;text-decoration:none;font-weight:600;">#${tag}</a>`;
   });
 }
 
+function buildFooterNav(domain: string): string {
+  return `
+    <footer style="margin-top:40px;padding-top:18px;border-top:1px solid #e2e8f0;display:flex;justify-content:center;gap:14px;font-size:14px;color:#475569;flex-wrap:wrap;">
+      <a href="${domain}/" style="color:#2563eb;text-decoration:none;font-weight:600;">Ana Sayfa</a>
+      <a href="${domain}/explore" style="color:#2563eb;text-decoration:none;font-weight:600;">Keşfet</a>
+      <a href="${domain}/projects" style="color:#2563eb;text-decoration:none;font-weight:600;">Projeler</a>
+      <a href="${domain}/communities" style="color:#2563eb;text-decoration:none;font-weight:600;">Topluluklar</a>
+      <a href="${domain}/teams" style="color:#2563eb;text-decoration:none;font-weight:600;">Takımlar</a>
+      <a href="${domain}/teknofest" style="color:#2563eb;text-decoration:none;font-weight:600;">TEKNOFEST</a>
+      <a href="${domain}/quiz" style="color:#2563eb;text-decoration:none;font-weight:600;">Genç Quiz</a>
+      <a href="${domain}/youth-league" style="color:#2563eb;text-decoration:none;font-weight:600;">Gençlik Ligi</a>
+      <a href="${domain}/sitemap" style="color:#475569;text-decoration:none;">Site Haritası</a>
+      <a href="${domain}/privacy" style="color:#475569;text-decoration:none;">Gizlilik</a>
+      <a href="${domain}/terms" style="color:#475569;text-decoration:none;">Şartlar</a>
+      <a href="${domain}/kvkk" style="color:#475569;text-decoration:none;">KVKK</a>
+    </footer>
+  `;
+}
+
+function makeBreadcrumb(domain: string, items: Array<{ name: string; url: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      name: item.name,
+      item: item.url.startsWith("http") ? item.url : `${domain}${item.url}`,
+    })),
+  };
+}
+
 export function createSeoMiddleware(vite?: ViteDevServer) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Only process GET requests for HTML documents
-    if (req.method !== "GET") return next();
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
     if (req.path.startsWith("/api/")) return next();
-    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|json|woff2?|map|txt|xml|webmanifest)$/i)) return next();
+    if (
+      req.path.match(
+        /\.(js|css|png|jpg|jpeg|webp|gif|ico|svg|json|woff2?|ttf|map|txt|xml|webmanifest|mp4|webm)$/i
+      )
+    ) {
+      return next();
+    }
 
     const isProd = process.env.NODE_ENV === "production";
     const template = getIndexHtml(isProd);
@@ -57,73 +127,131 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
       return next();
     }
 
-    // Canonical production domain: https://gencsosyal.com
-    const domain = "https://gencsosyal.com";
-    
-    // Clean canonical path without trailing slash (except root) and strictly without query parameters
-    const cleanPath = req.path.length > 1 && req.path.endsWith("/") ? req.path.slice(0, -1) : req.path;
-    const canonicalUrl = `${domain}${cleanPath}`;
+    const domain = (process.env.CANONICAL_DOMAIN || "https://gencsosyal.com").replace(/\/+$/, "");
+    const cleanPath =
+      req.path.length > 1 && req.path.endsWith("/") ? req.path.slice(0, -1) : req.path;
 
-    let title = "Genç Sosyal — Genç Üretici Platformu";
-    let description = "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.";
-    const keywords = "genç sosyal, gençlik platformu, sosyal medya, yazılımcı gençlik, açık kaynak projeler, teknoloji topluluğu, genç geliştiriciler, portföy paylaşımı, yazılım projeleri, dijital topluluk, kodlama";
+    let canonicalUrl = `${domain}${cleanPath === "/" ? "/" : cleanPath}`;
+    let title = "Genç Sosyal — Genç Üretici ve Yazılımcı Platformu";
+    let description =
+      "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, takımlarını, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.";
+    const keywords =
+      "genç sosyal, gençlik platformu, sosyal medya, yazılımcı gençlik, açık kaynak projeler, teknoloji topluluğu, genç geliştiriciler, teknofest takımları, dijital topluluk, kodlama";
     let imageUrl = `${domain}/icon-512.png`;
     let ogType = "website";
     let shouldNoIndex = false;
     let isNotFound = false;
+    let routeMatched = false;
     let semanticBody = "";
 
     const jsonLd: any[] = [
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Genç Sosyal",
-        "url": domain,
-        "potentialAction": {
+        "@id": `${domain}/#website`,
+        name: "Genç Sosyal",
+        alternateName: ["Genc Sosyal", "GencSosyal", "gencsosyal.com"],
+        url: `${domain}/`,
+        inLanguage: "tr-TR",
+        potentialAction: {
           "@type": "SearchAction",
-          "target": `${domain}/explore?q={search_term_string}`,
-          "query-input": "required name=search_term_string"
-        }
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${domain}/explore?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
       },
       {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Genç Sosyal",
-        "url": domain,
-        "logo": `${domain}/icon-512.png`,
-        "description": "Genç üretici, geliştirici ve tasarımcı topluluk platformu."
-      }
+        "@id": `${domain}/#organization`,
+        name: "Genç Sosyal",
+        url: `${domain}/`,
+        logo: {
+          "@type": "ImageObject",
+          url: `${domain}/icon-512.png`,
+          width: 512,
+          height: 512,
+        },
+        description: "Türkiye'nin genç üretici, yazılımcı ve tasarımcı topluluk platformu.",
+      },
     ];
 
     try {
       const postMatch = cleanPath.match(/^\/post\/(\d+)$/);
-      const profileMatch = cleanPath.match(/^\/profile\/([a-zA-Z0-9_]{3,30})$/);
+      const profileMatch = cleanPath.match(/^\/profile\/([a-zA-Z0-9_]{2,40})$/);
       const communityMatch = cleanPath.match(/^\/communities\/([a-zA-Z0-9_-]+)$/);
+      const teamMatch = cleanPath.match(/^\/teams\/([a-zA-Z0-9_-]+)$/);
       const projectMatch = cleanPath.match(/^\/projects\/(\d+)$/);
-      const hashtagMatch = cleanPath.match(/^\/(?:hashtag|hashtags)\/([a-zA-Z0-9_\u00C0-\u017F]+)$/);
+      const hashtagMatch = cleanPath.match(/^\/hashtags\/([a-zA-Z0-9_%.\-\u00C0-\u017F]+)$/);
 
-      if (postMatch) {
-        const postId = parseInt(postMatch[1], 10);
-        const postRecord = await db
-          .select({
-            id: posts.id,
-            content: posts.content,
-            postType: posts.postType,
-            visibility: posts.visibility,
-            moderationStatus: posts.moderationStatus,
-            createdAt: posts.createdAt,
-            displayName: profiles.displayName,
-            username: users.username,
-            avatarUrl: profiles.avatarUrl,
-            userIsActive: users.isActive,
-            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
-            userIsPrivate: profiles.isPrivate
-          })
-          .from(posts)
-          .innerJoin(users, eq(posts.userId, users.id))
-          .leftJoin(profiles, eq(users.id, profiles.userId))
-          .where(eq(posts.id, postId))
-          .limit(1);
+      // Private/authenticated routes — always HTTP 200 (client redirects/protects) with strict noindex
+      const privatePrefixes = [
+        "/messages",
+        "/settings",
+        "/admin",
+        "/notifications",
+        "/bookmarks",
+        "/onboarding",
+        "/create",
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/verify-email",
+        "/account-suspended",
+        "/support",
+        "/profile/customize",
+        "/quiz/room/",
+        "/youth-league/match/",
+      ];
+
+      const isPrivateRoute = privatePrefixes.some(
+        (prefix) => cleanPath === prefix || cleanPath.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)
+      );
+
+      if (isPrivateRoute) {
+        routeMatched = true;
+        shouldNoIndex = true;
+        if (cleanPath.startsWith("/login")) {
+          title = "Giriş Yap | Genç Sosyal";
+          description = "Genç Sosyal hesabınıza giriş yapın.";
+        } else if (cleanPath.startsWith("/register")) {
+          title = "Kayıt Ol | Genç Sosyal";
+          description = "Genç Sosyal topluluğuna ücretsiz katılın.";
+        } else if (cleanPath.startsWith("/messages")) {
+          title = "Mesajlar | Genç Sosyal";
+        } else if (cleanPath.startsWith("/settings")) {
+          title = "Ayarlar | Genç Sosyal";
+        } else if (cleanPath.startsWith("/notifications")) {
+          title = "Bildirimler | Genç Sosyal";
+        }
+      } else if (postMatch) {
+        routeMatched = true;
+        const postId = parseSafePgInt(postMatch[1]);
+        const postRecord = postId
+          ? await db
+              .select({
+                id: posts.id,
+                content: posts.content,
+                postType: posts.postType,
+                visibility: posts.visibility,
+                moderationStatus: posts.moderationStatus,
+                createdAt: posts.createdAt,
+                displayName: profiles.displayName,
+                username: users.username,
+                avatarUrl: profiles.avatarUrl,
+                userIsActive: users.isActive,
+                allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+                userIsPrivate: profiles.isPrivate,
+              })
+              .from(posts)
+              .innerJoin(users, eq(posts.userId, users.id))
+              .leftJoin(profiles, eq(users.id, profiles.userId))
+              .where(eq(posts.id, postId))
+              .limit(1)
+          : [];
 
         if (
           postRecord.length === 0 ||
@@ -136,84 +264,83 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           title = "Gönderi Bulunamadı | Genç Sosyal";
           description = "Görüntülemek istediğiniz gönderi mevcut değil, silinmiş veya gizli olabilir.";
           semanticBody = `
-            <main style="max-width:680px;margin:50px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
-              <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:#0f172a;">Gönderi Bulunamadı</h1>
+            <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+              <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;color:#0f172a;">Gönderi Bulunamadı</h1>
               <p style="color:#64748b;margin-bottom:24px;">Aradığınız gönderi silinmiş, gizlenmiş veya henüz onaylanmamış olabilir.</p>
-              <p><a href="${domain}/" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:600;">Genç Sosyal Ana Sayfasına Dön</a></p>
+              ${buildFooterNav(domain)}
             </main>
           `;
         } else {
           const p = postRecord[0];
           const authorName = p.displayName || p.username;
-          if (!p.allowSearchEngineIndexing || p.userIsPrivate) {
+          if (p.allowSearchEngineIndexing === false || p.userIsPrivate) {
             shouldNoIndex = true;
           }
 
-          title = `${authorName} tarafından paylaşılan gönderi | Genç Sosyal`;
+          title = `${authorName} (@${p.username}) Gönderisi | Genç Sosyal`;
           description = p.content
             ? p.content.slice(0, 155) + (p.content.length > 155 ? "..." : "")
-            : `${authorName} tarafından Genç Sosyal'de paylaşılan gönderiye göz atın.`;
-          
+            : `${authorName} tarafından Genç Sosyal'de paylaşılan gönderiyi inceleyin.`;
+
           const mediaRows = await db
             .select({ url: postMedia.mediaUrl })
             .from(postMedia)
-            .where(eq(postMedia.postId, postId))
+            .where(eq(postMedia.postId, p.id))
             .limit(1);
 
           if (mediaRows.length > 0 && mediaRows[0].url) {
-            imageUrl = mediaRows[0].url.startsWith("http") ? mediaRows[0].url : `${domain}${mediaRows[0].url}`;
+            imageUrl = toAbsoluteUrl(mediaRows[0].url, domain);
           } else if (p.avatarUrl) {
-            imageUrl = p.avatarUrl.startsWith("http") ? p.avatarUrl : `${domain}${p.avatarUrl}`;
+            imageUrl = toAbsoluteUrl(p.avatarUrl, domain);
           }
           ogType = "article";
 
-          jsonLd.push({
-            "@context": "https://schema.org",
-            "@type": "SocialMediaPosting",
-            "headline": title,
-            "articleBody": p.content || "",
-            "datePublished": p.createdAt?.toISOString(),
-            "url": canonicalUrl,
-            "image": imageUrl,
-            "author": {
-              "@type": "Person",
-              "name": authorName,
-              "url": `${domain}/profile/${p.username}`,
-              "image": p.avatarUrl || `${domain}/icon-512.png`
-            },
-            "publisher": {
-              "@type": "Organization",
-              "name": "Genç Sosyal",
-              "url": domain,
-              "logo": `${domain}/icon-512.png`
+          jsonLd.push(
+            makeBreadcrumb(domain, [
+              { name: "Ana Sayfa", url: "/" },
+              { name: authorName, url: `/profile/${encodeURIComponent(p.username)}` },
+              { name: "Gönderi", url: `/post/${p.id}` },
+            ]),
+            {
+              "@context": "https://schema.org",
+              "@type": "SocialMediaPosting",
+              headline: title,
+              articleBody: p.content || "",
+              datePublished: p.createdAt?.toISOString(),
+              url: canonicalUrl,
+              image: imageUrl,
+              author: {
+                "@type": "Person",
+                name: authorName,
+                url: `${domain}/profile/${encodeURIComponent(p.username)}`,
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "Genç Sosyal",
+                url: `${domain}/`,
+                logo: `${domain}/icon-512.png`,
+              },
             }
-          });
+          );
 
           semanticBody = `
-            <article itemscope itemtype="https://schema.org/SocialMediaPosting" style="max-width:680px;margin:30px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-              <header style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                <div>
-                  <h1 style="font-size:18px;font-weight:700;margin:0;">
-                    <a href="${domain}/profile/${escapeHtml(p.username)}" style="color:#0f172a;text-decoration:none;">${escapeHtml(authorName)}</a>
-                  </h1>
-                  <p style="margin:2px 0 0 0;font-size:14px;color:#64748b;">
-                    <a href="${domain}/profile/${escapeHtml(p.username)}" style="color:#64748b;text-decoration:none;">@${escapeHtml(p.username)}</a> · 
-                    <time datetime="${p.createdAt?.toISOString()}">${new Date(p.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</time>
-                  </p>
-                </div>
+            <article style="max-width:680px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+              <header style="margin-bottom:16px;">
+                <h1 style="font-size:20px;font-weight:800;margin:0;">
+                  <a href="${domain}/profile/${encodeURIComponent(p.username)}" style="color:#0f172a;text-decoration:none;">${escapeHtml(authorName)}</a>
+                </h1>
+                <p style="margin:4px 0 0 0;font-size:14px;color:#64748b;">
+                  @${escapeHtml(p.username)} ·
+                  <time datetime="${p.createdAt?.toISOString()}">${new Date(p.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}</time>
+                </p>
               </header>
-              <section style="font-size:17px;margin:20px 0;line-height:1.6;white-space:pre-wrap;">${linkifyHashtags(p.content || "", domain)}</section>
-              <footer style="margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;color:#64748b;display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <a href="${domain}/" style="color:#2563eb;text-decoration:none;font-weight:600;">Genç Sosyal</a> · 
-                  <a href="${domain}/explore" style="color:#2563eb;text-decoration:none;font-weight:600;">Keşfet</a>
-                </div>
-                <span>Genç Üretici Platformu</span>
-              </footer>
+              <section style="font-size:17px;margin:20px 0;white-space:pre-wrap;">${linkifyHashtags(p.content || "", domain)}</section>
+              ${buildFooterNav(domain)}
             </article>
           `;
         }
       } else if (profileMatch) {
+        routeMatched = true;
         const username = profileMatch[1];
         const userRecord = await db
           .select({
@@ -224,7 +351,7 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             bio: profiles.bio,
             avatarUrl: profiles.avatarUrl,
             isPrivate: profiles.isPrivate,
-            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing
+            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
           })
           .from(users)
           .leftJoin(profiles, eq(users.id, profiles.userId))
@@ -237,161 +364,128 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           title = "Kullanıcı Bulunamadı | Genç Sosyal";
           description = "Aradığınız kullanıcı profili mevcut değil veya silinmiş.";
           semanticBody = `
-            <main style="max-width:680px;margin:50px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
-              <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:#0f172a;">Kullanıcı Bulunamadı</h1>
+            <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+              <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;color:#0f172a;">Kullanıcı Bulunamadı</h1>
               <p style="color:#64748b;margin-bottom:24px;">Aradığınız kullanıcı profili mevcut değil veya silinmiş olabilir.</p>
-              <p><a href="${domain}/" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:600;">Genç Sosyal Ana Sayfasına Dön</a></p>
+              ${buildFooterNav(domain)}
             </main>
           `;
         } else {
           const u = userRecord[0];
           const name = u.displayName || u.username;
-          if (!u.allowSearchEngineIndexing || u.isPrivate) {
+          canonicalUrl = `${domain}/profile/${encodeURIComponent(u.username)}`;
+          if (u.allowSearchEngineIndexing === false || u.isPrivate) {
             shouldNoIndex = true;
           }
 
           title = `${name} (@${u.username}) | Genç Sosyal`;
           description = u.bio
             ? u.bio.slice(0, 155) + (u.bio.length > 155 ? "..." : "")
-            : `${name} (@${u.username}) profilini Genç Sosyal'de inceleyin. Projeleri, gönderileri ve paylaşımlarını keşfedin.`;
-          
-          if (u.avatarUrl) {
-            imageUrl = u.avatarUrl.startsWith("http") ? u.avatarUrl : `${domain}${u.avatarUrl}`;
-          }
+            : `${name} (@${u.username}) profilini Genç Sosyal'de inceleyin. Projeleri, gönderileri ve topluluk paylaşımlarını keşfedin.`;
+
+          imageUrl = toAbsoluteUrl(u.avatarUrl, domain);
           ogType = "profile";
 
-          jsonLd.push({
-            "@context": "https://schema.org",
-            "@type": "ProfilePage",
-            "url": canonicalUrl,
-            "mainEntity": {
-              "@type": "Person",
-              "name": name,
-              "alternateName": u.username,
-              "description": description,
-              "image": imageUrl,
-              "url": canonicalUrl
+          jsonLd.push(
+            makeBreadcrumb(domain, [
+              { name: "Ana Sayfa", url: "/" },
+              { name: name, url: `/profile/${encodeURIComponent(u.username)}` },
+            ]),
+            {
+              "@context": "https://schema.org",
+              "@type": "ProfilePage",
+              url: canonicalUrl,
+              mainEntity: {
+                "@type": "Person",
+                name,
+                alternateName: `@${u.username}`,
+                description,
+                image: imageUrl,
+                url: canonicalUrl,
+              },
             }
-          });
+          );
 
-          // Fetch user's latest public posts for internal linking
-          const userPosts = await db
-            .select({
-              id: posts.id,
-              content: posts.content,
-              createdAt: posts.createdAt
-            })
-            .from(posts)
-            .where(
-              and(
-                eq(posts.userId, u.id),
-                eq(posts.visibility, "PUBLIC"),
-                eq(posts.moderationStatus, "APPROVED"),
-                isNull(posts.communityId)
+          const [userPosts, userProjects] = await Promise.all([
+            db
+              .select({ id: posts.id, content: posts.content, createdAt: posts.createdAt })
+              .from(posts)
+              .where(
+                and(
+                  eq(posts.userId, u.id),
+                  eq(posts.visibility, "PUBLIC"),
+                  eq(posts.moderationStatus, "APPROVED"),
+                  isNull(posts.communityId)
+                )
               )
-            )
-            .orderBy(desc(posts.createdAt))
-            .limit(5);
-
-          // Fetch user's projects for internal linking safely
-          let userProjects: any[] = [];
-          try {
-            userProjects = await db
-              .select({
-                id: projects.id,
-                title: projects.title,
-                category: projects.category
-              })
+              .orderBy(desc(posts.createdAt))
+              .limit(6)
+              .catch(() => []),
+            db
+              .select({ id: projects.id, title: projects.title, category: projects.category })
               .from(projects)
               .where(eq(projects.userId, u.id))
               .orderBy(desc(projects.createdAt))
-              .limit(5);
-          } catch (upErr) {
-            console.warn("Could not fetch user projects for SEO:", upErr);
-          }
-
-          let postsListHtml = "";
-          if (userPosts.length > 0) {
-            postsListHtml = `
-              <section style="margin-top:24px;">
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Gönderiler</h2>
-                <ul style="list-style:none;padding:0;margin:0;">
-                  ${userPosts.map((post: any) => `
-                    <li style="padding:12px 0;border-bottom:1px solid #f1f5f9;">
-                      <a href="${domain}/post/${post.id}" style="color:#0f172a;text-decoration:none;font-weight:500;">
-                        ${escapeHtml(post.content?.slice(0, 100) || "Gönderi")}
-                      </a>
-                    </li>
-                  `).join("")}
-                </ul>
-              </section>
-            `;
-          }
-
-          let projectsListHtml = "";
-          if (userProjects.length > 0) {
-            projectsListHtml = `
-              <section style="margin-top:24px;">
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Projeler</h2>
-                <ul style="list-style:none;padding:0;margin:0;">
-                  ${userProjects.map((proj: any) => `
-                    <li style="padding:8px 0;">
-                      <a href="${domain}/projects/${proj.id}" style="color:#2563eb;text-decoration:none;font-weight:600;">
-                        ${escapeHtml(proj.title)}
-                      </a>
-                      <span style="font-size:13px;color:#64748b;margin-left:8px;">(${escapeHtml(proj.category)})</span>
-                    </li>
-                  `).join("")}
-                </ul>
-              </section>
-            `;
-          }
+              .limit(6)
+              .catch(() => []),
+          ]);
 
           semanticBody = `
-            <main itemscope itemtype="https://schema.org/Person" style="max-width:680px;margin:30px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-              <header style="border-bottom:1px solid #e2e8f0;padding-bottom:20px;">
-                <h1 itemprop="name" style="font-size:24px;font-weight:800;margin:0 0 4px 0;">${escapeHtml(name)}</h1>
-                <p style="font-size:15px;color:#64748b;margin:0 0 12px 0;">@${escapeHtml(u.username)}</p>
-                <p itemprop="description" style="font-size:16px;color:#334155;margin:0;">${escapeHtml(u.bio || "Genç Sosyal üreticisi.")}</p>
+            <main style="max-width:720px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+              <header style="border-bottom:1px solid #e2e8f0;padding-bottom:18px;">
+                <h1 style="font-size:26px;font-weight:800;margin:0 0 4px 0;">${escapeHtml(name)}</h1>
+                <p style="font-size:15px;color:#64748b;margin:0 0 10px 0;">@${escapeHtml(u.username)}</p>
+                <p style="font-size:16px;color:#334155;margin:0;">${escapeHtml(u.bio || "Genç Sosyal üreticisi ve topluluk üyesi.")}</p>
               </header>
-              ${projectsListHtml}
-              ${postsListHtml}
-              <nav style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;">
-                <a href="${domain}/" style="color:#2563eb;text-decoration:none;font-weight:600;">Genç Sosyal</a> · 
-                <a href="${domain}/explore" style="color:#2563eb;text-decoration:none;font-weight:600;">Keşfet</a> · 
-                <a href="${domain}/projects" style="color:#2563eb;text-decoration:none;font-weight:600;">Projeler</a> · 
-                <a href="${domain}/communities" style="color:#2563eb;text-decoration:none;font-weight:600;">Topluluklar</a>
-              </nav>
+              ${
+                userProjects.length > 0
+                  ? `<section style="margin-top:24px;"><h2 style="font-size:18px;font-weight:700;margin-bottom:10px;">Projeler</h2><ul style="list-style:none;padding:0;margin:0;">${userProjects
+                      .map(
+                        (proj: any) =>
+                          `<li style="padding:8px 0;"><a href="${domain}/projects/${proj.id}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(proj.title)}</a> <span style="color:#64748b;font-size:13px;">(${escapeHtml(proj.category)})</span></li>`
+                      )
+                      .join("")}</ul></section>`
+                  : ""
+              }
+              ${
+                userPosts.length > 0
+                  ? `<section style="margin-top:24px;"><h2 style="font-size:18px;font-weight:700;margin-bottom:10px;">Son Gönderiler</h2><ul style="list-style:none;padding:0;margin:0;">${userPosts
+                      .map(
+                        (post: any) =>
+                          `<li style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><a href="${domain}/post/${post.id}" style="color:#0f172a;text-decoration:none;">${escapeHtml((post.content || "Gönderi").slice(0, 140))}</a></li>`
+                      )
+                      .join("")}</ul></section>`
+                  : ""
+              }
+              ${buildFooterNav(domain)}
             </main>
           `;
         }
       } else if (projectMatch) {
-        const projectId = parseInt(projectMatch[1], 10);
-        const projectRecord = await db
-          .select({
-            id: projects.id,
-            title: projects.title,
-            description: projects.description,
-            detailedDescription: projects.detailedDescription,
-            category: projects.category,
-            status: projects.status,
-            projectUrl: projects.projectUrl,
-            githubUrl: projects.githubUrl,
-            imageUrl: projects.imageUrl,
-            tags: projects.tags,
-            createdAt: projects.createdAt,
-            updatedAt: projects.updatedAt,
-            authorUsername: users.username,
-            authorDisplayName: profiles.displayName,
-            authorIsActive: users.isActive,
-            allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
-            userIsPrivate: profiles.isPrivate
-          })
-          .from(projects)
-          .innerJoin(users, eq(projects.userId, users.id))
-          .leftJoin(profiles, eq(users.id, profiles.userId))
-          .where(eq(projects.id, projectId))
-          .limit(1);
+        routeMatched = true;
+        const projectId = parseSafePgInt(projectMatch[1]);
+        const projectRecord = projectId
+          ? await db
+              .select({
+                id: projects.id,
+                title: projects.title,
+                description: projects.description,
+                detailedDescription: projects.detailedDescription,
+                category: projects.category,
+                imageUrl: projects.imageUrl,
+                createdAt: projects.createdAt,
+                authorUsername: users.username,
+                authorDisplayName: profiles.displayName,
+                authorIsActive: users.isActive,
+                allowSearchEngineIndexing: profiles.allowSearchEngineIndexing,
+                userIsPrivate: profiles.isPrivate,
+              })
+              .from(projects)
+              .innerJoin(users, eq(projects.userId, users.id))
+              .leftJoin(profiles, eq(users.id, profiles.userId))
+              .where(eq(projects.id, projectId))
+              .limit(1)
+          : [];
 
         if (projectRecord.length === 0 || !projectRecord[0].authorIsActive) {
           isNotFound = true;
@@ -399,64 +493,67 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           title = "Proje Bulunamadı | Genç Sosyal";
           description = "Aradığınız proje yayından kaldırılmış veya silinmiş olabilir.";
           semanticBody = `
-            <main style="max-width:680px;margin:50px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
-              <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:#0f172a;">Proje Bulunamadı</h1>
-              <p style="color:#64748b;margin-bottom:24px;">Aradığınız proje yayından kaldırılmış veya silinmiş olabilir.</p>
-              <p><a href="${domain}/projects" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:600;">Tüm Projeleri Keşfet</a></p>
+            <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+              <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;">Proje Bulunamadı</h1>
+              <p style="color:#64748b;">Aradığınız proje mevcut değil veya silinmiş olabilir.</p>
+              ${buildFooterNav(domain)}
             </main>
           `;
         } else {
           const prj = projectRecord[0];
           const creatorName = prj.authorDisplayName || prj.authorUsername;
-          if (!prj.allowSearchEngineIndexing || prj.userIsPrivate) {
+          if (prj.allowSearchEngineIndexing === false || prj.userIsPrivate) {
             shouldNoIndex = true;
           }
 
-          title = `${prj.title} | Genç Sosyal`;
+          title = `${prj.title} — Proje | Genç Sosyal`;
           description = prj.description
             ? prj.description.slice(0, 155) + (prj.description.length > 155 ? "..." : "")
             : "Genç Sosyal'de geliştirilen yenilikçi projeyi inceleyin.";
-          
-          if (prj.imageUrl) {
-            imageUrl = prj.imageUrl.startsWith("http") ? prj.imageUrl : `${domain}${prj.imageUrl}`;
-          }
+          imageUrl = toAbsoluteUrl(prj.imageUrl, domain);
 
-          jsonLd.push({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            "name": prj.title,
-            "headline": title,
-            "description": description,
-            "applicationCategory": prj.category || "DeveloperApplication",
-            "url": canonicalUrl,
-            "image": imageUrl,
-            "author": {
-              "@type": "Person",
-              "name": creatorName,
-              "url": `${domain}/profile/${prj.authorUsername}`
+          jsonLd.push(
+            makeBreadcrumb(domain, [
+              { name: "Ana Sayfa", url: "/" },
+              { name: "Projeler", url: "/projects" },
+              { name: prj.title, url: `/projects/${prj.id}` },
+            ]),
+            {
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: prj.title,
+              description,
+              applicationCategory: prj.category || "DeveloperApplication",
+              operatingSystem: "All",
+              url: canonicalUrl,
+              image: imageUrl,
+              author: {
+                "@type": "Person",
+                name: creatorName,
+                url: `${domain}/profile/${encodeURIComponent(prj.authorUsername)}`,
+              },
+              offers: { "@type": "Offer", price: "0", priceCurrency: "TRY" },
             }
-          });
+          );
 
           semanticBody = `
-            <article style="max-width:720px;margin:30px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+            <article style="max-width:760px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
               <header style="border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:20px;">
-                <h1 style="font-size:26px;font-weight:800;margin:0 0 8px 0;">${escapeHtml(prj.title)}</h1>
+                <h1 style="font-size:28px;font-weight:800;margin:0 0 8px 0;">${escapeHtml(prj.title)}</h1>
                 <p style="font-size:15px;color:#64748b;margin:0;">
-                  Geliştirici: <a href="${domain}/profile/${escapeHtml(prj.authorUsername)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(creatorName)} (@${escapeHtml(prj.authorUsername)})</a> · 
-                  Kategori: <strong>${escapeHtml(prj.category)}</strong>
+                  Geliştirici: <a href="${domain}/profile/${encodeURIComponent(prj.authorUsername)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(creatorName)}</a> · Kategori: <strong>${escapeHtml(prj.category)}</strong>
                 </p>
               </header>
-              <section style="margin:20px 0;font-size:16px;color:#334155;">
+              <section style="font-size:16px;color:#334155;">
                 <p style="font-size:17px;font-weight:500;color:#0f172a;">${escapeHtml(prj.description || "")}</p>
                 ${prj.detailedDescription ? `<div style="margin-top:16px;white-space:pre-wrap;">${escapeHtml(prj.detailedDescription)}</div>` : ""}
               </section>
-              <footer style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;">
-                <p><a href="${domain}/projects" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Projelerine Dön</a> · <a href="${domain}/explore" style="color:#2563eb;font-weight:600;text-decoration:none;">Keşfet</a></p>
-              </footer>
+              ${buildFooterNav(domain)}
             </article>
           `;
         }
       } else if (communityMatch) {
+        routeMatched = true;
         const communitySlug = communityMatch[1];
         const commRecord = await db
           .select({
@@ -465,14 +562,11 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
             slug: communities.slug,
             description: communities.description,
             avatarUrl: communities.avatarUrl,
-            coverUrl: communities.coverUrl,
-            createdAt: communities.createdAt,
+            isPrivate: communities.isPrivate,
             ownerUsername: users.username,
-            ownerDisplayName: profiles.displayName
           })
           .from(communities)
           .innerJoin(users, eq(communities.ownerId, users.id))
-          .leftJoin(profiles, eq(users.id, profiles.userId))
           .where(and(eq(communities.slug, communitySlug), isNull(communities.deletedAt)))
           .limit(1);
 
@@ -482,522 +576,712 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
           title = "Topluluk Bulunamadı | Genç Sosyal";
           description = "Aradığınız topluluk mevcut değil veya silinmiş.";
           semanticBody = `
-            <main style="max-width:680px;margin:50px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
-              <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:#0f172a;">Topluluk Bulunamadı</h1>
-              <p style="color:#64748b;margin-bottom:24px;">Aradığınız topluluk mevcut değil veya kaldırılmış olabilir.</p>
-              <p><a href="${domain}/communities" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:600;">Tüm Toplulukları Keşfet</a></p>
+            <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+              <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;">Topluluk Bulunamadı</h1>
+              <p style="color:#64748b;">Aradığınız topluluk kaldırılmış olabilir.</p>
+              ${buildFooterNav(domain)}
             </main>
           `;
         } else {
           const c = commRecord[0];
-          title = `${c.name} | Genç Sosyal`;
+          if (c.isPrivate) shouldNoIndex = true;
+          canonicalUrl = `${domain}/communities/${encodeURIComponent(c.slug)}`;
+          title = `${c.name} — Topluluk | Genç Sosyal`;
           description = c.description
             ? c.description.slice(0, 155) + (c.description.length > 155 ? "..." : "")
-            : `${c.name} topluluğuna katılın ve tartışmalara dahil olun.`;
-          
-          if (c.avatarUrl) {
-            imageUrl = c.avatarUrl.startsWith("http") ? c.avatarUrl : `${domain}${c.avatarUrl}`;
-          }
+            : `${c.name} topluluğuna katılın, tartışmalara dahil olun ve genç üreticilerle iş birliği yapın.`;
+          imageUrl = toAbsoluteUrl(c.avatarUrl, domain);
 
-          jsonLd.push({
-            "@context": "https://schema.org",
-            "@type": "Community",
-            "name": c.name,
-            "description": description,
-            "url": canonicalUrl,
-            "image": imageUrl
-          });
+          jsonLd.push(
+            makeBreadcrumb(domain, [
+              { name: "Ana Sayfa", url: "/" },
+              { name: "Topluluklar", url: "/communities" },
+              { name: c.name, url: `/communities/${encodeURIComponent(c.slug)}` },
+            ]),
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: c.name,
+              description,
+              url: canonicalUrl,
+              image: imageUrl,
+            }
+          );
 
           semanticBody = `
-            <main style="max-width:720px;margin:30px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-              <header style="border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:20px;">
-                <h1 style="font-size:26px;font-weight:800;margin:0 0 8px 0;">${escapeHtml(c.name)}</h1>
-                <p style="font-size:16px;color:#334155;margin:0 0 8px 0;">${escapeHtml(c.description || "Genç Sosyal topluluğu.")}</p>
-                <p style="font-size:14px;color:#64748b;margin:0;">
-                  Kurucu: <a href="${domain}/profile/${escapeHtml(c.ownerUsername)}" style="color:#2563eb;text-decoration:none;font-weight:600;">@${escapeHtml(c.ownerUsername)}</a>
-                </p>
+            <main style="max-width:760px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+              <header style="border-bottom:1px solid #e2e8f0;padding-bottom:18px;">
+                <h1 style="font-size:28px;font-weight:800;margin:0 0 8px 0;">${escapeHtml(c.name)}</h1>
+                <p style="font-size:16px;color:#334155;margin:0 0 8px 0;">${escapeHtml(c.description || "Genç Sosyal teknoloji ve üretim topluluğu.")}</p>
+                <p style="font-size:14px;color:#64748b;margin:0;">Kurucu: <a href="${domain}/profile/${encodeURIComponent(c.ownerUsername)}" style="color:#2563eb;text-decoration:none;font-weight:600;">@${escapeHtml(c.ownerUsername)}</a></p>
               </header>
-              <nav style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;">
-                <a href="${domain}/communities" style="color:#2563eb;font-weight:600;text-decoration:none;">← Tüm Topluluklar</a> · 
-                <a href="${domain}/explore" style="color:#2563eb;font-weight:600;text-decoration:none;">Keşfet</a> · 
-                <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">Ana Sayfa</a>
-              </nav>
+              ${buildFooterNav(domain)}
+            </main>
+          `;
+        }
+      } else if (teamMatch) {
+        routeMatched = true;
+        const teamSlug = teamMatch[1];
+        const teamRecord = await db
+          .select({
+            id: teams.id,
+            name: teams.name,
+            slug: teams.slug,
+            description: teams.description,
+            category: teams.category,
+            visibility: teams.visibility,
+            memberCount: teams.memberCount,
+            maxMembers: teams.maxMembers,
+            avatarUrl: teams.avatarUrl,
+            ownerUsername: users.username,
+          })
+          .from(teams)
+          .innerJoin(users, eq(teams.ownerId, users.id))
+          .where(and(eq(teams.slug, teamSlug), isNull(teams.deletedAt)))
+          .limit(1);
+
+        if (teamRecord.length === 0) {
+          isNotFound = true;
+          shouldNoIndex = true;
+          title = "Takım Bulunamadı | Genç Sosyal";
+          description = "Aradığınız takım mevcut değil veya kaldırılmış olabilir.";
+          semanticBody = `
+            <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+              <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;">Takım Bulunamadı</h1>
+              <p style="color:#64748b;">Aradığınız takım mevcut değil veya silinmiş olabilir.</p>
+              ${buildFooterNav(domain)}
+            </main>
+          `;
+        } else {
+          const t = teamRecord[0];
+          if (t.visibility !== "PUBLIC") shouldNoIndex = true;
+          canonicalUrl = `${domain}/teams/${encodeURIComponent(t.slug)}`;
+          title = `${t.name} — Takım | Genç Sosyal`;
+          description = t.description
+            ? t.description.slice(0, 155) + (t.description.length > 155 ? "..." : "")
+            : `${t.name} takımını inceleyin, ekip arkadaşlarıyla tanışın ve birlikte proje geliştirin.`;
+          imageUrl = toAbsoluteUrl(t.avatarUrl, domain);
+
+          jsonLd.push(
+            makeBreadcrumb(domain, [
+              { name: "Ana Sayfa", url: "/" },
+              { name: "Takımlar", url: "/teams" },
+              { name: t.name, url: `/teams/${encodeURIComponent(t.slug)}` },
+            ]),
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: t.name,
+              description,
+              url: canonicalUrl,
+              image: imageUrl,
+            }
+          );
+
+          semanticBody = `
+            <main style="max-width:760px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+              <header style="border-bottom:1px solid #e2e8f0;padding-bottom:18px;">
+                <h1 style="font-size:28px;font-weight:800;margin:0 0 8px 0;">${escapeHtml(t.name)}</h1>
+                <p style="font-size:14px;color:#64748b;margin:0 0 10px 0;">Kategori: <strong>${escapeHtml(t.category)}</strong> · ${t.memberCount}/${t.maxMembers} Üye · Kaptan: <a href="${domain}/profile/${encodeURIComponent(t.ownerUsername)}" style="color:#2563eb;text-decoration:none;font-weight:600;">@${escapeHtml(t.ownerUsername)}</a></p>
+                <p style="font-size:16px;color:#334155;margin:0;">${escapeHtml(t.description)}</p>
+              </header>
+              ${buildFooterNav(domain)}
             </main>
           `;
         }
       } else if (hashtagMatch) {
+        routeMatched = true;
         const tagName = decodeURIComponent(hashtagMatch[1]);
-        title = `#${tagName} | Genç Sosyal`;
-        description = `#${tagName} etiketi altındaki popüler gönderileri, projeleri ve genç yazılımcı tartışmalarını keşfedin.`;
+        canonicalUrl = `${domain}/hashtags/${encodeURIComponent(tagName)}`;
+        title = `#${tagName} Paylaşımları | Genç Sosyal`;
+        description = `#${tagName} etiketi altındaki en güncel gönderileri, projeleri ve genç geliştirici tartışmalarını keşfedin.`;
 
-        jsonLd.push({
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          "name": title,
-          "description": description,
-          "url": canonicalUrl
-        });
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Keşfet", url: "/explore" },
+            { name: `#${tagName}`, url: `/hashtags/${encodeURIComponent(tagName)}` },
+          ]),
+          {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: title,
+            description,
+            url: canonicalUrl,
+          }
+        );
+
+        let tagPosts: any[] = [];
+        try {
+          const [tagRow] = await db
+            .select({ id: hashtags.id })
+            .from(hashtags)
+            .where(eq(hashtags.name, tagName.toLowerCase()))
+            .limit(1);
+
+          if (tagRow) {
+            tagPosts = await db
+              .select({
+                id: posts.id,
+                content: posts.content,
+                username: users.username,
+              })
+              .from(postHashtags)
+              .innerJoin(posts, eq(postHashtags.postId, posts.id))
+              .innerJoin(users, eq(posts.userId, users.id))
+              .where(
+                and(
+                  eq(postHashtags.hashtagId, tagRow.id),
+                  eq(posts.visibility, "PUBLIC"),
+                  eq(posts.moderationStatus, "APPROVED"),
+                  eq(users.isActive, true)
+                )
+              )
+              .orderBy(desc(posts.createdAt))
+              .limit(10);
+          }
+        } catch {
+          // Non-fatal
+        }
 
         semanticBody = `
-          <main style="max-width:680px;margin:30px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
+          <main style="max-width:740px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
             <header style="border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:20px;">
-              <h1 style="font-size:26px;font-weight:800;margin:0 0 8px 0;color:#2563eb;">#${escapeHtml(tagName)}</h1>
-              <p style="font-size:16px;color:#64748b;margin:0;">${escapeHtml(description)}</p>
+              <h1 style="font-size:28px;font-weight:800;margin:0 0 8px 0;color:#2563eb;">#${escapeHtml(tagName)}</h1>
+              <p style="font-size:16px;color:#475569;margin:0;">${escapeHtml(description)}</p>
             </header>
-            <nav style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;">
-              <a href="${domain}/explore" style="color:#2563eb;font-weight:600;text-decoration:none;">Keşfet</a> · 
-              <a href="${domain}/projects" style="color:#2563eb;font-weight:600;text-decoration:none;">Projeler</a> · 
-              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">Ana Sayfa</a>
-            </nav>
+            ${
+              tagPosts.length > 0
+                ? `<section><h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Etiketli Gönderiler</h2><ul style="list-style:none;padding:0;margin:0;">${tagPosts
+                    .map(
+                      (p: any) =>
+                        `<li style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><a href="${domain}/post/${p.id}" style="color:#0f172a;text-decoration:none;font-weight:500;">${escapeHtml((p.content || "").slice(0, 150))}</a> <span style="color:#64748b;font-size:13px;">— @${escapeHtml(p.username)}</span></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${buildFooterNav(domain)}
           </main>
         `;
-      } else if (cleanPath === "/" || cleanPath === "/home") {
-        title = "Genç Sosyal — Genç Üretici Platformu";
-        description = "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.";
-        
-        // Fetch featured public projects for homepage internal links safely
-        let homeProjects: any[] = [];
-        try {
-          homeProjects = await db
-            .select({
-              id: projects.id,
-              title: projects.title,
-              category: projects.category
-            })
+      } else if (cleanPath === "/") {
+        routeMatched = true;
+        canonicalUrl = `${domain}/`;
+        title = "Genç Sosyal — Genç Üretici ve Yazılımcı Platformu";
+        description =
+          "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, takımlarını, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.";
+
+        const [homeProjects, homeCommunities, homeTeams, homePosts] = await Promise.all([
+          db
+            .select({ id: projects.id, title: projects.title, category: projects.category })
             .from(projects)
             .orderBy(desc(projects.createdAt))
-            .limit(3);
-        } catch (pErr) {
-          console.warn("Could not fetch home projects for SEO:", pErr);
-        }
-
-        // Fetch active communities for homepage internal links safely
-        let homeCommunities: any[] = [];
-        try {
-          homeCommunities = await db
-            .select({
-              slug: communities.slug,
-              name: communities.name
-            })
+            .limit(6)
+            .catch(() => []),
+          db
+            .select({ slug: communities.slug, name: communities.name })
             .from(communities)
             .where(and(isNull(communities.deletedAt), eq(communities.isPrivate, false)))
-            .limit(3);
-        } catch (cErr) {
-          console.warn("Could not fetch home communities for SEO:", cErr);
-        }
+            .limit(6)
+            .catch(() => []),
+          db
+            .select({ slug: teams.slug, name: teams.name, category: teams.category })
+            .from(teams)
+            .where(and(isNull(teams.deletedAt), eq(teams.visibility, "PUBLIC")))
+            .orderBy(desc(teams.updatedAt))
+            .limit(6)
+            .catch(() => []),
+          db
+            .select({ id: posts.id, content: posts.content, username: users.username })
+            .from(posts)
+            .innerJoin(users, eq(posts.userId, users.id))
+            .where(
+              and(
+                eq(posts.visibility, "PUBLIC"),
+                eq(posts.moderationStatus, "APPROVED"),
+                isNull(posts.communityId),
+                eq(users.isActive, true)
+              )
+            )
+            .orderBy(desc(posts.createdAt))
+            .limit(6)
+            .catch(() => []),
+        ]);
 
         semanticBody = `
-          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-            <header style="text-align:center;margin-bottom:36px;">
-              <h1 style="font-size:32px;font-weight:900;letter-spacing:-0.5px;color:#0f172a;margin-bottom:12px;">Genç Sosyal — Genç Üretici Platformu</h1>
-              <p style="font-size:18px;color:#475569;max-width:600px;margin:0 auto 20px auto;">Gençlerin projelerini, topluluklarını ve üretimlerini özgürce paylaştığı, açık kaynak ve teknoloji odaklı yeni nesil sosyal platform.</p>
-              <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
-                <a href="${domain}/explore" style="padding:10px 20px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Keşfetmeye Başla</a>
-                <a href="${domain}/projects" style="padding:10px 20px;background:#f1f5f9;color:#0f172a;border-radius:12px;text-decoration:none;font-weight:700;">Projeleri Gör</a>
-              </div>
+          <main style="max-width:860px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <header style="text-align:center;margin-bottom:32px;">
+              <h1 style="font-size:32px;font-weight:900;letter-spacing:-0.4px;margin:0 0 12px 0;">Genç Sosyal — Genç Üretici ve Yazılımcı Platformu</h1>
+              <p style="font-size:17px;color:#475569;max-width:640px;margin:0 auto 20px auto;">Türkiye'nin genç yazılımcıları, tasarımcıları ve öğrencileri için proje vitrini, takım kurma alanı, teknoloji toplulukları ve canlı bilgi yarışmaları.</p>
+              <nav style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+                <a href="${domain}/explore" style="padding:10px 18px;background:#2563eb;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;">Keşfet</a>
+                <a href="${domain}/projects" style="padding:10px 18px;background:#f1f5f9;color:#0f172a;border-radius:10px;text-decoration:none;font-weight:700;">Projeler</a>
+                <a href="${domain}/teams" style="padding:10px 18px;background:#f1f5f9;color:#0f172a;border-radius:10px;text-decoration:none;font-weight:700;">Takımlar</a>
+                <a href="${domain}/communities" style="padding:10px 18px;background:#f1f5f9;color:#0f172a;border-radius:10px;text-decoration:none;font-weight:700;">Topluluklar</a>
+              </nav>
             </header>
-            
-            ${homeProjects.length > 0 ? `
-              <section style="margin-top:36px;border-top:1px solid #e2e8f0;padding-top:24px;">
-                <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Öne Çıkan Projeler</h2>
-                <ul style="list-style:none;padding:0;margin:0;">
-                  ${homeProjects.map((hp: any) => `
-                    <li style="padding:10px 0;">
-                      <a href="${domain}/projects/${hp.id}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(hp.title)}</a>
-                      <span style="color:#64748b;font-size:14px;margin-left:8px;">(${escapeHtml(hp.category)})</span>
-                    </li>
-                  `).join("")}
-                </ul>
-              </section>
-            ` : ""}
+            ${
+              homePosts.length > 0
+                ? `<section style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:20px;"><h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Güncel Paylaşımlar</h2><ul style="list-style:none;padding:0;margin:0;">${homePosts
+                    .map(
+                      (p: any) =>
+                        `<li style="padding:8px 0;"><a href="${domain}/post/${p.id}" style="color:#0f172a;text-decoration:none;">${escapeHtml((p.content || "Gönderi").slice(0, 140))}</a> <span style="color:#64748b;font-size:13px;">— @${escapeHtml(p.username)}</span></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${
+              homeProjects.length > 0
+                ? `<section style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:20px;"><h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Öne Çıkan Projeler</h2><ul style="list-style:none;padding:0;margin:0;">${homeProjects
+                    .map(
+                      (hp: any) =>
+                        `<li style="padding:8px 0;"><a href="${domain}/projects/${hp.id}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(hp.title)}</a> <span style="color:#64748b;font-size:13px;">(${escapeHtml(hp.category)})</span></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${
+              homeTeams.length > 0
+                ? `<section style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:20px;"><h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Aktif Takımlar</h2><ul style="list-style:none;padding:0;margin:0;">${homeTeams
+                    .map(
+                      (ht: any) =>
+                        `<li style="padding:8px 0;"><a href="${domain}/teams/${encodeURIComponent(ht.slug)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(ht.name)}</a> <span style="color:#64748b;font-size:13px;">(${escapeHtml(ht.category)})</span></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${
+              homeCommunities.length > 0
+                ? `<section style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:20px;"><h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Popüler Topluluklar</h2><ul style="list-style:none;padding:0;margin:0;">${homeCommunities
+                    .map(
+                      (hc: any) =>
+                        `<li style="padding:8px 0;"><a href="${domain}/communities/${encodeURIComponent(hc.slug)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(hc.name)}</a></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/welcome") {
+        routeMatched = true;
+        canonicalUrl = `${domain}/welcome`;
+        title = "Genç Sosyal'e Hoş Geldiniz — Genç Üretici ve Yazılımcı Ağı";
+        description =
+          "Genç Sosyal ile yazılım ve teknoloji projelerinizi paylaşın, yarışma takımları kurun, topluluklara katılın ve canlı quiz etkinliklerinde yer alın.";
+        semanticBody = `
+          <main style="max-width:840px;margin:36px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:32px;font-weight:900;margin-bottom:12px;">Genç Sosyal — Birlikte Üret, Paylaş, Yarış</h1>
+            <p style="font-size:17px;color:#475569;">Genç üreticilerin, yazılımcıların, tasarımcıların ve öğrencilerin buluşma noktası. Projelerini sergile, takım arkadaşları bul, topluluklara katıl ve canlı bilgi yarışmalarında yerini al.</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/explore") {
+        routeMatched = true;
+        canonicalUrl = `${domain}/explore`;
+        title = "Keşfet — Trend Projeler, Etiketler ve Topluluklar | Genç Sosyal";
+        description =
+          "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.";
 
-            ${homeCommunities.length > 0 ? `
-              <section style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:24px;">
-                <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Popüler Topluluklar</h2>
-                <ul style="list-style:none;padding:0;margin:0;">
-                  ${homeCommunities.map((hc: any) => `
-                    <li style="padding:10px 0;">
-                      <a href="${domain}/communities/${encodeURIComponent(hc.slug)}" style="color:#2563eb;font-weight:600;text-decoration:none;">${escapeHtml(hc.name)}</a>
-                    </li>
-                  `).join("")}
-                </ul>
-              </section>
-            ` : ""}
+        if (req.query.q) {
+          shouldNoIndex = true;
+          title = `"${String(req.query.q).slice(0, 60)}" Arama Sonuçları | Genç Sosyal`;
+        }
 
-            <footer style="margin-top:48px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:center;gap:16px;font-size:14px;color:#64748b;flex-wrap:wrap;">
-              <a href="${domain}/explore" style="color:#64748b;text-decoration:none;">Keşfet</a>
-              <a href="${domain}/projects" style="color:#64748b;text-decoration:none;">Projeler</a>
-              <a href="${domain}/communities" style="color:#64748b;text-decoration:none;">Topluluklar</a>
-              <a href="${domain}/sitemap" style="color:#64748b;text-decoration:none;">Site Haritası</a>
-              <a href="${domain}/privacy" style="color:#64748b;text-decoration:none;">Gizlilik İlkeleri</a>
-              <a href="${domain}/terms" style="color:#64748b;text-decoration:none;">Kullanım Şartları</a>
-            </footer>
+        const [topTags, recentPosts] = await Promise.all([
+          db
+            .select({ name: hashtags.name, usageCount: hashtags.usageCount })
+            .from(hashtags)
+            .where(gt(hashtags.usageCount, 0))
+            .orderBy(desc(hashtags.usageCount))
+            .limit(12)
+            .catch(() => []),
+          db
+            .select({ id: posts.id, content: posts.content, username: users.username })
+            .from(posts)
+            .innerJoin(users, eq(posts.userId, users.id))
+            .where(
+              and(
+                eq(posts.visibility, "PUBLIC"),
+                eq(posts.moderationStatus, "APPROVED"),
+                eq(users.isActive, true)
+              )
+            )
+            .orderBy(desc(posts.createdAt))
+            .limit(10)
+            .catch(() => []),
+        ]);
+
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Keşfet", url: "/explore" },
+          ])
+        );
+
+        semanticBody = `
+          <main style="max-width:840px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 8px 0;">Keşfet — Trend Paylaşımlar ve Etiketler</h1>
+            <p style="font-size:16px;color:#475569;margin:0 0 24px 0;">${escapeHtml(description)}</p>
+            ${
+              topTags.length > 0
+                ? `<section style="margin-bottom:28px;"><h2 style="font-size:18px;font-weight:700;margin-bottom:10px;">Popüler Etiketler</h2><p>${topTags
+                    .map(
+                      (t: any) =>
+                        `<a href="${domain}/hashtags/${encodeURIComponent(t.name)}" style="display:inline-block;margin:4px 8px 4px 0;color:#2563eb;font-weight:600;text-decoration:none;">#${escapeHtml(t.name)}</a>`
+                    )
+                    .join("")}</p></section>`
+                : ""
+            }
+            ${
+              recentPosts.length > 0
+                ? `<section><h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Öne Çıkan Gönderiler</h2><ul style="list-style:none;padding:0;margin:0;">${recentPosts
+                    .map(
+                      (p: any) =>
+                        `<li style="padding:10px 0;border-bottom:1px solid #f1f5f9;"><a href="${domain}/post/${p.id}" style="color:#0f172a;text-decoration:none;">${escapeHtml((p.content || "Gönderi").slice(0, 150))}</a> <span style="color:#64748b;font-size:13px;">— @${escapeHtml(p.username)}</span></li>`
+                    )
+                    .join("")}</ul></section>`
+                : ""
+            }
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/projects") {
+        routeMatched = true;
+        title = "Projeler — Genç Üretici ve Yazılım Projeleri | Genç Sosyal";
+        description =
+          "Genç yazılımcı, tasarımcı ve mühendislerin geliştirdiği açık kaynak ve yenilikçi projeleri inceleyin, geri bildirim verin ve ortaklık kurun.";
+
+        const list = await db
+          .select({
+            id: projects.id,
+            title: projects.title,
+            description: projects.description,
+            category: projects.category,
+          })
+          .from(projects)
+          .orderBy(desc(projects.createdAt))
+          .limit(20)
+          .catch(() => []);
+
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Projeler", url: "/projects" },
+          ])
+        );
+
+        semanticBody = `
+          <main style="max-width:840px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 8px 0;">Genç Sosyal Projeleri</h1>
+            <p style="font-size:16px;color:#475569;margin:0 0 24px 0;">${escapeHtml(description)}</p>
+            ${
+              list.length > 0
+                ? `<ul style="list-style:none;padding:0;margin:0;">${list
+                    .map(
+                      (p: any) =>
+                        `<li style="padding:14px 0;border-bottom:1px solid #e2e8f0;"><h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0;"><a href="${domain}/projects/${p.id}" style="color:#2563eb;text-decoration:none;">${escapeHtml(p.title)}</a></h2><p style="font-size:14px;color:#475569;margin:0;">${escapeHtml((p.description || "").slice(0, 180))}</p></li>`
+                    )
+                    .join("")}</ul>`
+                : `<p style="color:#64748b;">Açık kaynak, yapay zeka, web, mobil ve robotik alanındaki projeler burada sergilenir.</p>`
+            }
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/communities") {
+        routeMatched = true;
+        title = "Topluluklar — Teknoloji ve Üretim Grupları | Genç Sosyal";
+        description =
+          "Yazılım, yapay zeka, tasarım, robotik ve girişimcilik alanındaki genç topluluklara katılın; etkinlikler düzenleyin ve birlikte üretin.";
+
+        const list = await db
+          .select({
+            slug: communities.slug,
+            name: communities.name,
+            description: communities.description,
+          })
+          .from(communities)
+          .where(and(isNull(communities.deletedAt), eq(communities.isPrivate, false)))
+          .orderBy(desc(communities.createdAt))
+          .limit(20)
+          .catch(() => []);
+
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Topluluklar", url: "/communities" },
+          ])
+        );
+
+        semanticBody = `
+          <main style="max-width:840px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 8px 0;">Genç Sosyal Toplulukları</h1>
+            <p style="font-size:16px;color:#475569;margin:0 0 24px 0;">${escapeHtml(description)}</p>
+            ${
+              list.length > 0
+                ? `<ul style="list-style:none;padding:0;margin:0;">${list
+                    .map(
+                      (c: any) =>
+                        `<li style="padding:14px 0;border-bottom:1px solid #e2e8f0;"><h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0;"><a href="${domain}/communities/${encodeURIComponent(c.slug)}" style="color:#2563eb;text-decoration:none;">${escapeHtml(c.name)}</a></h2><p style="font-size:14px;color:#475569;margin:0;">${escapeHtml((c.description || "").slice(0, 180))}</p></li>`
+                    )
+                    .join("")}</ul>`
+                : `<p style="color:#64748b;">İlgi alanlarınıza göre teknoloji, tasarım ve üniversite topluluklarını keşfedin.</p>`
+            }
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/teams") {
+        routeMatched = true;
+        title = "Takımlar — TEKNOFEST ve Proje Takımı Kur | Genç Sosyal";
+        description =
+          "TEKNOFEST, yazılım, yapay zeka, robotik ve yarışmalar için kendi güvenli takımını kur veya açık takımlara katılıp ekip arkadaşları bul.";
+
+        const list = await db
+          .select({
+            slug: teams.slug,
+            name: teams.name,
+            description: teams.description,
+            category: teams.category,
+            memberCount: teams.memberCount,
+          })
+          .from(teams)
+          .where(and(isNull(teams.deletedAt), eq(teams.visibility, "PUBLIC")))
+          .orderBy(desc(teams.updatedAt))
+          .limit(20)
+          .catch(() => []);
+
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Takımlar", url: "/teams" },
+          ])
+        );
+
+        semanticBody = `
+          <main style="max-width:840px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 8px 0;">Genç Sosyal Takımları</h1>
+            <p style="font-size:16px;color:#475569;margin:0 0 24px 0;">${escapeHtml(description)}</p>
+            ${
+              list.length > 0
+                ? `<ul style="list-style:none;padding:0;margin:0;">${list
+                    .map(
+                      (t: any) =>
+                        `<li style="padding:14px 0;border-bottom:1px solid #e2e8f0;"><h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0;"><a href="${domain}/teams/${encodeURIComponent(t.slug)}" style="color:#2563eb;text-decoration:none;">${escapeHtml(t.name)}</a></h2><p style="font-size:13px;color:#64748b;margin:0 0 4px 0;">${escapeHtml(t.category)} · ${t.memberCount} üye</p><p style="font-size:14px;color:#475569;margin:0;">${escapeHtml((t.description || "").slice(0, 180))}</p></li>`
+                    )
+                    .join("")}</ul>`
+                : `<p style="color:#64748b;">TEKNOFEST, hackathon ve açık kaynak projeleri için kendi takımınızı oluşturun veya açık takımlara başvurun.</p>`
+            }
+            ${buildFooterNav(domain)}
           </main>
         `;
       } else if (cleanPath === "/teknofest" || cleanPath.startsWith("/teknofest/")) {
-        const teknofestSlug = cleanPath.replace("/teknofest/", "").replace("/teknofest", "") || "2026";
+        routeMatched = true;
+        const teknofestSlug =
+          cleanPath === "/teknofest" ? "2026" : cleanPath.replace("/teknofest/", "");
         title = `TEKNOFEST ${teknofestSlug} Köşesi — Fotoğraf ve Anı Arşivi | Genç Sosyal`;
-        description = `TEKNOFEST ${teknofestSlug} etkinlik fotoğrafları, genç üreticilerin projeleri, unutulmayan anıları ve gün gün festival zaman tüneli arşivi.`;
-        ogType = "event";
+        description = `TEKNOFEST ${teknofestSlug} festival fotoğrafları, genç üreticilerin yarışma projeleri, unutulmayan anıları ve gün gün festival zaman tüneli.`;
+        ogType = "website";
 
         jsonLd.push(
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Ana Sayfa",
-                "item": domain
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "TEKNOFEST Köşesi",
-                "item": `${domain}/teknofest`
-              }
-            ]
-          },
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "TEKNOFEST Köşesi", url: "/teknofest" },
+          ]),
           {
             "@context": "https://schema.org",
             "@type": "Event",
-            "name": `TEKNOFEST ${teknofestSlug}`,
-            "description": `TEKNOFEST ${teknofestSlug} havacılık, uzay ve teknoloji festivali etkinlik arşivi.`,
-            "startDate": "2026-09-30T09:00:00+03:00",
-            "endDate": "2026-10-04T19:00:00+03:00",
-            "eventStatus": "https://schema.org/EventScheduled",
-            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-            "location": {
+            name: `TEKNOFEST ${teknofestSlug}`,
+            description,
+            startDate: "2026-09-30T09:00:00+03:00",
+            endDate: "2026-10-04T19:00:00+03:00",
+            eventStatus: "https://schema.org/EventScheduled",
+            eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+            location: {
               "@type": "Place",
-              "name": "Şanlıurfa GAP Havalimanı",
-              "address": {
+              name: "Şanlıurfa GAP Havalimanı",
+              address: {
                 "@type": "PostalAddress",
-                "addressLocality": "Şanlıurfa",
-                "addressCountry": "TR"
-              }
+                addressLocality: "Şanlıurfa",
+                addressCountry: "TR",
+              },
             },
-            "organizer": {
-              "@type": "Organization",
-              "name": "Genç Sosyal",
-              "url": domain
-            }
+            organizer: { "@type": "Organization", name: "Genç Sosyal", url: `${domain}/` },
           }
         );
 
         semanticBody = `
-          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-            <header style="text-align:center;margin-bottom:32px;">
-              <h1 style="font-size:30px;font-weight:900;color:#0f172a;">TEKNOFEST Köşesi — Bilim, Teknoloji ve Unutulmayan Anılar</h1>
-              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Bir festival sona erdi, anıların hikâyesi devam ediyor. TEKNOFEST'te geride kalan fotoğrafları, yarışma projelerini ve gençlerin anılarını keşfet.</p>
-              <div style="display:flex;justify-content:center;gap:12px;">
-                <a href="${domain}/teknofest" style="padding:12px 24px;background:#0284c7;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Arşivi Keşfet</a>
-              </div>
-            </header>
-            <section style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px;">
-              <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">TEKNOFEST Arşivinde Neler Var?</h2>
-              <ul style="padding-left:20px;line-height:1.8;color:#334155;">
-                <li>📸 <strong>Fotoğraf Galerisi:</strong> Festival alanından, stantlardan ve uçuş gösterilerinden gerçek kareler.</li>
-                <li>🚀 <strong>Projeler:</strong> Genç geliştirici ve takımların yarışma projeleri.</li>
-                <li>💙 <strong>Gençlerin Anıları:</strong> Katılımcıların ve yarışmacıların unutulmaz deneyimleri.</li>
-                <li>⏳ <strong>Zaman Tüneli:</strong> 30 Eylül – 4 Ekim gün gün festival akışı.</li>
-              </ul>
-            </section>
-            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
-              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
-              <a href="${domain}/projects" style="color:#2563eb;font-weight:600;text-decoration:none;">Projeler</a>
-            </footer>
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:30px;font-weight:900;margin:0 0 10px 0;">TEKNOFEST Köşesi — Bilim, Teknoloji ve Anılar</h1>
+            <p style="font-size:17px;color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
           </main>
         `;
       } else if (cleanPath === "/quiz") {
+        routeMatched = true;
         title = "Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması | Genç Sosyal";
-        description = "Arkadaşlarınla veya toplulukla canlı bilgi yarışması odaları kur, oda kodunu paylaş, düellolara katıl ve genel kültürünü test et.";
-        ogType = "game";
+        description =
+          "Arkadaşlarınla veya toplulukla canlı bilgi yarışması odaları kur, oda kodunu paylaş, düellolara katıl ve genel kültürünü gerçek zamanlı test et.";
 
         jsonLd.push(
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Ana Sayfa",
-                "item": domain
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Genç Quiz",
-                "item": `${domain}/quiz`
-              }
-            ]
-          },
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "Genç Quiz", url: "/quiz" },
+          ]),
           {
             "@context": "https://schema.org",
             "@type": "VideoGame",
-            "name": "Genç Quiz",
-            "description": "Gerçek zamanlı interaktif bilgi yarışması oyunu ve canlı lobi sistemi.",
-            "url": `${domain}/quiz`,
-            "genre": ["Trivia", "Quiz", "Educational", "Multiplayer"],
-            "gamePlatform": ["Web Browser", "Mobile Web"],
-            "numberOfPlayers": {
-              "@type": "QuantitativeValue",
-              "minValue": 1,
-              "maxValue": 100
-            }
+            name: "Genç Quiz",
+            description,
+            url: `${domain}/quiz`,
+            genre: ["Trivia", "Quiz", "Educational", "Multiplayer"],
+            gamePlatform: ["Web Browser", "Mobile Web"],
           }
         );
 
         semanticBody = `
-          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-            <header style="text-align:center;margin-bottom:32px;">
-              <h1 style="font-size:30px;font-weight:900;color:#0f172a;">Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması</h1>
-              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Arkadaşlarınla aynı anda yarışabileceğin, oda kodu ile anında katılınabilen gerçek zamanlı bilgi yarışması arenası.</p>
-              <div style="display:flex;justify-content:center;gap:12px;">
-                <a href="${domain}/quiz" style="padding:12px 24px;background:#4f46e5;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Hemen Yarışmaya Katıl</a>
-              </div>
-            </header>
-            <section style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px;">
-              <h2 style="font-size:20px;font-weight:700;margin-bottom:12px;">Nasıl Oynanır?</h2>
-              <ol style="padding-left:20px;line-height:1.8;color:#334155;">
-                <li>Oda kurucusundan aldığınız 6 haneli oda kodunu girin.</li>
-                <li>Lobi ekranında diğer yarışmacılarla buluşun ve hazırlanın.</li>
-                <li>Soru süresi dolmadan en hızlı ve doğru cevabı vererek puanları toplayın!</li>
-              </ol>
-            </section>
-            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
-              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
-              <a href="${domain}/youth-league" style="color:#2563eb;font-weight:600;text-decoration:none;">19 Mayıs Gençlik Ligi</a>
-            </footer>
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:30px;font-weight:900;margin:0 0 10px 0;">Genç Quiz — Canlı Çok Oyunculu Bilgi Yarışması</h1>
+            <p style="font-size:17px;color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
           </main>
         `;
       } else if (cleanPath === "/youth-league") {
+        routeMatched = true;
         title = "19 Mayıs Gençlik Ligi — 1v1 Bilgi Arenası | Genç Sosyal";
-        description = "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı şerefine düzenlenen 1v1 düellolu, dinamik sıralamalı ve rozet ödüllü bilgi ligi.";
-        
+        description =
+          "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı özel 1v1 düelloları, dinamik liderlik sıralaması ve rozet ödüllü bilgi ligi.";
+
         jsonLd.push(
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Ana Sayfa",
-                "item": domain
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "19 Mayıs Gençlik Ligi",
-                "item": `${domain}/youth-league`
-              }
-            ]
-          },
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "19 Mayıs Gençlik Ligi", url: "/youth-league" },
+          ]),
           {
             "@context": "https://schema.org",
             "@type": "Event",
-            "name": "19 Mayıs Gençlik Ligi",
-            "description": "Atatürk, Milli Mücadele, Bilim & Sanat temalı 1v1 düellolu lig yarışması.",
-            "startDate": "2026-05-01T00:00:00+03:00",
-            "endDate": "2026-05-31T23:59:59+03:00",
-            "eventStatus": "https://schema.org/EventScheduled",
-            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
-            "location": {
-              "@type": "VirtualLocation",
-              "url": `${domain}/youth-league`
-            },
-            "organizer": {
-              "@type": "Organization",
-              "name": "Genç Sosyal",
-              "url": domain
-            }
+            name: "19 Mayıs Gençlik Ligi",
+            description,
+            startDate: "2026-05-01T00:00:00+03:00",
+            endDate: "2026-05-31T23:59:59+03:00",
+            eventStatus: "https://schema.org/EventScheduled",
+            eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+            location: { "@type": "VirtualLocation", url: `${domain}/youth-league` },
+            organizer: { "@type": "Organization", name: "Genç Sosyal", url: `${domain}/` },
           }
         );
 
         semanticBody = `
-          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-            <header style="text-align:center;margin-bottom:32px;">
-              <h1 style="font-size:30px;font-weight:900;color:#dc2626;">19 Mayıs Gençlik Ligi</h1>
-              <p style="font-size:17px;color:#475569;max-width:640px;margin:12px auto 24px auto;">Milli Mücadele ruhunu, cumhuriyet tarihini ve bilim kültürünü yaşatan 1v1 düellolarla şampiyonluk yarışına katılın.</p>
-              <div style="display:flex;justify-content:center;gap:12px;">
-                <a href="${domain}/youth-league" style="padding:12px 24px;background:#dc2626;color:#fff;border-radius:12px;text-decoration:none;font-weight:700;">Lig Düellosuna Başla</a>
-                <a href="${domain}/youth-league/leaderboard" style="padding:12px 24px;background:#f1f5f9;color:#0f172a;border-radius:12px;text-decoration:none;font-weight:700;">Liderlik Tablosu</a>
-              </div>
-            </header>
-            <footer style="margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;">
-              <a href="${domain}/" style="color:#2563eb;font-weight:600;text-decoration:none;">← Genç Sosyal Ana Sayfa</a> · 
-              <a href="${domain}/quiz" style="color:#2563eb;font-weight:600;text-decoration:none;">Genç Quiz</a>
-            </footer>
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:30px;font-weight:900;margin:0 0 10px 0;">19 Mayıs Gençlik Ligi</h1>
+            <p style="font-size:17px;color:#475569;">${escapeHtml(description)}</p>
+            <p><a href="${domain}/youth-league/leaderboard" style="color:#2563eb;font-weight:700;text-decoration:none;">Liderlik Tablosunu Gör</a> · <a href="${domain}/youth-league/archive" style="color:#2563eb;font-weight:700;text-decoration:none;">Sezon Arşivi</a></p>
+            ${buildFooterNav(domain)}
           </main>
         `;
       } else if (cleanPath === "/youth-league/leaderboard") {
+        routeMatched = true;
         title = "19 Mayıs Gençlik Ligi Liderlik Tablosu | Genç Sosyal";
-        description = "Gençlik Ligi en yüksek puanlı yarışmacıları, şampiyonlar sıralaması ve kazanılan unvanlar.";
-        
-        jsonLd.push({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            {
-              "@type": "ListItem",
-              "position": 1,
-              "name": "Ana Sayfa",
-              "item": domain
-            },
-            {
-              "@type": "ListItem",
-              "position": 2,
-              "name": "19 Mayıs Gençlik Ligi",
-              "item": `${domain}/youth-league`
-            },
-            {
-              "@type": "ListItem",
-              "position": 3,
-              "name": "Liderlik Tablosu",
-              "item": `${domain}/youth-league/leaderboard`
-            }
-          ]
-        });
-      } else if (cleanPath === "/faq") {
-        title = "Sıkça Sorulan Sorular (SSS) | Genç Sosyal";
-        description = "Genç Sosyal platformu, projeler, topluluklar ve Genç Quiz hakkında en çok sorulan soruların yanıtları.";
-        
+        description =
+          "19 Mayıs Gençlik Ligi en yüksek puanlı yarışmacıları, güncel şampiyonlar sıralaması ve kazanılan rozetler.";
+
         jsonLd.push(
-          {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Ana Sayfa",
-                "item": domain
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "Sıkça Sorulan Sorular",
-                "item": `${domain}/faq`
-              }
-            ]
-          },
-          {
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": "Genç Sosyal nedir?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Genç Sosyal, genç yazılımcı, tasarımcı ve üreticilerin projelerini sergilediği, topluluklar kurduğu ve gerçek zamanlı quizlerle yarıştığı sosyal platformdur."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Genç Quiz nasıl oynanır?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Oda kodu girerek veya kendi odanızı oluşturarak arkadaşlarınızla çok oyunculu bilgi yarışması yapabilirsiniz."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Genç Sosyal'e katılım ücretli mi?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Hayır, Genç Sosyal platformuna üye olmak ve tüm özellikleri kullanmak tamamen ücretsizdir."
-                }
-              }
-            ]
-          }
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "19 Mayıs Gençlik Ligi", url: "/youth-league" },
+            { name: "Liderlik Tablosu", url: "/youth-league/leaderboard" },
+          ])
         );
-      } else if (cleanPath === "/about") {
-        title = "Hakkımızda | Genç Sosyal";
-        description = "Genç Sosyal'in kuruluş amacı, vizyonu ve genç üreticileri destekleyen açık kaynak misyonu.";
-        
-        jsonLd.push({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            {
-              "@type": "ListItem",
-              "position": 1,
-              "name": "Ana Sayfa",
-              "item": domain
-            },
-            {
-              "@type": "ListItem",
-              "position": 2,
-              "name": "Hakkımızda",
-              "item": `${domain}/about`
-            }
-          ]
-        });
-      } else if (cleanPath === "/explore") {
-        title = "Keşfet — Trend Projeler ve Topluluklar | Genç Sosyal";
-        description = "Genç Sosyal Keşfet ile trend teknoloji projelerini, popüler yazılım etiketlerini, aktif toplulukları ve üretken genç geliştiricileri anında keşfedin.";
-        
-        // Search queries should be noindex
-        if (req.query.q) {
-          shouldNoIndex = true;
-          title = `"${escapeHtml(String(req.query.q))}" için Arama Sonuçları | Genç Sosyal`;
-        }
-      } else if (cleanPath === "/projects") {
-        title = "Projeler — Genç Üretici ve Yazılım Projeleri | Genç Sosyal";
-        description = "Genç yazılımcı, tasarımcı ve mühendislerin geliştirdiği açık kaynak ve yenilikçi projeleri inceleyin, geri bildirim verin ve ortaklık kurun.";
-      } else if (cleanPath === "/communities") {
-        title = "Topluluklar — Teknoloji ve Üretim Grupları | Genç Sosyal";
-        description = "Yazılım, yapay zeka, tasarım, robotik ve girişimcilik alanındaki genç topluluklara katılın; etkinlikler düzenleyin ve birlikte üretin.";
-      } else if (cleanPath === "/privacy") {
-        title = "Gizlilik İlkeleri ve Veri Güvenliği | Genç Sosyal";
-        description = "Genç Sosyal kullanıcı gizliliği, kişisel verilerin korunması (KVKK) ve platform bilgi güvenliği ilkeleri hakkında detaylı bilgilendirme.";
-      } else if (cleanPath === "/terms") {
-        title = "Kullanım Şartları ve Topluluk Kuralları | Genç Sosyal";
-        description = "Genç Sosyal platformu üyelik sözleşmesi, kullanıcı hakları, topluluk ilkeleri ve hizmet şartları hakkında resmi bilgilendirme.";
-      } else if (cleanPath === "/sitemap") {
-        title = "Site Haritası — Tüm Sayfalar ve Dizin | Genç Sosyal";
-        description = "Genç Sosyal platformundaki tüm açık projelere, topluluklara, quiz odalarına ve bilgi sayfalarına hızlı ve kolay erişim dizini.";
+
         semanticBody = `
-          <main style="max-width:800px;margin:40px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#0f172a;">
-            <header style="margin-bottom:28px;">
-              <h1 style="font-size:28px;font-weight:800;">Genç Sosyal Site Haritası</h1>
-              <p style="color:#64748b;">Genç üreticilerin açık içeriklerine ve bölümlerine hızlı dizin.</p>
-            </header>
-            <nav style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;">
-              <div>
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Ana Sayfalar</h2>
-                <ul style="list-style:none;padding:0;margin:0;line-height:2;">
-                  <li><a href="${domain}/" style="color:#2563eb;text-decoration:none;">Ana Sayfa</a></li>
-                  <li><a href="${domain}/explore" style="color:#2563eb;text-decoration:none;">Keşfet</a></li>
-                  <li><a href="${domain}/projects" style="color:#2563eb;text-decoration:none;">Projeler</a></li>
-                  <li><a href="${domain}/communities" style="color:#2563eb;text-decoration:none;">Topluluklar</a></li>
-                  <li><a href="${domain}/sitemap.xml" style="color:#2563eb;text-decoration:none;">XML Sitemap</a></li>
-                </ul>
-              </div>
-              <div>
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">Yasal & Güvenlik</h2>
-                <ul style="list-style:none;padding:0;margin:0;line-height:2;">
-                  <li><a href="${domain}/privacy" style="color:#2563eb;text-decoration:none;">Gizlilik İlkeleri</a></li>
-                  <li><a href="${domain}/terms" style="color:#2563eb;text-decoration:none;">Kullanım Şartları</a></li>
-                </ul>
-              </div>
-            </nav>
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 10px 0;">19 Mayıs Gençlik Ligi Liderlik Tablosu</h1>
+            <p style="font-size:16px;color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/youth-league/archive") {
+        routeMatched = true;
+        title = "19 Mayıs Gençlik Ligi Arşivi | Genç Sosyal";
+        description =
+          "Geçmiş 19 Mayıs Gençlik Ligi sezonları, şampiyonlar ve unutulmayan 1v1 bilgi düellosu istatistikleri.";
+
+        jsonLd.push(
+          makeBreadcrumb(domain, [
+            { name: "Ana Sayfa", url: "/" },
+            { name: "19 Mayıs Gençlik Ligi", url: "/youth-league" },
+            { name: "Arşiv", url: "/youth-league/archive" },
+          ])
+        );
+
+        semanticBody = `
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:900;margin:0 0 10px 0;">19 Mayıs Gençlik Ligi Sezon Arşivi</h1>
+            <p style="font-size:16px;color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/privacy") {
+        routeMatched = true;
+        title = "Gizlilik Politikası ve Veri Güvenliği | Genç Sosyal";
+        description =
+          "Genç Sosyal kullanıcı gizliliği, kişisel verilerin korunması, çerez tercihleri ve platform bilgi güvenliği ilkeleri hakkında detaylı bilgilendirme.";
+        semanticBody = `
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:800;">Gizlilik Politikası</h1>
+            <p style="color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/terms") {
+        routeMatched = true;
+        title = "Kullanım Şartları ve Topluluk Kuralları | Genç Sosyal";
+        description =
+          "Genç Sosyal platformu üyelik sözleşmesi, kullanıcı hakları, güvenli topluluk kuralları ve hizmet şartları hakkında resmi bilgilendirme.";
+        semanticBody = `
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:800;">Kullanım Şartları ve Topluluk Kuralları</h1>
+            <p style="color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/kvkk") {
+        routeMatched = true;
+        title = "KVKK Aydınlatma Metni | Genç Sosyal";
+        description =
+          "6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında Genç Sosyal kullanıcı verilerinin işlenmesi ve haklarınız hakkında aydınlatma metni.";
+        semanticBody = `
+          <main style="max-width:820px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:800;">KVKK Aydınlatma Metni</h1>
+            <p style="color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
+      } else if (cleanPath === "/sitemap") {
+        routeMatched = true;
+        title = "Site Haritası — Tüm Sayfalar ve Dizin | Genç Sosyal";
+        description =
+          "Genç Sosyal platformundaki tüm açık projelere, takımlara, topluluklara, quiz etkinliklerine ve bilgi sayfalarına hızlı erişim dizini.";
+        semanticBody = `
+          <main style="max-width:840px;margin:32px auto;padding:24px;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;color:#0f172a;">
+            <h1 style="font-size:28px;font-weight:800;">Genç Sosyal Site Haritası</h1>
+            <p style="color:#475569;">${escapeHtml(description)}</p>
+            ${buildFooterNav(domain)}
           </main>
         `;
       }
 
-      // Explicitly enforce noindex on private and auth routes
-      const privateRoutes = [
-        "/messages", "/settings", "/admin", "/notifications", 
-        "/bookmarks", "/onboarding", "/create", "/login", 
-        "/register", "/forgot-password", "/reset-password", "/verify-email",
-        "/account-suspended", "/support"
-      ];
-      if (privateRoutes.some(r => cleanPath.startsWith(r))) {
+      // Any unrecognized route -> real HTTP 404 + noindex (eliminates Soft-404s!)
+      if (!routeMatched) {
+        isNotFound = true;
         shouldNoIndex = true;
+        title = "Sayfa Bulunamadı (404) | Genç Sosyal";
+        description = "Aradığınız sayfa bulunamadı, silinmiş veya taşınmış olabilir.";
+        semanticBody = `
+          <main style="max-width:680px;margin:48px auto;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif;">
+            <h1 style="font-size:28px;font-weight:800;margin-bottom:10px;color:#0f172a;">404 — Sayfa Bulunamadı</h1>
+            <p style="color:#64748b;margin-bottom:24px;">Aradığınız sayfa mevcut değil veya taşınmış olabilir.</p>
+            ${buildFooterNav(domain)}
+          </main>
+        `;
       }
 
       const safeTitle = escapeHtml(title);
@@ -1006,7 +1290,9 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
       const safeImageUrl = escapeHtml(imageUrl);
       const safeCanonicalUrl = escapeHtml(canonicalUrl);
 
-      const robotsContent = shouldNoIndex ? "noindex, nofollow" : "index, follow";
+      const robotsContent = shouldNoIndex
+        ? "noindex, nofollow"
+        : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
       const headMetadata = `
       <title>${safeTitle}</title>
@@ -1014,44 +1300,50 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
       <meta name="keywords" content="${safeKeywords}" />
       <meta name="robots" content="${robotsContent}" />
       <link rel="canonical" href="${safeCanonicalUrl}" />
+      <link rel="alternate" hreflang="tr" href="${safeCanonicalUrl}" />
+      <link rel="alternate" hreflang="x-default" href="${safeCanonicalUrl}" />
       <meta property="og:type" content="${ogType}" />
+      <meta property="og:locale" content="tr_TR" />
       <meta property="og:url" content="${safeCanonicalUrl}" />
       <meta property="og:title" content="${safeTitle}" />
       <meta property="og:description" content="${safeDescription}" />
       <meta property="og:image" content="${safeImageUrl}" />
+      <meta property="og:image:alt" content="${safeTitle}" />
       <meta property="og:site_name" content="Genç Sosyal" />
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content="${safeCanonicalUrl}" />
-      <meta property="twitter:title" content="${safeTitle}" />
-      <meta property="twitter:description" content="${safeDescription}" />
-      <meta property="twitter:image" content="${safeImageUrl}" />
-      <script type="application/ld+json">
-        ${JSON.stringify(jsonLd)}
-      </script>
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content="${safeCanonicalUrl}" />
+      <meta name="twitter:title" content="${safeTitle}" />
+      <meta name="twitter:description" content="${safeDescription}" />
+      <meta name="twitter:image" content="${safeImageUrl}" />
+      <script type="application/ld+json">${safeJsonLd(jsonLd)}</script>
       `;
 
-      // Replace old tags in template
+      // Strip static tags from index.html template cleanly before injecting per-route metadata
       let finalHtml = template;
-      finalHtml = finalHtml.replace(/<title>.*?<\/title>/gi, "");
-      finalHtml = finalHtml.replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<meta\s+name="keywords"\s+content=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<meta\s+name="robots"\s+content=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<meta\s+property="og:.*?"\s+content=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<meta\s+property="twitter:.*?"\s+content=".*?"\s*\/?>/gi, "");
-      finalHtml = finalHtml.replace(/<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/gi, "");
+      finalHtml = finalHtml.replace(/<title>[\s\S]*?<\/title>/gi, "");
+      finalHtml = finalHtml.replace(/<meta\s+name="description"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<meta\s+name="keywords"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<meta\s+name="robots"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<link\s+rel="canonical"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<link\s+rel="alternate"\s+hreflang="[^"]*"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<meta\s+property="og:[^"]*"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(/<meta\s+(?:property|name)="twitter:[^"]*"[^>]*\/?>/gi, "");
+      finalHtml = finalHtml.replace(
+        /<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/gi,
+        ""
+      );
 
-      finalHtml = finalHtml.replace("</head>", `${headMetadata}</head>`);
+      finalHtml = finalHtml.replace("</head>", `${headMetadata}\n  </head>`);
 
-      // Inject semantic prerender content inside root for search engine crawlers
+      // Replace the blank initial-app-loader inside #root with rich semantic HTML for crawlers
+      // (React's createRoot().render() smoothly replaces #root contents immediately on hydration)
       if (semanticBody) {
         finalHtml = finalHtml.replace(
-          '<div id="root">',
-          `<div id="root">${semanticBody}`
+          /<div id="root">[\s\S]*?<\/div>\s*(?=<script\b|<\/body>)/i,
+          `<div id="root">${semanticBody}</div>\n    `
         );
       }
 
-      // If in development mode and Vite dev server is available, apply Vite's HTML transform
       if (vite) {
         try {
           finalHtml = await vite.transformIndexHtml(req.originalUrl, finalHtml);
@@ -1061,9 +1353,17 @@ export function createSeoMiddleware(vite?: ViteDevServer) {
       }
 
       const statusCode = isNotFound ? 404 : 200;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Robots-Tag", robotsContent);
+      if (shouldNoIndex || isNotFound) {
+        res.setHeader("Cache-Control", "no-store, max-age=0");
+      } else {
+        res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300");
+      }
       res.status(statusCode).send(finalHtml);
     } catch (error) {
       console.error("SEO Middleware error:", error);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(template);
     }
   };

@@ -79,14 +79,18 @@ export function Profile() {
   const [showOriginalBio, setShowOriginalBio] = useState(false);
 
   useSEO({
-    allowIndexing: (profile?.allowSearchEngineIndexing ?? true) && !profile?.isPrivate,
+    allowIndexing: loading
+      ? undefined
+      : profile
+      ? (profile.allowSearchEngineIndexing ?? true) && !profile.isPrivate
+      : false,
     title: profile ? `${profile.displayName || profile.username} (@${profile.username}) | Genç Sosyal` : "Kullanıcı Profili | Genç Sosyal",
     description: profile?.bio 
       ? (profile.bio.length < 110 
           ? `${profile.bio}. ${profile.displayName || profile.username} profilini Genç Sosyal'de keşfedin, projelerini inceleyin.`
           : profile.bio.substring(0, 155))
       : (profile ? `${profile.displayName || profile.username} (@${profile.username}) üretici profilini Genç Sosyal'de keşfedin. Projelerini, paylaşımlarını ve topluluklarını inceleyin.` : "Genç Sosyal üretici profilini inceleyin, projelerini ve paylaşımlarını keşfedin."),
-    canonicalPath: profile?.username ? `/profile/${profile.username}` : undefined,
+    canonicalPath: profile?.username ? `/profile/${profile.username}` : username ? `/profile/${username}` : undefined,
     ogImage: profile?.avatarUrl,
   });
 
@@ -290,7 +294,7 @@ export function Profile() {
           description="Aradığınız profil mevcut değil, silinmiş veya kullanıcı adı değiştirilmiş olabilir."
           action={{
             label: "Akışa Dön",
-            onClick: () => navigate("/home"),
+            onClick: () => navigate("/"),
           }}
         />
       </div>
@@ -344,7 +348,7 @@ export function Profile() {
             type="button"
             onClick={() => {
               if (window.history.length > 1) navigate(-1);
-              else navigate("/home");
+              else navigate("/");
             }}
             aria-label="Geri Dön"
             className="w-9 h-9 flex items-center justify-center -ml-1 rounded-full bg-slate-100/80 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 transition-colors active:scale-95 cursor-pointer border border-slate-200/50 dark:border-white/[0.06]"

@@ -32,6 +32,8 @@ export function AppLayout() {
   const isProfilePage = location.pathname.startsWith("/profile");
   const isMessageThread = location.pathname.startsWith("/messages/") && location.pathname !== "/messages";
 
+  const isMessagesRoute = location.pathname.startsWith("/messages");
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#080E1A] text-slate-900 dark:text-slate-100 font-sans flex flex-col transition-colors relative selection:bg-blue-500/20">
       {/* 1. Global Header (Hidden on Profile pages) */}
@@ -60,7 +62,7 @@ export function AppLayout() {
           id="main-content"
           className={`flex-1 min-w-0 bg-transparent ${
             isMessageThread ? "pb-0" : "pb-[calc(76px+env(safe-area-inset-bottom,0px))]"
-          } md:pb-8 ${
+          } ${isMessagesRoute ? "md:pb-0" : "md:pb-8"} ${
             isProfilePage ? "min-h-screen" : "min-h-[calc(100vh-60px)]"
           } transition-colors ${
             !isWidePage ? "border-r border-slate-200/90 dark:border-white/[0.08]" : ""

@@ -64,7 +64,7 @@ export function CreatePostPage() {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate("/home");
+      navigate("/");
     }
   };
 
@@ -133,7 +133,7 @@ export function CreatePostPage() {
             communityId={selectedCommunityId}
             onPostCreated={() => {
               window.dispatchEvent(new Event("refreshOnboarding"));
-              navigate("/home");
+              navigate("/");
             }}
           />
 

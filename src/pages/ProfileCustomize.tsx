@@ -527,7 +527,7 @@ export function ProfileCustomize() {
   };
 
   const handleNavigateBack = () => {
-    const target = profileMeta.username ? `/profile/${profileMeta.username}` : "/home";
+    const target = profileMeta.username ? `/profile/${profileMeta.username}` : "/";
     if (!isDirty) {
       navigate(target);
       return;

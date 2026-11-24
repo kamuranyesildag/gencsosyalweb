@@ -81,10 +81,11 @@ type PrimaryFeedTab = "for_you" | "following" | "projects" | "communities";
 
 export function Feed() {
   useSEO({
-    title: "Akış — Keşfet ve Paylaş | Genç Sosyal",
+    title: "Genç Sosyal — Genç Üretici ve Yazılımcı Platformu",
     description:
-      "Genç Sosyal akışında genç yazılımcıların ve üreticilerin en yeni projelerini, güncel fikirlerini ve teknoloji paylaşımlarını canlı takip edin.",
-    canonicalPath: "/home",
+      "Genç üreticilerin, yazılımcıların ve tasarımcıların projelerini, takımlarını, topluluklarını ve fikirlerini paylaştığı yeni nesil sosyal platform.",
+    canonicalPath: "/",
+    allowIndexing: true,
   });
 
   const navigate = useNavigate();

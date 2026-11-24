@@ -802,6 +802,17 @@ export async function runMigration(isStandalone = false) {
     await execSafe(`ALTER TABLE "notifications" ADD COLUMN IF NOT EXISTS "emergency_alert_id" integer REFERENCES "emergency_alerts"("id") ON DELETE SET NULL;`);
     await execSafe(`CREATE INDEX IF NOT EXISTS "notifications_emergency_alert_idx" ON "notifications" ("emergency_alert_id");`);
 
+    // Group Chat & Modern Messaging Columns
+    await execSafe(`ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "is_group" boolean NOT NULL DEFAULT false;`);
+    await execSafe(`ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "name" varchar(100);`);
+    await execSafe(`ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "description" text;`);
+    await execSafe(`ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "avatar_url" text;`);
+    await execSafe(`ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "created_by" integer REFERENCES "users"("id") ON DELETE SET NULL;`);
+    await execSafe(`ALTER TABLE "conversation_members" ADD COLUMN IF NOT EXISTS "role" varchar(20) NOT NULL DEFAULT 'MEMBER';`);
+    await execSafe(`ALTER TABLE "conversation_members" ADD COLUMN IF NOT EXISTS "last_read_at" timestamp;`);
+    await execSafe(`ALTER TABLE "messages" ADD COLUMN IF NOT EXISTS "message_type" varchar(20) NOT NULL DEFAULT 'TEXT';`);
+    await execSafe(`CREATE INDEX IF NOT EXISTS "conversations_is_group_idx" ON "conversations" ("is_group");`);
+
     console.log("✅ Database migrations completed successfully.");
   } catch (error: any) {
     console.error("❌ Database migration failed:", error);

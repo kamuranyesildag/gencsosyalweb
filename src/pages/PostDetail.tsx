@@ -277,7 +277,14 @@ export function PostDetail() {
           : (post.content.length > 155 ? post.content.substring(0, 152) + "..." : post.content))
       : (post ? `${post.user?.displayName || post.user?.username} tarafından paylaşılan gönderiyi ve yorumları Genç Sosyal'de inceleyin.` : "Genç Sosyal topluluğunda paylaşılan gönderiyi ve tartışmaları inceleyin."),
     canonicalPath: id ? `/post/${id}` : undefined,
-    allowIndexing: post ? (post.visibility === "PUBLIC" && post.moderationStatus === "APPROVED" && (post.user?.allowSearchEngineIndexing ?? true) && !post.user?.isPrivate) : false,
+    allowIndexing: loadingPost
+      ? undefined
+      : post
+      ? post.visibility === "PUBLIC" &&
+        post.moderationStatus === "APPROVED" &&
+        (post.user?.allowSearchEngineIndexing ?? true) &&
+        !post.user?.isPrivate
+      : false,
     ogImage: post?.mediaUrls?.[0] || post?.user?.avatarUrl,
   });
 
@@ -388,7 +395,7 @@ export function PostDetail() {
           description="Görüntülemek istediğiniz gönderi mevcut değil veya silinmiş olabilir."
           action={{
             label: "Ana Sayfaya Dön",
-            onClick: () => navigate("/home")
+            onClick: () => navigate("/")
           }}
         />
       </div>
@@ -414,7 +421,7 @@ export function PostDetail() {
 
       {/* Main Post Card */}
       <div className="border-b border-slate-200/80 dark:border-white/[0.08] p-2 sm:p-4">
-        <PostCard post={post} onPostDeleted={() => navigate("/home")} />
+        <PostCard post={post} onPostDeleted={() => navigate("/")} />
 
         {/* Collaborators Card */}
         {collaborators.length > 0 || user?.id === post.userId ? (

@@ -1,6 +1,6 @@
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router";
 import { MotionConfig } from "motion/react";
 import { AppLayout } from "./layouts/AppLayout";
 import { Feed } from "./pages/Feed";
@@ -52,11 +52,16 @@ import { ConfirmDialogContainer } from "./components/ui/ConfirmDialog"; // for l
 import { SplashScreen } from "./components/ui/SplashScreen";
 import { RouteLoadingBar } from "./components/ui/RouteLoadingBar";
 
+const HashtagLegacyRedirect = () => {
+  const { name } = useParams<{ name: string }>();
+  return <Navigate to={name ? `/hashtags/${encodeURIComponent(name)}` : "/explore"} replace />;
+};
+
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuthStore();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "admin" && user.role !== "superadmin" && user.role !== "ADMIN" && user.role !== "SUPERADMIN") return <Navigate to="/home" replace />;
+  if (user.role !== "admin" && user.role !== "superadmin" && user.role !== "ADMIN" && user.role !== "SUPERADMIN") return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -70,7 +75,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthStore();
   if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/home" replace />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -93,7 +98,7 @@ export default function App() {
 
               {/* 2. Standalone Modern Landing Page */}
               <Route path="/welcome" element={<Landing />} />
-              <Route path="/landing" element={<Landing />} />
+              <Route path="/landing" element={<Navigate to="/welcome" replace />} />
 
               {/* 3. General Informational Pages using BaseLayout */}
               <Route element={<BaseLayout />}>
@@ -101,14 +106,14 @@ export default function App() {
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/kvkk" element={<KvkkDisclosure />} />
-                <Route path="/aydinlatma-metni" element={<KvkkDisclosure />} />
+                <Route path="/aydinlatma-metni" element={<Navigate to="/kvkk" replace />} />
                 <Route path="/account-suspended" element={<AccountSuspended />} />
               </Route>
 
               {/* Core Feed & Logged In Routes using AppLayout (Sidebars) */}
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Feed />} />
-                <Route path="/home" element={<Feed />} />
+                <Route path="/home" element={<Navigate to="/" replace />} />
                 <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
@@ -136,7 +141,7 @@ export default function App() {
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/hashtags/:name" element={<HashtagDetail />} />
-                <Route path="/hashtag/:name" element={<HashtagDetail />} />
+                <Route path="/hashtag/:name" element={<HashtagLegacyRedirect />} />
                 <Route path="/sitemap" element={<HtmlSitemap />} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/support/:id" element={<ProtectedRoute><SupportDetail /></ProtectedRoute>} />

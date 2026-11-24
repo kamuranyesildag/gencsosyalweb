@@ -337,7 +337,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 {/* Center Brand Wordmark (No GS Box, "Sosyal" in Blue) */}
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-auto">
                   <Link
-                    to="/home"
+                    to="/"
                     aria-label="Genç Sosyal Ana Sayfa"
                     className="group flex flex-col items-center justify-center select-none px-2 py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                   >
@@ -472,7 +472,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
           {/* 2. Center Zone: Iconic Centered "Genç Sosyal" Wordmark (No GS Box) */}
           <div className="flex items-center justify-center justify-self-center">
             <Link
-              to="/home"
+              to="/"
               aria-label="Genç Sosyal Ana Sayfa"
               className="group relative flex flex-col items-center justify-center select-none px-4 py-1.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 transition-transform active:scale-[0.98]"
             >

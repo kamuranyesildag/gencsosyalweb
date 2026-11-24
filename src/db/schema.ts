@@ -342,6 +342,11 @@ export const storyViews = pgTable('story_views', {
 
 export const conversations = pgTable('conversations', {
   id: serial('id').primaryKey(),
+  isGroup: boolean('is_group').default(false).notNull(),
+  name: varchar('name', { length: 100 }),
+  description: text('description'),
+  avatarUrl: text('avatar_url'),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -349,6 +354,8 @@ export const conversations = pgTable('conversations', {
 export const conversationMembers = pgTable('conversation_members', {
   conversationId: integer('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 20 }).default('MEMBER').notNull(), // ADMIN, MEMBER
+  lastReadAt: timestamp('last_read_at'),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (t) => ({
   pk: primaryKey({ columns: [t.conversationId, t.userId] }),
@@ -360,6 +367,7 @@ export const messages = pgTable('messages', {
   senderId: integer('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content'),
   mediaUrl: text('media_url'),
+  messageType: varchar('message_type', { length: 20 }).default('TEXT').notNull(), // TEXT, SYSTEM
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => ({

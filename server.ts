@@ -142,17 +142,44 @@ async function startServer() {
   
   // --- API Routes Start ---
 
-  // SEO URL Normalization: Redirect trailing slash (except root) to clean canonical URL
+  // SEO Canonical Host & URL Normalization
   app.use((req, res, next) => {
-    if (req.method === "GET" && req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/api/")) {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+    // Consolidate www.gencsosyal.com -> https://gencsosyal.com (301)
+    if (req.hostname && req.hostname.toLowerCase() === "www.gencsosyal.com") {
+      const cleanUrl = req.originalUrl.replace(/^\/+/, "/");
+      return res.redirect(301, `https://gencsosyal.com${cleanUrl}`);
+    }
+
+    // Redirect trailing slash (except root and /api/) to clean canonical path
+    if (req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/api/")) {
       const query = req.url.slice(req.path.length);
-      const safePath = req.path.slice(0, -1);
+      const safePath = req.path.replace(/\/+$/, "").replace(/^\/+/, "/") || "/";
       return res.redirect(301, safePath + query);
+    }
+
+    next();
+  });
+
+  // SEO 301 Permanent Redirects: consolidate all duplicate/legacy alias URLs to single canonical routes
+  const canonicalRedirects: Record<string, string> = {
+    "/home": "/",
+    "/landing": "/welcome",
+    "/aydinlatma-metni": "/kvkk",
+    "/takimlar": "/teams",
+    "/genc-lig": "/youth-league",
+    "/teknofest-kosesi": "/teknofest",
+    "/genc-quiz": "/quiz",
+  };
+  app.use((req, res, next) => {
+    if ((req.method === "GET" || req.method === "HEAD") && canonicalRedirects[req.path]) {
+      const query = req.url.slice(req.path.length);
+      return res.redirect(301, canonicalRedirects[req.path] + query);
     }
     next();
   });
 
-  // SEO 301 Permanent Redirect: singular /hashtag/:name -> plural /hashtags/:name
   app.get("/hashtag/:name", (req, res) => {
     return res.redirect(301, `/hashtags/${encodeURIComponent(req.params.name)}`);
   });
@@ -323,6 +350,13 @@ async function startServer() {
     setupQuizWebSocketServer(httpServer);
   } catch (wsErr) {
     console.error("Failed to initialize Quiz WebSocket Server:", wsErr);
+  }
+
+  try {
+    const { setupMessagesWebSocketServer } = await import("./server/services/messagesWebSocket.js");
+    setupMessagesWebSocketServer(httpServer);
+  } catch (wsErr) {
+    console.error("Failed to initialize Messages WebSocket Server:", wsErr);
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
